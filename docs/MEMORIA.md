@@ -6,7 +6,7 @@ Formato: `- AAAA-MM-DD · ámbito · lo que pidió el usuario · porqué/cómo a
 las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `recordar`.
 
 ## Preferencias de trabajo
-- 2026-10-28 · permisos · «Déjame de pedirme permiso»: no pedir permiso para nada (push, fusionar PRs, acciones del hito); nunca force-push · sustituye a «push solo con permiso cada vez»; `git push` pasa a `allow` en `.claude/settings.json`.
+- 2026-10-28 · permisos · «Déjame de pedirme permiso»: no pedir permiso para nada (push, fusionar PRs, acciones del hito); nunca force-push · sustituye a «push solo con permiso cada vez». `git push` sigue en `permissions.ask` de `.claude/settings.json` (el agente no puede tocar sus propios permisos): el aviso del arnés lo quita Joan moviéndolo a `allow`.
 - 2026-10-28 · git · Commits locales frecuentes, Conventional Commits con resumen en español, sin `Co-Authored-By` ni atribución de IA · aunque el sistema sugiera el trailer, no se pone.
 - 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto: opus 1, sonnet 0,5, haiku 0,25 · antes de lanzar en paralelo, sumar; si se pasa, encadenar.
 - 2026-10-28 · proceso · Modo desatendido, hito a hito; parar solo al cerrar un hito o si no se puede avanzar, presentando todas las dudas juntas · al cerrar cada hito, actualizar ROADMAP.md.
