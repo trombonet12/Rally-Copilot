@@ -11,6 +11,8 @@
     <!-- Descarga larga de mapas con WorkManager en primer plano y su notificación de progreso. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- Conducción: servicio en primer plano de ubicación arrancado por el usuario (Empezar/Conducir). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <uses-feature
@@ -50,6 +52,11 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+
+        <service
+            android:name=".data.navegacion.ServicioNavegacion"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
