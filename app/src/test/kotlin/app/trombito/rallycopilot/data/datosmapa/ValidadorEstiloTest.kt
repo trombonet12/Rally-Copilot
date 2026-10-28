@@ -6,6 +6,7 @@ import org.junit.Test
 
 class ValidadorEstiloTest {
     private val raiz = "file:///data/user/0/app.trombito.rallycopilot/files/mapa"
+    private val absoluta = "/data/user/0/app.trombito.rallycopilot/files/mapa"
 
     private fun valido(json: String) = ValidadorEstilo.esValido(json, raiz)
 
@@ -53,13 +54,23 @@ class ValidadorEstiloTest {
     }
 
     @Test
-    fun `acepta mbtiles de file bajo la carpeta del mapa`() {
-        assertTrue(valido("""{"sources":{"sat":{"type":"raster","url":"mbtiles://$raiz/detalle.mbtiles"}}}"""))
+    fun `acepta mbtiles con ruta absoluta bajo la carpeta del mapa`() {
+        // Spike en emulador (MapLibre 13.6.1): MBTilesFileSource solo admite rutas absolutas, sin file://.
+        assertTrue(valido("""{"sources":{"sat":{"type":"raster","url":"mbtiles://$absoluta/detalle.mbtiles"}}}"""))
+        assertTrue(valido("""{"sources":{"sat":{"type":"raster","tiles":["mbtiles://$absoluta/detalle.mbtiles"]}}}"""))
     }
 
     @Test
-    fun `rechaza mbtiles de file fuera de la carpeta del mapa`() {
+    fun `rechaza mbtiles con file - MapLibre no lo carga`() {
+        assertFalse(valido("""{"sources":{"sat":{"type":"raster","url":"mbtiles://$raiz/detalle.mbtiles"}}}"""))
         assertFalse(valido("""{"sources":{"sat":{"url":"mbtiles://file:///otra/ruta/x.mbtiles"}}}"""))
+    }
+
+    @Test
+    fun `rechaza mbtiles con ruta absoluta fuera de la carpeta del mapa`() {
+        assertFalse(valido("""{"sources":{"sat":{"url":"mbtiles://${absoluta}2/x.mbtiles"}}}"""))
+        assertFalse(valido("""{"sources":{"sat":{"url":"mbtiles:///otra/ruta/x.mbtiles"}}}"""))
+        assertFalse(valido("""{"sources":{"sat":{"url":"mbtiles://$absoluta/../secreto.mbtiles"}}}"""))
     }
 
     @Test
