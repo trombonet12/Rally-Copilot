@@ -1,0 +1,141 @@
+package app.trombito.rallycopilot.motor.ruta
+
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import kotlin.math.cos
+
+class SeguidorRutaTest {
+    private val metrosPorGradoLat = 111_194.9
+    private val metrosPorGradoLon = metrosPorGradoLat * cos(Math.toRadians(39.6))
+
+    private fun p(
+        este: Double,
+        norte: Double,
+    ) = PuntoGeo(39.6 + norte / metrosPorGradoLat, 2.9 + este / metrosPorGradoLon)
+
+    private fun m(
+        tipo: TipoManiobra,
+        inicio: Int,
+        fin: Int,
+        longitudM: Double,
+        tiempoS: Double,
+    ) = Maniobra(tipo, tipo.name, emptyList(), inicio, fin, longitudM, tiempoS, null)
+
+    // L: 1000 m al este y 500 m al norte; giro a la izquierda en el vértice.
+    private val ruta =
+        Ruta(
+            puntos = listOf(p(0.0, 0.0), p(1000.0, 0.0), p(1000.0, 500.0)),
+            maniobras =
+                listOf(
+                    m(TipoManiobra.SALIDA, 0, 1, 1000.0, 100.0),
+                    m(TipoManiobra.IZQUIERDA, 1, 2, 500.0, 50.0),
+                    m(TipoManiobra.DESTINO, 2, 2, 0.0, 0.0),
+                ),
+            longitudM = 1500.0,
+            tiempoS = 150.0,
+        )
+
+    @Test
+    fun `al inicio queda toda la ruta y la salida es la maniobra actual`() {
+        val e = SeguidorRuta(ruta).actualizar(p(0.0, 0.0), 1_000_000)
+        assertEquals(1500.0, e.distanciaRestanteM, 1.0)
+        assertEquals(150.0, e.tiempoRestanteS, 0.1)
+        assertEquals(TipoManiobra.SALIDA, e.maniobraActual?.tipo)
+        assertEquals(0.0, e.distanciaAManiobraM, 1.0)
+        assertEquals(TipoManiobra.IZQUIERDA, e.maniobraSiguiente?.tipo)
+        assertEquals(0.0, e.distanciaALaRutaM, 0.5)
+        assertFalse(e.llegado)
+    }
+
+    @Test
+    fun `en el primer tramo calcula restantes eta y maniobras`() {
+        val e = SeguidorRuta(ruta).actualizar(p(400.0, 0.0), 1_000_000)
+        assertEquals(1100.0, e.distanciaRestanteM, 1.0)
+        assertEquals(110.0, e.tiempoRestanteS, 0.1)
+        assertEquals(1_110_000.0, e.llegadaMs.toDouble(), 200.0)
+        assertEquals(TipoManiobra.IZQUIERDA, e.maniobraActual?.tipo)
+        assertEquals(600.0, e.distanciaAManiobraM, 1.0)
+        assertEquals(TipoManiobra.DESTINO, e.maniobraSiguiente?.tipo)
+        assertFalse(e.llegado)
+    }
+
+    @Test
+    fun `tras el giro la maniobra pendiente es el destino`() {
+        val e = SeguidorRuta(ruta).actualizar(p(1000.0, 200.0), 0)
+        assertEquals(300.0, e.distanciaRestanteM, 1.0)
+        assertEquals(30.0, e.tiempoRestanteS, 0.1)
+        assertEquals(TipoManiobra.DESTINO, e.maniobraActual?.tipo)
+        assertEquals(300.0, e.distanciaAManiobraM, 1.0)
+        assertNull(e.maniobraSiguiente)
+    }
+
+    @Test
+    fun `llega a menos de 30 m del final`() {
+        val seguidor = SeguidorRuta(ruta)
+        assertFalse(seguidor.actualizar(p(1000.0, 460.0), 0).llegado)
+        val e = seguidor.actualizar(p(1000.0, 475.0), 1000)
+        assertTrue(e.llegado)
+        assertEquals(25.0, e.distanciaRestanteM, 1.0)
+    }
+
+    @Test
+    fun `distancia a la ruta lateral`() {
+        val e = SeguidorRuta(ruta).actualizar(p(400.0, 60.0), 0)
+        assertEquals(60.0, e.distanciaALaRutaM, 0.5)
+        assertEquals(1100.0, e.distanciaRestanteM, 1.0)
+        assertFalse(e.llegado)
+    }
+
+    @Test
+    fun `tolera retroceder unos metros pero no saltar atras en la misma carretera`() {
+        val seguidor = SeguidorRuta(ruta)
+        seguidor.actualizar(p(800.0, 0.0), 0)
+        assertEquals(1500.0 - 790.0, seguidor.actualizar(p(790.0, 0.0), 1000).distanciaRestanteM, 1.0)
+    }
+
+    // Horquilla: ida 1000 m al este, 20 m al norte y vuelta al oeste por una calle paralela.
+    private val horquilla =
+        Ruta(
+            puntos = listOf(p(0.0, 0.0), p(1000.0, 0.0), p(1000.0, 20.0), p(0.0, 20.0)),
+            maniobras =
+                listOf(
+                    m(TipoManiobra.SALIDA, 0, 1, 1000.0, 100.0),
+                    m(TipoManiobra.IZQUIERDA, 1, 2, 20.0, 2.0),
+                    m(TipoManiobra.IZQUIERDA, 2, 3, 1000.0, 100.0),
+                    m(TipoManiobra.DESTINO, 3, 3, 0.0, 0.0),
+                ),
+            longitudM = 2020.0,
+            tiempoS = 202.0,
+        )
+
+    @Test
+    fun `no salta al tramo de vuelta que pasa a 20 m`() {
+        val seguidor = SeguidorRuta(horquilla)
+        seguidor.actualizar(p(600.0, 0.0), 0)
+        // (600, 20) está sobre la calle de vuelta (a 0 m) pero muy lejos por delante en la ruta.
+        val e = seguidor.actualizar(p(600.0, 20.0), 1000)
+        assertEquals(2020.0 - 600.0, e.distanciaRestanteM, 1.0)
+        assertEquals(20.0, e.distanciaALaRutaM, 0.5)
+    }
+
+    @Test
+    fun `acepta un salto cuando la posicion vuelve a caer sobre la ruta lejos de donde estaba`() {
+        val seguidor = SeguidorRuta(horquilla)
+        seguidor.actualizar(p(600.0, 0.0), 0)
+        // Se reincorpora por la calle de vuelta a 200 m de su inicio: 1820 m recorridos.
+        val e = seguidor.actualizar(p(200.0, 20.0), 120_000)
+        assertEquals(2020.0 - 1820.0, e.distanciaRestanteM, 1.0)
+        assertEquals(0.0, e.distanciaALaRutaM, 0.5)
+        assertEquals(TipoManiobra.DESTINO, e.maniobraActual?.tipo)
+    }
+
+    @Test
+    fun `la primera posicion busca en toda la ruta`() {
+        val e = SeguidorRuta(horquilla).actualizar(p(300.0, 20.0), 0)
+        assertEquals(2020.0 - 1720.0, e.distanciaRestanteM, 1.0)
+    }
+}
