@@ -6,7 +6,14 @@ Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuest
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **0 abiertas** · 18 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **1 abierta** (H1) · 18 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+
+## Abiertas en H1
+
+### Acceso al mapa antes de H2
+- **Contexto:** en H1 hay mapa, posición, velocidad y límite, pero aún no navegación ni tramos (H2/H6). Hace falta una puerta de entrada provisional al mapa desde el menú de inicio.
+- **Opciones:** A) «Conducir» abre el mapa en modo libre (lo que será el modo sin destino de H2); B) entrada aparte «Mapa» que desaparece en H10; C) el mapa como pantalla de inicio y el menú encima.
+- **Recomendación:** A. Se sigue con A mientras no respondas (es reversible); «Mapas offline» y «Ajustes» también se activan.
 
 ## Bloquean H1–H2
 
