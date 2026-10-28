@@ -10,9 +10,9 @@ data class ResultadoBusqueda(
     val punto: PuntoGeo,
 )
 
-/** Búsqueda de destino sin red: lugares, calles y POIs de OSM. Las coordenadas y enlaces pegados van aparte (motor). */
+/** Búsqueda de destino sin red en lugares, calles y POIs de OSM (coordenadas pegadas: `EnlaceUbicacion`). */
 interface Buscador {
-    /** Vacío si no hay índice instalado o el texto tiene menos de 2 letras. [cerca] ordena por cercanía a igual peso. */
+    /** Vacío sin índice instalado o con menos de 2 letras. A igual importancia, [cerca] ordena por cercanía. */
     suspend fun buscar(
         texto: String,
         cerca: PuntoGeo?,
