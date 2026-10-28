@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Trombito con casco de rally, sin fondo, para la app. Fuente: docs/assets/mascota-rally.svg (viewBox 108). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M46,47H27A7,7 0 0 0 27,61H46" android:strokeColor="#B97A0C" android:strokeWidth="5.4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M46,47H27A7,7 0 0 0 27,61H46" android:strokeColor="#F5C033" android:strokeWidth="2" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M42,44V64" android:strokeColor="#B97A0C" android:strokeWidth="3.4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M30,48C46,48 54,36 66,26.5L66,81.5C54,72 46,60 30,60Z" android:fillColor="#E8A92A" />
+    <path android:pathData="M49,54a19,28 0 1,0 38,0a19,28 0 1,0 -38,0Z" android:fillColor="#C98A12" />
+    <path android:pathData="M52.2,54a15.8,24.6 0 1,0 31.6,0a15.8,24.6 0 1,0 -31.6,0Z" android:fillColor="#F9D768" />
+    <path android:pathData="M52.5,63a3,3 0 1,0 6,0a3,3 0 1,0 -6,0Z" android:fillColor="#F6A58A" />
+    <path android:pathData="M77.5,63a3,3 0 1,0 6,0a3,3 0 1,0 -6,0Z" android:fillColor="#F6A58A" />
+    <path android:pathData="M45,62C43,34 54,17 68,17C82,17 93,34 91,62C91,66 88.5,68 85.5,68L84,68C85,49 78,38 68,38C58,38 51,49 52,68L50.5,68C47.5,68 45,66 45,62Z" android:fillColor="#F4F4F2" android:strokeColor="#9AA0A8" android:strokeWidth="1.6" android:strokeLineJoin="round" />
+    <path android:pathData="M63.4,17.9V38.6M72.6,17.9V38.6" android:strokeColor="#E5AB46" android:strokeWidth="1.1" />
+    <path android:pathData="M64.8,17.3C66.8,17 69.2,17 71.2,17.3L71.2,38.1C69.2,37.9 66.8,37.9 64.8,38.1Z" android:fillColor="#D8232A" />
+    <path android:pathData="M49.6,38.6C52.6,28 59.6,24 68,24C76.4,24 83.4,28 86.4,38.6L82.6,40C80,32 75,29.4 68,29.4C61,29.4 56,32 53.4,40Z" android:fillColor="#2B3540" android:strokeColor="#1B2128" android:strokeWidth="0.8" android:strokeLineJoin="round" />
+    <path android:pathData="M57.5,28.6C60.6,26.6 64,25.8 68,25.8" android:strokeColor="#6B7B8A" android:strokeWidth="1.1" android:strokeLineCap="round" />
+    <path android:pathData="M47.8,46a1.7,1.7 0 1,0 3.4,0a1.7,1.7 0 1,0 -3.4,0Z" android:fillColor="#9AA0A8" />
+    <path android:pathData="M84.8,46a1.7,1.7 0 1,0 3.4,0a1.7,1.7 0 1,0 -3.4,0Z" android:fillColor="#9AA0A8" />
+    <path android:pathData="M52.4,50a7.6,7.6 0 1,0 15.2,0a7.6,7.6 0 1,0 -15.2,0Z" android:fillColor="#FFFFFF" android:strokeColor="#D8232A" android:strokeWidth="2.8" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M68.4,50a7.6,7.6 0 1,0 15.2,0a7.6,7.6 0 1,0 -15.2,0Z" android:fillColor="#FFFFFF" android:strokeColor="#D8232A" android:strokeWidth="2.8" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M57.4,51a3.4,3.4 0 1,0 6.8,0a3.4,3.4 0 1,0 -6.8,0Z" android:fillColor="#2B1B0E" />
+    <path android:pathData="M73.4,51a3.4,3.4 0 1,0 6.8,0a3.4,3.4 0 1,0 -6.8,0Z" android:fillColor="#2B1B0E" />
+    <path android:pathData="M60.8,49.8a1.2,1.2 0 1,0 2.4,0a1.2,1.2 0 1,0 -2.4,0Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M76.8,49.8a1.2,1.2 0 1,0 2.4,0a1.2,1.2 0 1,0 -2.4,0Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M62,64Q68,70 74,64" android:strokeColor="#6B3F08" android:strokeWidth="2.4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+</vector>

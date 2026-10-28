@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="160" height="160" role="img" aria-label="Trombito con casco de rally">
+  <path d="M46,47H27A7,7 0 0 0 27,61H46" fill="none" stroke="#B97A0C" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M46,47H27A7,7 0 0 0 27,61H46" fill="none" stroke="#F5C033" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M42,44V64" fill="none" stroke="#B97A0C" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M30,48C46,48 54,36 66,26.5L66,81.5C54,72 46,60 30,60Z" fill="#E8A92A"/>
+  <path d="M49,54a19,28 0 1,0 38,0a19,28 0 1,0 -38,0Z" fill="#C98A12"/>
+  <path d="M52.2,54a15.8,24.6 0 1,0 31.6,0a15.8,24.6 0 1,0 -31.6,0Z" fill="#F9D768"/>
+  <path d="M52.5,63a3,3 0 1,0 6,0a3,3 0 1,0 -6,0Z" fill="#F6A58A"/>
+  <path d="M77.5,63a3,3 0 1,0 6,0a3,3 0 1,0 -6,0Z" fill="#F6A58A"/>
+  <path d="M45,62C43,34 54,17 68,17C82,17 93,34 91,62C91,66 88.5,68 85.5,68L84,68C85,49 78,38 68,38C58,38 51,49 52,68L50.5,68C47.5,68 45,66 45,62Z" fill="#F4F4F2" stroke="#9AA0A8" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M63.4,17.9V38.6M72.6,17.9V38.6" fill="none" stroke="#E5AB46" stroke-width="1.1"/>
+  <path d="M64.8,17.3C66.8,17 69.2,17 71.2,17.3L71.2,38.1C69.2,37.9 66.8,37.9 64.8,38.1Z" fill="#D8232A"/>
+  <path d="M49.6,38.6C52.6,28 59.6,24 68,24C76.4,24 83.4,28 86.4,38.6L82.6,40C80,32 75,29.4 68,29.4C61,29.4 56,32 53.4,40Z" fill="#2B3540" stroke="#1B2128" stroke-width="0.8" stroke-linejoin="round"/>
+  <path d="M57.5,28.6C60.6,26.6 64,25.8 68,25.8" fill="none" stroke="#6B7B8A" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M47.8,46a1.7,1.7 0 1,0 3.4,0a1.7,1.7 0 1,0 -3.4,0Z" fill="#9AA0A8"/>
+  <path d="M84.8,46a1.7,1.7 0 1,0 3.4,0a1.7,1.7 0 1,0 -3.4,0Z" fill="#9AA0A8"/>
+  <path d="M52.4,50a7.6,7.6 0 1,0 15.2,0a7.6,7.6 0 1,0 -15.2,0Z" fill="#FFFFFF" stroke="#D8232A" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M68.4,50a7.6,7.6 0 1,0 15.2,0a7.6,7.6 0 1,0 -15.2,0Z" fill="#FFFFFF" stroke="#D8232A" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M57.4,51a3.4,3.4 0 1,0 6.8,0a3.4,3.4 0 1,0 -6.8,0Z" fill="#2B1B0E"/>
+  <path d="M73.4,51a3.4,3.4 0 1,0 6.8,0a3.4,3.4 0 1,0 -6.8,0Z" fill="#2B1B0E"/>
+  <path d="M60.8,49.8a1.2,1.2 0 1,0 2.4,0a1.2,1.2 0 1,0 -2.4,0Z" fill="#FFFFFF"/>
+  <path d="M76.8,49.8a1.2,1.2 0 1,0 2.4,0a1.2,1.2 0 1,0 -2.4,0Z" fill="#FFFFFF"/>
+  <path d="M62,64Q68,70 74,64" fill="none" stroke="#6B3F08" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

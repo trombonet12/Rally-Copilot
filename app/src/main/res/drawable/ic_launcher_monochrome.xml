@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Silueta para iconos temáticos (Android 13+): solo cuenta el alfa. Casco y cara en una pieza; gafas como huecos
+     (evenOdd) y visera marcada con un corte. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group android:translateY="8.4">
+        <group
+            android:pivotX="54"
+            android:pivotY="54"
+            android:scaleX="0.75"
+            android:scaleY="0.75">
+            <path android:pathData="M46,47H27A7,7 0 0 0 27,61H46" android:strokeColor="#FF000000" android:strokeWidth="5.4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+            <path android:pathData="M42,44V64" android:strokeColor="#FF000000" android:strokeWidth="3.4" android:strokeLineCap="round" />
+            <path android:pathData="M30,48C46,48 54,36 66,26.5L66,81.5C54,72 46,60 30,60Z" android:fillColor="#FF000000" />
+            <path android:pathData="M45,62C43,34 54,17 68,17C82,17 93,34 91,62C91,66 88.5,68 85.5,68L84,68C85,49 78,38 68,38C58,38 51,49 52,68L50.5,68C47.5,68 45,66 45,62Z" android:fillColor="#FF000000" />
+            <path
+                android:fillType="evenOdd"
+                android:fillColor="#FF000000"
+                android:pathData="M49,54a19,28 0 1,0 38,0a19,28 0 1,0 -38,0ZM53.4,50a6.6,6.6 0 1,0 13.2,0a6.6,6.6 0 1,0 -13.2,0ZM69.4,50a6.6,6.6 0 1,0 13.2,0a6.6,6.6 0 1,0 -13.2,0Z" />
+        </group>
+    </group>
+</vector>
