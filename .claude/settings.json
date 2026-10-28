@@ -22,13 +22,12 @@
       "Write(.claude/agents/**)",
       "Edit(.claude/agents/**)",
       "Edit(.claude/skills/**)",
-      "Edit(docs/MEMORIA.md)"
-    ],
-    "ask": [
+      "Edit(docs/MEMORIA.md)",
       "Bash(git push*)",
       "Bash(git -C * push*)",
       "PowerShell(git push*)",
-      "PowerShell(git -C * push*)"
+      "PowerShell(git -C * push*)",
+      "Bash(*)"
     ],
     "deny": [
       "Read(**/.env)",
