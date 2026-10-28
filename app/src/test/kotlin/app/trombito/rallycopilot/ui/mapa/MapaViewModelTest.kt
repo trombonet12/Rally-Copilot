@@ -197,6 +197,16 @@ class MapaViewModelTest {
         }
 
     @Test
+    fun `datos instalados con estilo ilegible se marcan como danados`() =
+        runTest {
+            repositorio.estilosDisponibles = null
+            val vm = crear()
+            recoger(vm)
+            assertFalse(vm.uiState.value.hayDatos)
+            assertTrue(vm.uiState.value.datosDanados)
+        }
+
+    @Test
     fun `descartar el aviso lo pide al repositorio`() =
         runTest {
             repositorio.estadoMutable.value = EstadoDatosMapa(instalados = instalados, avisoActualizado = "2026.10.1")

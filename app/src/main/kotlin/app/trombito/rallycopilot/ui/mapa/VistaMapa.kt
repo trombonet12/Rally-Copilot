@@ -43,6 +43,16 @@ private const val ZOOM_INICIAL = 9.0
 private const val ZOOM_SEGUIMIENTO = 15.0
 private const val PROVEEDOR = "gps"
 
+/** Por debajo de este zoom (vista de la isla) no es un zoom de conducción: al seguir se usa [ZOOM_SEGUIMIENTO]. */
+private const val ZOOM_MINIMO_SEGUIMIENTO = 12.0
+
+/**
+ * Zoom con el que la cámara sigue al coche: el que tenía el usuario (o el restaurado tras girar) si es de conducción;
+ * sin cámara previa o con la vista de toda la isla (z9 inicial), ~15.
+ */
+internal fun zoomParaSeguir(zoomActual: Double?): Double =
+    if (zoomActual == null || zoomActual < ZOOM_MINIMO_SEGUIMIENTO) ZOOM_SEGUIMIENTO else zoomActual
+
 /** Lo que la vista del mapa intercambia con la pantalla sobre la cámara. */
 data class CamaraVistaMapa(
     /** Cámara a restaurar al crear la vista (p. ej. tras girar la pantalla); null = centro inicial de Mallorca. */
@@ -215,7 +225,7 @@ private class ControladorMapa(
 
     /** No se guarda la cámara por defecto (Mallorca a z9): solo la restaurada o la que ya sigue al coche. */
     private var guardarCamara = camaraInicial != null
-    private var zoomSeguimiento = camaraInicial?.zoom ?: ZOOM_SEGUIMIENTO
+    private var zoomActual: Double? = camaraInicial?.zoom
 
     fun activar(valor: Boolean) {
         activo = valor
@@ -251,7 +261,7 @@ private class ControladorMapa(
         val posicionCamara = m.cameraPosition
         val centro: LatLng? = posicionCamara.target
         if (centro == null) return
-        zoomSeguimiento = posicionCamara.zoom
+        zoomActual = posicionCamara.zoom
         alCambiarCamara(CamaraMapa(centro.latitude, centro.longitude, posicionCamara.zoom))
     }
 
@@ -327,7 +337,7 @@ private class ControladorMapa(
     private fun fijarCamara(componente: LocationComponent) {
         if (siguiendo) {
             componente.cameraMode = CameraMode.TRACKING_GPS
-            componente.zoomWhileTracking(zoomSeguimiento)
+            componente.zoomWhileTracking(zoomParaSeguir(zoomActual))
         } else {
             componente.cameraMode = CameraMode.NONE
         }

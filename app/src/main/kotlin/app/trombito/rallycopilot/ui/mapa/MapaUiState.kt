@@ -29,6 +29,9 @@ data class MapaUiState(
 ) {
     val hayDatos: Boolean get() = estilos != null
 
+    /** Hay datos instalados pero su estilo no se pudo cargar (rechazado o ilegible). */
+    val datosDanados: Boolean get() = !cargando && estilos == null && datos.instalados != null
+
     val puedeSatelite: Boolean get() = estilos?.satelite != null
 
     /** La capa que se dibuja: el satélite solo si está instalado. */

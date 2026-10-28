@@ -48,6 +48,8 @@ import app.trombito.rallycopilot.ui.theme.Espacio
 const val ETIQUETA_CARGANDO = "mapa-cargando"
 const val ETIQUETA_SIN_DATOS = "mapa-sin-datos"
 const val ETIQUETA_SIN_DATOS_BOTON = "mapa-sin-datos-boton"
+const val ETIQUETA_DANADOS = "mapa-danados"
+const val ETIQUETA_DANADOS_BOTON = "mapa-danados-boton"
 const val ETIQUETA_AVISO = "mapa-aviso"
 const val ETIQUETA_AVISO_CERRAR = "mapa-aviso-cerrar"
 const val ETIQUETA_CAPA_MAPA = "mapa-capa-mapa"
@@ -145,9 +147,17 @@ private fun ZonaMapa(
     Box(modifier) {
         val json = estado.estiloJson
         when {
-            estado.cargando -> Cargando()
-            json == null -> TarjetaSinDatos(acciones.onAbrirMapasOffline, Modifier.align(Alignment.Center))
-            else -> mapa(json, Modifier.fillMaxSize())
+            estado.cargando -> {
+                Cargando()
+            }
+
+            json == null -> {
+                TarjetaMapas(estado.datosDanados, acciones.onAbrirMapasOffline, Modifier.align(Alignment.Center))
+            }
+
+            else -> {
+                mapa(json, Modifier.fillMaxSize())
+            }
         }
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(lados)).padding(Espacio.s)) {
             CabeceraMapa(estado, acciones, Modifier.align(Alignment.TopStart))
@@ -175,30 +185,35 @@ private fun Cargando() {
 }
 
 @Composable
-private fun TarjetaSinDatos(
+private fun TarjetaMapas(
+    danados: Boolean,
     onAbrirMapasOffline: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val titulo = if (danados) R.string.mapa_danados_titulo else R.string.mapa_sin_datos_titulo
+    val texto = if (danados) R.string.mapa_danados_texto else R.string.mapa_sin_datos_texto
+    val etiqueta = if (danados) ETIQUETA_DANADOS else ETIQUETA_SIN_DATOS
+    val etiquetaBoton = if (danados) ETIQUETA_DANADOS_BOTON else ETIQUETA_SIN_DATOS_BOTON
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = MaterialTheme.shapes.medium,
-        modifier = modifier.padding(Espacio.xl).testTag(ETIQUETA_SIN_DATOS),
+        modifier = modifier.padding(Espacio.xl).testTag(etiqueta),
     ) {
         Column(Modifier.padding(Espacio.xl), verticalArrangement = Arrangement.spacedBy(Espacio.m)) {
             Text(
-                text = stringResource(R.string.mapa_sin_datos_titulo),
+                text = stringResource(titulo),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.semantics { heading() },
             )
             Text(
-                text = stringResource(R.string.mapa_sin_datos_texto),
+                text = stringResource(texto),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Button(
                 onClick = onAbrirMapasOffline,
-                modifier = Modifier.heightIn(min = ALTO_MINIMO_TACTIL).testTag(ETIQUETA_SIN_DATOS_BOTON),
+                modifier = Modifier.heightIn(min = ALTO_MINIMO_TACTIL).testTag(etiquetaBoton),
             ) { Text(stringResource(R.string.mapa_sin_datos_boton)) }
         }
     }

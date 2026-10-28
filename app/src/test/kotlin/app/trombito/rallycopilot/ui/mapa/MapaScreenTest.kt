@@ -94,6 +94,20 @@ class MapaScreenTest {
     }
 
     @Test
+    fun `con datos instalados pero estilo ilegible avisa de mapas danados y no de descargar`() {
+        var abierto = 0
+        poner(
+            MapaUiState(cargando = false, datos = datos),
+            acciones = AccionesMapa(onAbrirMapasOffline = { abierto++ }),
+        )
+        assertFalse(banco.hay(ETIQUETA_MAPA_FALSO))
+        assertFalse(banco.hay(ETIQUETA_SIN_DATOS))
+        assertTrue("Los mapas instalados están dañados" in banco.textos(banco.conEtiqueta(ETIQUETA_DANADOS)))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_DANADOS_BOTON))
+        assertEquals(1, abierto)
+    }
+
+    @Test
     fun `mientras carga no muestra ni mapa ni tarjeta`() {
         poner(MapaUiState(cargando = true))
         assertTrue(banco.hay(ETIQUETA_CARGANDO))

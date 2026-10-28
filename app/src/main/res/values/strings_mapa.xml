@@ -13,6 +13,8 @@
     <string name="mapa_sin_datos_titulo">Descarga los mapas de Mallorca</string>
     <string name="mapa_sin_datos_texto">Se descargan una sola vez y después el mapa funciona sin internet.</string>
     <string name="mapa_sin_datos_boton">Ir a Mapas offline</string>
+    <string name="mapa_danados_titulo">Los mapas instalados están dañados</string>
+    <string name="mapa_danados_texto">No se pueden leer. Bórralos en Mapas offline y vuelve a descargarlos.</string>
     <string name="mapa_aviso_actualizado">Mapas actualizados a la versión %1$s</string>
     <string name="mapa_aviso_cerrar">Cerrar aviso</string>
 
