@@ -17,6 +17,7 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · firma · Keystore nueva y propia de Rally Copilot (`~/.rallycopilot/`); nunca reutilizar la de otro proyecto · regla del usuario.
 - 2026-10-28 · permisos · Permiso por adelantado para crear el repo público `trombonet12/rally-copilot-data` y hacer push a él sin preguntar; el push a `Rally-Copilot` y fusionar PRs siguen pidiendo permiso cada vez.
 - 2026-10-28 · alcance de sesión · La siguiente sesión desatendida hace solo H1 y para.
+- 2026-10-28 · delegación · El agente principal es el jefe y orquestador: decide la arquitectura, reparte, revisa e integra; los subagentes (sonnet/haiku) hacen la implementación. Opus como subagente solo con una justificación clara (análisis exhaustivo, seguridad) · petición de Joan; no implementar en el principal lo que puede hacer un currante.
 - 2026-10-28 · release · Distribución actual: APK de la GitHub Release instalado con Obtainium; Play más adelante (job con `PLAY_HABILITADO`) · no activar Play sin que lo pida.
 
 ## Producto
