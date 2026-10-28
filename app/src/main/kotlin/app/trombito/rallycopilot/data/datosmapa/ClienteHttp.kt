@@ -1,6 +1,8 @@
 package app.trombito.rallycopilot.data.datosmapa
 
+import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -64,14 +66,28 @@ class ClienteHttp(
         val con = abrir(url)
         try {
             if (con.responseCode != HTTP_OK) throw IOException("HTTP ${con.responseCode} en $url")
-            con.inputStream.use { entrada ->
-                val bytes = entrada.readNBytes(MAX_TEXTO + 1)
-                if (bytes.size > MAX_TEXTO) throw IOException("Respuesta demasiado grande en $url")
-                return bytes.toString(Charsets.UTF_8)
-            }
+            return con.inputStream.use { leerTexto(it, url) }
         } finally {
             con.disconnect()
         }
+    }
+
+    /** Lee como máximo MAX_TEXTO + 1 bytes. Sin `InputStream.readNBytes` (API 33): minSdk es 26. */
+    private fun leerTexto(
+        entrada: InputStream,
+        url: String,
+    ): String {
+        val salida = ByteArrayOutputStream()
+        val buffer = ByteArray(TAMANO_BUFFER)
+        var restantes = MAX_TEXTO + 1
+        while (restantes > 0) {
+            val leidos = entrada.read(buffer, 0, minOf(buffer.size, restantes))
+            if (leidos == -1) break
+            salida.write(buffer, 0, leidos)
+            restantes -= leidos
+        }
+        if (salida.size() > MAX_TEXTO) throw IOException("Respuesta demasiado grande en $url")
+        return salida.toByteArray().toString(Charsets.UTF_8)
     }
 
     companion object {
@@ -81,6 +97,7 @@ class ClienteHttp(
         private const val TIMEOUT_MS = 30_000
         private const val MAX_REDIRECCIONES = 5
         private const val MAX_TEXTO = 1_048_576
+        private const val TAMANO_BUFFER = 8192
         private val REDIRECCIONES = setOf(301, 302, 303, 307, 308)
     }
 }
