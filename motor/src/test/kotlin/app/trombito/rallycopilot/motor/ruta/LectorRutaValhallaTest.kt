@@ -112,6 +112,59 @@ class LectorRutaValhallaTest {
     }
 
     @Test
+    fun `rotonda de entrada y salida son una sola maniobra con la via de salida`() {
+        val entrada =
+            """{"type": 26, "instruction": "Entra en la rotonda.", "time": 5.0, "length": 0.05,
+                "begin_shape_index": 1, "end_shape_index": 2, "roundabout_exit_count": 2}"""
+        val salidaRotonda =
+            """{"type": 27, "instruction": "Sal de la rotonda por Ma-11.", "street_names": ["Ma-11"],
+                "time": 3.0, "length": 0.03, "begin_shape_index": 2, "end_shape_index": 3}"""
+        val ruta = LectorRutaValhalla.leer(respuesta(leg(puntos, "$salida,$entrada,$salidaRotonda,$destino")))
+        assertEquals(3, ruta.maniobras.size)
+        val rotonda = ruta.maniobras[1]
+        assertEquals(TipoManiobra.ROTONDA_ENTRADA, rotonda.tipo)
+        assertEquals(listOf("Ma-11"), rotonda.vias)
+        assertEquals(2, rotonda.salidaRotonda)
+        assertEquals("Entra en la rotonda.", rotonda.instruccionValhalla)
+        assertEquals(1, rotonda.inicioIndice)
+        assertEquals(3, rotonda.finIndice)
+        assertEquals(80.0, rotonda.longitudM, 1e-6)
+        assertEquals(8.0, rotonda.tiempoS, 1e-9)
+        assertEquals("rotonda, segunda salida, Ma-11", FrasesManiobra.frase(rotonda))
+        assertEquals(TipoManiobra.DESTINO, ruta.maniobras[2].tipo)
+        assertEquals(230.0, ruta.longitudM, 1e-6)
+        assertEquals(28.0, ruta.tiempoS, 1e-9)
+    }
+
+    @Test
+    fun `rotonda fusionada sin vias en la salida usa las de la entrada`() {
+        val entrada =
+            """{"type": 26, "instruction": "Entra en la rotonda.", "street_names": ["Ma-13"], "time": 5.0, "length": 0.05,
+                "begin_shape_index": 1, "end_shape_index": 2, "roundabout_exit_count": 1}"""
+        val salidaRotonda =
+            """{"type": 27, "instruction": "Sal de la rotonda.", "time": 3.0, "length": 0.03,
+                "begin_shape_index": 2, "end_shape_index": 3}"""
+        val ruta = LectorRutaValhalla.leer(respuesta(leg(puntos, "$salida,$entrada,$salidaRotonda,$destino")))
+        assertEquals(3, ruta.maniobras.size)
+        assertEquals(listOf("Ma-13"), ruta.maniobras[1].vias)
+        assertEquals("rotonda, primera salida, Ma-13", FrasesManiobra.frase(ruta.maniobras[1]))
+    }
+
+    @Test
+    fun `salida de rotonda suelta se conserva tal cual`() {
+        val salidaRotonda =
+            """{"type": 27, "instruction": "Sal de la rotonda por Ma-11.", "street_names": ["Ma-11"],
+                "time": 3.0, "length": 0.03, "begin_shape_index": 0, "end_shape_index": 1}"""
+        val ruta = LectorRutaValhalla.leer(respuesta(leg(puntos, "$salidaRotonda,$destino")))
+        assertEquals(2, ruta.maniobras.size)
+        assertEquals(TipoManiobra.ROTONDA_SALIDA, ruta.maniobras[0].tipo)
+        assertEquals(listOf("Ma-11"), ruta.maniobras[0].vias)
+        assertEquals("salida de la rotonda", FrasesManiobra.frase(ruta.maniobras[0]))
+        assertEquals(30.0, ruta.maniobras[0].longitudM, 1e-6)
+        assertEquals(3.0, ruta.maniobras[0].tiempoS, 1e-9)
+    }
+
+    @Test
     fun `json roto es ruta invalida`() {
         assertInvalida("esto no es json")
         assertInvalida("[]")

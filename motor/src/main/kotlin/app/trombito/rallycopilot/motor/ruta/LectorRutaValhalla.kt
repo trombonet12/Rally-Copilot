@@ -54,7 +54,40 @@ object LectorRutaValhalla {
             delLeg.mapTo(maniobras) { maniobra(it.jsonObject, base, shape.size, metrosPorUnidad) }
         }
         if (maniobras.isEmpty()) invalida("La ruta no tiene maniobras")
-        return Ruta(puntos, maniobras, maniobras.sumOf { it.longitudM }, maniobras.sumOf { it.tiempoS })
+        return Ruta(
+            puntos,
+            fusionarRotondas(maniobras),
+            maniobras.sumOf { it.longitudM },
+            maniobras.sumOf { it.tiempoS },
+        )
+    }
+
+    /**
+     * Valhalla emite la entrada a una rotonda (sin vía) seguida de la salida (con la vía). Se funden en una sola
+     * maniobra de entrada que abarca ambas, con la vía de la salida (o de la entrada si la salida no trae).
+     */
+    private fun fusionarRotondas(lista: List<Maniobra>): List<Maniobra> {
+        val resultado = ArrayList<Maniobra>(lista.size)
+        var i = 0
+        while (i < lista.size) {
+            val actual = lista[i]
+            val siguiente = lista.getOrNull(i + 1)
+            if (actual.tipo == TipoManiobra.ROTONDA_ENTRADA && siguiente?.tipo == TipoManiobra.ROTONDA_SALIDA) {
+                resultado.add(
+                    actual.copy(
+                        vias = siguiente.vias.ifEmpty { actual.vias },
+                        finIndice = siguiente.finIndice,
+                        longitudM = actual.longitudM + siguiente.longitudM,
+                        tiempoS = actual.tiempoS + siguiente.tiempoS,
+                    ),
+                )
+                i += 2
+            } else {
+                resultado.add(actual)
+                i++
+            }
+        }
+        return resultado
     }
 
     private fun maniobra(
