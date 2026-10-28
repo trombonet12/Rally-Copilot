@@ -2,6 +2,10 @@
 
 > Propósito: pasos para publicar Rally Copilot en Google Play y dejar la subida automática · Audiencia: Joan · Actualizado: 2026-10-28 · Relacionado: [pasos-manuales.md](pasos-manuales.md), [DECISIONES.md](DECISIONES.md)
 
+> **Pospuesto (decisión de Joan, 2026-10-28):** hoy solo se distribuye por GitHub Release + Obtainium
+> ([obtainium.md](obtainium.md)). El job `play` del workflow solo corre si la variable de repo `PLAY_HABILITADO`
+> vale `true`. Este documento queda listo para cuando se active.
+
 ## Resumen
 El CI (`.github/workflows/android.yml`, adaptado de Sous Chef) genera el APK y el AAB firmados cuando un push a `main`
 cambia `version.properties` (o con `workflow_dispatch` + `publicar`). Publica la release en GitHub y, si tiene
@@ -41,7 +45,8 @@ alta la app no se puede automatizar: se hace una vez, a mano, en Play Console.
 3. En GitHub > Settings > Secrets and variables > Actions:
    - secreto `PLAY_SERVICE_ACCOUNT_JSON`: `node scripts/subir-secreto-play.mjs` (comprueba la forma, no imprime valores);
    - variable `PLAY_ESTADO`: `draft` mientras la app esté en borrador; `completed` cuando ya haya salido una versión;
-   - variable `PLAY_PISTA_CERRADA`: vacía = `alpha`; `ninguna` desactiva la promoción.
+   - variable `PLAY_PISTA_CERRADA`: vacía = `alpha`; `ninguna` desactiva la promoción;
+   - variable `PLAY_HABILITADO`: `true` para que el job `play` se ejecute (sin ella, solo GitHub Release).
 4. A partir de ahí, cada push a `main` que suba `versionMinor` o `versionMajor` publica en GitHub **y** en Play. El
    push lo hace Joan (o Claude con su permiso explícito).
 5. Parche a mano: workflow «Android» con `workflow_dispatch` en `main` y `publicar=true`.

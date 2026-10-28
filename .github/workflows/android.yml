@@ -293,7 +293,8 @@ jobs:
             --title "Rally Copilot ${VERSION}" \
             --generate-notes
 
-  # Subida a Google Play (docs/play.md). Job aparte y sin permisos: la acción de terceros no ve el keystore
+  # Subida a Google Play (docs/play.md). POSPUESTA: hoy se distribuye solo por GitHub Release + Obtainium
+  # (docs/obtainium.md); el job solo corre con la variable de repo PLAY_HABILITADO=true. Job aparte y sin permisos: la acción de terceros no ve el keystore
   # ni un GITHUB_TOKEN con escritura. Espera a `github-release` (ademas de `release`, de donde salen version y code):
   # asi, si la release de GitHub falla, nada llega a Play y se puede relanzar (el tag no existe y el mismo versionCode
   # no se sube dos veces). Si Play falla, la release de GitHub ya está hecha y el AAB va adjunto para subirlo a
@@ -303,7 +304,7 @@ jobs:
   play:
     name: Google Play (interna y prueba cerrada)
     needs: [release, github-release]
-    if: needs.release.outputs.publicar == 'true'
+    if: needs.release.outputs.publicar == 'true' && vars.PLAY_HABILITADO == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions: {}
