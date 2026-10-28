@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H0 — Preparación |
-| Estado | **completado**; QUESTIONS.md respondidas (18/18). Siguiente: H1 |
+| Hito | H1 — Mapa base offline |
+| Estado | **en curso** (2026-10-28): PRs de Dependabot → spike MapLibre → repo de datos → motor → app |
 | Último commit | ver `git log -1`. Publicado en `origin/main` con permiso de Joan (2026-10-28); repo **público** |
 
 ## Completado

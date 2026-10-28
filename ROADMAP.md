@@ -61,7 +61,7 @@ Ver Mallorca en vectorial y satélite sin conexión, con la posición GPS, la ve
 - Emulador: `gps-replay` de la Ma-2141 y captura de velocidad y límite.
 
 ### Estado
-pendiente · Depende de: H0 · Dudas: resueltas (2026-10-28). Requiere crear el repo público `trombonet12/rally-copilot-data` (con permiso de Joan).
+en curso (2026-10-28) · Depende de: H0 · Dudas: resueltas (2026-10-28). Requiere crear el repo público `trombonet12/rally-copilot-data` (con permiso de Joan).
 
 ## H2 — Navegación offline
 
