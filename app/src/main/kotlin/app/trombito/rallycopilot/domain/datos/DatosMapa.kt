@@ -1,6 +1,6 @@
 package app.trombito.rallycopilot.domain.datos
 
-import app.trombito.rallycopilot.motor.datos.PlanificadorDescarga
+import app.trombito.rallycopilot.motor.datos.LIMITE_POR_DEFECTO
 import kotlinx.coroutines.flow.Flow
 
 /** Capa base del mapa. */
@@ -9,7 +9,7 @@ enum class CapaMapa { VECTORIAL, SATELITE }
 /** Ajustes de Mapas offline. Por defecto, solo WiFi y 2 GB (decisión de Joan). */
 data class AjustesMapas(
     val soloWifi: Boolean = true,
-    val limiteBytes: Long = PlanificadorDescarga.LIMITE_POR_DEFECTO,
+    val limiteBytes: Long = LIMITE_POR_DEFECTO,
 )
 
 data class DatosInstalados(
@@ -53,7 +53,7 @@ interface RepositorioDatosMapa {
 
     suspend fun guardarAjustes(ajustes: AjustesMapas)
 
-    /** Al abrir la app: si hay red, lee el manifest y, si hay datos nuevos, encola su descarga (por defecto con WiFi). */
+    /** Al abrir la app: si hay red, lee el manifest y, si hay datos nuevos, encola su descarga. */
     fun comprobarActualizacion()
 
     /** Descarga (o reanuda) el paquete completo; la pide el usuario desde Mapas offline. */
