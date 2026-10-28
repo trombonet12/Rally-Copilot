@@ -22,6 +22,7 @@ maplibre = "13.6.1"
 room = "2.8.5"
 work = "2.12.0"
 androidxHilt = "1.4.0"
+valhallaMobile = "0.6.4"
 
 [libraries]
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
@@ -54,6 +55,7 @@ androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref
 androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "work" }
 androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "androidxHilt" }
 androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "androidxHilt" }
+valhalla-mobile = { module = "io.github.rallista:valhalla-mobile", version.ref = "valhallaMobile" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

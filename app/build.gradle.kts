@@ -176,6 +176,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
 
     implementation(libs.maplibre.android)
+    implementation(libs.valhalla.mobile)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
