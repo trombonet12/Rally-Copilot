@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="inicio_lema">Tu copiloto en cada curva</string>
+    <string name="inicio_conducir">Conducir</string>
+    <string name="inicio_mis_tramos">Mis tramos</string>
+    <string name="inicio_reconocimiento">Reconocimiento</string>
+    <string name="inicio_mapas_offline">Mapas offline</string>
+    <string name="inicio_perfil">Perfil del piloto</string>
+    <string name="inicio_ajustes">Ajustes</string>
+    <string name="inicio_proximamente">Próximamente</string>
+    <string name="inicio_mascota">Trombito con casco de rally</string>
+</resources>

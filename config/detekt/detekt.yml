@@ -1,0 +1,7 @@
+# Se parte de la configuración por defecto de detekt (buildUponDefaultConfig).
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+style:
+  MagicNumber:
+    active: false
