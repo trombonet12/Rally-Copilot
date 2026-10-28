@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mapa -->
+    <string name="comun_volver">Volver</string>
+    <string name="mapa_titulo">Mapa</string>
+    <string name="mapa_cargando">Preparando el mapa…</string>
+    <string name="mapa_vista_descripcion">Mapa de Mallorca</string>
+    <string name="mapa_atribucion_osm">© OpenStreetMap contributors</string>
+    <string name="mapa_atribucion_pnoa">PNOA CC-BY 4.0 scne.es</string>
+    <string name="mapa_atribucion_doble">%1$s · %2$s</string>
+    <string name="mapa_atribucion_descripcion">Atribución del mapa: %1$s</string>
+    <string name="mapa_capa_selector">Tipo de mapa</string>
+    <string name="mapa_capa_mapa">Mapa</string>
+    <string name="mapa_capa_satelite">Satélite</string>
+    <string name="mapa_capa_satelite_no_instalado">Satélite no instalado</string>
+    <string name="mapa_recentrar">Centrar en mi posición</string>
+    <string name="mapa_sin_datos_titulo">Descarga los mapas de Mallorca</string>
+    <string name="mapa_sin_datos_texto">Se descargan una sola vez y después el mapa funciona sin internet.</string>
+    <string name="mapa_sin_datos_boton">Ir a Mapas offline</string>
+    <string name="mapa_aviso_actualizado">Mapas actualizados a la versión %1$s</string>
+    <string name="mapa_aviso_cerrar">Cerrar aviso</string>
+
+    <!-- Panel de velocidad -->
+    <string name="panel_velocidad_vacia">—</string>
+    <string name="panel_unidad">km/h</string>
+    <string name="panel_velocidad_descripcion">Velocidad: %1$d kilómetros por hora</string>
+    <string name="panel_velocidad_sin_dato">Velocidad desconocida</string>
+    <string name="panel_limite_descripcion">Límite de velocidad: %1$d kilómetros por hora</string>
+    <string name="panel_via_descripcion">Vía: %1$s</string>
+
+    <!-- Permiso de ubicación -->
+    <string name="permiso_ubicacion_titulo">Necesito tu ubicación</string>
+    <string name="permiso_ubicacion_texto">Con tu posición el mapa te sigue y se calculan tu velocidad y el límite de la vía. Solo se usa con esta pantalla abierta y no sale del móvil.</string>
+    <string name="permiso_ubicacion_permitir">Permitir ubicación</string>
+    <string name="permiso_ubicacion_bloqueado">El permiso de ubicación está bloqueado. Actívalo en los ajustes de la aplicación.</string>
+    <string name="permiso_ubicacion_ajustes">Abrir ajustes</string>
+    <string name="permiso_ubicacion_aproximada">Solo tengo tu ubicación aproximada. Para seguirte por GPS necesito la ubicación precisa.</string>
+
+    <!-- Mapas offline -->
+    <string name="mapas_titulo">Mapas offline</string>
+    <string name="mapas_cargando">Cargando…</string>
+    <string name="mapas_instalados_titulo">Mapas instalados</string>
+    <string name="mapas_version">Versión %1$s</string>
+    <string name="mapas_tamano">Ocupan %1$s</string>
+    <string name="mapas_con_satelite">Incluye satélite</string>
+    <string name="mapas_sin_satelite">Sin satélite</string>
+    <string name="mapas_no_instalados">Todavía no hay mapas de Mallorca en este móvil.</string>
+    <string name="mapas_descargar">Descargar mapas de Mallorca</string>
+    <string name="mapas_reintentar">Reintentar</string>
+    <string name="mapas_cancelar">Cancelar descarga</string>
+    <string name="mapas_descargando">Descargando…</string>
+    <string name="mapas_actualizando">Hay una versión nueva en descarga. Mientras tanto sigues usando la instalada.</string>
+    <string name="mapas_progreso">%1$s de %2$s · %3$d %%</string>
+    <string name="mapas_progreso_descripcion">Descarga al %1$d por ciento</string>
+    <string name="mapas_esperando_wifi">Esperando WiFi</string>
+    <string name="mapas_esperando_red">Esperando conexión</string>
+    <string name="mapas_solo_wifi">Solo con WiFi</string>
+    <string name="mapas_solo_wifi_detalle">No gastar datos móviles en la descarga</string>
+    <string name="mapas_limite_titulo">Límite de espacio</string>
+    <string name="mapas_limite_opcion">%1$d GB</string>
+    <string name="mapas_limite_descripcion">Límite de %1$d gigabytes</string>
+    <string name="mapas_borrar">Borrar mapas</string>
+    <string name="mapas_borrar_titulo">¿Borrar los mapas?</string>
+    <string name="mapas_borrar_texto">Se eliminarán los mapas de Mallorca de este móvil. Podrás volver a descargarlos.</string>
+    <string name="mapas_borrar_confirmar">Borrar</string>
+    <string name="mapas_borrar_cancelar">No borrar</string>
+    <string name="mapas_error_sin_red">No hay conexión. Inténtalo de nuevo cuando tengas red.</string>
+    <string name="mapas_error_supera_limite">Los mapas no caben en el límite de espacio elegido. Sube el límite.</string>
+    <string name="mapas_error_sin_espacio">No queda espacio libre en el móvil. Libera espacio e inténtalo de nuevo.</string>
+    <string name="mapas_error_hash">Un archivo descargado está dañado. Inténtalo de nuevo.</string>
+    <string name="mapas_error_manifest">No se pudo leer la lista de mapas. Inténtalo más tarde.</string>
+    <string name="mapas_error_desconocido">La descarga ha fallado. Inténtalo de nuevo.</string>
+
+    <!-- Ajustes y Acerca de -->
+    <string name="ajustes_titulo">Ajustes</string>
+    <string name="ajustes_mapas_offline">Mapas offline</string>
+    <string name="ajustes_acerca_de">Acerca de</string>
+    <string name="acerca_titulo">Acerca de</string>
+    <string name="acerca_version">Versión %1$s</string>
+    <string name="acerca_licencia_titulo">Licencia</string>
+    <string name="acerca_licencia_texto">Rally Copilot es software libre bajo la licencia GPL-3.0.</string>
+    <string name="acerca_atribuciones_titulo">Datos y componentes</string>
+    <string name="acerca_osm">OpenStreetMap: © OpenStreetMap contributors, licencia ODbL</string>
+    <string name="acerca_pnoa">PNOA (ortofotos del IGN): CC BY 4.0 scne.es</string>
+    <string name="acerca_protomaps">Protomaps basemaps: BSD-3 y CC0</string>
+    <string name="acerca_noto">Noto Sans: SIL Open Font License (OFL)</string>
+    <string name="acerca_maplibre">MapLibre Native: BSD-2</string>
+</resources>

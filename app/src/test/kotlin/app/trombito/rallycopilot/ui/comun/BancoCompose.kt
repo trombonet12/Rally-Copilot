@@ -50,6 +50,15 @@ class BancoCompose {
             "No hay nodo con etiqueta $etiqueta"
         }
 
+    fun hay(etiqueta: String): Boolean = etiquetas(etiqueta).contains(etiqueta)
+
+    fun esPulsable(nodo: SemanticsNode): Boolean = nodo.config.contains(SemanticsActions.OnClick)
+
+    fun estaHabilitado(nodo: SemanticsNode): Boolean = !nodo.config.contains(SemanticsProperties.Disabled)
+
+    fun descripcion(nodo: SemanticsNode): String? =
+        nodo.config.getOrNull(SemanticsProperties.ContentDescription)?.firstOrNull()
+
     fun etiquetas(prefijo: String): List<String> =
         nodos()
             .mapNotNull { it.config.getOrNull(SemanticsProperties.TestTag) }

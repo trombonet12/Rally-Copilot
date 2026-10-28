@@ -31,9 +31,12 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 
-/** Pantalla de inicio tipo menú de juego. Provisional (H0): las entradas aún no navegan. */
+/** Pantalla de inicio tipo menú de juego. Las entradas de hitos pendientes salen desactivadas. */
 @Composable
-fun InicioScreen(modifier: Modifier = Modifier) {
+fun InicioScreen(
+    modifier: Modifier = Modifier,
+    onEntrada: (EntradaInicio) -> Unit = {},
+) {
     Column(
         modifier =
             modifier
@@ -71,32 +74,49 @@ fun InicioScreen(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(top = Espacio.xxl).fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(Espacio.s),
         ) {
-            EntradaInicio.entries.forEach { FilaMenu(it) }
+            EntradaInicio.entries.forEach { FilaMenu(it) { onEntrada(it) } }
         }
     }
 }
 
 @Composable
-private fun FilaMenu(entrada: EntradaInicio) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.small,
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .testTag("inicio-${entrada.name.lowercase()}")
-                .semantics { disabled() },
+private fun FilaMenu(
+    entrada: EntradaInicio,
+    onClick: () -> Unit,
+) {
+    val modificador = Modifier.fillMaxWidth().testTag("inicio-${entrada.name.lowercase()}")
+    if (entrada.activa) {
+        Surface(
+            onClick = onClick,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = MaterialTheme.shapes.small,
+            modifier = modificador,
+        ) { ContenidoFila(entrada, proximamente = false) }
+    } else {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = MaterialTheme.shapes.small,
+            modifier = modificador.semantics { disabled() },
+        ) { ContenidoFila(entrada, proximamente = true) }
+    }
+}
+
+@Composable
+private fun ContenidoFila(
+    entrada: EntradaInicio,
+    proximamente: Boolean,
+) {
+    Row(
+        modifier = Modifier.padding(horizontal = Espacio.l, vertical = Espacio.l),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Espacio.l, vertical = Espacio.l),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(entrada.titulo).uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
+        Text(
+            text = stringResource(entrada.titulo).uppercase(),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        if (proximamente) {
             Text(
                 text = stringResource(R.string.inicio_proximamente),
                 style = MaterialTheme.typography.labelMedium,
