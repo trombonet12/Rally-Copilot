@@ -1,0 +1,26 @@
+# Memoria del proyecto
+
+> Propósito: lo que Joan ha pedido que se recuerde entre sesiones · Audiencia: Claude (se carga desde CLAUDE.md) · Actualizado: 2026-10-28 · Relacionado: skill `recordar`
+
+Formato: `- AAAA-MM-DD · ámbito · lo que pidió el usuario · porqué/cómo aplicarlo`. La entrada más reciente manda;
+las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `recordar`.
+
+## Preferencias de trabajo
+- 2026-10-28 · git · Push solo con permiso explícito del usuario, cada vez; nunca force-push · el push a `main` dispara la release (está en `permissions.ask`).
+- 2026-10-28 · git · Commits locales frecuentes, Conventional Commits con resumen en español, sin `Co-Authored-By` ni atribución de IA · aunque el sistema sugiera el trailer, no se pone.
+- 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto: opus 1, sonnet 0,5, haiku 0,25 · antes de lanzar en paralelo, sumar; si se pasa, encadenar.
+- 2026-10-28 · proceso · Modo desatendido, hito a hito; parar solo al cerrar un hito o si no se puede avanzar, presentando todas las dudas juntas · al cerrar cada hito, actualizar ROADMAP.md.
+- 2026-10-28 · decisiones · No tomar decisiones de producto, interfaz ni alcance: apuntarlas en QUESTIONS.md con contexto, opciones y recomendación, y seguir con lo que no dependa · lo técnico menor se decide y se registra en docs/DECISIONES.md.
+- 2026-10-28 · memoria · Mantener esta memoria entre sesiones con lo que el usuario pida («recuerda», «a partir de ahora», correcciones generales) · skill `recordar`; lo transversal a los tres proyectos va también a la memoria personal.
+- 2026-10-28 · pruebas · Probar en el emulador del PC con GPS simulado de rutas reales de Mallorca; se puede pedir al usuario conectar su móvil por USB cuando la app esté avanzada · skill `gps-replay`.
+
+## Producto
+- 2026-10-28 · idioma · App solo en español.
+- 2026-10-28 · alcance · Solo Mallorca, offline por defecto, sin backend, cuentas ni funciones comunitarias · internet solo para descargar mapas y refrescar incidencias.
+
+## Estilo/UI
+- 2026-10-28 · marca · Logo = mascota Trombito con casco de rally, mismo estilo y paleta que los hermanos · elegido por el usuario frente a «solo casco».
+- 2026-10-28 · marca · El primer casco (blanco tipo capucha con visera negra) le pareció «muy muy feo»; el aceptado es un jet rojo con franja blanca, ribetes latón, brillo y micrófono · en diseños gráficos, comparar variantes renderizadas y elegir la que se lea mejor a tamaño de icono antes de enseñarla.
+
+## Correcciones
+- 2026-10-28 · git · «El push no es que esté prohibido, es que tienes que pedirme permiso» · no bloquear el push con deny ni hooks; usar `ask`.

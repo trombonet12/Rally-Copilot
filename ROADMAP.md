@@ -1,0 +1,321 @@
+# Roadmap
+
+> Propósito: plan de Rally Copilot por hitos, con alcance, criterios de aceptación, tests y estado · Audiencia: Joan y agentes · Actualizado: 2026-10-28 · Relacionado: [docs/DECISIONES.md](docs/DECISIONES.md), [QUESTIONS.md](QUESTIONS.md), [docs/ESTADO.md](docs/ESTADO.md)
+
+Hitos en orden de dependencia, basados en la propuesta del prompt (§9) y refinados. Cada hito termina con el gate en
+verde, ROADMAP y ESTADO actualizados, y las dudas acumuladas presentadas a Joan. Skill `hito` para arrancar, planificar
+y cerrar. Los cambios respecto a la propuesta original están al final.
+
+## H0 — Preparación
+
+### Objetivo
+Dejar el proyecto listo para programar: herencia, gobierno, esqueleto Android, CI de release y Play, logo, plan e
+investigaciones previas.
+
+### Alcance
+- `docs/HERENCIA.md`, `CLAUDE.md`, `docs/MEMORIA.md` + skill `recordar`, skills/agentes/hooks adaptados.
+- Esqueleto `:app` + `:motor` con tema oscuro por defecto e inicio provisional; CI (gate, release, Play); logo.
+- `ROADMAP.md`, `docs/DECISIONES.md`, `QUESTIONS.md`, investigaciones de §8 en `docs/investigacion/`.
+- Herramientas de prueba: `scripts/gps-replay.mjs` + traza real de Mallorca; carpeta `voice-lab/`.
+- Fuera: cualquier funcionalidad de producto.
+
+### Criterios de aceptación
+- [x] Gate en verde: `./gradlew ktlintCheck detekt lintDebug testDebugUnitTest :motor:test assembleDebug :app:minifyReleaseWithR8`.
+- [x] `check-claude-assets`, `gen-claude-index --check`, `check-docs`, `test-hooks`, tests de scripts en verde; `actionlint` sin errores.
+- [x] APK debug instalado en el emulador `trombito-36`: icono adaptativo, splash y tema oscuro correctos (captura).
+- [x] `gps-replay` mueve la posición del emulador por una traza real de Mallorca.
+- [x] Commits locales en Conventional Commits en español, sin coautoría y sin push.
+
+### Tests
+- `PuntoGeoTest` (motor), `DomainDependencyRuleTest`, `ContrastTest`, `InicioScreenTest`, `LimpiezaComposeTest`.
+- `scripts/gps-replay.test.mjs`, `scripts/play-promocionar.test.mjs`, `scripts/test-hooks.sh`.
+
+### Estado
+completado (2026-10-28) · Depende de: — · Dudas: todas las de [QUESTIONS.md](QUESTIONS.md)
+<!-- Hecho: ver docs/ESTADO.md § Completado. Pendiente: pasos de Joan en docs/pasos-manuales.md (keystore, secretos, Play Console). -->
+
+## H1 — Mapa base offline
+
+### Objetivo
+Ver Mallorca en vectorial y satélite sin conexión, con la posición GPS, la velocidad actual y el límite de la vía.
+
+### Alcance
+- Librería de mapas y formatos según [DECISIONES § Mapas](docs/DECISIONES.md#mapas-y-teselas): vista vectorial (OSM) y satélite (PNOA del IGN), cambio entre ambas, atribuciones visibles.
+- Paquete de datos de Mallorca según [DECISIONES § Datos](docs/DECISIONES.md#datos-de-mallorca): descarga en el primer uso con progreso, reanudable, verificación por hash.
+- Satélite por niveles: base z≤16 de toda la isla; caché con límite de espacio, opción «solo WiFi» y borrado (pantalla mínima de Mapas offline; el pulido va en H10). El corredor z17–18 y la zona manual z18–19 quedan para H9, cuando existan rutas y tramos.
+- Ubicación (sin Google Play Services) con permisos y explicación; velocidad actual y límite (`maxspeed` de OSM sobre la vía más cercana) siempre visibles.
+- Orientación vertical y horizontal.
+- Room entra aquí (estado de descargas y ajustes) con su skill.
+- Fuera: rutas, navegación, notas.
+
+### Criterios de aceptación
+- [ ] En modo avión, con el paquete descargado, el mapa vectorial y el satélite z≤16 se ven en toda Mallorca.
+- [ ] Con `gps-replay` por la Ma-2141 a 50 km/h, la app muestra ~50 km/h y el límite de la vía en cada tramo con `maxspeed`.
+- [ ] Atribuciones de OSM e IGN visibles en el mapa y en Ajustes > Acerca de.
+- [ ] La descarga se reanuda tras cortar la red y respeta «solo WiFi» y el límite de espacio.
+
+### Tests
+- Motor: búsqueda de la vía más cercana a un punto y del límite aplicable (fixtures OSM pequeñas).
+- Robolectric: gestor de descargas con un servidor falso (reanudación, hash, límite de espacio).
+- Emulador: `gps-replay` de la Ma-2141 y captura de velocidad y límite.
+
+### Estado
+pendiente · Depende de: H0 · Dudas: QUESTIONS.md § Alojamiento de los datos de Mallorca, § Fuente del satélite y tamaño
+
+## H2 — Navegación offline
+
+### Objetivo
+Navegación giro a giro completa sin conexión, con búsqueda de destino, recálculo y funcionamiento con la pantalla apagada.
+
+### Alcance
+- Motor de enrutado según [DECISIONES § Enrutado](docs/DECISIONES.md#enrutado-offline).
+- Búsqueda de destino offline (direcciones y lugares de OSM de Mallorca).
+- Cálculo de ruta, instrucciones giro a giro en español en pantalla, recálculo al salirse.
+- Modo libre sin destino: seguir la vía actual (map matching) y registrar el recorrido.
+- Servicio en primer plano de ubicación con notificación (icono `ic_stat_rally`); sigue con la pantalla apagada o la app en segundo plano.
+- Fuera: voz (H4), notas (H3), cronometraje (H6).
+
+### Criterios de aceptación
+- [ ] Ruta Palma → Sa Calobra calculada en modo avión en < 3 s en el emulador.
+- [ ] Con `gps-replay` saliéndose de la ruta, recalcula en < 5 s.
+- [ ] Con la pantalla apagada 5 min durante una navegación simulada, el servicio sigue y la posición avanza (logcat).
+- [ ] Buscar «Sóller» o «Cala Figuera» devuelve resultados sin conexión.
+
+### Tests
+- Motor: parseo de instrucciones y de geometría de ruta; detección de salida de ruta (umbral y tiempo).
+- Robolectric: ViewModel de navegación con un enrutador falso.
+- Escenarios `qa-scenario`: `screen-off`, `background`, `process-death`, `gps-loss`.
+
+### Estado
+pendiente · Depende de: H1 · Dudas: QUESTIONS.md § Búsqueda de destino
+
+## H3 — Motor de notas
+
+### Objetivo
+Generar automáticamente notas de rally completas a partir de la geometría y la elevación de la ruta o de la vía actual.
+
+### Alcance
+- Algoritmo según [DECISIONES § Notas](docs/DECISIONES.md#notas-de-rally) en `:motor`: remuestreo, radio, segmentación, grados 1–6 con horquillas, modificadores (abre, cierra, larga, «y»/encadenadas), distancias entre notas, rasantes y cambios de rasante, badenes, cruces, estrechamientos, puentes y avisos de precaución.
+- Calibración de grados respecto a la velocidad máxima de la vía; tabla calibrable.
+- Glosario de copiloto español (borrador en la investigación; se refina en H11 con transcripciones).
+- Anticipación de lectura adaptativa a la velocidad + ajuste de usuario en 5 niveles; notas simplificadas (suave/media/cerrada).
+- Presentación provisional en pantalla (texto) para validar; la voz llega en H4.
+- Skill `notas-calibrar` y agente `copiloto-reviewer` para revisar notas sobre trazas reales.
+- Fuera: voz, edición (H8).
+
+### Criterios de aceptación
+- [ ] Notas de la Ma-2141 (Sa Calobra) y de la Ma-10 (Sóller–Lluc) revisadas por `copiloto-reviewer`: la «corbata» de Sa Calobra sale como horquilla y las rectas largas no generan notas.
+- [ ] El mismo tramo genera las mismas notas siempre (determinista) y en < 1 s para 15 km.
+- [ ] La anticipación coloca cada nota a una distancia proporcional a la velocidad, desplazada por el nivel de usuario.
+
+### Tests
+- Motor (TDD): radio de arcos sintéticos, grado por radio y por velocidad de la vía, modificadores, encadenado, rasantes en perfiles sintéticos, distancias redondeadas, anticipación, simplificación.
+- Regresión: notas de las trazas de `docs/rutas/` guardadas como golden files.
+
+### Estado
+pendiente · Depende de: H1 (datos de vía y elevación), H2 (ruta) · Dudas: QUESTIONS.md § Glosario y estilo de lectura, § Escala de grados
+
+## H4 — Voz y modos del copiloto
+
+### Objetivo
+El copiloto habla: voz sintética offline, cuatro modos, bajada de la música mientras habla y avisos visuales.
+
+### Alcance
+- TTS en el dispositivo según [DECISIONES § Voz](docs/DECISIONES.md#voz-tts-y-clonado), con un par de voces masculinas a elegir.
+- Modos: Silencio · Solo alertas · Notas · Copiloto completo (delta y parciales por voz cuando exista H6).
+- Audio ducking con AudioFocus; cola de frases con prioridades (una nota nunca llega tarde: se descarta si ya pasó).
+- Avisos visuales: icono de nota grande tipo roadbook y banners animados de radar/incidencia que entran y salen.
+- Fuera: voz de Moya (H11).
+
+### Criterios de aceptación
+- [ ] En modo avión, la nota suena antes de su punto con la anticipación configurada (medido con `gps-replay`).
+- [ ] Con música sonando, baja durante la voz y vuelve después.
+- [ ] Cada modo solo dice lo que le toca (tabla de casos).
+
+### Tests
+- Motor: planificador de frases (prioridades, caducidad, modo).
+- Robolectric: gestor de foco de audio con un AudioManager falso.
+
+### Estado
+pendiente · Depende de: H3 · Dudas: QUESTIONS.md § Voces sintéticas y tamaño del APK
+
+## H5 — Alertas: radares e incidencias
+
+### Objetivo
+Avisar de radares e incidencias de tráfico de Mallorca con datos abiertos.
+
+### Alcance
+- Fuentes según [DECISIONES § Incidencias](docs/DECISIONES.md#incidencias-y-radares).
+- Radares fijos y de tramo guardados offline con los mapas; incidencias (obras, accidentes, retenciones, cortes) refrescadas al abrir la app y al iniciar una ruta.
+- Avisos por voz (modos Solo alertas en adelante) y banners; límite de velocidad excedido.
+- Fuera: Waze y Google (sin API pública).
+
+### Criterios de aceptación
+- [ ] Un radar fijo de la Ma-13 avisa a la distancia configurada en una reproducción `gps-replay`.
+- [ ] Sin red, la app usa la última copia de incidencias e indica su antigüedad.
+
+### Tests
+- Motor: parseo de DATEX II (fixtures reales anonimizadas), proximidad a radar en la ruta y en sentido de la marcha.
+- Robolectric: refresco con fuente falsa (éxito, error, sin red).
+
+### Estado
+pendiente · Depende de: H1, H4 · Dudas: QUESTIONS.md § Cobertura de incidencias en Mallorca
+
+## H6 — Tramos y cronometraje
+
+### Objetivo
+Convertir cada trayecto en un tramo cronometrado con sectores, detección de tramos conocidos y delta en vivo.
+
+### Alcance
+- Tramo = de iniciar navegación a llegar o parar; grabación automática activable en Ajustes.
+- 4 sectores grandes y microsectores equitativos, configurables (número y posición).
+- Detección de tramo conocido aunque no se arranque desde él (map matching contra tramos guardados).
+- Delta en vivo contra el mejor tiempo (verde/rojo) y parciales; voz en modo copiloto completo.
+- HUD de retransmisión: cronómetro, barra de progreso, parciales y delta.
+- Fuera: análisis post-tramo (H7), edición de sectores arrastrando sobre el mapa (H8).
+
+### Criterios de aceptación
+- [ ] Repetir la misma traza a dos velocidades da delta negativo en la rápida, sector a sector.
+- [ ] Una traza que entra a mitad de un tramo guardado y lo recorre entero se detecta y se compara.
+
+### Tests
+- Motor (TDD): cronometraje con reloj inyectado, cortes de sector, delta interpolado por distancia, detección de tramo (inicio, fin, desvío).
+- Room: migraciones con tests.
+
+### Estado
+pendiente · Depende de: H2 · Dudas: QUESTIONS.md § Inicio y fin de tramo
+
+## H7 — Análisis post-tramo y perfil del piloto
+
+### Objetivo
+Analizar cada tramo y mostrar la evolución del piloto.
+
+### Alcance
+- Tiempo total y por sector/microsector, delta contra el mejor, velocidad media y máxima por sector.
+- Gráfico velocidad/distancia, mapa coloreado por velocidad, repetición del recorrido sobre el mapa.
+- Perfil: kilómetros, número de tramos, mejores tiempos, evolución, velocidades medias e historial de análisis.
+- Fuera: exportar o compartir.
+
+### Criterios de aceptación
+- [ ] El análisis de un tramo grabado con `gps-replay` coincide con los tiempos del cronometraje en vivo (±0,1 s).
+- [ ] El perfil agrega correctamente varios tramos de prueba.
+
+### Tests
+- Motor: estadísticas por sector, agregados del perfil.
+- Robolectric: pantallas con datos falsos (BancoCompose).
+
+### Estado
+pendiente · Depende de: H6
+
+## H8 — Edición de notas y reconocimiento
+
+### Objetivo
+Corregir notas a mano o por voz y hacer pasadas de reconocimiento.
+
+### Alcance
+- Edición tocando la nota sobre el mapa; edición por voz (reconocimiento offline).
+- Notas editadas ligadas al tramo; siempre prevalecen sobre las automáticas.
+- Modo reconocimiento: pasada para dictar o corregir notas, calibradas respecto a la velocidad máxima de la vía.
+- Edición de sectores arrastrando sobre el mapa.
+- Fuera: compartir notas.
+
+### Criterios de aceptación
+- [ ] Una nota editada sobrevive a regenerar las automáticas del tramo.
+- [ ] Dictar «derecha tres larga» en reconocimiento crea esa nota en la posición actual.
+
+### Tests
+- Motor: fusión de notas editadas con automáticas; intérprete de órdenes de voz (gramática del glosario).
+
+### Estado
+pendiente · Depende de: H3, H6 · Dudas: QUESTIONS.md § Reconocimiento de voz offline
+
+## H9 — Precarga de rutas y satélite de alta calidad
+
+### Objetivo
+Preparar tramos antes de conducirlos y descargar satélite de más detalle donde importa.
+
+### Alcance
+- Importar GPX/KML, dibujar rutas en el mapa y reutilizar rutas recorridas.
+- Satélite z17–18 automático en un corredor de ~300 m de rutas planificadas, recorridas y tramos guardados.
+- Descarga manual de una zona a z18–19.
+- Fuera: exportar.
+
+### Criterios de aceptación
+- [ ] Un GPX importado genera tramo, notas y descarga de corredor.
+- [ ] El corredor descargado se ve sin red a z18 alrededor de la ruta y no fuera de ella.
+
+### Tests
+- Motor: parseo GPX/KML (variantes reales), cálculo de teselas de un corredor.
+
+### Estado
+pendiente · Depende de: H1, H6
+
+## H10 — Interfaz completa estilo WRC
+
+### Objetivo
+Pulir toda la app con estética de videojuego WRC y retransmisión de rally.
+
+### Alcance
+- Menú de inicio tipo juego (Conducir · Mis tramos · Reconocimiento · Mapas offline · Perfil del piloto · Ajustes).
+- Pantalla de conducción con el mapa como protagonista y modo alternativo centrado en notas grandes.
+- Iconos de notas tipo roadbook, banners animados, HUD.
+- Ajustes completos: voz, modo del copiloto, anticipación, notas simplificadas, grabación automática, mapas, tema (oscuro por defecto, claro opcional).
+- Fuera: Android Auto.
+
+### Criterios de aceptación
+- [ ] Revisión de `ux-reviewer` sin hallazgos altos; `ContrastTest` en verde en ambos temas.
+- [ ] Capturas de cada pantalla en vertical y horizontal.
+
+### Tests
+- Robolectric: render de pantallas con BancoCompose; contraste.
+
+### Estado
+pendiente · Depende de: H1–H9 · Dudas: QUESTIONS.md § Dirección visual
+
+## H11 — Voz de Luis Moya
+
+### Objetivo
+El copiloto habla con la voz clonada de Luis Moya (con autorización), sin internet.
+
+### Alcance
+- Pipeline en `voice-lab/` (PC, RTX 4080): separación de voz, transcripción local, extracción de vocabulario, entrenamiento/clonado, pregeneración de frases comunes. Documentado en `docs/VOZ.md`.
+- Glosario refinado con las transcripciones reales.
+- En la app: audios pregenerados para lo común y motor TTS con la voz clonada para lo imprevisto; todo dentro del APK.
+- Fuera: otras voces clonadas.
+
+### Criterios de aceptación
+- [ ] `docs/VOZ.md` permite repetir el pipeline desde cero.
+- [ ] Una reproducción de la Ma-2141 suena entera con la voz de Moya sin red.
+
+### Tests
+- Cobertura de frases: toda nota que puede generar el motor tiene audio pregenerado o pasa por TTS.
+
+### Estado
+pendiente · Depende de: H4 y el material de Joan · Dudas: QUESTIONS.md § Voz de Moya
+
+## H12 — Pruebas end-to-end y Play
+
+### Objetivo
+Validar la app completa de extremo a extremo y dejarla en el track de pruebas de Play.
+
+### Alcance
+- Batería E2E (instrumentada en emulador con trazas reales y GPS simulado).
+- Pruebas en el móvil de Joan por USB.
+- Ficha de Play (textos, capturas, política de privacidad, seguridad de datos) y subida al track de pruebas.
+
+### Criterios de aceptación
+- [ ] Batería E2E en verde en el emulador.
+- [ ] Prueba real en coche validada por Joan.
+- [ ] Versión publicada en la pista interna y promocionada a la prueba cerrada.
+
+### Tests
+- E2E: navegación + notas + voz + cronometraje + análisis sobre las trazas de `docs/rutas/`.
+
+### Estado
+pendiente · Depende de: H1–H11
+
+## Cambios respecto a la propuesta inicial
+- **H1** deja el corredor z17–18 y la zona manual z18–19 para **H9**, porque dependen de rutas y tramos guardados.
+- **H3** incluye una presentación provisional en texto para validar las notas antes de la voz.
+- **H8** incorpora la edición de sectores arrastrando sobre el mapa (pedida en §4.7).
+- **H11** puede empezar en paralelo en el PC (pipeline de `voice-lab/`) en cuanto Joan aporte material, aunque la integración en la app espere a H4.

@@ -1,0 +1,87 @@
+# Decisiones
+
+> Propósito: fuente única de decisiones técnicas y versiones fijadas, con su porqué · Audiencia: Joan y agentes · Actualizado: 2026-10-28 · Relacionado: [HERENCIA.md](HERENCIA.md), [investigacion/](investigacion/), [../QUESTIONS.md](../QUESTIONS.md)
+
+Formato: `- AAAA-MM-DD · tema · decisión · porqué`. Las entradas posteriores mandan sobre las anteriores (se indica
+«sustituye a…»). `VERIFICAR` = dato no confirmado. Las decisiones que afectan al producto **no** se toman aquí: van a
+[QUESTIONS.md](../QUESTIONS.md) con una recomendación, y se reflejan aquí cuando Joan responde. Se mantiene con la
+skill `registrar-decision`.
+
+## Decisiones del usuario (2026-10-28)
+- 2026-10-28 · marca · Logo = mascota Trombito con casco de rally · elegido por Joan entre «mascota + casco» y «solo casco».
+- 2026-10-28 · release · Como Sous Chef: un push a `main` que cambia `version.properties` publica (GitHub Release + Play interna → prueba cerrada); los parches, por `workflow_dispatch` con `publicar` · elegido por Joan.
+- 2026-10-28 · identidad · `applicationId = app.trombito.rallycopilot` (debug `.dev`) · patrón de los hermanos; permanente en Play.
+- 2026-10-28 · git · Push solo con permiso explícito, cada vez (`permissions.ask`); force-push prohibido · corrección de Joan.
+- 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto (opus 1, sonnet 0,5, haiku 0,25) · regla de Joan.
+- 2026-10-28 · memoria · `docs/MEMORIA.md` importada desde CLAUDE.md + skill `recordar` · petición de Joan.
+
+## Base técnica (H0)
+- 2026-10-28 · stack · Mismo stack y versiones que Sous Chef (ver «Versiones fijadas») · línea común entre proyectos (pedido explícito).
+- 2026-10-28 · módulos · `:app` (Android, capas `domain/` `data/` `di/` `ui/`) + `:motor` (Kotlin/JVM puro) · la lógica crítica (notas, cronometraje, deltas, detección de tramos, parseo) se prueba en la JVM sin Android, como `:receta` en Sous Chef.
+- 2026-10-28 · dependencias · Solo las usadas: Room, Coil y el resto entran con `dependency-add` en el hito que las use · sin código ni dependencias muertas.
+- 2026-10-28 · navegación · Rutas type-safe (`@Serializable`) de Navigation Compose · evita las rutas de texto de Sous Chef.
+- 2026-10-28 · tests · JVM: JUnit 4, coroutines-test, Robolectric + `BancoCompose`/`LimpiezaCompose`; sin Turbine, MockK ni `ui-test`; instrumentados solo para el E2E de H12 · práctica real y rápida de Sous Chef.
+- 2026-10-28 · arquitectura · `DomainDependencyRuleTest`: `domain/` sin Android ni DI; `ui` no importa `data` ni al revés (lista blanca vacía) · fronteras vigiladas por test.
+- 2026-10-28 · tema · Oscuro por defecto con independencia del sistema; claro opcional en Ajustes (H10). Latón `#E5AB46`/`#8C5A04`, carbón `#0E0F12`, rojo de marca `#D8232A` decorativo; `ColoresRally` (delta `#3DDC84`/`#FF6B5E`, aviso `#FFC94A`) con contraste AA vigilado por `ContrastTest` · estética de retransmisión WRC pedida y coherencia con la marca.
+- 2026-10-28 · tipografía · Letra del sistema; titulares en negrita cursiva con tracking negativo · como Sous Chef (sin fuentes empaquetadas) con aire de rótulo de rally.
+- 2026-10-28 · gate · Se añade `:app:minifyReleaseWithR8` al gate local y de CI · en Sous Chef los fallos de R8 solo aparecían al publicar.
+- 2026-10-28 · CI · Sin la comprobación «manifest de release sin INTERNET» de Sous Chef · Rally Copilot necesita red para mapas e incidencias.
+- 2026-10-28 · CI · Sin `inAppUpdatePriority` (no se fuerza la actualización desde Play) · no hay decisión de producto equivalente a la de Sous Chef.
+- 2026-10-28 · iconos · Icono adaptativo en `mipmap-anydpi-v26` aunque minSdk sea 26 · con `mipmap-anydpi` aapt2 no resuelve `@mipmap/ic_launcher` en release (probado); el aviso `ObsoleteSdkInt` de lint se acepta.
+- 2026-10-28 · hooks · `post-edit-lint` valida también JSON · útil para los datos que vendrán (glosario, configuraciones).
+- 2026-10-28 · pruebas · GPS simulado con `scripts/gps-replay.mjs` (`adb emu geo fix` a ~1 Hz, velocidad en nudos, `--kmh`, `--velocidad`, `--desde`) y trazas OSM reales en `docs/rutas/` · requisito de probar con rutas reales de Mallorca; verificado en el emulador (`gps` en la Ma-2141).
+
+## Versiones fijadas
+| Componente | Versión | Nota |
+|---|---|---|
+| Gradle | 9.7.1 | `distributionSha256Sum` fijado |
+| AGP | 9.4.1 | Kotlin integrado (sin plugin `kotlin-android`) |
+| Kotlin | 2.4.20 | KSP 2.3.12 |
+| JDK | 21 (toolchain y daemon) | bytecode JVM 17 |
+| compileSdk / targetSdk / minSdk | 37 / 36 / 26 | igual que Sous Chef |
+| Compose BOM | 2026.06.01 | Material 3 |
+| Hilt | 2.60.1 | hilt-navigation-compose 1.3.0 |
+| Navigation Compose | 2.9.8 | rutas type-safe |
+| Lifecycle / Activity | 2.10.0 / 1.11.0 | |
+| core-splashscreen | 1.2.0 | |
+| kotlinx.serialization / coroutines | 1.11.0 / 1.11.0 | |
+| ktlint (plugin / motor) | 14.2.0 / 1.8.0 | |
+| detekt | 1.23.8 | `config/detekt/detekt.yml` |
+| JUnit / Robolectric | 4.13.2 / 4.17 | androidx.test core 1.7.0, ext-junit 1.3.0 |
+
+## Investigaciones previas (§8)
+Resumen y recomendación de cada investigación. El detalle (alternativas, licencias, fuentes) está en
+[investigacion/](investigacion/). Lo que afecta al producto está en [QUESTIONS.md](../QUESTIONS.md) y **no** se
+considera decidido hasta que Joan responda.
+
+### Enrutado offline
+- 2026-10-28 · enrutado · **Recomendado: Valhalla vía `valhalla-mobile` 0.6.4 (MIT, Valhalla 3.9.1)** para rutas, recálculo, instrucciones en es-ES, map matching (`trace_route`/`trace_attributes`) y atributos de vía. **Ferrostar 0.59.0 (BSD-3)** solo como máquina de estados giro a giro, condicionado a un spike de 1–2 días en H2; si no encaja, seguimiento propio mínimo. Plan B: BRouter. Descartados: GraphHopper (sin soporte Android oficial desde la 2.0), OSRM (no apto para móvil), OsmAnd (GPL, VERIFICAR) · única opción con offline real, recálculo, español y map matching empaquetados para Android con licencia permisiva. Detalle: [investigacion/enrutado-offline.md](investigacion/enrutado-offline.md).
+
+### Mapas y teselas
+- 2026-10-28 · mapas · **Recomendado: MapLibre Native Android 13.7.1 (BSD-2)** con estilo Protomaps en oscuro. Vectorial: `mallorca.pmtiles` local (`pmtiles://file://`). Satélite PNOA en dos capas: base z0–16 en PMTiles + detalle z17–19 en un MBTiles que escribe la app; descargador propio (cola, reintentos, límite de espacio, solo WiFi), no `OfflineManager` · vectorial y ráster offline en una sola librería sin GMS; PMTiles es un archivo único de solo lectura, MBTiles admite escritura incremental. Detalle: [investigacion/mapas-y-teselas.md](investigacion/mapas-y-teselas.md).
+- 2026-10-28 · satélite · Estimación medida con teselas PNOA reales: **≈25 000 teselas y ≈450 MB para z0–16** de Mallorca (el «~600 MB» del prompt es un techo razonable); corredor z17–18 ≈100 MB por cada 100 km; zona manual z18–19 ≈5,4 MB/km² · dimensiona el límite de espacio por defecto.
+- 2026-10-28 · atribución · En el mapa: «© OpenStreetMap contributors» y, en satélite, «CC-BY 4.0 scne.es» («Obra derivada de…» si se recomprime). VERIFICAR texto y condiciones de descarga masiva con el CNIG (consulta@cnig.es).
+- Pendiente (spike en H1): que `mbtiles://` funcione en MapLibre Android (si no, servidor HTTP local) y el comportamiento de caché con PMTiles.
+
+### Datos de Mallorca
+- 2026-10-28 · datos · **Recomendado (pendiente de Joan):** repo público `rally-copilot-data` con GitHub Actions mensual: PBF de Geofabrik (≈45 MB) → Planetiler → `mallorca.pmtiles`; `valhalla_build_tiles` (versión fijada) → teselas de ruta; MDT05 del IGN recortado y remuestreado → elevación; `manifest.json` con SHA-256; publicación en Releases (< 2 GiB por asset). La app descarga solo lo que cambia y verifica el hash · sin backend propio, reproducible y gratuito. Detalle: [investigacion/datos-mallorca.md](investigacion/datos-mallorca.md). Ver QUESTIONS.md § Alojamiento de los datos de Mallorca.
+- 2026-10-28 · límites · `maxspeed` en OSM de Mallorca (recuento de ways): autovía 95 %, primary 56 %, secondary 45 %, tertiary 34 %, unclassified 8 %, residential 16 % · hace falta un límite por defecto por clase de vía (Reglamento General de Circulación) y marcarlo como estimado (ver QUESTIONS.md).
+- VERIFICAR: cobertura del MDT02 en Baleares y descarga automática desde CI en el CNIG; tamaños reales del PMTiles y de las teselas Valhalla de Mallorca (se miden en H1).
+
+### Notas de rally
+- 2026-10-28 · notas · **Recomendado:** pipeline propio y determinista en `:motor`: proyección UTM 31N, remuestreo a 5 m con suavizado (σ≈10 m), radio por circunradio a ±15 m (usar la mediana de la zona central, no el mínimo), segmentación con histéresis (entra R<250 m, sale R>400 m), grado 1–6 desde `v = √(μ·g·R)` con μ = 0,6 en una tabla calibrable, horquilla = ángulo ≥ 140° con R < 30 m, modificadores (cierra/abre por ΔR ≥ 25 %, larga ≥ 80 m, muy larga ≥ 150 m, «y» si el hueco < 25 m o < 1,5 s), distancias redondeadas, rasantes por curvatura vertical del MDT05, badenes/puentes/túneles/cruces/estrechamientos desde etiquetas OSM; anticipación `d = v·(T_nivel + t_voz)` con T_nivel 8 / 6,5 / 5 / 3,5 / 2,5 s; simplificadas 1–2 cerrada, 3–4 media, 5–6 suave · testeable con fixtures de Mallorca y calibrable sin recompilar. Un prototipo sobre la Ma-2141 dio 125 curvas y ~20 horquillas y localizó el Nus de sa Corbata. Detalle y glosario borrador: [investigacion/notas-de-rally.md](investigacion/notas-de-rally.md).
+- VERIFICAR: μ, umbrales y tabla radio→grado se calibran en carretera y con las notas reales de §5.2.
+
+### Incidencias y radares
+- 2026-10-28 · incidencias · **Recomendado:** XML DATEX II v3.7 del NAP de la DGT (≈200 KB con gzip, sin autenticación), descargado al abrir la app y al iniciar ruta, filtrado en el móvil por Mallorca, con parser en streaming y caché offline con antigüedad. Medido hoy: 18 situaciones en Mallorca · cobertura real verificada, sin backend. Detalle: [investigacion/incidencias-dgt.md](investigacion/incidencias-dgt.md).
+- 2026-10-28 · radares · Fijos: XML de radares de la DGT (13 en Mallorca) fusionado con OSM (79 elementos), deduplicado y empaquetado con los mapas. Móviles: tramos de cinemómetros del PDF de la DGT (24 en Mallorca) como «zona probable» (pendiente de Joan). De tramo: no hay oficiales en Mallorca hoy.
+- VERIFICAR: condiciones de reutilización del NAP (la ficha dice CC BY; consultar nap@dgt.es) y si el XML de radares (fechado 2025-12-18) se sigue regenerando.
+
+### Voz, TTS y clonado
+- 2026-10-28 · voz · **Recomendado para H4:** sherpa-onnx con dos voces Piper `es_ES` masculinas (davefx medium y sharvard speaker 0; ≈21–36 MB cada una en int8/fp16), **clips pregenerados** (Opus) para el vocabulario cerrado de notas y TTS solo para frases imprevistas; ducking con `AudioFocusRequest` `GAIN_TRANSIENT_MAY_DUCK` y uso de guía de navegación · latencia nula en lo común, todo offline, mismo formato para la voz clonada. Detalle: [investigacion/voz-tts-y-clonado.md](investigacion/voz-tts-y-clonado.md).
+- 2026-10-28 · voz de Moya · **Recomendado para H11:** fine-tune de Piper reutilizando el entrenador dockerizado de Trombito (`tools/voice-train`), idealmente con una sesión de lectura de ~300 frases del glosario; vídeos onboard para vocabulario (separación de voz + faster-whisper large-v3). Zero-shot (OpenVoice, Chatterbox; MIT) solo como plan B; XTTS (CPML) y F5-TTS (CC-BY-NC) descartados por licencia.
+- **Riesgo de licencia:** espeak-ng (fonemizador de Piper/sherpa) es **GPL-3.0** (ver QUESTIONS.md § Licencia de la app y espeak-ng). VERIFICAR: género de cada voz, RTF de Piper en móvil medio, límites de asset packs de Play.
+
+### Ubicación sin Google Play Services
+- 2026-10-28 · ubicación · **Decidido (técnico):** interfaz de dominio `LocationSource` con implementación `LocationManager.GPS_PROVIDER` a 1 Hz y otra de reproducción GPX para debug/tests; `FUSED_PROVIDER` de AOSP solo como primera posición rápida y opcional. Servicio en primer plano tipo `location` con notificación persistente, iniciado por una acción del usuario; **sin `ACCESS_BACKGROUND_LOCATION`**; declarar «Navegación» en Play Console · funciona en ROMs sin GMS (LineageOS) y evita la revisión de ubicación en segundo plano de Play. Detalle: [investigacion/ubicacion-sin-gms.md](investigacion/ubicacion-sin-gms.md).
+- VERIFICAR en el móvil real: 30+ min con pantalla apagada sin cortes; comportamiento si se deniega `POST_NOTIFICATIONS`; imagen de emulador sin Google APIs para probar sin GMS.

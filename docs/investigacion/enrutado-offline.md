@@ -1,0 +1,42 @@
+# Motor de enrutado y navegación giro a giro offline
+
+> Propósito: elegir el motor que calcula y recalcula rutas en el móvil y aporta atributos de vía para las notas · Audiencia: agente principal y usuario · Actualizado: 2026-10-28 · Relacionado: docs/DECISIONES.md § Motor de enrutado, ROADMAP.md § H2 (y H3 por los atributos)
+
+## Contexto
+- Requisito (prompt-inicial §4.3): navegación giro a giro completa, cálculo y recálculo **en el dispositivo**, sin backend, solo Mallorca, sin depender de Google Play Services (GMS). App gratuita en Play, minSdk 26.
+- Para las notas de rally (§4.4) interesan: geometría (para calcular curvatura nosotros), `maxspeed`, puentes, cruces, elevación/pendiente y map matching de la traza (modo libre, detección de tramo).
+- Datos de partida: extracto de Illes Balears de Geofabrik, `islas-baleares-261027.osm.pbf` = 45 MB (listado de 2026-10-28). Para BRouter, el segmento `E0_N35.rd5` (5°x5°: lon 0–5, lat 35–40, bastante más que la isla) pesa 16,9 MB (brouter.de, 2026-10-28).
+- Ferrostar (BSD-3) **no es un motor de rutas**: es un SDK de navegación (máquina de estados giro a giro, detección de desvío, UI Compose, integración MapLibre). Su web dice que se puede traer el propio enrutado offline ("Want to bring your own offline routing? Can do"), pero ni la web ni el README de Android describen un proveedor offline incluido. Su módulo con GMS es aparte y opcional.
+- valhalla-mobile (Rallista, MIT) empaqueta Valhalla para Android (Kotlin) e iOS: `route`, `trace_route`, `trace_attributes`, `height`, `sources_to_targets` "contra las teselas del dispositivo". No admite `optimized_route`, `isochrone`, `locate` ni `expansion`; `height` devuelve null sin teselas de elevación. Última versión 0.6.4 (2026-10-06, Valhalla 3.9.1; minSdk 24 desde 0.6.2). Requiere NDK 29 y vcpkg para compilar (README), pero publica en Maven Central (`io.github.rallista:valhalla-mobile`).
+- Valhalla soporta instrucciones narradas en `es-ES` y `ca-ES` (API de ruta). `trace_attributes` permite filtrar atributos de arista (según un espejo de la doc: `edge.speed_limit`, `edge.weighted_grade`, `edge.max_upward_grade`...; la página oficial no se pudo leer: VERIFICAR lista exacta). No hay atributo de curvatura: se calcula desde la geometría.
+
+## Alternativas
+| Alternativa | Pros | Contras | Licencia | Madurez / versión verificada |
+|---|---|---|---|---|
+| Valhalla vía valhalla-mobile (+ Ferrostar opcional como capa de navegación) | Offline real contra teselas locales; recálculo; `trace_attributes` y `trace_route` (map matching); instrucciones es-ES; teselas ya jerárquicas, pensadas para poca memoria; mismo motor sirve a Ferrostar | Binario nativo grande (tamaño APK VERIFICAR); no hay ejemplo documentado de Ferrostar con valhalla-mobile local (habría que escribir un `RouteProvider`/adaptador: VERIFICAR); compilación nativa en CI; página de 16 KB (Android 15+) VERIFICAR; teselas de Mallorca sin medir | Valhalla MIT; valhalla-mobile MIT; Ferrostar BSD-3 | Valhalla 3.9.1 (2026-10-06, repo activo 2026-10-27); valhalla-mobile 0.6.4 (2026-10-06); Ferrostar 0.59.0 (2026-10-22), beta "sin garantía de API estable", core Android minSdk 25 |
+| GraphHopper embebido | Java puro, grafo pequeño; `curvature`, clases de vía y `max_speed` como valores codificados (VERIFICAR lista); custom models | Soporte Android oficial retirado: el changelog 2.0 dice "removed android demo" y el foro indica que offline en Android "no está soportado oficialmente"; sin evidencia reciente de uso en ART con 11.x; scoped storage/streams (VERIFICAR); requisito de Java (VERIFICAR) | Apache-2.0 | 11.1 (2026-09-29, versión de seguridad; 12.0 en desarrollo) |
+| BRouter (núcleo Java/Android) | Muy ligero (rd5 por 5°x5°); perfiles de coche cinemáticos editables; Android maduro y mantenido; `get-way-info` (engineMode 3) | Pensado como app/servicio externo; uso como biblioteca no documentado (repo con `jitpack.yml`: VERIFICAR); sin map matching tipo `trace_attributes`; instrucciones/voz las genera el cliente, sin garantía de es (VERIFICAR); rendimiento cuadrático con la distancia (límite práctico ~150 km, irrelevante en Mallorca) | MIT | 1.7.10 (2026-07-17); 1.7.9 añadió "car profiles con pseudo way tags" |
+| OSRM | Rápido, BSD-2, muy activo (push 2026-10-27) | Servidor C++ con preproceso (extract/contract); no he encontrado soporte ni binding Android (VERIFICAR); sin instrucciones localizadas offline | BSD-2-Clause | Repo activo; versión no verificada |
+| OsmAnd (libs) / Organic Maps (motor) | Navegación offline completa ya resuelta | OsmAnd: GitHub no detecta SPDX, README indica GPL (VERIFICAR) → copyleft incompatible con cerrar el código; Organic Maps: Apache-2.0 el código, pero sin biblioteca reutilizable (README) y datos `.mwm` con licencia aparte | OsmAnd GPL (VERIFICAR); Organic Maps Apache-2.0 | Ambos activos (push 2026-10-27/28) |
+
+## Recomendación
+**Valhalla con valhalla-mobile como motor de rutas, map matching y atributos**, y **Ferrostar (solo su núcleo de navegación, sin su UI) como máquina de estados giro a giro si el spike confirma el encaje**; si no encaja, escribir un seguimiento mínimo propio sobre `trace_route`/`route`. Motivos: es la única opción con offline real, recálculo, instrucciones en español, `trace_attributes` y `trace_route` ya empaquetadas para Android, con licencias permisivas. BRouter queda como plan B (más pequeño y simple, pero sin map matching ni instrucciones localizadas). GraphHopper se descarta por falta de soporte Android oficial.
+
+## Consecuencias
+- Positivas: un solo motor para destino, recálculo, modo libre (`trace_attributes` sobre la traza) y detección de tramo conocido; las notas leen `speed_limit`, pendiente y forma de la misma fuente.
+- Negativas / costes: librería nativa (ABIs arm64-v8a y x86_64 para el emulador) que engorda el APK; las teselas Valhalla de Mallorca deben generarse en CI con la **misma versión** que valhalla-mobile (3.9.1) y distribuirse (ver `datos-mallorca.md`); Ferrostar es beta y su API puede cambiar.
+- Seguimiento (spike de 1–2 días antes de H2): (1) construir teselas de `islas-baleares` y medir tamaño y tiempo; (2) ruta Palma–Sóller en emulador sin red, latencia y memoria; (3) instrucciones `es-ES` y `trace_attributes` con `speed_limit` y pendiente; (4) adaptador Ferrostar con ruta local; (5) tamaño del APK y alineación a 16 KB; (6) elevación vía `height` (necesita teselas de elevación: ver `datos-mallorca.md`).
+
+## ¿Afecta al producto?
+Sí, de forma menor → entrada en QUESTIONS.md § Tipo de ruta: ¿solo la ruta más rápida, o también una opción "sinuosa/divertida" que prefiera curvas? (el costing de Valhalla lo permite en principio: VERIFICAR); y ¿las indicaciones de giro las lee el TTS con el texto de Valhalla (es-ES) o con frases propias del glosario de copiloto?
+
+## Fuentes
+- https://stadiamaps.github.io/ferrostar/ y https://stadiamaps.github.io/ferrostar/vendors.html (2026-10-28)
+- https://api.github.com/repos/stadiamaps/ferrostar/releases (0.59.0, 2026-10-22; consultado 2026-10-28); https://raw.githubusercontent.com/stadiamaps/ferrostar/main/LICENSE.txt (BSD-3); .../android/core/build.gradle (minSdk 25); .../android/README.md (módulo GMS aparte)
+- https://github.com/Rallista/valhalla-mobile y https://api.github.com/repos/Rallista/valhalla-mobile/releases (0.6.4, 2026-10-06; 2026-10-28)
+- https://github.com/valhalla/valhalla/releases (3.9.1, 2026-10-06); https://raw.githubusercontent.com/valhalla/valhalla/master/COPYING (MIT); https://valhalla.github.io/valhalla/api/route/api-reference/ (idiomas, 2026-10-28)
+- https://docs.mapatlas.xyz/overview/directions/mapMatch (espejo no oficial de la doc de map matching, 2026-10-28, no verificado)
+- https://api.github.com/repos/graphhopper/graphhopper/releases y https://raw.githubusercontent.com/graphhopper/graphhopper/master/CHANGELOG.md (2026-10-28); https://discuss.graphhopper.com/t/graphhopper-routing-engine-2-0-released/6016 (2026-10-28)
+- https://github.com/abrensch/brouter, https://api.github.com/repos/abrensch/brouter/releases, https://brouter.de/brouter/offline.html, https://brouter.de/brouter/segments4/ (2026-10-28)
+- https://api.github.com/repos/Project-OSRM/osrm-backend; https://raw.githubusercontent.com/organicmaps/organicmaps/master/README.md; https://api.github.com/repos/osmandapp/OsmAnd (2026-10-28)
+- https://download.geofabrik.de/europe/spain/ (islas-baleares-261027.osm.pbf, 45 MB; 2026-10-28)
