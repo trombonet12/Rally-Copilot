@@ -36,7 +36,7 @@
 ## Problemas conocidos
 - El icono adaptativo debe quedarse en `mipmap-anydpi-v26`: con `mipmap-anydpi` el release no enlaza (`@mipmap/ic_launcher` not found).
 - `gradlew` debe estar en git como ejecutable (`git update-index --chmod=+x gradlew`); si no, el CI falla con «Permission denied».
-- PR de Dependabot creado antes del arreglo de `gradlew`: falla el gate; hay que rebasarlo (`@dependabot rebase`) o cerrarlo.
+- PR de Dependabot creado antes del arreglo de `gradlew`: se pidió `@dependabot rebase` (2026-10-28); fusionar si pasa, con permiso.
 - Overpass API da 502/504 a menudo: reintentar con `--max-time` o usar otro espejo.
 
 ## Decisiones recientes
@@ -55,5 +55,8 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Joan:** copia de `~/.rallycopilot/`; instalar con Obtainium si quiere.
-- **Agente:** `hito start H1` (skill `hito`): añadir MapLibre con `dependency-add` y hacer el spike de `pmtiles://` y `mbtiles://` en MapLibre Android con un PMTiles pequeño de Mallorca generado en local con Planetiler. Éxito: el mapa vectorial se ve en el emulador en modo avión. Después, preparar `rally-copilot-data` (pedir permiso para crear el repo).
+- **Agente (sesión nueva, abierta en la carpeta `Rally Copilot`):** hacer **H1 completo y parar** (decisión de Joan 2026-10-28).
+  1. Revisar el PR de Dependabot (se pidió `@dependabot rebase`): si el gate pasa en verde, **pedir permiso** a Joan y fusionarlo.
+  2. `hito start H1` (skill `hito`). Primero el spike: MapLibre con `dependency-add` y un PMTiles pequeño de Mallorca generado en local con Planetiler, servido con `pmtiles://`; probar también `mbtiles://` para el satélite. Éxito: mapa vectorial en el emulador en modo avión.
+  3. Repo de datos `trombonet12/rally-copilot-data`: **Joan dio permiso por adelantado** para crearlo público, ponerle el workflow mensual y hacer push a ese repo sin volver a preguntar. El push a `Rally-Copilot` sigue necesitando permiso cada vez.
+  4. Al cerrar H1: ROADMAP, ESTADO, capturas, y las dudas al chat de 4 en 4.

@@ -15,6 +15,8 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · pruebas · Probar en el emulador del PC con GPS simulado de rutas reales de Mallorca; se puede pedir al usuario conectar su móvil por USB cuando la app esté avanzada · skill `gps-replay`.
 - 2026-10-28 · dudas · Las preguntas de QUESTIONS.md se hacen en el chat, de 4 en 4 (AskUserQuestion), hasta acabarlas; también las dudas que no estén en QUESTIONS y los problemas encontrados · el usuario prefiere responder en el chat a editar el archivo.
 - 2026-10-28 · firma · Keystore nueva y propia de Rally Copilot (`~/.rallycopilot/`); nunca reutilizar la de otro proyecto · regla del usuario.
+- 2026-10-28 · permisos · Permiso por adelantado para crear el repo público `trombonet12/rally-copilot-data` y hacer push a él sin preguntar; el push a `Rally-Copilot` y fusionar PRs siguen pidiendo permiso cada vez.
+- 2026-10-28 · alcance de sesión · La siguiente sesión desatendida hace solo H1 y para.
 - 2026-10-28 · release · Distribución actual: APK de la GitHub Release instalado con Obtainium; Play más adelante (job con `PLAY_HABILITADO`) · no activar Play sin que lo pida.
 
 ## Producto
