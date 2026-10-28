@@ -6,7 +6,7 @@ Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuest
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **1 abierta** (H1) · 18 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **4 abiertas** (H1) · 18 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
 ## Abiertas en H1
 
@@ -14,6 +14,21 @@ Estado: **1 abierta** (H1) · 18 respondidas (2026-10-28, en el chat). Las respu
 - **Contexto:** en H1 hay mapa, posición, velocidad y límite, pero aún no navegación ni tramos (H2/H6). Hace falta una puerta de entrada provisional al mapa desde el menú de inicio.
 - **Opciones:** A) «Conducir» abre el mapa en modo libre (lo que será el modo sin destino de H2); B) entrada aparte «Mapa» que desaparece en H10; C) el mapa como pantalla de inicio y el menú encima.
 - **Recomendación:** A. Se sigue con A mientras no respondas (es reversible); «Mapas offline» y «Ajustes» también se activan.
+
+### Primera descarga de mapas
+- **Contexto:** hoy la primera descarga (~400 MB) la inicia el usuario desde Mapas offline; las actualizaciones posteriores se comprueban solas al abrir la app y se bajan con WiFi.
+- **Opciones:** A) primera descarga manual (como ahora); B) empezar sola con WiFi la primera vez que se abre la app.
+- **Recomendación:** A: 400 MB es mucho para hacerlo sin preguntar, y la tarjeta del mapa ya lleva a Mapas offline.
+
+### Orientación del mapa al conducir
+- **Contexto:** el seguimiento usa `TRACKING_GPS` de MapLibre, que gira el mapa con el rumbo (rumbo arriba). En H2 llega la navegación.
+- **Opciones:** A) rumbo arriba (como un navegador); B) norte arriba; C) botón para alternar (por defecto rumbo arriba).
+- **Recomendación:** C.
+
+### Rótulo de la vía bajo la velocidad y aviso de datos móviles
+- **Contexto:** el panel muestra la referencia o el nombre de la vía («Ma-2141») bajo la velocidad (no estaba pedido). Al desactivar «Solo con WiFi» no se pide confirmación.
+- **Opciones:** rótulo: mantener / quitar. Datos móviles: confirmar con un diálogo («puede gastar ~400 MB») / no confirmar.
+- **Recomendación:** mantener el rótulo (ayuda a saber de qué vía es el límite) y confirmar con diálogo.
 
 ## Bloquean H1–H2
 

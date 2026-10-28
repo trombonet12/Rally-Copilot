@@ -49,11 +49,11 @@ Ver Mallorca en vectorial y satélite sin conexión, con la posición GPS, la ve
 - Fuera: rutas, navegación, notas.
 
 ### Criterios de aceptación
-- [ ] En modo avión, con el paquete descargado, el mapa vectorial y el satélite z≤16 se ven en toda Mallorca.
-- [ ] Con `gps-replay` por la Ma-2141 a 50 km/h, la app muestra ~50 km/h y el límite de la vía en cada tramo con `maxspeed`; en los que no lo tienen, no muestra ninguno.
-- [ ] Funciona en un emulador sin Google APIs (el móvil de Joan es LineageOS sin GMS).
-- [ ] Atribuciones de OSM e IGN en Ajustes > Acerca de (sin atribución sobre el mapa: decisión de Joan 2026-10-28).
-- [ ] La descarga se reanuda tras cortar la red y respeta «solo WiFi» y el límite de espacio.
+- [x] En modo avión, con el paquete descargado, el mapa vectorial y el satélite z≤16 se ven en toda Mallorca (capturas en `docs/capturas/h1/`: vista de la isla, Palma, Serra de Tramuntana).
+- [x] Con `gps-replay` por la Ma-2141 a 50 km/h, la app muestra ~50 km/h y el límite de la vía en cada tramo con `maxspeed`; en los que no lo tienen, no muestra ninguno (90 y 30 en el Nus de sa Corbata, sin señal en Cals Reis; contrastado con el archivo de vías).
+- [x] Funciona en un emulador sin Google APIs (el móvil de Joan es LineageOS sin GMS): AVD `rally-sin-gms-36` (`android-36/default`), sin paquetes de GMS ni Play Store; descarga, mapa, velocidad y vía.
+- [x] Atribuciones de OSM e IGN en Ajustes > Acerca de (sin atribución sobre el mapa: decisión de Joan 2026-10-28).
+- [x] La descarga se reanuda tras cortar la red y respeta «solo WiFi» y el límite de espacio (emulador: WiFi cortada a 118 MB → «Esperando WiFi» con 5G → reanuda con Range desde 118 MB; límite de espacio con tests Robolectric).
 
 ### Tests
 - Motor: búsqueda de la vía más cercana a un punto y del límite aplicable (fixtures OSM pequeñas).
@@ -61,7 +61,8 @@ Ver Mallorca en vectorial y satélite sin conexión, con la posición GPS, la ve
 - Emulador: `gps-replay` de la Ma-2141 y captura de velocidad y límite.
 
 ### Estado
-en curso (2026-10-28) · Depende de: H0 · Dudas: resueltas (2026-10-28). Requiere crear el repo público `trombonet12/rally-copilot-data` (con permiso de Joan).
+completado (2026-10-28) · Depende de: H0 · Dudas: 4 nuevas en QUESTIONS.md § Abiertas en H1
+<!-- Hecho: repo público rally-copilot-data con workflow mensual (decidir/build sin token/publicar) y release datos-2026.10.28-2 (vectorial 32,6 MB, estilo 1 MB, vías 2,2 MB, satélite PNOA z0–16 364 MB); MapLibre 13.6.1 con pmtiles://file:// (vectorial y ráster) y spike de mbtiles:// (solo ruta absoluta); motor: manifest, plan de descarga, vías, límites y velocidad (82 tests); app: Room, WorkManager, descarga reanudable verificada, GPS sin GMS, vía actual, mapa, Mapas offline, Ajustes/Acerca de (174 tests); revisión de seguridad opus aplicada. Pendiente: corredor z17–19 en H9 (mbtiles), aviso de datos nuevos solo probado con tests (no hay segunda release real), confirmar en el móvil de Joan con GPS real. -->
 
 ## H2 — Navegación offline
 
