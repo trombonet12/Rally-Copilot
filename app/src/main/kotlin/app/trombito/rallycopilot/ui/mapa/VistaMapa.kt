@@ -42,6 +42,7 @@ private const val LON_INICIAL = 2.98
 private const val ZOOM_INICIAL = 9.0
 private const val ZOOM_SEGUIMIENTO = 15.0
 private const val PROVEEDOR = "gps"
+private const val DURACION_TRANSICION_MS = 750L
 
 /** Por debajo de este zoom (vista de la isla) no es un zoom de conducción: al seguir se usa [ZOOM_SEGUIMIENTO]. */
 private const val ZOOM_MINIMO_SEGUIMIENTO = 12.0
@@ -298,8 +299,12 @@ private class ControladorMapa(
         val fijacion = posicion
         if (m == null || cargado == null || fijacion == null) return
         val componente = m.locationComponent
-        if (!ubicacionActivada) activarUbicacion(componente, cargado)
+        val primera = !ubicacionActivada
+        if (primera) activarUbicacion(componente, cargado)
+        if (!ubicacionActivada) return
         componente.forceLocationUpdate(fijacion.aLocation())
+        // Con la primera fijación ya dentro: la transición de seguimiento necesita una posición a la que ir.
+        if (primera) fijarCamara(componente)
     }
 
     private fun activarUbicacion(
@@ -331,13 +336,20 @@ private class ControladorMapa(
         }
         ubicacionActivada = true
         guardarCamara = true
-        fijarCamara(componente)
     }
 
     private fun fijarCamara(componente: LocationComponent) {
         if (siguiendo) {
-            componente.cameraMode = CameraMode.TRACKING_GPS
-            componente.zoomWhileTracking(zoomParaSeguir(zoomActual))
+            // El zoom va dentro de la transición al modo de seguimiento: `zoomWhileTracking` suelto lo cancela cada
+            // fijación nueva (1 Hz) y la cámara se quedaba al zoom inicial.
+            componente.setCameraMode(
+                CameraMode.TRACKING_GPS,
+                DURACION_TRANSICION_MS,
+                zoomParaSeguir(zoomActual),
+                null,
+                null,
+                null,
+            )
         } else {
             componente.cameraMode = CameraMode.NONE
         }
