@@ -62,6 +62,7 @@ fun VistaMapa(
     val vista =
         remember {
             MapLibre.getInstance(contexto)
+            MapLibre.setConnected(false)
             MapView(contexto)
         }
     val controlador = remember(vista) { ControladorMapa(vista) { perdido.value() } }

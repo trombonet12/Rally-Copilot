@@ -112,6 +112,31 @@ class LectorManifestTest {
     }
 
     @Test
+    fun `rechaza urls de otro repositorio de github`() {
+        val urls =
+            listOf(
+                "https://github.com/otro/repo/releases/download/v1/vias-mallorca.tsv.gz",
+                "https://github.com/trombonet12/otro-repo/releases/download/v1/vias-mallorca.tsv.gz",
+                "https://github.com/trombonet12/rally-copilot-data/raw/main/vias-mallorca.tsv.gz",
+                "https://github.com/trombonet12/rally-copilot-data/releases/latest/download/vias.bin",
+                "https://github.com.evil.example/trombonet12/rally-copilot-data/releases/download/v1/x.bin",
+            )
+        for (url in urls) assertInvalido(conVias(url = url), "url")
+    }
+
+    @Test
+    fun `rechaza nombres fuera del patron minusculas digitos punto guion`() {
+        val nombres = listOf("Vias.bin", ".oculto", "-x.bin", "con espacio.bin", "ñandu.bin", "a:b.bin")
+        for (nombre in nombres) assertInvalido(conVias(nombre = nombre), "nombre")
+    }
+
+    @Test
+    fun `rechaza nombres repetidos entre archivos distintos`() {
+        val repetido = archivoJson("extra", "mallorca.pmtiles", sha = SHA_B)
+        assertInvalido(manifestJson(archivos = TODOS + repetido), "repetido")
+    }
+
+    @Test
     fun `esMasNuevoQue sin manifest previo es verdadero`() {
         assertEquals(true, LectorManifest.leer(manifestJson()).esMasNuevoQue(null))
     }

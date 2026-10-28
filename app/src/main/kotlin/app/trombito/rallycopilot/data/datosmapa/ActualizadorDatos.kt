@@ -95,7 +95,7 @@ class ActualizadorDatos
             descargarTodo(plan.aDescargar, plan.bytesADescargar, alProgreso)
 
             val nombresABorrar = instalados.filter { it.id in plan.aBorrar }.map { it.nombre }
-            instalador.instalar(plan.aDescargar, nombresABorrar)
+            instalador.instalar(plan.aDescargar, nombresABorrar, remoto.archivos.map { it.nombre })
             dao.registrarInstalacion(
                 archivos = plan.aDescargar.map { it.aEntidad() },
                 idsBorrados = plan.aBorrar,

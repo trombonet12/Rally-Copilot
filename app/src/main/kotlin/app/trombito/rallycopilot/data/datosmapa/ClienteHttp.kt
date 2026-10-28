@@ -6,12 +6,12 @@ import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
-/** Cliente HTTP mínimo sobre `HttpURLConnection`: User-Agent propio, timeouts y redirecciones del mismo protocolo. */
+/** Cliente HTTP mínimo sobre `HttpURLConnection`: User-Agent propio, timeouts y solo https hacia GitHub. */
 class ClienteHttp(
     private val config: ConfigDatosMapa,
 ) {
     /**
-     * Abre [url] (con `Range: bytes=desde-` si [desde] > 0) siguiendo redirecciones https a https (o http a http).
+     * Abre [url] (con `Range: bytes=desde-` si [desde] > 0) siguiendo redirecciones https a https dentro de GitHub.
      * El llamante cierra la conexión. Devuelve la conexión ya con respuesta; el código puede ser 200, 206, 416...
      */
     fun abrir(
@@ -19,6 +19,7 @@ class ClienteHttp(
         desde: Long = 0,
     ): HttpURLConnection {
         var actual = URL(url)
+        exigirHostPermitido(actual)
         repeat(MAX_REDIRECCIONES + 1) {
             val con = conectar(actual, desde)
             actual = destinoRedireccion(actual, con) ?: return con
@@ -58,7 +59,15 @@ class ClienteHttp(
         if (destino == null) throw IOException("Redirección sin Location")
         val siguiente = URL(actual, destino)
         if (siguiente.protocol != actual.protocol) throw IOException("Redirección a otro protocolo")
+        exigirHostPermitido(siguiente)
         return siguiente
+    }
+
+    /** Solo https y solo GitHub (y su CDN `*.githubusercontent.com`), tanto en la URL inicial como en redirecciones. */
+    private fun exigirHostPermitido(url: URL) {
+        val host = url.host.lowercase()
+        val permitido = host == HOST_GITHUB || host.endsWith(SUFIJO_CDN)
+        if (url.protocol != "https" || !permitido) throw IOException("Destino no permitido: ${url.protocol}://$host")
     }
 
     /** Descarga un texto pequeño (el manifest) o falla con [IOException]. */
@@ -94,6 +103,8 @@ class ClienteHttp(
         const val HTTP_OK = 200
         const val HTTP_PARCIAL = 206
         const val HTTP_RANGO_NO_SATISFACIBLE = 416
+        private const val HOST_GITHUB = "github.com"
+        private const val SUFIJO_CDN = ".githubusercontent.com"
         private const val TIMEOUT_MS = 30_000
         private const val MAX_REDIRECCIONES = 5
         private const val MAX_TEXTO = 1_048_576

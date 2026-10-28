@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.motor.datos.ArchivoDatos
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.util.zip.ZipFile
 
 /**
  * Gestiona `filesDir/mapa/`: la zona de descarga `.nuevo/` y la instalación atómica. Mientras no estén verificados
@@ -43,15 +44,22 @@ class InstaladorDatos(
     /**
      * Instala los [archivos] (todos ya verificados) y borra los [nombresABorrar]. El zip se descomprime primero en una
      * carpeta temporal: si es inseguro o falla, no se ha tocado nada. Después solo hay renombrados.
+     * [nombresDelManifest] son los nombres de todos los archivos del manifest (también los que no se descargan ahora):
+     * ninguna entrada de un zip puede tener uno de esos nombres ni los de [archivos].
      */
     fun instalar(
         archivos: List<ArchivoDatos>,
         nombresABorrar: List<String>,
+        nombresDelManifest: Collection<String> = emptyList(),
     ) {
         mapa.mkdirs()
         extraido.deleteRecursively()
         val (zips, sueltos) = archivos.partition { it.nombre.endsWith(".zip", ignoreCase = true) }
-        zips.forEach { ExtractorZip.extraer(verificado(it), extraido) }
+        val reservados = (nombresDelManifest + archivos.map { it.nombre }).map { normalizar(it) }.toSet()
+        zips.forEach {
+            comprobarZip(verificado(it), reservados)
+            ExtractorZip.extraer(verificado(it), extraido)
+        }
         sueltos.forEach { mover(verificado(it), File(mapa, it.nombre)) }
         if (extraido.isDirectory) {
             extraido.walkTopDown().filter { it.isFile }.forEach { mover(it, File(mapa, it.relativeTo(extraido).path)) }
@@ -76,3 +84,30 @@ class InstaladorDatos(
         Files.move(origen.toPath(), destino.toPath(), StandardCopyOption.REPLACE_EXISTING)
     }
 }
+
+private const val MAX_ENTRADAS_ZIP = 2000
+
+/** Rechaza un zip con demasiadas entradas o con entradas que pisarían archivos del manifest. */
+private fun comprobarZip(
+    zip: File,
+    reservados: Set<String>,
+) {
+    var cuenta = 0
+    ZipFile(zip).use { zf ->
+        for (entrada in zf.entries()) {
+            cuenta++
+            if (cuenta > MAX_ENTRADAS_ZIP) throw ZipInseguroException("Zip con más de $MAX_ENTRADAS_ZIP entradas")
+            if (!entrada.isDirectory && normalizar(entrada.name) in reservados) {
+                throw ZipInseguroException("El zip trae un archivo reservado del manifest: ${entrada.name}")
+            }
+        }
+    }
+}
+
+/** Ruta sin `.` ni segmentos vacíos y en minúsculas, para comparar nombres como los resuelve el sistema. */
+private fun normalizar(nombre: String): String =
+    nombre
+        .split('/', '\\')
+        .filter { it.isNotEmpty() && it != "." }
+        .joinToString("/")
+        .lowercase()

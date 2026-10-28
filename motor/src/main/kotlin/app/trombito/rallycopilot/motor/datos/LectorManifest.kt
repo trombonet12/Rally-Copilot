@@ -15,7 +15,8 @@ object LectorManifest {
     val IDS_OBLIGATORIOS = listOf("vectorial", "estilo", "vias", "satelite")
 
     private const val ESQUEMA_SOPORTADO = 1
-    private const val PREFIJO_URL = "https://github.com/"
+    private const val PREFIJO_URL = "https://github.com/trombonet12/rally-copilot-data/releases/download/"
+    private val NOMBRE = Regex("^[a-z0-9][a-z0-9._-]*$")
     private val SHA256 = Regex("^[0-9a-f]{64}$")
     private val formato = Json { ignoreUnknownKeys = true }
 
@@ -26,6 +27,9 @@ object LectorManifest {
         val ids = manifest.archivos.map { it.id }
         val repetidos = ids.filter { id -> ids.count { it == id } > 1 }.toSet()
         exigir(repetidos.isEmpty()) { "Ids repetidos: ${repetidos.joinToString()}" }
+        val nombres = manifest.archivos.map { it.nombre }
+        val nombresRepetidos = nombres.filter { n -> nombres.count { it == n } > 1 }.toSet()
+        exigir(nombresRepetidos.isEmpty()) { "Nombres repetidos: ${nombresRepetidos.joinToString()}" }
         val faltan = IDS_OBLIGATORIOS - ids.toSet()
         exigir(faltan.isEmpty()) { "Faltan archivos obligatorios: ${faltan.joinToString()}" }
         manifest.archivos.forEach(::validarArchivo)
@@ -48,8 +52,7 @@ object LectorManifest {
         exigir(nombreSeguro(a.nombre)) { "nombre no permitido en '${a.id}': ${a.nombre}" }
     }
 
-    private fun nombreSeguro(nombre: String): Boolean =
-        nombre.isNotBlank() && '/' !in nombre && '\\' !in nombre && ".." !in nombre
+    private fun nombreSeguro(nombre: String): Boolean = NOMBRE.matches(nombre) && ".." !in nombre
 
     private fun exigir(
         condicion: Boolean,

@@ -126,6 +126,24 @@ class RepositorioDatosMapaImplTest {
     }
 
     @Test
+    fun `un estilo que apunta a la red se rechaza y se registra el error`() {
+        escribirEstilos(conSatelite = true)
+        File(entorno.mapa, "vectorial.json").writeText("""{"url":"https://evil.example/mallorca.json"}""")
+
+        assertNull(runBlocking { repositorio.estilos() })
+
+        assertEquals(MotivoError.MANIFEST_INVALIDO.name, runBlocking { dao.estado()?.ultimoError })
+    }
+
+    @Test
+    fun `un estilo satelite que apunta a la red tambien invalida los estilos`() {
+        escribirEstilos(conSatelite = true)
+        File(entorno.mapa, "satelite.json").writeText("""{"sprite":"http://evil.example/s"}""")
+
+        assertNull(runBlocking { repositorio.estilos() })
+    }
+
+    @Test
     fun `descargar encola un unico trabajo solo WiFi y borra el error anterior`() {
         runBlocking { dao.establecerError(MotivoError.SIN_RED.name) }
 

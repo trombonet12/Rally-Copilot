@@ -19,6 +19,8 @@ class ServidorFalso : AutoCloseable {
         val bytes: ByteArray,
         /** Responde siempre 200 con el cuerpo entero, aunque la petición traiga Range. */
         val ignorarRange: Boolean = false,
+        /** Responde sin `Content-Length` (cuerpo troceado), como un servidor que no anuncia el tamaño. */
+        val sinContentLength: Boolean = false,
     ) {
         /** Si no es null, la próxima respuesta envía solo estos bytes de cuerpo y corta la conexión (una vez). */
         @Volatile var cortarTras: Int? = null
@@ -108,7 +110,8 @@ class ServidorFalso : AutoCloseable {
         val inicio = desde ?: 0
         val cuerpo = recurso.bytes.copyOfRange(inicio, total)
         if (desde != null) ex.responseHeaders.add("Content-Range", "bytes $desde-${total - 1}/$total")
-        ex.sendResponseHeaders(if (desde != null) 206 else 200, cuerpo.size.toLong())
+        val longitud = if (recurso.sinContentLength) 0L else cuerpo.size.toLong()
+        ex.sendResponseHeaders(if (desde != null) 206 else 200, longitud)
         val corte = recurso.cortarTras
         recurso.cortarTras = null
         val enviado = if (corte != null) cuerpo.copyOf(corte.coerceAtMost(cuerpo.size)) else cuerpo

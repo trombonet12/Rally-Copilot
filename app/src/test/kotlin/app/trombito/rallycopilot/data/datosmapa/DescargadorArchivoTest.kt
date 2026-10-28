@@ -7,6 +7,7 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -138,6 +139,50 @@ class DescargadorArchivoTest {
         assertArrayEquals(contenido, parcial.readBytes())
         val peticion = entorno.servidor.peticionesA("/real/archivo").single()
         assertEquals("bytes=1000-", peticion.range)
+    }
+
+    @Test
+    fun `un Content-Length distinto del manifest se rechaza antes de escribir`() {
+        val archivo = entorno.archivo("vectorial", contenido, "v1")
+        entorno.servidor.servir(entorno.rutaDe(archivo), contenido + ByteArray(1_000))
+
+        assertThrows(HashIncorrectoException::class.java) { descargar(archivo) }
+
+        assertFalse(parcial.exists())
+    }
+
+    @Test
+    fun `un Content-Range con otro total se rechaza antes de escribir`() {
+        val archivo = entorno.archivo("vectorial", contenido, "v1")
+        entorno.servidor.servir(entorno.rutaDe(archivo), contenido + ByteArray(1_000))
+        parcial.writeBytes(contenido.copyOf(10_000))
+
+        assertThrows(HashIncorrectoException::class.java) { descargar(archivo) }
+
+        assertFalse(parcial.exists())
+    }
+
+    @Test
+    fun `sin Content-Length corta en cuanto se superan los bytes del manifest`() {
+        val archivo = entorno.archivo("vectorial", contenido, "v1")
+        val demasiado = contenido + ByteArray(200_000)
+        entorno.servidor.servir(entorno.rutaDe(archivo), ServidorFalso.Recurso(demasiado, sinContentLength = true))
+        val progreso = mutableListOf<Long>()
+
+        assertThrows(HashIncorrectoException::class.java) { descargar(archivo, progreso) }
+
+        assertTrue("No debe escribir más de lo anunciado", progreso.all { it <= archivo.bytes })
+        assertFalse(parcial.exists())
+    }
+
+    @Test
+    fun `sin Content-Length y con el tamaño exacto descarga bien`() {
+        val (archivo, _) = publicar()
+        entorno.servidor.servir(entorno.rutaDe(archivo), ServidorFalso.Recurso(contenido, sinContentLength = true))
+
+        descargar(archivo)
+
+        assertArrayEquals(contenido, parcial.readBytes())
     }
 
     @Test

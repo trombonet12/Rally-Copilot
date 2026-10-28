@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.datosmapa
 
+import android.util.Log
 import androidx.work.BackoffPolicy
 import androidx.work.Constraints
 import androidx.work.ExistingWorkPolicy
@@ -15,6 +16,7 @@ import app.trombito.rallycopilot.data.db.archivos
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
+import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -92,10 +94,20 @@ class RepositorioDatosMapaImpl(
             val raizUrl = "file://" + mapa.absolutePath.replace('\\', '/')
             val satelite =
                 File(mapa, "satelite.json").takeIf { it.isFile && File(mapa, ARCHIVO_SATELITE).isFile }
-            EstilosMapa(
-                vectorial = vectorial.readText().replace(MARCADOR_DIR, raizUrl),
-                satelite = satelite?.readText()?.replace(MARCADOR_DIR, raizUrl),
-            )
+            val estilos =
+                EstilosMapa(
+                    vectorial = vectorial.readText().replace(MARCADOR_DIR, raizUrl),
+                    satelite = satelite?.readText()?.replace(MARCADOR_DIR, raizUrl),
+                )
+            val validos =
+                listOfNotNull(estilos.vectorial, estilos.satelite).all { ValidadorEstilo.esValido(it, raizUrl) }
+            if (validos) {
+                estilos
+            } else {
+                Log.w(ETIQUETA_LOG, "Estilo rechazado: referencia recursos fuera de la carpeta del mapa")
+                dao.establecerError(MotivoError.MANIFEST_INVALIDO.name)
+                null
+            }
         }
 
     private suspend fun soloWifiActual(): Boolean = ajustesDao.ajustes()?.soloWifi ?: AjustesMapas().soloWifi
@@ -130,6 +142,7 @@ class RepositorioDatosMapaImpl(
     }
 
     private companion object {
+        const val ETIQUETA_LOG = "RepositorioDatosMapa"
         const val MARCADOR_DIR = "{{DIR}}"
         const val ARCHIVO_SATELITE = "pnoa-mallorca-z16.pmtiles"
         const val ETIQUETA_AUTOMATICO = "automatico"

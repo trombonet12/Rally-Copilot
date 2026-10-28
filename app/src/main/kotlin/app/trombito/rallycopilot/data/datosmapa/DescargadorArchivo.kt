@@ -40,7 +40,7 @@ class DescargadorArchivo(
                 inicio = 0
             }
             if (inicio < archivo.bytes) {
-                inicio = transferir(archivo, parcial, inicio, alProgreso)
+                inicio = transferirOBorrar(archivo, parcial, inicio, alProgreso)
             } else {
                 alProgreso(inicio)
             }
@@ -58,6 +58,20 @@ class DescargadorArchivo(
         }
     }
 
+    /** Un servidor que anuncia o envía más de lo que dice el manifest no es de fiar: se borra el `.part`. */
+    private suspend fun transferirOBorrar(
+        archivo: ArchivoDatos,
+        parcial: File,
+        desde: Long,
+        alProgreso: suspend (Long) -> Unit,
+    ): Long =
+        try {
+            transferir(archivo, parcial, desde, alProgreso)
+        } catch (e: HashIncorrectoException) {
+            parcial.delete()
+            throw e
+        }
+
     /** Descarga desde [desde] (o desde cero si el servidor ignora el Range). Devuelve el offset real de partida. */
     private suspend fun transferir(
         archivo: ArchivoDatos,
@@ -74,9 +88,12 @@ class DescargadorArchivo(
                 con.disconnect()
                 return transferir(archivo, parcial, 0, alProgreso)
             }
+            comprobarTamanoAnunciado(con, archivo, inicio)
             alProgreso(inicio)
             con.inputStream.use { entrada ->
-                FileOutputStream(parcial, inicio > 0).use { salida -> volcar(entrada, salida, inicio, alProgreso) }
+                FileOutputStream(parcial, inicio > 0).use { salida ->
+                    volcar(entrada, salida, inicio, archivo, alProgreso)
+                }
             }
             return inicio
         } finally {
@@ -100,10 +117,30 @@ class DescargadorArchivo(
         }
     }
 
+    /** El total del Content-Range y el Content-Length (si vienen) tienen que cuadrar con el manifest. */
+    private fun comprobarTamanoAnunciado(
+        con: HttpURLConnection,
+        archivo: ArchivoDatos,
+        inicio: Long,
+    ) {
+        val total = totalDeContentRange(con.getHeaderField("Content-Range"))
+        if (con.responseCode == ClienteHttp.HTTP_PARCIAL && total != archivo.bytes) {
+            throw HashIncorrectoException("Tamaño total anunciado ($total) distinto del manifest en ${archivo.nombre}")
+        }
+        val longitud = con.contentLengthLong
+        if (longitud != -1L && longitud != archivo.bytes - inicio) {
+            throw HashIncorrectoException("Content-Length ($longitud) distinto del esperado en ${archivo.nombre}")
+        }
+    }
+
+    private fun totalDeContentRange(contentRange: String?): Long? =
+        contentRange?.substringAfterLast('/')?.trim()?.toLongOrNull()
+
     private suspend fun volcar(
         entrada: InputStream,
         salida: OutputStream,
         inicio: Long,
+        archivo: ArchivoDatos,
         alProgreso: suspend (Long) -> Unit,
     ) {
         var hechos = inicio
@@ -112,6 +149,9 @@ class DescargadorArchivo(
             currentCoroutineContext().ensureActive()
             val n = entrada.read(buffer)
             if (n < 0) return
+            if (hechos + n > archivo.bytes) {
+                throw HashIncorrectoException("El servidor envía más bytes de los esperados en ${archivo.nombre}")
+            }
             salida.write(buffer, 0, n)
             hechos += n
             alProgreso(hechos)

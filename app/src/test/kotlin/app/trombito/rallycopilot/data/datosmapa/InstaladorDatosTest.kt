@@ -5,6 +5,7 @@ import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Before
@@ -98,6 +99,50 @@ class InstaladorDatosTest {
                 // esperado
             }
         }
+    }
+
+    @Test
+    fun `un zip con una entrada que pisaria otro archivo del manifest se rechaza sin tocar nada`() {
+        val zipMalo = PaqueteDePrueba.zip(mapOf("vectorial.json" to "{}", "vias-mallorca.bin" to "falso"))
+        val estilo = verificar("estilo", zipMalo)
+        val vias = verificar("vias", PaqueteDePrueba.aleatorio(2, 40_000))
+        val viejo = instalarViejo("vias-mallorca.bin", "viejo")
+
+        assertThrows(ZipInseguroException::class.java) { instalador.instalar(listOf(estilo, vias), emptyList()) }
+
+        assertEquals("viejo", viejo.readText())
+        assertFalse(File(entorno.mapa, "vectorial.json").exists())
+    }
+
+    @Test
+    fun `un zip no puede pisar un archivo del manifest que no se descarga ahora`() {
+        val zipMalo = PaqueteDePrueba.zip(mapOf("pnoa-mallorca-z16.pmtiles" to "falso"))
+        val estilo = verificar("estilo", zipMalo)
+        val satelite = entorno.archivo("satelite", PaqueteDePrueba.aleatorio(3), "v2")
+
+        assertThrows(ZipInseguroException::class.java) {
+            instalador.instalar(listOf(estilo), emptyList(), listOf(satelite.nombre))
+        }
+    }
+
+    @Test
+    fun `una entrada con el mismo nombre en una subcarpeta no es un conflicto`() {
+        val estilo = verificar("estilo", PaqueteDePrueba.zip(mapOf("glyphs/vias-mallorca.bin" to "x")))
+        val vias = verificar("vias", PaqueteDePrueba.aleatorio(2, 40_000))
+
+        instalador.instalar(listOf(estilo, vias), emptyList())
+
+        assertTrue(File(entorno.mapa, "glyphs/vias-mallorca.bin").isFile)
+    }
+
+    @Test
+    fun `un zip con mas de 2000 entradas se rechaza y con 2000 se acepta`() {
+        val aceptable = verificar("estilo", PaqueteDePrueba.zip((1..2000).associate { "g/$it.pbf" to "x" }))
+        instalador.instalar(listOf(aceptable), emptyList())
+        assertTrue(File(entorno.mapa, "g/2000.pbf").isFile)
+
+        val excesivo = verificar("estilo", PaqueteDePrueba.zip((1..2001).associate { "g/$it.pbf" to "x" }))
+        assertThrows(ZipInseguroException::class.java) { instalador.instalar(listOf(excesivo), emptyList()) }
     }
 
     @Test
