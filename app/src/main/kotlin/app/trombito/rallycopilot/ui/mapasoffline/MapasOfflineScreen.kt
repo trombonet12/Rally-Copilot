@@ -128,7 +128,7 @@ private fun ContenidoMapas(
     onPedirBorrado: () -> Unit,
 ) {
     TarjetaEstado(estado)
-    estado.datos.descarga?.let { Progreso(estado, it.esperandoRed, it.bytesHechos, it.bytesTotales) }
+    estado.datos.descarga?.let { Progreso(estado, it.esperandoRed) }
     estado.datos.error?.let { Error(it) }
     when (estado.fase) {
         FaseMapas.DESCARGANDO -> {
@@ -210,8 +210,6 @@ private fun TarjetaEstado(estado: MapasOfflineUiState) {
 private fun Progreso(
     estado: MapasOfflineUiState,
     esperandoRed: Boolean,
-    hechos: Long,
-    totales: Long,
 ) {
     val contexto = LocalContext.current
     val porcentaje = estado.porcentaje
@@ -230,9 +228,13 @@ private fun Progreso(
                 modifier = Modifier.testTag(ETIQUETA_ESPERA),
             )
         }
-        if (porcentaje == null) {
+        val progreso = estado.progreso
+        if (porcentaje == null || progreso == null) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
-            Text(stringResource(R.string.mapas_descargando), style = MaterialTheme.typography.bodyMedium)
+            // Esperando red sin total conocido: ya lo dice «Esperando…»; «Descargando…» sería contradictorio.
+            if (!esperandoRed) {
+                Text(stringResource(R.string.mapas_descargando), style = MaterialTheme.typography.bodyMedium)
+            }
         } else {
             val descripcion = stringResource(R.string.mapas_progreso_descripcion, porcentaje)
             LinearProgressIndicator(
@@ -243,8 +245,8 @@ private fun Progreso(
                 text =
                     stringResource(
                         R.string.mapas_progreso,
-                        Formatter.formatShortFileSize(contexto, hechos),
-                        Formatter.formatShortFileSize(contexto, totales),
+                        Formatter.formatShortFileSize(contexto, progreso.bytesHechos),
+                        Formatter.formatShortFileSize(contexto, progreso.bytesTotales),
                         porcentaje,
                     ),
                 style = MaterialTheme.typography.bodyMedium,

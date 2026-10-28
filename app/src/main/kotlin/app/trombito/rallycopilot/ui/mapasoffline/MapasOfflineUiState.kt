@@ -11,6 +11,8 @@ data class MapasOfflineUiState(
     val cargando: Boolean = true,
     val datos: EstadoDatosMapa = EstadoDatosMapa(),
     val ajustes: AjustesMapas = AjustesMapas(),
+    /** Último progreso con total conocido de la descarga activa: se sigue mostrando mientras espera red. */
+    val ultimoProgreso: ProgresoDescarga? = null,
 ) {
     val fase: FaseMapas
         get() =
@@ -21,8 +23,15 @@ data class MapasOfflineUiState(
                 else -> FaseMapas.SIN_DATOS
             }
 
+    /** El progreso a mostrar: el actual si ya trae total; si no, el último conocido de esta misma descarga. */
+    val progreso: ProgresoDescarga?
+        get() {
+            val actual = datos.descarga ?: return null
+            return if (actual.bytesTotales > 0) actual else ultimoProgreso
+        }
+
     /** Porcentaje entero de la descarga, o null si aún no se conoce el total. */
-    val porcentaje: Int? get() = datos.descarga?.porcentaje()
+    val porcentaje: Int? get() = progreso?.porcentaje()
 }
 
 internal fun ProgresoDescarga.porcentaje(): Int? =

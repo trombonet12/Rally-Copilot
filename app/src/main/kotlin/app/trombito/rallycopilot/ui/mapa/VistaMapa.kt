@@ -43,9 +43,20 @@ private const val ZOOM_INICIAL = 9.0
 private const val ZOOM_SEGUIMIENTO = 15.0
 private const val PROVEEDOR = "gps"
 
+/** Lo que la vista del mapa intercambia con la pantalla sobre la cámara. */
+data class CamaraVistaMapa(
+    /** Cámara a restaurar al crear la vista (p. ej. tras girar la pantalla); null = centro inicial de Mallorca. */
+    val inicial: CamaraMapa? = null,
+    /** La cámara se ha detenido en un nuevo sitio: se guarda para restaurarla. */
+    val onCambio: (CamaraMapa) -> Unit = {},
+    /** El usuario movió el mapa y la cámara dejó de seguir al coche. */
+    val onSeguimientoPerdido: () -> Unit = {},
+)
+
 /**
  * El mapa MapLibre dentro de Compose. Sin lógica de negocio: recibe el estilo ya resuelto, la última posición y si
- * la cámara debe seguirla; avisa cuando el usuario mueve el mapa y el seguimiento se pierde. El logo, la atribución
+ * la cámara debe seguirla; avisa cuando el usuario mueve el mapa y el seguimiento se pierde, y de cada cambio de
+ * cámara para que se pueda restaurar al recrear la actividad (giro de pantalla). El logo, la atribución
  * y el botón de información de MapLibre se desactivan: la atribución la dibuja la pantalla, siempre visible.
  */
 @Composable
@@ -53,22 +64,30 @@ fun VistaMapa(
     estiloJson: String,
     posicion: Fijacion?,
     siguiendo: Boolean,
-    onSeguimientoPerdido: () -> Unit,
+    camara: CamaraVistaMapa,
     modifier: Modifier = Modifier,
 ) {
     val contexto = LocalContext.current
     val ciclo = LocalLifecycleOwner.current
-    val perdido = rememberUpdatedState(onSeguimientoPerdido)
+    val actual = rememberUpdatedState(camara)
     val vista =
         remember {
             MapLibre.getInstance(contexto)
             MapLibre.setConnected(false)
             MapView(contexto)
         }
-    val controlador = remember(vista) { ControladorMapa(vista) { perdido.value() } }
+    val controlador =
+        remember(vista) {
+            ControladorMapa(
+                vista = vista,
+                camaraInicial = camara.inicial,
+                alCambiarCamara = { actual.value.onCambio(it) },
+                alPerderSeguimiento = { actual.value.onSeguimientoPerdido() },
+            )
+        }
 
     DisposableEffect(vista, ciclo) {
-        val puente = PuenteCicloVida(vista)
+        val puente = PuenteCicloVida(vista, controlador::activar)
         ciclo.lifecycle.addObserver(puente)
         controlador.iniciar()
         val memoria =
@@ -98,6 +117,7 @@ fun VistaMapa(
 /** Reenvía el ciclo de vida de Compose al `MapView` (que no es lifecycle-aware) sin repetir ni saltarse pasos. */
 private class PuenteCicloVida(
     private val vista: MapView,
+    private val alActivar: (Boolean) -> Unit,
 ) : LifecycleEventObserver {
     private var creada = false
     private var iniciada = false
@@ -118,6 +138,7 @@ private class PuenteCicloVida(
                 crear()
                 iniciada = true
                 vista.onStart()
+                alActivar(true)
             }
 
             Lifecycle.Event.ON_RESUME -> {
@@ -167,6 +188,7 @@ private class PuenteCicloVida(
     private fun detener() {
         if (iniciada) {
             iniciada = false
+            alActivar(false)
             vista.onStop()
         }
     }
@@ -175,6 +197,8 @@ private class PuenteCicloVida(
 /** Estado imperativo del mapa: estilo, componente de ubicación (sin motor propio) y cámara. */
 private class ControladorMapa(
     private val vista: MapView,
+    private val camaraInicial: CamaraMapa?,
+    private val alCambiarCamara: (CamaraMapa) -> Unit,
     private val alPerderSeguimiento: () -> Unit,
 ) {
     private var mapa: MapLibreMap? = null
@@ -186,6 +210,17 @@ private class ControladorMapa(
     private var ubicacionActivada = false
     private var oyenteRegistrado = false
 
+    /** Entre onStart y onStop: fuera de ahí el mapa se está desmontando y no se deben guardar cambios de cámara. */
+    private var activo = false
+
+    /** No se guarda la cámara por defecto (Mallorca a z9): solo la restaurada o la que ya sigue al coche. */
+    private var guardarCamara = camaraInicial != null
+    private var zoomSeguimiento = camaraInicial?.zoom ?: ZOOM_SEGUIMIENTO
+
+    fun activar(valor: Boolean) {
+        activo = valor
+    }
+
     fun iniciar() {
         vista.getMapAsync { m ->
             mapa = m
@@ -196,17 +231,28 @@ private class ControladorMapa(
                 isRotateGesturesEnabled = false
                 isTiltGesturesEnabled = false
             }
+            val centro = camaraInicial?.let { LatLng(it.latitud, it.longitud) } ?: LatLng(LAT_INICIAL, LON_INICIAL)
             m.moveCamera(
                 CameraUpdateFactory.newCameraPosition(
                     CameraPosition
                         .Builder()
-                        .target(LatLng(LAT_INICIAL, LON_INICIAL))
-                        .zoom(ZOOM_INICIAL)
+                        .target(centro)
+                        .zoom(camaraInicial?.zoom ?: ZOOM_INICIAL)
                         .build(),
                 ),
             )
+            m.addOnCameraIdleListener { guardarCamaraActual(m) }
             estiloPedido?.let(::aplicarEstilo)
         }
+    }
+
+    private fun guardarCamaraActual(m: MapLibreMap) {
+        if (!activo || !guardarCamara) return
+        val posicionCamara = m.cameraPosition
+        val centro: LatLng? = posicionCamara.target
+        if (centro == null) return
+        zoomSeguimiento = posicionCamara.zoom
+        alCambiarCamara(CamaraMapa(centro.latitude, centro.longitude, posicionCamara.zoom))
     }
 
     fun cambiarEstilo(json: String) {
@@ -265,20 +311,23 @@ private class ControladorMapa(
             oyenteRegistrado = true
             componente.addOnCameraTrackingChangedListener(
                 object : OnCameraTrackingChangedListener {
-                    override fun onCameraTrackingDismissed() = alPerderSeguimiento()
+                    override fun onCameraTrackingDismissed() {
+                        if (activo) alPerderSeguimiento()
+                    }
 
                     override fun onCameraTrackingChanged(currentMode: Int) = Unit
                 },
             )
         }
         ubicacionActivada = true
+        guardarCamara = true
         fijarCamara(componente)
     }
 
     private fun fijarCamara(componente: LocationComponent) {
         if (siguiendo) {
             componente.cameraMode = CameraMode.TRACKING_GPS
-            componente.zoomWhileTracking(ZOOM_SEGUIMIENTO)
+            componente.zoomWhileTracking(zoomSeguimiento)
         } else {
             componente.cameraMode = CameraMode.NONE
         }

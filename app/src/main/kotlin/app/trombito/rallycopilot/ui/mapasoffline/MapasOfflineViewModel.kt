@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.mapasoffline
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
+import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,9 +20,19 @@ class MapasOfflineViewModel
     constructor(
         private val repositorio: RepositorioDatosMapa,
     ) : ViewModel() {
+        // Solo lo toca el combine (secuencial). Se olvida al terminar la descarga.
+        private var ultimoProgreso: ProgresoDescarga? = null
+
         val uiState: StateFlow<MapasOfflineUiState> =
             combine(repositorio.estado, repositorio.ajustes) { datos, ajustes ->
-                MapasOfflineUiState(cargando = false, datos = datos, ajustes = ajustes)
+                val descarga = datos.descarga
+                ultimoProgreso =
+                    when {
+                        descarga == null -> null
+                        descarga.bytesTotales > 0 -> descarga
+                        else -> ultimoProgreso
+                    }
+                MapasOfflineUiState(cargando = false, datos = datos, ajustes = ajustes, ultimoProgreso = ultimoProgreso)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), MapasOfflineUiState())
 
         fun onDescargar() = repositorio.descargar()

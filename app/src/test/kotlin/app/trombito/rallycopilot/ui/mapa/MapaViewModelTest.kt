@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import androidx.lifecycle.SavedStateHandle
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
@@ -45,7 +46,8 @@ class MapaViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun crear() = MapaViewModel(repositorio, ubicacion, vias)
+    private fun crear(guardado: SavedStateHandle = SavedStateHandle()) =
+        MapaViewModel(repositorio, ubicacion, vias, guardado)
 
     private fun TestScope.recoger(vm: MapaViewModel) =
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -157,6 +159,41 @@ class MapaViewModelTest {
             assertFalse(vm.uiState.value.puedeSatelite)
             assertEquals(CapaMapa.VECTORIAL, vm.uiState.value.capa)
             assertEquals(estilos.vectorial, vm.uiState.value.estiloJson)
+        }
+
+    @Test
+    fun `la camara y el seguimiento sobreviven a recrear la actividad`() =
+        runTest {
+            val guardado = SavedStateHandle()
+            val vm = crear(guardado)
+            recoger(vm)
+            assertNull(vm.camaraGuardada)
+            assertTrue(vm.uiState.value.siguiendo)
+            val camara = CamaraMapa(39.7, 2.9, 15.0)
+            vm.onCamara(camara)
+            vm.onSeguimientoPerdido()
+            assertFalse(vm.uiState.value.siguiendo)
+
+            // La actividad se recrea: otro ViewModel con el mismo estado guardado.
+            val nuevo = crear(guardado)
+            recoger(nuevo)
+            assertEquals(camara, nuevo.camaraGuardada)
+            assertFalse(nuevo.uiState.value.siguiendo)
+            nuevo.onRecentrar()
+            assertTrue(nuevo.uiState.value.siguiendo)
+            assertEquals(camara, crear(guardado).camaraGuardada)
+        }
+
+    @Test
+    fun `recentrar recupera el seguimiento y se conserva el zoom`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            vm.onCamara(CamaraMapa(39.7, 2.9, 13.5))
+            vm.onSeguimientoPerdido()
+            vm.onRecentrar()
+            assertTrue(vm.uiState.value.siguiendo)
+            assertEquals(13.5, vm.camaraGuardada?.zoom ?: 0.0, 0.0)
         }
 
     @Test

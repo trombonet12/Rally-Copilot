@@ -58,6 +58,22 @@ class MapasOfflineViewModelTest {
         }
 
     @Test
+    fun `esperando red conserva el ultimo progreso conocido y lo olvida al terminar`() =
+        runTest {
+            val vm = MapasOfflineViewModel(repositorio)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+            repositorio.estadoMutable.value = EstadoDatosMapa(descarga = ProgresoDescarga(250, 1_000, false))
+            assertEquals(25, vm.uiState.value.porcentaje)
+            repositorio.estadoMutable.value = EstadoDatosMapa(descarga = ProgresoDescarga(0, 0, true))
+            assertEquals(ProgresoDescarga(250, 1_000, false), vm.uiState.value.progreso)
+            assertEquals(25, vm.uiState.value.porcentaje)
+            repositorio.estadoMutable.value = EstadoDatosMapa()
+            assertEquals(null, vm.uiState.value.ultimoProgreso)
+            repositorio.estadoMutable.value = EstadoDatosMapa(descarga = ProgresoDescarga(0, 0, true))
+            assertEquals(null, vm.uiState.value.porcentaje)
+        }
+
+    @Test
     fun `las acciones llegan al repositorio`() =
         runTest {
             val vm = MapasOfflineViewModel(repositorio)

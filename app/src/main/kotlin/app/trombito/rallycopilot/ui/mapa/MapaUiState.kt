@@ -6,6 +6,13 @@ import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 
+/** Centro y zoom de la cámara del mapa. */
+data class CamaraMapa(
+    val latitud: Double,
+    val longitud: Double,
+    val zoom: Double,
+)
+
 /** Estado inmutable de la pantalla de mapa. */
 data class MapaUiState(
     /** Mientras no se ha resuelto si hay datos instalados. */
@@ -17,6 +24,8 @@ data class MapaUiState(
     /** Null cuando no se conoce (sin permiso, sin fijación o velocidad caducada). */
     val velocidadKmh: Int? = null,
     val via: ViaActual? = null,
+    /** La cámara sigue al coche (se pierde al mover el mapa; sobrevive al giro de pantalla). */
+    val siguiendo: Boolean = true,
 ) {
     val hayDatos: Boolean get() = estilos != null
 

@@ -54,21 +54,18 @@ class MapaScreenTest {
     }
 
     @Test
-    fun `con datos monta el mapa con el estilo vectorial y la atribucion de OSM`() {
+    fun `con datos monta el mapa con el estilo vectorial y sin atribucion encima`() {
         poner(conDatos())
         assertTrue(banco.hay(ETIQUETA_MAPA_FALSO))
         assertEquals(estilos.vectorial, estilosPedidos.last())
-        assertEquals(listOf("© OpenStreetMap contributors"), banco.textos(banco.conEtiqueta(ETIQUETA_ATRIBUCION)))
+        assertFalse(banco.textos(banco.raiz()).any { "OpenStreetMap" in it || "PNOA" in it })
     }
 
     @Test
-    fun `en satelite la atribucion incluye PNOA`() {
+    fun `en satelite se pide el estilo de satelite y tampoco hay atribucion`() {
         poner(conDatos { copy(capaElegida = CapaMapa.SATELITE) })
         assertEquals(estilos.satelite, estilosPedidos.last())
-        assertEquals(
-            listOf("© OpenStreetMap contributors · PNOA CC-BY 4.0 scne.es"),
-            banco.textos(banco.conEtiqueta(ETIQUETA_ATRIBUCION)),
-        )
+        assertFalse(banco.textos(banco.raiz()).any { "OpenStreetMap" in it || "PNOA" in it })
     }
 
     @Test
@@ -231,7 +228,7 @@ class MapaScreenHorizontalTest {
         val mapa = banco.conEtiqueta(ETIQUETA_MAPA_FALSO).boundsInRoot
         val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
         assertTrue("El panel debe quedar a la derecha del mapa: $panel vs $mapa", panel.left >= mapa.right - 1)
-        assertTrue(banco.hay(ETIQUETA_ATRIBUCION))
+        assertFalse(banco.textos(banco.raiz()).any { "OpenStreetMap" in it || "PNOA" in it })
         assertTrue(banco.hay(ETIQUETA_VELOCIDAD))
     }
 }

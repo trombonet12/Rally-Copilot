@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.datos.CapaMapa
@@ -40,8 +41,10 @@ class MapaViewModel
         private val repositorio: RepositorioDatosMapa,
         ubicacion: FuenteUbicacion,
         private val vias: ProveedorViaActual,
+        private val guardado: SavedStateHandle,
     ) : ViewModel() {
         private val capa = MutableStateFlow(CapaMapa.VECTORIAL)
+        private val siguiendo = guardado.getStateFlow(CLAVE_SIGUIENDO, true)
         private val permiso = MutableStateFlow(ubicacion.tienePermiso())
 
         private class Lectura(
@@ -76,17 +79,42 @@ class MapaViewModel
             }
 
         val uiState: StateFlow<MapaUiState> =
-            combine(repositorio.estado, estilos, capa, lecturas) { datos, estilosMapa, capaElegida, lectura ->
+            combine(repositorio.estado, estilos, capa, lecturas, siguiendo) { datos, mapas, elegida, lectura, sigue ->
                 MapaUiState(
                     cargando = false,
                     datos = datos,
-                    estilos = estilosMapa,
-                    capaElegida = capaElegida,
+                    estilos = mapas,
+                    capaElegida = elegida,
                     posicion = lectura.posicion,
                     velocidadKmh = lectura.velocidadKmh,
                     via = lectura.via,
+                    siguiendo = sigue,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), MapaUiState())
+
+        /**
+         * Última cámara del mapa (centro y zoom), para que sobreviva a recrear la actividad (giro de pantalla) o al
+         * proceso. Null si el mapa nunca llegó a seguir ni a mover la cámara. No es parte de [uiState]: solo se lee al
+         * crear la vista del mapa.
+         */
+        val camaraGuardada: CamaraMapa?
+            get() =
+                guardado.get<DoubleArray>(CLAVE_CAMARA)?.takeIf { it.size == TAMANO_CAMARA }?.let {
+                    CamaraMapa(it[0], it[1], it[2])
+                }
+
+        fun onCamara(camara: CamaraMapa) {
+            guardado[CLAVE_CAMARA] = doubleArrayOf(camara.latitud, camara.longitud, camara.zoom)
+        }
+
+        /** La cámara dejó de seguir al coche porque el usuario movió el mapa. */
+        fun onSeguimientoPerdido() {
+            guardado[CLAVE_SIGUIENDO] = false
+        }
+
+        fun onRecentrar() {
+            guardado[CLAVE_SIGUIENDO] = true
+        }
 
         fun onCapa(nueva: CapaMapa) {
             capa.value = nueva
@@ -103,6 +131,9 @@ class MapaViewModel
 
         private companion object {
             const val PARADA_MS = 5_000L
+            const val CLAVE_SIGUIENDO = "mapa-siguiendo"
+            const val CLAVE_CAMARA = "mapa-camara"
+            const val TAMANO_CAMARA = 3
             val LECTURA_VACIA = Lectura(null, null, null)
         }
     }

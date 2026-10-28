@@ -3,9 +3,6 @@ package app.trombito.rallycopilot.ui.mapa
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -20,17 +17,16 @@ fun MapaRoute(
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
-    var siguiendo by rememberSaveable { mutableStateOf(true) }
     LaunchedEffect(permiso.estado) { viewModel.onPermisoUbicacion(permiso.estado == EstadoPermisoUbicacion.CONCEDIDO) }
 
     MapaScreen(
         estado = estado,
-        vista = EstadoVistaMapa(permiso = permiso.estado, siguiendo = siguiendo),
+        vista = EstadoVistaMapa(permiso = permiso.estado, siguiendo = estado.siguiendo),
         acciones =
             AccionesMapa(
                 onVolver = onVolver,
                 onCapa = viewModel::onCapa,
-                onRecentrar = { siguiendo = true },
+                onRecentrar = viewModel::onRecentrar,
                 onPedirPermiso = permiso.pedir,
                 onAbrirAjustes = permiso.abrirAjustes,
                 onDescartarAviso = viewModel::onDescartarAviso,
@@ -40,8 +36,13 @@ fun MapaRoute(
             VistaMapa(
                 estiloJson = estiloJson,
                 posicion = estado.posicion,
-                siguiendo = siguiendo,
-                onSeguimientoPerdido = { siguiendo = false },
+                siguiendo = estado.siguiendo,
+                camara =
+                    CamaraVistaMapa(
+                        inicial = viewModel.camaraGuardada,
+                        onCambio = viewModel::onCamara,
+                        onSeguimientoPerdido = viewModel::onSeguimientoPerdido,
+                    ),
                 modifier = modificador,
             )
         },

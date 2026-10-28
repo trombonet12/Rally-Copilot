@@ -50,7 +50,6 @@ const val ETIQUETA_SIN_DATOS = "mapa-sin-datos"
 const val ETIQUETA_SIN_DATOS_BOTON = "mapa-sin-datos-boton"
 const val ETIQUETA_AVISO = "mapa-aviso"
 const val ETIQUETA_AVISO_CERRAR = "mapa-aviso-cerrar"
-const val ETIQUETA_ATRIBUCION = "mapa-atribucion"
 const val ETIQUETA_CAPA_MAPA = "mapa-capa-mapa"
 const val ETIQUETA_CAPA_SATELITE = "mapa-capa-satelite"
 const val ETIQUETA_RECENTRAR = "mapa-recentrar"
@@ -286,7 +285,7 @@ private fun AvisoActualizado(
     }
 }
 
-/** Abajo: permiso de ubicación (si falta), botón de recentrar y la atribución, que no se puede ocultar. */
+/** Abajo: permiso de ubicación (si falta) y botón de recentrar. Las atribuciones están solo en Ajustes > Acerca de. */
 @Composable
 private fun PieMapa(
     estado: MapaUiState,
@@ -298,44 +297,14 @@ private fun PieMapa(
         if (vista.permiso != EstadoPermisoUbicacion.CONCEDIDO) {
             TarjetaPermiso(vista.permiso, acciones.onPedirPermiso, acciones.onAbrirAjustes)
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Bottom,
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Atribucion(satelite = estado.capa == CapaMapa.SATELITE, modifier = Modifier.weight(1f, fill = false))
-            if (!vista.siguiendo && estado.posicion != null) {
-                SmallFloatingActionButton(
-                    onClick = acciones.onRecentrar,
-                    modifier = Modifier.testTag(ETIQUETA_RECENTRAR),
-                ) {
-                    Icon(Iconos.MiUbicacion, contentDescription = stringResource(R.string.mapa_recentrar))
-                }
+        if (!vista.siguiendo && estado.posicion != null) {
+            SmallFloatingActionButton(
+                onClick = acciones.onRecentrar,
+                modifier = Modifier.align(Alignment.End).testTag(ETIQUETA_RECENTRAR),
+            ) {
+                Icon(Iconos.MiUbicacion, contentDescription = stringResource(R.string.mapa_recentrar))
             }
         }
-    }
-}
-
-/** «© OpenStreetMap contributors» siempre; en satélite, además «PNOA CC-BY 4.0 scne.es». */
-@Composable
-fun Atribucion(
-    satelite: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val osm = stringResource(R.string.mapa_atribucion_osm)
-    val pnoa = stringResource(R.string.mapa_atribucion_pnoa)
-    val texto = if (satelite) stringResource(R.string.mapa_atribucion_doble, osm, pnoa) else osm
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLowest.copy(OPACIDAD_SUPERFICIE_SOBRE_MAPA),
-        shape = MaterialTheme.shapes.extraSmall,
-        modifier = modifier.testTag(ETIQUETA_ATRIBUCION),
-    ) {
-        Text(
-            text = texto,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(horizontal = Espacio.s, vertical = Espacio.xs),
-        )
     }
 }
 

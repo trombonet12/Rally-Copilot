@@ -33,8 +33,11 @@ class MapasOfflineScreenTest {
         ajustes: AjustesMapas = AjustesMapas(),
         cargando: Boolean = false,
         acciones: AccionesMapasOffline = AccionesMapasOffline(),
+        ultimoProgreso: ProgresoDescarga? = null,
     ) = banco.poner {
-        RallyCopilotTheme { MapasOfflineScreen(MapasOfflineUiState(cargando, datos, ajustes), acciones) }
+        RallyCopilotTheme {
+            MapasOfflineScreen(MapasOfflineUiState(cargando, datos, ajustes, ultimoProgreso), acciones)
+        }
     }
 
     private fun textos() = banco.textos(banco.raiz())
@@ -101,6 +104,24 @@ class MapasOfflineScreenTest {
     fun `descarga sin total conocido muestra progreso indeterminado`() {
         poner(EstadoDatosMapa(descarga = ProgresoDescarga(0, 0, esperandoRed = false)))
         assertTrue("Descargando…" in textos())
+    }
+
+    @Test
+    fun `esperando WiFi muestra el ultimo progreso conocido y no Descargando`() {
+        val espera = ProgresoDescarga(bytesHechos = 0, bytesTotales = 0, esperandoRed = true)
+        val ultimo = ProgresoDescarga(bytesHechos = 500, bytesTotales = 1_000, esperandoRed = false)
+        poner(EstadoDatosMapa(descarga = espera), AjustesMapas(soloWifi = true), ultimoProgreso = ultimo)
+        val visibles = textos()
+        assertTrue("Esperando WiFi" in visibles)
+        assertTrue(visibles.any { it.endsWith("· 50 %") })
+        assertFalse("Descargando…" in visibles)
+    }
+
+    @Test
+    fun `esperando red sin ningun progreso previo no dice Descargando`() {
+        poner(EstadoDatosMapa(descarga = ProgresoDescarga(0, 0, esperandoRed = true)))
+        assertTrue("Esperando WiFi" in textos())
+        assertFalse("Descargando…" in textos())
     }
 
     @Test

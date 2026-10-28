@@ -5,10 +5,6 @@
     <string name="mapa_titulo">Mapa</string>
     <string name="mapa_cargando">Preparando el mapa…</string>
     <string name="mapa_vista_descripcion">Mapa de Mallorca</string>
-    <string name="mapa_atribucion_osm">© OpenStreetMap contributors</string>
-    <string name="mapa_atribucion_pnoa">PNOA CC-BY 4.0 scne.es</string>
-    <string name="mapa_atribucion_doble">%1$s · %2$s</string>
-    <string name="mapa_atribucion_descripcion">Atribución del mapa: %1$s</string>
     <string name="mapa_capa_selector">Tipo de mapa</string>
     <string name="mapa_capa_mapa">Mapa</string>
     <string name="mapa_capa_satelite">Satélite</string>
