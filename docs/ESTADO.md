@@ -50,17 +50,16 @@
 - Ver [DECISIONES.md](DECISIONES.md) § Decisiones del usuario, § Base técnica e § Investigaciones previas.
 
 ## Dudas abiertas
-- [QUESTIONS.md](../QUESTIONS.md): 4 abiertas de H1 (acceso al mapa, primera descarga, orientación, rótulo de vía y datos móviles).
+- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las 4 de H1 respondidas el 2026-10-28.
 
 ## Pendiente del usuario
 - **Copia de seguridad de `~/.rallycopilot/`** (keystore nueva): sin ella no se pueden publicar actualizaciones.
 - Instalar la v0.1.11 con Obtainium ([obtainium.md](obtainium.md)).
 - Permiso para el push de los commits de H1 a `Rally-Copilot` (dispara el CI; no publica release porque `version.properties` no cambia).
-- Responder las 4 dudas de H1.
 - Ir dejando material de voz en `voice-lab/data/raw/` (no bloquea hasta H11).
 
 ## Archivos importantes
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H1 está cerrado. Si Joan lo autoriza: push de los commits de H1 a `Rally-Copilot`; pasar sus respuestas de QUESTIONS.md § Abiertas en H1 a DECISIONES.md y aplicarlas (son cambios pequeños de UI); después `hito start H2` (Valhalla: añadir las teselas de ruta al workflow de `rally-copilot-data`).
+- **Agente:** H1 está cerrado. Si Joan lo autoriza: push de los commits de H1 a `Rally-Copilot`; implementar las dos respuestas pendientes de H1 (botón rumbo arriba/norte arriba y diálogo al desactivar «Solo con WiFi»; ver DECISIONES.md); después `hito start H2` (Valhalla: añadir las teselas de ruta al workflow de `rally-copilot-data`).

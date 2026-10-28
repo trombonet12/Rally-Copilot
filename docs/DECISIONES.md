@@ -42,6 +42,8 @@ Mandan sobre las recomendaciones de las investigaciones cuando difieren (marcado
 - 2026-10-28 · visual · Se mantiene la dirección de H0 (oscuro carbón, latón, rojo, rótulos en cursiva).
 - 2026-10-28 · marca · Casco más cuadrado (cúpula más baja y ancha) · el anterior se veía alargado en vertical.
 - 2026-10-28 · atribución · **Sin atribución en la pantalla del mapa**; OSM (ODbL), PNOA (CC BY 4.0), Protomaps, Noto y MapLibre solo en Ajustes > Acerca de · decisión de Joan tras avisarle de que las licencias piden atribuir donde se muestra el mapa (las guías de la OSMF admiten como mínimo un botón ⓘ); riesgo aceptado por él. Sustituye a la atribución visible del 2026-10-28 (§ Mapas).
+- 2026-10-28 · mapa (H1) · «Conducir» abre el mapa en modo libre hasta H2; la primera descarga de mapas la inicia el usuario (las actualizaciones son automáticas con WiFi) · respuestas de Joan.
+- 2026-10-28 · mapa (H1) · Orientación: rumbo arriba por defecto con botón para alternar a norte arriba; se mantiene el rótulo de la vía bajo la velocidad; al desactivar «Solo con WiFi» se confirma con un diálogo por el gasto de datos · respuestas de Joan (pendiente de implementar).
 - 2026-10-28 · distribución · **Solo GitHub Release + Obtainium**; Play queda pospuesto (el job solo corre con `PLAY_HABILITADO=true`) · decisión de Joan.
 - 2026-10-28 · firma · Keystore **nueva y propia** de Rally Copilot en `~/.rallycopilot/`; nunca se reutiliza la de otro proyecto · decisión de Joan.
 
