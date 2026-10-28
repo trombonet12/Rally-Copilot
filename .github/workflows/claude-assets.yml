@@ -1,0 +1,48 @@
+name: Claude assets
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.claude/**'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'CLAUDE.md'
+      - 'ROADMAP.md'
+      - 'QUESTIONS.md'
+      - '.github/workflows/claude-assets.yml'
+  pull_request:
+    paths:
+      - '.claude/**'
+      - 'docs/**'
+      - 'scripts/**'
+      - 'CLAUDE.md'
+      - 'ROADMAP.md'
+      - 'QUESTIONS.md'
+      - '.github/workflows/claude-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  assets:
+    name: Skills, agentes, indices y docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - run: node scripts/check-claude-assets.mjs
+      - run: node scripts/gen-claude-index.mjs --check
+      - run: node scripts/check-docs.mjs
+      - run: bash scripts/test-hooks.sh
+      - run: node --test scripts/play-promocionar.test.mjs

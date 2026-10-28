@@ -1,0 +1,383 @@
+name: Android
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'motor/**'
+      - 'config/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'version.properties'
+      - 'distribution/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'motor/**'
+      - 'config/**'
+      - 'gradle/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'version.properties'
+      - 'distribution/**'
+      - '.github/workflows/android.yml'
+  # Manual: por defecto solo compila. Con `publicar` activado en main publica la release (p. ej. un parche).
+  workflow_dispatch:
+    inputs:
+      publicar:
+        description: 'Publicar release firmada (solo en main; el parche se calcula del historial)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # En main no se cancela un run en curso: podria llevar una release a medias.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  build:
+    name: Gate Android y motor
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # Historial completo: el build calcula versionName/versionCode contando commits.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - name: Propiedades locales (solo sdk.dir)
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+      # minifyReleaseWithR8 sin firma: los fallos de R8 (reglas -dontwarn) salen aquí y no solo al publicar.
+      - name: ktlint, detekt, lint, tests, assembleDebug y R8
+        run: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest :motor:test assembleDebug :app:minifyReleaseWithR8
+      - name: Subir APK debug
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: app-debug.apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+      - name: Subir reportes de lint y tests
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-reports
+          path: |
+            **/build/reports/
+            **/build/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  release:
+    name: Release firmada (si la version es nueva)
+    needs: build
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publicar))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Solo lectura: este job ve el keystore y compila, asi que su GITHUB_TOKEN no puede escribir.
+    # La release de GitHub (escritura) la crea el job `github-release`, que no ve el keystore.
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+      code: ${{ steps.ver.outputs.code }}
+      publicar: ${{ steps.ver.outputs.publicar }}
+    concurrency:
+      group: release-android
+      cancel-in-progress: false
+    # Secrets requeridos (Settings > Secrets and variables > Actions):
+    # ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+    # Opcional: PLAY_SERVICE_ACCOUNT_JSON, que usa el job `play` (abajo).
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # Historial completo: el parche y el versionCode salen del recuento de commits.
+          fetch-depth: 0
+
+      # Un push solo publica si toca version.properties (subida de la menor). Los parches salen
+      # a mano con workflow_dispatch + publicar. Si el rango del push no se puede resolver, no se publica.
+      - name: Decidir si corresponde publicar
+        id: gate
+        env:
+          EVENTO: ${{ github.event_name }}
+          ANTES: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          candidato=false
+          if [ "$EVENTO" = "workflow_dispatch" ]; then
+            candidato=true
+          elif git cat-file -e "${ANTES}^{commit}" 2>/dev/null; then
+            if ! git diff --quiet "$ANTES" "$GITHUB_SHA" -- version.properties; then
+              candidato=true
+            fi
+          fi
+          [ "$candidato" = "true" ] || echo "version.properties no cambia en este push: sin release"
+          echo "candidato=$candidato" >> "$GITHUB_OUTPUT"
+
+      # El script que usa la clave de Play se guarda antes de Gradle: ninguna tarea del build puede reescribirlo.
+      - name: Guardar el script de Play
+        if: steps.gate.outputs.candidato == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: play-script
+          path: scripts/play-promocionar.mjs
+          if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        if: steps.gate.outputs.candidato == 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        if: steps.gate.outputs.candidato == 'true'
+
+      - name: Propiedades locales (solo sdk.dir)
+        if: steps.gate.outputs.candidato == 'true'
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Leer version y comprobar si ya esta publicada
+        id: ver
+        if: steps.gate.outputs.candidato == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          linea="$(./gradlew -q :app:imprimirVersion | tr -d '\r' | tail -n1)"
+          version="${linea%% *}"
+          code="${linea#* }"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::versionName invalido en la salida de :app:imprimirVersion: '$linea'"
+            exit 1
+          fi
+          if ! printf '%s' "$code" | grep -Eq '^[0-9]+$'; then
+            echo "::error::versionCode invalido en la salida de :app:imprimirVersion: '$linea'"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if gh release view "v${version}" > /dev/null 2>&1; then
+            echo "v${version} ya publicada, nada que hacer"
+            echo "publicar=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publicar=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verificar secrets de firma
+        if: steps.ver.outputs.publicar == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=0
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Falta el secret $name. Configuralo en Settings > Secrets and variables > Actions (un release sin firma no sirve)."
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Decodificar keystore
+        if: steps.ver.outputs.publicar == 'true'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          umask 077
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/rally-copilot-release.jks"
+          echo "RALLY_KEYSTORE_FILE=$RUNNER_TEMP/rally-copilot-release.jks" >> "$GITHUB_ENV"
+
+      - name: assembleRelease y bundleRelease
+        if: steps.ver.outputs.publicar == 'true'
+        env:
+          RALLY_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          RALLY_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          RALLY_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease bundleRelease
+
+      - name: Preparar assets y checksums
+        if: steps.ver.outputs.publicar == 'true'
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          set -euo pipefail
+          apk="$(find app/build/outputs/apk/release -name '*.apk' | head -n1)"
+          aab="$(find app/build/outputs/bundle/release -name '*.aab' | head -n1)"
+          test -n "$apk" || { echo "::error::No se genero el APK release"; exit 1; }
+          test -n "$aab" || { echo "::error::No se genero el AAB release"; exit 1; }
+          mkdir -p dist
+          cp "$apk" "dist/rally-copilot-${VERSION}.apk"
+          cp "$aab" "dist/rally-copilot-${VERSION}.aab"
+          # Simbolos nativos para Play: carpetas de ABI en la raiz del zip (<abi>/<lib>.so), tal como salen de base/lib del AAB.
+          symdir="$(mktemp -d)"
+          if unzip -q "$aab" 'base/lib/*' -d "$symdir" 2>/dev/null && [ -d "$symdir/base/lib" ]; then
+            (cd "$symdir/base/lib" && zip -qr "$GITHUB_WORKSPACE/dist/native-debug-symbols-${VERSION}.zip" .)
+          else
+            echo "::notice::El AAB no tiene base/lib (sin codigo nativo): no se genera native-debug-symbols."
+          fi
+          rm -rf "$symdir"
+          (cd dist && files=("rally-copilot-${VERSION}.apk" "rally-copilot-${VERSION}.aab")             && { [ ! -f "native-debug-symbols-${VERSION}.zip" ] || files+=("native-debug-symbols-${VERSION}.zip"); }             && sha256sum "${files[@]}" > checksums.txt)
+
+      # Lo que publica el job `github-release`: APK, AAB, symbols y checksums. Sin keystore ni codigo fuente.
+      - name: Guardar assets para el job github-release
+        if: steps.ver.outputs.publicar == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: github-release-${{ steps.ver.outputs.version }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Guardar AAB y notas para el job play
+        if: steps.ver.outputs.publicar == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: play-${{ steps.ver.outputs.version }}
+          path: |
+            dist/rally-copilot-${{ steps.ver.outputs.version }}.aab
+            dist/native-debug-symbols-*.zip
+            distribution/whatsnew/
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Borrar keystore y propiedades locales
+        if: always()
+        run: rm -f "$RUNNER_TEMP/rally-copilot-release.jks" local.properties
+
+  # Release de GitHub (tag, assets y checksums). Unico job con `contents: write`: no hace checkout ni ve el keystore,
+  # solo descarga los artifacts que dejo `release` y los publica. `gh` usa GH_REPO en vez de un repo clonado.
+  github-release:
+    name: Release de GitHub
+    needs: release
+    if: needs.release.outputs.publicar == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: github-release-${{ needs.release.outputs.version }}
+          path: dist
+
+      - name: Crear GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.release.outputs.version }}
+        run: |
+          set -euo pipefail
+          assets=("dist/rally-copilot-${VERSION}.apk" "dist/rally-copilot-${VERSION}.aab" dist/checksums.txt)
+          if [ -f "dist/native-debug-symbols-${VERSION}.zip" ]; then
+            assets+=("dist/native-debug-symbols-${VERSION}.zip")
+          fi
+          gh release create "v${VERSION}" \
+            "${assets[@]}" \
+            --target "$GITHUB_SHA" \
+            --title "Rally Copilot ${VERSION}" \
+            --generate-notes
+
+  # Subida a Google Play (docs/play.md). Job aparte y sin permisos: la acción de terceros no ve el keystore
+  # ni un GITHUB_TOKEN con escritura. Espera a `github-release` (ademas de `release`, de donde salen version y code):
+  # asi, si la release de GitHub falla, nada llega a Play y se puede relanzar (el tag no existe y el mismo versionCode
+  # no se sube dos veces). Si Play falla, la release de GitHub ya está hecha y el AAB va adjunto para subirlo a
+  # mano. Sin el secreto PLAY_SERVICE_ACCOUNT_JSON se omite con un aviso. Tras subir a la interna, promociona esa misma
+  # versión a la prueba cerrada (PLAY_PISTA_CERRADA, por defecto alpha; `ninguna` la desactiva). El script viaja en el
+  # artifact `play-script` (subido antes de Gradle) para no necesitar checkout ni permisos en este job.
+  play:
+    name: Google Play (interna y prueba cerrada)
+    needs: [release, github-release]
+    if: needs.release.outputs.publicar == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions: {}
+    steps:
+      - name: Comprobar credenciales y estado
+        id: play
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PLAY_ESTADO: ${{ vars.PLAY_ESTADO || 'draft' }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::notice::Sin PLAY_SERVICE_ACCOUNT_JSON: no se sube a Google Play (ver docs/play.md)."
+            echo "subir=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$PLAY_ESTADO" in
+            draft|completed) ;;
+            *) echo "::error::PLAY_ESTADO debe ser draft o completed, no '$PLAY_ESTADO'"; exit 1 ;;
+          esac
+          echo "estado=$PLAY_ESTADO" >> "$GITHUB_OUTPUT"
+          echo "subir=true" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: steps.play.outputs.subir == 'true'
+        with:
+          name: play-${{ needs.release.outputs.version }}
+          path: play
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        if: steps.play.outputs.subir == 'true' && vars.PLAY_PISTA_CERRADA != 'ninguna'
+        with:
+          name: play-script
+          path: play-script
+
+      - name: Localizar simbolos nativos
+        id: sym
+        if: steps.play.outputs.subir == 'true'
+        env:
+          ZIP: play/dist/native-debug-symbols-${{ needs.release.outputs.version }}.zip
+        run: |
+          if [ -f "$ZIP" ]; then
+            echo "existe=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Sin native-debug-symbols en el artifact: se sube solo el AAB."
+            echo "existe=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Subir el AAB
+        if: steps.play.outputs.subir == 'true'
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: app.trombito.rallycopilot
+          releaseFiles: play/dist/rally-copilot-${{ needs.release.outputs.version }}.aab
+          track: internal
+          status: ${{ steps.play.outputs.estado }}
+          # El mapping de R8 va dentro del AAB: https://developer.android.com/topic/performance/app-optimization/test-and-troubleshoot-the-optimization
+          whatsNewDirectory: play/distribution/whatsnew
+          # Los .so de AndroidX vienen stripped: se sube la tabla de simbolos exportados para que Play no avise.
+          debugSymbols: ${{ steps.sym.outputs.existe == 'true' && format('play/dist/native-debug-symbols-{0}.zip', needs.release.outputs.version) || '' }}
+
+      # El mismo AAB no se puede subir dos veces: se copia la release de la interna a la pista cerrada con la API de edits.
+      # ubuntu-latest ya trae Node, no hace falta setup-node.
+      - name: Promocionar a la prueba cerrada
+        if: steps.play.outputs.subir == 'true' && vars.PLAY_PISTA_CERRADA != 'ninguna'
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          PISTA_CERRADA: ${{ vars.PLAY_PISTA_CERRADA || 'alpha' }}
+          VERSION_CODE: ${{ needs.release.outputs.code }}
+          ESTADO: ${{ steps.play.outputs.estado }}
+        run: >-
+          node play-script/play-promocionar.mjs
+          --paquete app.trombito.rallycopilot
+          --version-code "$VERSION_CODE"
+          --de internal
+          --a "$PISTA_CERRADA"
+          --estado "$ESTADO"
