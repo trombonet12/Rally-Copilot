@@ -1,0 +1,52 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+.kotlin/
+*.apk
+*.aab
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Secretos (nunca al repo)
+.env
+.env.*
+!.env.example
+**/secrets/
+*.pem
+*.key
+*.jks
+*.keystore
+*.p12
+*.pfx
+keystore.properties
+google-services.json
+
+# Datos de mapas y voz generados o descargados (no se versionan)
+*.mbtiles
+*.pmtiles
+datos/out/
+voice-lab/data/
+voice-lab/.venv/
+voice-lab/out/
+
+# Node / Python (solo scripts)
+node_modules/
+__pycache__/
+.venv/
+
+# IDE / SO
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Claude Code (local por usuario)
+.claude/settings.local.json
+.claude/worktrees/
+
+# Logs
+*.log
