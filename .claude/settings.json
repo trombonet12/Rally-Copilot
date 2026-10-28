@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "skillListingBudgetFraction": 0.02,
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew *)",
+      "Bash(./gradlew.bat *)",
+      "Bash(node scripts/*)",
+      "Bash(node --test scripts/*)",
+      "Bash(bash scripts/*)",
+      "Bash(python -I scripts/*)",
+      "Bash(adb *)",
+      "Bash(emulator *)",
+      "Bash(keytool *)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git log*)",
+      "Bash(git show *)",
+      "Bash(git ls-files*)",
+      "Write(.claude/agents/**)",
+      "Edit(.claude/agents/**)",
+      "Edit(.claude/skills/**)",
+      "Edit(docs/MEMORIA.md)"
+    ],
+    "ask": [
+      "Bash(git push*)",
+      "Bash(git -C * push*)",
+      "PowerShell(git push*)",
+      "PowerShell(git -C * push*)"
+    ],
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(!**/.env.example)",
+      "Edit(**/.env)",
+      "Edit(**/.env.*)",
+      "Edit(!**/.env.example)",
+      "Read(**/secrets/**)",
+      "Edit(**/secrets/**)",
+      "Read(**/*.pem)",
+      "Edit(**/*.pem)",
+      "Read(**/*.key)",
+      "Edit(**/*.key)",
+      "Read(**/*.jks)",
+      "Edit(**/*.jks)",
+      "Read(**/*.keystore)",
+      "Edit(**/*.keystore)",
+      "Read(**/*.p12)",
+      "Edit(**/*.p12)",
+      "Read(**/local.properties)",
+      "Edit(**/local.properties)",
+      "Read(~/.rallycopilot/**)",
+      "Edit(~/.rallycopilot/**)",
+      "Read(~/.ssh/**)",
+      "Edit(~/.ssh/**)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git add -f *)",
+      "Bash(git add --force *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-secrets.sh\"", "timeout": 5 },
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/warn-generated.sh\"", "timeout": 5 }
+        ]
+      },
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-secret-commands.sh\"", "timeout": 5 }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/post-edit-lint.sh\"", "timeout": 10 }
+        ]
+      }
+    ]
+  }
+}
