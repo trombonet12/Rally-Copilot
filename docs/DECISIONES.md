@@ -58,22 +58,23 @@ Mandan sobre las recomendaciones de las investigaciones cuando difieren (marcado
 - 2026-10-28 · CI · Sin `inAppUpdatePriority` (no se fuerza la actualización desde Play) · no hay decisión de producto equivalente a la de Sous Chef.
 - 2026-10-28 · iconos · Icono adaptativo en `mipmap-anydpi-v26` aunque minSdk sea 26 · con `mipmap-anydpi` aapt2 no resuelve `@mipmap/ic_launcher` en release (probado); el aviso `ObsoleteSdkInt` de lint se acepta.
 - 2026-10-28 · hooks · `post-edit-lint` valida también JSON · útil para los datos que vendrán (glosario, configuraciones).
+- 2026-10-28 · dependencias · PRs #1 (actions) y #2 (Gradle 9.8.2, BOM 2026.09.00, Kotlin 2.4.21, Navigation 2.10.2, serialization 1.12.0) fusionados con el gate en verde; Gradle 9.8.2 y serialization 1.12.0 tenían 9 días · excepción a la regla de ≥ 2 semanas autorizada por Joan.
 - 2026-10-28 · pruebas · GPS simulado con `scripts/gps-replay.mjs` (`adb emu geo fix` a ~1 Hz, velocidad en nudos, `--kmh`, `--velocidad`, `--desde`) y trazas OSM reales en `docs/rutas/` · requisito de probar con rutas reales de Mallorca; verificado en el emulador (`gps` en la Ma-2141).
 
 ## Versiones fijadas
 | Componente | Versión | Nota |
 |---|---|---|
-| Gradle | 9.7.1 | `distributionSha256Sum` fijado |
+| Gradle | 9.8.2 | `distributionSha256Sum` fijado (Dependabot #2, 2026-10-28) |
 | AGP | 9.4.1 | Kotlin integrado (sin plugin `kotlin-android`) |
-| Kotlin | 2.4.20 | KSP 2.3.12 |
+| Kotlin | 2.4.21 | KSP 2.3.12 |
 | JDK | 21 (toolchain y daemon) | bytecode JVM 17 |
 | compileSdk / targetSdk / minSdk | 37 / 36 / 26 | igual que Sous Chef |
-| Compose BOM | 2026.06.01 | Material 3 |
-| Hilt | 2.60.1 | hilt-navigation-compose 1.3.0 |
-| Navigation Compose | 2.9.8 | rutas type-safe |
+| Compose BOM | 2026.09.00 | Material 3 |
+| Hilt | 2.60.1 | hilt-navigation-compose 1.4.0 |
+| Navigation Compose | 2.10.2 | rutas type-safe |
 | Lifecycle / Activity | 2.10.0 / 1.11.0 | |
 | core-splashscreen | 1.2.0 | |
-| kotlinx.serialization / coroutines | 1.11.0 / 1.11.0 | |
+| kotlinx.serialization / coroutines | 1.12.0 / 1.11.0 | |
 | ktlint (plugin / motor) | 14.2.0 / 1.8.0 | |
 | detekt | 1.23.8 | `config/detekt/detekt.yml` |
 | JUnit / Robolectric | 4.13.2 / 4.17 | androidx.test core 1.7.0, ext-junit 1.3.0 |
