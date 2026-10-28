@@ -45,4 +45,4 @@ jobs:
       - run: node scripts/gen-claude-index.mjs --check
       - run: node scripts/check-docs.mjs
       - run: bash scripts/test-hooks.sh
-      - run: node --test scripts/play-promocionar.test.mjs
+      - run: node --test scripts/play-promocionar.test.mjs scripts/gps-replay.test.mjs
