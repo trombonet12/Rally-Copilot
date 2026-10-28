@@ -36,6 +36,9 @@ abstract class RecorridosDao {
     @Query("SELECT * FROM recorrido WHERE finMs IS NOT NULL ORDER BY inicioMs DESC, id DESC")
     abstract fun observarTerminados(): Flow<List<RecorridoEntity>>
 
+    @Query("SELECT id FROM recorrido WHERE finMs IS NULL ORDER BY id")
+    abstract suspend fun idsEnCurso(): List<Long>
+
     @Query("UPDATE recorrido SET finMs = :finMs, distanciaM = :distanciaM WHERE id = :id")
     abstract suspend fun cerrar(
         id: Long,

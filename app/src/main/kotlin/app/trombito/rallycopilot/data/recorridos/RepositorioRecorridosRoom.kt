@@ -47,6 +47,8 @@ class RepositorioRecorridosRoom(
             recorrido.copy(finMs = fin, distanciaM = distancia).aDominio()
         }
 
+    override suspend fun idsEnCurso(): List<Long> = withContext(dispatcher) { dao.idsEnCurso() }
+
     override fun listar(): Flow<List<Recorrido>> =
         dao.observarTerminados().map { lista ->
             lista.mapNotNull {

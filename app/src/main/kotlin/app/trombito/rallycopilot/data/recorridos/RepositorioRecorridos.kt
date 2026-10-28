@@ -33,6 +33,9 @@ interface RepositorioRecorridos {
     /** Cierra el recorrido. Devuelve null si recorre menos de 1 km: se descarta con todos sus puntos. */
     suspend fun terminar(id: Long): Recorrido?
 
+    /** Ids de los recorridos aún abiertos (en curso, o huérfanos si la app se cerró a mitad). */
+    suspend fun idsEnCurso(): List<Long>
+
     /** Recorridos terminados, el más reciente primero. */
     fun listar(): Flow<List<Recorrido>>
 

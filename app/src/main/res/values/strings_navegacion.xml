@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="navegacion_canal_nombre">Conducción</string>
+    <string name="navegacion_canal_descripcion">Aviso permanente mientras Rally Copilot te guía o graba el trayecto.</string>
+    <string name="navegacion_iniciando">Iniciando la conducción…</string>
+    <string name="navegacion_titulo_libre">Conducción libre</string>
+    <string name="navegacion_libre_texto">%1$s grabados</string>
+    <string name="navegacion_titulo_guiando">Hacia %1$s</string>
+    <string name="navegacion_guiando_texto">En %1$s: %2$s · llegada %3$s</string>
+    <string name="navegacion_guiando_sin_progreso">Buscando tu posición en la ruta…</string>
+    <string name="navegacion_recalculando">Recalculando la ruta…</string>
+    <string name="navegacion_titulo_llegada">Has llegado</string>
+    <string name="navegacion_titulo_error">Conducción detenida</string>
+    <string name="navegacion_terminar">Terminar</string>
+    <string name="navegacion_error_permiso">Falta el permiso de ubicación.</string>
+    <string name="navegacion_error_gps">Se ha perdido la señal GPS.</string>
+    <string name="navegacion_error_arranque">No se ha podido iniciar la conducción.</string>
+</resources>
