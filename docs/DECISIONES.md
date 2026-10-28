@@ -11,7 +11,7 @@ skill `registrar-decision`.
 - 2026-10-28 · marca · Logo = mascota Trombito con casco de rally · elegido por Joan entre «mascota + casco» y «solo casco».
 - 2026-10-28 · release · Como Sous Chef: un push a `main` que cambia `version.properties` publica (GitHub Release + Play interna → prueba cerrada); los parches, por `workflow_dispatch` con `publicar` · elegido por Joan.
 - 2026-10-28 · identidad · `applicationId = app.trombito.rallycopilot` (debug `.dev`) · patrón de los hermanos; permanente en Play.
-- 2026-10-28 · git · Push solo con permiso explícito, cada vez (`permissions.ask`); force-push prohibido · corrección de Joan.
+- 2026-10-28 · git · Push solo con permiso explícito, cada vez (`permissions.ask`); force-push prohibido · corrección de Joan. **Sustituida** el mismo día: sin pedir permiso (push en `allow`), force-push sigue prohibido.
 - 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto (opus 1, sonnet 0,5, haiku 0,25) · regla de Joan.
 - 2026-10-28 · memoria · `docs/MEMORIA.md` importada desde CLAUDE.md + skill `recordar` · petición de Joan.
 

@@ -33,7 +33,7 @@ JDK 21 vía `~/.gradle/gradle.properties` (`org.gradle.java.installations.paths`
 - TDD en lógica crítica: generación de notas, cronometraje, detección de tramos, deltas, parseo de datos, migraciones.
 - Commits locales pequeños y frecuentes: Conventional Commits `tipo(ámbito): resumen` en español. **Sin
   `Co-Authored-By` ni atribución de IA.** `git add` explícito.
-- **Push solo con permiso explícito de Joan, cada vez** (dispara la release). Nunca force-push.
+- **Sin pedir permiso a Joan** (también push y fusionar PRs; 2026-10-28). Un push a `main` que cambie `version.properties` publica release: hacerlo solo al cerrar un hito. Nunca force-push.
 - No añadir dependencias sin la skill dependency-add. No cambiar arquitectura sin registrarlo (registrar-decision).
 - No tocar ni imprimir secretos (`~/.rallycopilot/*`, `local.properties`, `.env*`, keystores). Nombres, nunca valores.
 - No desactivar tests para pasar el gate. No ignorar errores. TODOs solo con registro en ESTADO.md.
@@ -48,7 +48,7 @@ JDK 21 vía `~/.gradle/gradle.properties` (`org.gradle.java.installations.paths`
   seguridad/arquitectura/revisión de notas de rally. Si un script puede hacerlo, ningún modelo.
 - **Presupuesto simultáneo ≤ 1 punto: opus 1 · sonnet 0,5 · haiku 0,25** (1 opus, o 2 sonnet, o 4 haiku, o
   1 sonnet + 2 haiku). Si se pasa, encadenar. Paralelo solo con archivos disjuntos.
-- Solo el agente principal hace commits (y push, con permiso).
+- Solo el agente principal hace commits y push.
 - Reservados al agente principal: CLAUDE.md, .claude/settings.json, .claude/hooks/**, docs/_templates/**,
   docs/ESTADO.md, docs/DECISIONES.md, docs/MEMORIA.md, ROADMAP.md, QUESTIONS.md, gradle/libs.versions.toml,
   settings.gradle.kts.

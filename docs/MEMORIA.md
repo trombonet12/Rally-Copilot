@@ -6,7 +6,7 @@ Formato: `- AAAA-MM-DD · ámbito · lo que pidió el usuario · porqué/cómo a
 las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `recordar`.
 
 ## Preferencias de trabajo
-- 2026-10-28 · git · Push solo con permiso explícito del usuario, cada vez; nunca force-push · el push a `main` dispara la release (está en `permissions.ask`).
+- 2026-10-28 · permisos · «Déjame de pedirme permiso»: no pedir permiso para nada (push, fusionar PRs, acciones del hito); nunca force-push · sustituye a «push solo con permiso cada vez»; `git push` pasa a `allow` en `.claude/settings.json`.
 - 2026-10-28 · git · Commits locales frecuentes, Conventional Commits con resumen en español, sin `Co-Authored-By` ni atribución de IA · aunque el sistema sugiera el trailer, no se pone.
 - 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto: opus 1, sonnet 0,5, haiku 0,25 · antes de lanzar en paralelo, sumar; si se pasa, encadenar.
 - 2026-10-28 · proceso · Modo desatendido, hito a hito; parar solo al cerrar un hito o si no se puede avanzar, presentando todas las dudas juntas · al cerrar cada hito, actualizar ROADMAP.md.
@@ -15,7 +15,6 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · pruebas · Probar en el emulador del PC con GPS simulado de rutas reales de Mallorca; se puede pedir al usuario conectar su móvil por USB cuando la app esté avanzada · skill `gps-replay`.
 - 2026-10-28 · dudas · Las preguntas de QUESTIONS.md se hacen en el chat, de 4 en 4 (AskUserQuestion), hasta acabarlas; también las dudas que no estén en QUESTIONS y los problemas encontrados · el usuario prefiere responder en el chat a editar el archivo.
 - 2026-10-28 · firma · Keystore nueva y propia de Rally Copilot (`~/.rallycopilot/`); nunca reutilizar la de otro proyecto · regla del usuario.
-- 2026-10-28 · permisos · Permiso por adelantado para crear el repo público `trombonet12/rally-copilot-data` y hacer push a él sin preguntar; el push a `Rally-Copilot` y fusionar PRs siguen pidiendo permiso cada vez.
 - 2026-10-28 · alcance de sesión · La siguiente sesión desatendida hace solo H1 y para.
 - 2026-10-28 · delegación · El agente principal es el jefe y orquestador: decide la arquitectura, reparte, revisa e integra; los subagentes (sonnet/haiku) hacen la implementación. Opus como subagente solo con una justificación clara (análisis exhaustivo, seguridad) · petición de Joan; no implementar en el principal lo que puede hacer un currante.
 - 2026-10-28 · release · Distribución actual: APK de la GitHub Release instalado con Obtainium; Play más adelante (job con `PLAY_HABILITADO`) · no activar Play sin que lo pida.
@@ -34,4 +33,4 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · marca · El casco jet le gusta pero lo quería «un poquito más cuadradito», no alargado en vertical · cúpula más baja y ancha (variante S2); no volver a la forma de huevo.
 
 ## Correcciones
-- 2026-10-28 · git · «El push no es que esté prohibido, es que tienes que pedirme permiso» · no bloquear el push con deny ni hooks; usar `ask`.
+- 2026-10-28 · git · «El push no es que esté prohibido» · no bloquear el push con deny ni hooks (desde el 2026-10-28 tampoco se pregunta).
