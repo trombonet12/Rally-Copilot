@@ -40,7 +40,7 @@ completado (2026-10-28) · Depende de: — · Dudas: todas las de [QUESTIONS.md]
 Ver Mallorca en vectorial y satélite sin conexión, con la posición GPS, la velocidad actual y el límite de la vía.
 
 ### Alcance
-- Librería de mapas y formatos según [DECISIONES § Mapas](docs/DECISIONES.md#mapas-y-teselas): vista vectorial (OSM) y satélite (PNOA del IGN), cambio entre ambas, atribuciones visibles.
+- Librería de mapas y formatos según [DECISIONES § Mapas](docs/DECISIONES.md#mapas-y-teselas): vista vectorial (OSM) y satélite (PNOA del IGN), cambio entre ambas, atribuciones en Acerca de (no sobre el mapa, decisión de Joan).
 - Paquete de datos de Mallorca según [DECISIONES § Datos](docs/DECISIONES.md#datos-de-mallorca), desde el repo público `rally-copilot-data` (Actions mensual): descarga en el primer uso con progreso, reanudable, verificación por hash; al abrir la app comprueba si hay datos nuevos, los baja con WiFi y avisa.
 - Satélite por niveles: base z≤16 de toda la isla empaquetada en el repo de datos; caché con límite de espacio (2 GB por defecto), «solo WiFi» (activado por defecto) y borrado (pantalla mínima de Mapas offline; el pulido va en H10). El corredor z17–18 y la zona manual z18–19 quedan para H9, cuando existan rutas y tramos.
 - Ubicación (sin Google Play Services) con permisos y explicación; velocidad actual siempre visible y límite (`maxspeed` de OSM sobre la vía más cercana) cuando OSM lo tiene; **sin dato, no se muestra límite**.
@@ -52,7 +52,7 @@ Ver Mallorca en vectorial y satélite sin conexión, con la posición GPS, la ve
 - [ ] En modo avión, con el paquete descargado, el mapa vectorial y el satélite z≤16 se ven en toda Mallorca.
 - [ ] Con `gps-replay` por la Ma-2141 a 50 km/h, la app muestra ~50 km/h y el límite de la vía en cada tramo con `maxspeed`; en los que no lo tienen, no muestra ninguno.
 - [ ] Funciona en un emulador sin Google APIs (el móvil de Joan es LineageOS sin GMS).
-- [ ] Atribuciones de OSM e IGN visibles en el mapa y en Ajustes > Acerca de.
+- [ ] Atribuciones de OSM e IGN en Ajustes > Acerca de (sin atribución sobre el mapa: decisión de Joan 2026-10-28).
 - [ ] La descarga se reanuda tras cortar la red y respeta «solo WiFi» y el límite de espacio.
 
 ### Tests
