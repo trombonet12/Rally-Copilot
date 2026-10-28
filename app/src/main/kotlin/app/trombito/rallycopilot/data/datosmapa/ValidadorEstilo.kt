@@ -11,11 +11,15 @@ import kotlinx.serialization.json.JsonPrimitive
  * Garantiza que un estilo de MapLibre (ya con `{{DIR}}` sustituido) solo referencia archivos de la carpeta del mapa:
  * ninguna `url`, `tiles`, `glyphs`, `sprite` ni `data` puede apuntar a la red ni a otra carpeta. Así un zip de estilo
  * manipulado no puede hacer que la app salga a internet por su cuenta.
+ *
+ * Fuentes locales admitidas: `file://<raiz>/...`, `pmtiles://file://<raiz>/...` y `mbtiles://file://<raiz>/...`
+ * (esta última para la capa de detalle de satélite escribible, H9). Cualquier otro esquema, `..` o una carpeta
+ * distinta de la del mapa se rechaza.
  */
 object ValidadorEstilo {
     private val CLAVES_TEXTO = setOf("url", "glyphs", "sprite", "data")
     private const val CLAVE_TILES = "tiles"
-    private const val PREFIJO_PMTILES = "pmtiles://"
+    private val ESQUEMAS_CONTENEDOR = listOf("pmtiles://", "mbtiles://")
 
     /** @param raizUrl carpeta del mapa como URL, p. ej. `file:///data/.../mapa` (sin barra final). */
     fun esValido(
@@ -66,7 +70,8 @@ object ValidadorEstilo {
         valor: String,
         prefijo: String,
     ): Boolean {
-        val sinEsquema = valor.removePrefix(PREFIJO_PMTILES)
+        val esquema = ESQUEMAS_CONTENEDOR.firstOrNull { valor.startsWith(it) }
+        val sinEsquema = if (esquema == null) valor else valor.removePrefix(esquema)
         return sinEsquema.startsWith(prefijo) && sinEsquema.substring(prefijo.length).split('/').none { it == ".." }
     }
 }

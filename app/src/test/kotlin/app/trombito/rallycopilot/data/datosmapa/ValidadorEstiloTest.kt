@@ -53,6 +53,16 @@ class ValidadorEstiloTest {
     }
 
     @Test
+    fun `acepta mbtiles de file bajo la carpeta del mapa`() {
+        assertTrue(valido("""{"sources":{"sat":{"type":"raster","url":"mbtiles://$raiz/detalle.mbtiles"}}}"""))
+    }
+
+    @Test
+    fun `rechaza mbtiles de file fuera de la carpeta del mapa`() {
+        assertFalse(valido("""{"sources":{"sat":{"url":"mbtiles://file:///otra/ruta/x.mbtiles"}}}"""))
+    }
+
+    @Test
     fun `rechaza geojson remoto`() {
         assertFalse(valido("""{"sources":{"a":{"type":"geojson","data":"https://evil.example/x.geojson"}}}"""))
     }
