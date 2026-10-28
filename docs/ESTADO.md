@@ -5,7 +5,7 @@
 | Campo | Valor |
 |---|---|
 | Hito | H0 — Preparación |
-| Estado | **completado**; esperando respuestas de Joan a QUESTIONS.md antes de H1 |
+| Estado | **completado**; QUESTIONS.md respondidas (18/18). Siguiente: H1 |
 | Último commit | ver `git log -1`; todos los commits son locales, **sin push** (el push lo autoriza Joan) |
 
 ## Completado
@@ -15,6 +15,7 @@
 - 2026-10-28 · Esqueleto Android `:app` + `:motor`, tema oscuro, inicio provisional tipo menú de juego; CI (gate + R8, release firmada, GitHub Release, Play interna → prueba cerrada).
 - 2026-10-28 · Logo: Trombito con casco jet rojo y micrófono de intercomunicador (segunda versión; la primera, blanca con visera, la rechazó Joan). Icono adaptativo, monocromo, de notificación y gráficos de Play.
 - 2026-10-28 · Investigaciones de §8 en [investigacion/](investigacion/) y resumen en [DECISIONES.md](DECISIONES.md); 16 preguntas en [QUESTIONS.md](../QUESTIONS.md).
+- 2026-10-28 · Respuestas de Joan a las 18 preguntas registradas en DECISIONES.md, QUESTIONS.md y ROADMAP.md. Casco más cuadrado. Licencia GPL-3.0 + README. Distribución por GitHub Release + Obtainium; Play pospuesto (`PLAY_HABILITADO`). `scripts/svg-a-vector.py` para regenerar los iconos.
 - 2026-10-28 · `scripts/gps-replay.mjs` + traza real de la Ma-2141 ([rutas/](rutas/)), verificado en el emulador; `voice-lab/README.md` con dónde dejar el material de voz.
 
 ## Entorno
@@ -39,16 +40,16 @@
 - Ver [DECISIONES.md](DECISIONES.md) § Decisiones del usuario, § Base técnica e § Investigaciones previas.
 
 ## Dudas abiertas
-- [QUESTIONS.md](../QUESTIONS.md): 16 abiertas. Bloquean H1: «Alojamiento de los datos de Mallorca» y «Fuente del satélite y tamaño».
+- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas (18 respondidas el 2026-10-28).
 
 ## Pendiente del usuario
-- Responder QUESTIONS.md (al menos las de H1–H2).
-- Pasos de [pasos-manuales.md](pasos-manuales.md) cuando quiera la primera release (keystore, secretos, Play Console). Decidir cuándo hacer push.
+- Pasos de [pasos-manuales.md](pasos-manuales.md) para la primera release: keystore nueva propia (`python -I scripts/crear-keystore.py`) y secretos (`node scripts/subir-secretos-release.mjs`).
+- Dar permiso para el push y para hacer público el repo (y, en H1, para crear el repo público `rally-copilot-data`).
 - Ir dejando material de voz en `voice-lab/data/raw/` (no bloquea hasta H11).
 
 ## Archivos importantes
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Joan:** responder en QUESTIONS.md (o en el chat) al menos «Alojamiento de los datos de Mallorca» y «Fuente del satélite y tamaño».
-- **Agente:** con esas respuestas, `hito start H1` (skill `hito`): pasar las respuestas a DECISIONES.md, añadir MapLibre con `dependency-add`, y hacer el spike de `mbtiles://` y `pmtiles://` en MapLibre Android con un PMTiles pequeño de Mallorca. Éxito: el mapa vectorial se ve en el emulador en modo avión.
+- **Joan:** dar permiso para el push y para hacer público `trombonet12/Rally-Copilot`; crear la keystore cuando quiera la primera release.
+- **Agente:** `hito start H1` (skill `hito`): añadir MapLibre con `dependency-add` y hacer el spike de `pmtiles://` y `mbtiles://` en MapLibre Android con un PMTiles pequeño de Mallorca generado en local con Planetiler. Éxito: el mapa vectorial se ve en el emulador en modo avión. Después, preparar `rally-copilot-data` (pedir permiso para crear el repo).

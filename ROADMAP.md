@@ -41,16 +41,17 @@ Ver Mallorca en vectorial y satélite sin conexión, con la posición GPS, la ve
 
 ### Alcance
 - Librería de mapas y formatos según [DECISIONES § Mapas](docs/DECISIONES.md#mapas-y-teselas): vista vectorial (OSM) y satélite (PNOA del IGN), cambio entre ambas, atribuciones visibles.
-- Paquete de datos de Mallorca según [DECISIONES § Datos](docs/DECISIONES.md#datos-de-mallorca): descarga en el primer uso con progreso, reanudable, verificación por hash.
-- Satélite por niveles: base z≤16 de toda la isla; caché con límite de espacio, opción «solo WiFi» y borrado (pantalla mínima de Mapas offline; el pulido va en H10). El corredor z17–18 y la zona manual z18–19 quedan para H9, cuando existan rutas y tramos.
-- Ubicación (sin Google Play Services) con permisos y explicación; velocidad actual y límite (`maxspeed` de OSM sobre la vía más cercana) siempre visibles.
+- Paquete de datos de Mallorca según [DECISIONES § Datos](docs/DECISIONES.md#datos-de-mallorca), desde el repo público `rally-copilot-data` (Actions mensual): descarga en el primer uso con progreso, reanudable, verificación por hash; al abrir la app comprueba si hay datos nuevos, los baja con WiFi y avisa.
+- Satélite por niveles: base z≤16 de toda la isla empaquetada en el repo de datos; caché con límite de espacio (2 GB por defecto), «solo WiFi» (activado por defecto) y borrado (pantalla mínima de Mapas offline; el pulido va en H10). El corredor z17–18 y la zona manual z18–19 quedan para H9, cuando existan rutas y tramos.
+- Ubicación (sin Google Play Services) con permisos y explicación; velocidad actual siempre visible y límite (`maxspeed` de OSM sobre la vía más cercana) cuando OSM lo tiene; **sin dato, no se muestra límite**.
 - Orientación vertical y horizontal.
 - Room entra aquí (estado de descargas y ajustes) con su skill.
 - Fuera: rutas, navegación, notas.
 
 ### Criterios de aceptación
 - [ ] En modo avión, con el paquete descargado, el mapa vectorial y el satélite z≤16 se ven en toda Mallorca.
-- [ ] Con `gps-replay` por la Ma-2141 a 50 km/h, la app muestra ~50 km/h y el límite de la vía en cada tramo con `maxspeed`.
+- [ ] Con `gps-replay` por la Ma-2141 a 50 km/h, la app muestra ~50 km/h y el límite de la vía en cada tramo con `maxspeed`; en los que no lo tienen, no muestra ninguno.
+- [ ] Funciona en un emulador sin Google APIs (el móvil de Joan es LineageOS sin GMS).
 - [ ] Atribuciones de OSM e IGN visibles en el mapa y en Ajustes > Acerca de.
 - [ ] La descarga se reanuda tras cortar la red y respeta «solo WiFi» y el límite de espacio.
 
@@ -60,7 +61,7 @@ Ver Mallorca en vectorial y satélite sin conexión, con la posición GPS, la ve
 - Emulador: `gps-replay` de la Ma-2141 y captura de velocidad y límite.
 
 ### Estado
-pendiente · Depende de: H0 · Dudas: QUESTIONS.md § Alojamiento de los datos de Mallorca, § Fuente del satélite y tamaño
+pendiente · Depende de: H0 · Dudas: resueltas (2026-10-28). Requiere crear el repo público `trombonet12/rally-copilot-data` (con permiso de Joan).
 
 ## H2 — Navegación offline
 
@@ -69,17 +70,18 @@ Navegación giro a giro completa sin conexión, con búsqueda de destino, recál
 
 ### Alcance
 - Motor de enrutado según [DECISIONES § Enrutado](docs/DECISIONES.md#enrutado-offline).
-- Búsqueda de destino offline (direcciones y lugares de OSM de Mallorca).
-- Cálculo de ruta, instrucciones giro a giro en español en pantalla, recálculo al salirse.
+- Búsqueda de destino offline: lugares, calles y POIs de OSM de Mallorca, y además coordenadas y enlaces de OSM/Google Maps pegados.
+- Cálculo de ruta «Más rápida» y opción «Sinuosa» (penaliza autovías, prefiere curvas); instrucciones giro a giro en pantalla con frases de estilo copiloto («cruce, derecha, Ma-10») y el texto de Valhalla como respaldo; recálculo al salirse.
 - Modo libre sin destino: seguir la vía actual (map matching) y registrar el recorrido.
-- Servicio en primer plano de ubicación con notificación (icono `ic_stat_rally`); sigue con la pantalla apagada o la app en segundo plano.
+- Servicio en primer plano de ubicación con notificación (icono `ic_stat_rally`), arrancado al pulsar Conducir; sigue con la pantalla apagada o la app en segundo plano. Sin ubicación en segundo plano.
 - Fuera: voz (H4), notas (H3), cronometraje (H6).
 
 ### Criterios de aceptación
 - [ ] Ruta Palma → Sa Calobra calculada en modo avión en < 3 s en el emulador.
 - [ ] Con `gps-replay` saliéndose de la ruta, recalcula en < 5 s.
 - [ ] Con la pantalla apagada 5 min durante una navegación simulada, el servicio sigue y la posición avanza (logcat).
-- [ ] Buscar «Sóller» o «Cala Figuera» devuelve resultados sin conexión.
+- [ ] Buscar «Sóller» o «Cala Figuera» devuelve resultados sin conexión; pegar `39.83,2.81` o un enlace de Google Maps lleva a ese punto.
+- [ ] La ruta «Sinuosa» Palma → Sóller sube por el Coll de Sóller en lugar de ir por el túnel.
 
 ### Tests
 - Motor: parseo de instrucciones y de geometría de ruta; detección de salida de ruta (umbral y tiempo).
@@ -87,7 +89,7 @@ Navegación giro a giro completa sin conexión, con búsqueda de destino, recál
 - Escenarios `qa-scenario`: `screen-off`, `background`, `process-death`, `gps-loss`.
 
 ### Estado
-pendiente · Depende de: H1 · Dudas: QUESTIONS.md § Búsqueda de destino
+pendiente · Depende de: H1 · Dudas: resueltas (2026-10-28)
 
 ## H3 — Motor de notas
 
@@ -96,7 +98,8 @@ Generar automáticamente notas de rally completas a partir de la geometría y la
 
 ### Alcance
 - Algoritmo según [DECISIONES § Notas](docs/DECISIONES.md#notas-de-rally) en `:motor`: remuestreo, radio, segmentación, grados 1–6 con horquillas, modificadores (abre, cierra, larga, «y»/encadenadas), distancias entre notas, rasantes y cambios de rasante, badenes, cruces, estrechamientos, puentes y avisos de precaución.
-- Calibración de grados respecto a la velocidad máxima de la vía; tabla calibrable.
+- Calibración de grados con **la velocidad real de Joan**: mientras no hay datos suyos, con el límite de la vía; sus pasadas ajustan un perfil global y otro por tramo. Tabla calibrable.
+- Se cantan todos los grados (también el 6), horquilla sin grado, orden «derecha cuatro», distancia después de la nota; avisos de precaución generosos (también curvas cerradas sin visibilidad y cambios de grado bruscos).
 - Glosario de copiloto español (borrador en la investigación; se refina en H11 con transcripciones).
 - Anticipación de lectura adaptativa a la velocidad + ajuste de usuario en 5 niveles; notas simplificadas (suave/media/cerrada).
 - Presentación provisional en pantalla (texto) para validar; la voz llega en H4.
@@ -113,7 +116,7 @@ Generar automáticamente notas de rally completas a partir de la geometría y la
 - Regresión: notas de las trazas de `docs/rutas/` guardadas como golden files.
 
 ### Estado
-pendiente · Depende de: H1 (datos de vía y elevación), H2 (ruta) · Dudas: QUESTIONS.md § Glosario y estilo de lectura, § Escala de grados
+pendiente · Depende de: H1 (datos de vía y elevación), H2 (ruta) · Dudas: resueltas (2026-10-28); el glosario se refina en H11
 
 ## H4 — Voz y modos del copiloto
 
@@ -137,7 +140,7 @@ El copiloto habla: voz sintética offline, cuatro modos, bajada de la música mi
 - Robolectric: gestor de foco de audio con un AudioManager falso.
 
 ### Estado
-pendiente · Depende de: H3 · Dudas: QUESTIONS.md § Voces sintéticas y tamaño del APK
+pendiente · Depende de: H3 · Dudas: resueltas (2026-10-28): dos voces dentro, clips + TTS, app GPL-3.0
 
 ## H5 — Alertas: radares e incidencias
 
@@ -148,6 +151,7 @@ Avisar de radares e incidencias de tráfico de Mallorca con datos abiertos.
 - Fuentes según [DECISIONES § Incidencias](docs/DECISIONES.md#incidencias-y-radares).
 - Radares fijos y de tramo guardados offline con los mapas; incidencias (obras, accidentes, retenciones, cortes) refrescadas al abrir la app y al iniciar una ruta.
 - Avisos por voz (modos Solo alertas en adelante) y banners; límite de velocidad excedido.
+- Zonas probables de radar móvil en pantalla y por voz; incidencias cercanas aunque estén fuera de la ruta. Sin botón de refresco manual.
 - Fuera: Waze y Google (sin API pública).
 
 ### Criterios de aceptación
@@ -159,7 +163,7 @@ Avisar de radares e incidencias de tráfico de Mallorca con datos abiertos.
 - Robolectric: refresco con fuente falsa (éxito, error, sin red).
 
 ### Estado
-pendiente · Depende de: H1, H4 · Dudas: QUESTIONS.md § Cobertura de incidencias en Mallorca
+pendiente · Depende de: H1, H4 · Dudas: resueltas (2026-10-28)
 
 ## H6 — Tramos y cronometraje
 
@@ -167,7 +171,7 @@ pendiente · Depende de: H1, H4 · Dudas: QUESTIONS.md § Cobertura de incidenci
 Convertir cada trayecto en un tramo cronometrado con sectores, detección de tramos conocidos y delta en vivo.
 
 ### Alcance
-- Tramo = de iniciar navegación a llegar o parar; grabación automática activable en Ajustes.
+- Tramo = de pulsar Conducir a pulsar Terminar o llegar al destino; los tramos < 1 km se descartan; sin cierre automático por estar parado. Grabación automática activable en Ajustes.
 - 4 sectores grandes y microsectores equitativos, configurables (número y posición).
 - Detección de tramo conocido aunque no se arranque desde él (map matching contra tramos guardados).
 - Delta en vivo contra el mejor tiempo (verde/rojo) y parciales; voz en modo copiloto completo.
@@ -183,7 +187,7 @@ Convertir cada trayecto en un tramo cronometrado con sectores, detección de tra
 - Room: migraciones con tests.
 
 ### Estado
-pendiente · Depende de: H2 · Dudas: QUESTIONS.md § Inicio y fin de tramo
+pendiente · Depende de: H2 · Dudas: resueltas (2026-10-28)
 
 ## H7 — Análisis post-tramo y perfil del piloto
 
@@ -213,9 +217,9 @@ pendiente · Depende de: H6
 Corregir notas a mano o por voz y hacer pasadas de reconocimiento.
 
 ### Alcance
-- Edición tocando la nota sobre el mapa; edición por voz (reconocimiento offline).
+- Edición tocando la nota sobre el mapa; edición por voz (reconocimiento offline) activada con botón (en pantalla o del volante) y palabra de activación opcional.
 - Notas editadas ligadas al tramo; siempre prevalecen sobre las automáticas.
-- Modo reconocimiento: pasada para dictar o corregir notas, calibradas respecto a la velocidad máxima de la vía.
+- Modo reconocimiento: pasada para dictar o corregir notas; recalibra el perfil de velocidad de Joan en ese tramo.
 - Edición de sectores arrastrando sobre el mapa.
 - Fuera: compartir notas.
 
@@ -227,7 +231,7 @@ Corregir notas a mano o por voz y hacer pasadas de reconocimiento.
 - Motor: fusión de notas editadas con automáticas; intérprete de órdenes de voz (gramática del glosario).
 
 ### Estado
-pendiente · Depende de: H3, H6 · Dudas: QUESTIONS.md § Reconocimiento de voz offline
+pendiente · Depende de: H3, H6 · Dudas: resueltas (2026-10-28)
 
 ## H9 — Precarga de rutas y satélite de alta calidad
 
@@ -270,7 +274,7 @@ Pulir toda la app con estética de videojuego WRC y retransmisión de rally.
 - Robolectric: render de pantallas con BancoCompose; contraste.
 
 ### Estado
-pendiente · Depende de: H1–H9 · Dudas: QUESTIONS.md § Dirección visual
+pendiente · Depende de: H1–H9 · Dudas: resueltas (seguir la dirección de H0)
 
 ## H11 — Voz de Luis Moya
 
@@ -278,6 +282,7 @@ pendiente · Depende de: H1–H9 · Dudas: QUESTIONS.md § Dirección visual
 El copiloto habla con la voz clonada de Luis Moya (con autorización), sin internet.
 
 ### Alcance
+- Solo material existente de Moya (sin sesión de grabación): el pipeline tiene que sacar audio limpio de entrevistas y onboards con ruido.
 - Pipeline en `voice-lab/` (PC, RTX 4080): separación de voz, transcripción local, extracción de vocabulario, entrenamiento/clonado, pregeneración de frases comunes. Documentado en `docs/VOZ.md`.
 - Glosario refinado con las transcripciones reales.
 - En la app: audios pregenerados para lo común y motor TTS con la voz clonada para lo imprevisto; todo dentro del APK.
@@ -291,22 +296,24 @@ El copiloto habla con la voz clonada de Luis Moya (con autorización), sin inter
 - Cobertura de frases: toda nota que puede generar el motor tiene audio pregenerado o pasa por TTS.
 
 ### Estado
-pendiente · Depende de: H4 y el material de Joan · Dudas: QUESTIONS.md § Voz de Moya
+pendiente · Depende de: H4 y el material de Joan · Dudas: resueltas (2026-10-28)
 
 ## H12 — Pruebas end-to-end y Play
 
 ### Objetivo
-Validar la app completa de extremo a extremo y dejarla en el track de pruebas de Play.
+Validar la app completa de extremo a extremo. Distribución actual: GitHub Release + Obtainium; Play cuando Joan lo active.
 
 ### Alcance
 - Batería E2E (instrumentada en emulador con trazas reales y GPS simulado).
 - Pruebas en el móvil de Joan por USB.
-- Ficha de Play (textos, capturas, política de privacidad, seguridad de datos) y subida al track de pruebas.
+- Release estable por GitHub + Obtainium.
+- Más adelante (pospuesto por Joan): ficha de Play (textos, capturas, política de privacidad, seguridad de datos) y subida al track de pruebas con `PLAY_HABILITADO=true`.
 
 ### Criterios de aceptación
 - [ ] Batería E2E en verde en el emulador.
 - [ ] Prueba real en coche validada por Joan.
-- [ ] Versión publicada en la pista interna y promocionada a la prueba cerrada.
+- [ ] Versión publicada en GitHub e instalada con Obtainium en el móvil de Joan.
+- [ ] (Pospuesto) Versión en la pista interna de Play y promocionada a la prueba cerrada.
 
 ### Tests
 - E2E: navegación + notas + voz + cronometraje + análisis sobre las trazas de `docs/rutas/`.

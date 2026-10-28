@@ -13,14 +13,19 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · decisiones · No tomar decisiones de producto, interfaz ni alcance: apuntarlas en QUESTIONS.md con contexto, opciones y recomendación, y seguir con lo que no dependa · lo técnico menor se decide y se registra en docs/DECISIONES.md.
 - 2026-10-28 · memoria · Mantener esta memoria entre sesiones con lo que el usuario pida («recuerda», «a partir de ahora», correcciones generales) · skill `recordar`; lo transversal a los tres proyectos va también a la memoria personal.
 - 2026-10-28 · pruebas · Probar en el emulador del PC con GPS simulado de rutas reales de Mallorca; se puede pedir al usuario conectar su móvil por USB cuando la app esté avanzada · skill `gps-replay`.
+- 2026-10-28 · dudas · Las preguntas de QUESTIONS.md se hacen en el chat, de 4 en 4 (AskUserQuestion), hasta acabarlas; también las dudas que no estén en QUESTIONS y los problemas encontrados · el usuario prefiere responder en el chat a editar el archivo.
+- 2026-10-28 · firma · Keystore nueva y propia de Rally Copilot (`~/.rallycopilot/`); nunca reutilizar la de otro proyecto · regla del usuario.
+- 2026-10-28 · release · Distribución actual: APK de la GitHub Release instalado con Obtainium; Play más adelante (job con `PLAY_HABILITADO`) · no activar Play sin que lo pida.
 
 ## Producto
 - 2026-10-28 · idioma · App solo en español.
+- 2026-10-28 · licencia · App GPL-3.0 y repo público · por espeak-ng (GPL-3.0) y para Obtainium sin token.
 - 2026-10-28 · alcance · Solo Mallorca, offline por defecto, sin backend, cuentas ni funciones comunitarias · internet solo para descargar mapas y refrescar incidencias.
 
 ## Estilo/UI
 - 2026-10-28 · marca · Logo = mascota Trombito con casco de rally, mismo estilo y paleta que los hermanos · elegido por el usuario frente a «solo casco».
 - 2026-10-28 · marca · El primer casco (blanco tipo capucha con visera negra) le pareció «muy muy feo»; el aceptado es un jet rojo con franja blanca, ribetes latón, brillo y micrófono · en diseños gráficos, comparar variantes renderizadas y elegir la que se lea mejor a tamaño de icono antes de enseñarla.
+- 2026-10-28 · marca · El casco jet le gusta pero lo quería «un poquito más cuadradito», no alargado en vertical · cúpula más baja y ancha (variante S2); no volver a la forma de huevo.
 
 ## Correcciones
 - 2026-10-28 · git · «El push no es que esté prohibido, es que tienes que pedirme permiso» · no bloquear el push con deny ni hooks; usar `ask`.

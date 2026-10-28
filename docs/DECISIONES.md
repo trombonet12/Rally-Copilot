@@ -15,6 +15,35 @@ skill `registrar-decision`.
 - 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto (opus 1, sonnet 0,5, haiku 0,25) · regla de Joan.
 - 2026-10-28 · memoria · `docs/MEMORIA.md` importada desde CLAUDE.md + skill `recordar` · petición de Joan.
 
+## Respuestas de Joan a QUESTIONS.md (2026-10-28)
+Mandan sobre las recomendaciones de las investigaciones cuando difieren (marcado «≠ recomendación»).
+- 2026-10-28 · datos · Repo **público** `trombonet12/rally-copilot-data` con GitHub Actions mensual y Releases.
+- 2026-10-28 · datos · Actualización: al abrir la app comprueba si hay datos nuevos, los descarga con WiFi y avisa al terminar.
+- 2026-10-28 · satélite · La base z0–16 va empaquetada (PMTiles) en el repo de datos; el detalle z17–19 se descarga del IGN.
+- 2026-10-28 · caché · Por defecto, límite de 2 GB y solo WiFi (configurables).
+- 2026-10-28 · límite · Si OSM no tiene `maxspeed`, **no se muestra límite** (≠ recomendación de mostrar uno estimado).
+- 2026-10-28 · búsqueda · Lugares, calles y POIs de OSM **+ coordenadas y enlaces** de OSM/Google Maps pegados.
+- 2026-10-28 · rutas · «Más rápida» por defecto + opción «Sinuosa» (penaliza autovías y prefiere carreteras con curvas).
+- 2026-10-28 · giros · Indicaciones por voz con frases propias en estilo copiloto («cruce, derecha, Ma-10»); el texto de Valhalla solo como respaldo.
+- 2026-10-28 · grabación · El tramo y la grabación empiezan al pulsar Conducir/Empezar, con notificación fija; sin ubicación en segundo plano.
+- 2026-10-28 · tramos · Fin de tramo: pulsar Terminar o llegar al destino; los tramos < 1 km se descartan. **Sin** cierre automático por estar parado.
+- 2026-10-28 · pruebas · Móvil de Joan: LineageOS **sin GMS**. Además del emulador con Google APIs, probar con una imagen sin Google APIs.
+- 2026-10-28 · calibración · Las notas se calibran con **la velocidad real de Joan** (≠ recomendación: límite de la vía). Mientras no hay datos suyos se usa el límite de la vía; las pasadas ajustan un perfil global y otro por tramo.
+- 2026-10-28 · notas · Orden dirección-grado («derecha cuatro»); se cantan **todos los grados, también el 6** (≠ recomendación); horquilla sin grado; distancia después de la nota.
+- 2026-10-28 · notas · Avisos de precaución **generosos** (≠ recomendación): también en curvas cerradas sin visibilidad y en cambios de grado bruscos.
+- 2026-10-28 · voz · Dos voces masculinas dentro del APK, con clips pregenerados para lo común y TTS para lo imprevisto.
+- 2026-10-28 · licencia · La app se publica como **GPL-3.0** (`LICENSE`) · espeak-ng (fonemizador de Piper/sherpa-onnx) es GPL-3.0; así no hay conflicto.
+- 2026-10-28 · alertas · Zonas probables de radar móvil en pantalla **y por voz** (≠ recomendación).
+- 2026-10-28 · alertas · Se avisa también de incidencias cercanas fuera de la ruta.
+- 2026-10-28 · alertas · **Sin** botón de refresco manual: solo el automático al abrir la app y al iniciar ruta.
+- 2026-10-28 · escucha · Edición por voz y modo reconocimiento con botón (en pantalla o del volante por Bluetooth) **y** palabra de activación opcional en Ajustes.
+- 2026-10-28 · voz de Moya · Solo material existente (sin sesión de grabación); el pipeline de H11 se diseña para audio con ruido.
+- 2026-10-28 · repo · `trombonet12/Rally-Copilot` pasa a **público** (coherente con GPL-3.0; Obtainium sin token).
+- 2026-10-28 · visual · Se mantiene la dirección de H0 (oscuro carbón, latón, rojo, rótulos en cursiva).
+- 2026-10-28 · marca · Casco más cuadrado (cúpula más baja y ancha) · el anterior se veía alargado en vertical.
+- 2026-10-28 · distribución · **Solo GitHub Release + Obtainium**; Play queda pospuesto (el job solo corre con `PLAY_HABILITADO=true`) · decisión de Joan.
+- 2026-10-28 · firma · Keystore **nueva y propia** de Rally Copilot en `~/.rallycopilot/`; nunca se reutiliza la de otro proyecto · decisión de Joan.
+
 ## Base técnica (H0)
 - 2026-10-28 · stack · Mismo stack y versiones que Sous Chef (ver «Versiones fijadas») · línea común entre proyectos (pedido explícito).
 - 2026-10-28 · módulos · `:app` (Android, capas `domain/` `data/` `di/` `ui/`) + `:motor` (Kotlin/JVM puro) · la lógica crítica (notas, cronometraje, deltas, detección de tramos, parseo) se prueba en la JVM sin Android, como `:receta` en Sous Chef.
