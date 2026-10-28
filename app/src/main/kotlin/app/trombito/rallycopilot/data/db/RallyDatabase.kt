@@ -4,14 +4,26 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [ArchivoInstaladoEntity::class, AjustesMapasEntity::class, EstadoDatosEntity::class],
-    version = 1,
+    entities =
+        [
+            ArchivoInstaladoEntity::class,
+            AjustesMapasEntity::class,
+            EstadoDatosEntity::class,
+            AjustesConduccionEntity::class,
+            RecorridoEntity::class,
+            RecorridoPuntoEntity::class,
+        ],
+    version = 2,
     exportSchema = true,
 )
 abstract class RallyDatabase : RoomDatabase() {
     abstract fun datosMapaDao(): DatosMapaDao
 
     abstract fun ajustesMapasDao(): AjustesMapasDao
+
+    abstract fun ajustesConduccionDao(): AjustesConduccionDao
+
+    abstract fun recorridosDao(): RecorridosDao
 
     companion object {
         const val NOMBRE = "rally.db"
