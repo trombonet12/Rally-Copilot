@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H1 — Mapa base offline |
-| Estado | **completado** (2026-10-28). Siguiente: H2, solo cuando Joan lo autorice |
+| Hito | H2 — Navegación offline y mapa a tu gusto |
+| Estado | **en curso** (2026-10-28): investigación (cartelería, relieve) ‖ teselas Valhalla en el repo de datos |
 | Último commit | ver `git log -1`. **Commits de H1 sin publicar** en `Rally-Copilot` (push solo con permiso de Joan); `rally-copilot-data` publicado |
 
 ## Completado

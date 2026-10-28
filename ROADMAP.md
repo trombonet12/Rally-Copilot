@@ -64,17 +64,32 @@ Ver Mallorca en vectorial y satélite sin conexión, con la posición GPS, la ve
 completado (2026-10-28) · Depende de: H0 · Dudas: 4 nuevas en QUESTIONS.md § Abiertas en H1
 <!-- Hecho: repo público rally-copilot-data con workflow mensual (decidir/build sin token/publicar) y release datos-2026.10.28-2 (vectorial 32,6 MB, estilo 1 MB, vías 2,2 MB, satélite PNOA z0–16 364 MB); MapLibre 13.6.1 con pmtiles://file:// (vectorial y ráster) y spike de mbtiles:// (solo ruta absoluta); motor: manifest, plan de descarga, vías, límites y velocidad (82 tests); app: Room, WorkManager, descarga reanudable verificada, GPS sin GMS, vía actual, mapa, Mapas offline, Ajustes/Acerca de (174 tests); revisión de seguridad opus aplicada. Pendiente: corredor z17–19 en H9 (mbtiles), aviso de datos nuevos solo probado con tests (no hay segunda release real), confirmar en el móvil de Joan con GPS real. -->
 
-## H2 — Navegación offline
+## H2 — Navegación offline y mapa a tu gusto
 
 ### Objetivo
-Navegación giro a giro completa sin conexión, con búsqueda de destino, recálculo y funcionamiento con la pantalla apagada.
+Navegación giro a giro completa sin conexión (búsqueda, rutas, recálculo, pantalla apagada) y el mapa ajustado a lo que
+pidió Joan al ver H1: capas con iconos, relieve, zoom automático, icono de posición, placas de carretera reales y
+cartelería de maniobras estilo WRC.
 
 ### Alcance
-- Motor de enrutado según [DECISIONES § Enrutado](docs/DECISIONES.md#enrutado-offline).
-- Búsqueda de destino offline: lugares, calles y POIs de OSM de Mallorca, y además coordenadas y enlaces de OSM/Google Maps pegados.
-- Cálculo de ruta «Más rápida» y opción «Sinuosa» (penaliza autovías, prefiere curvas); instrucciones giro a giro en pantalla con frases de estilo copiloto («cruce, derecha, Ma-10») y el texto de Valhalla como respaldo; recálculo al salirse.
-- Modo libre sin destino: seguir la vía actual (map matching) y registrar el recorrido.
-- Servicio en primer plano de ubicación con notificación (icono `ic_stat_rally`), arrancado al pulsar Conducir; sigue con la pantalla apagada o la app en segundo plano. Sin ubicación en segundo plano.
+- **Mapa**:
+  - Menú de capas con iconos (sin textos): base Mapa/Satélite e interruptor de **relieve + curvas de nivel**.
+  - Botón rumbo arriba / norte arriba.
+  - **Zoom automático según la velocidad**, con ajuste más cerca / más lejos en Ajustes; pellizcar lo pausa unos segundos.
+  - **Icono de posición sin círculo**, elegible entre flecha simple, flecha WRC, coche de rally y casco de Trombito.
+  - **Números de carretera en placas con los colores oficiales** de su red.
+  - Pantalla siempre encendida con el mapa delante.
+  - Diálogo de gasto de datos al desactivar «Solo con WiFi».
+- **Datos** (`rally-copilot-data`): teselas Valhalla 3.9.1, índice de búsqueda (SQLite FTS), relieve (raster-dem) y curvas de nivel; estilos con capas de relieve y placas.
+- **Enrutado** según [DECISIONES § Enrutado](docs/DECISIONES.md#enrutado-offline): valhalla-mobile 0.6.4; Ferrostar solo si el spike lo justifica.
+- **Búsqueda**: barra «¿A dónde?» sobre el mapa con lugares, calles y POIs de OSM, y además coordenadas y enlaces de OSM/Google Maps pegados.
+- **Rutas**: «Más rápida» y «Sinuosa» (penaliza autovías); vista previa con tiempo y distancia; Empezar/Terminar; recálculo al salirse.
+- **Pantalla de navegación**:
+  - Banner de maniobras con **estética de los juegos de WRC** (familia de iconos propia, reutilizable para las notas de H3/H4), con la siguiente maniobra.
+  - Pie con hora de llegada, tiempo y km restantes.
+  - Frases de copiloto («cruce, derecha, Ma-10») y el texto de Valhalla como respaldo.
+- **Modo libre** sin destino: seguir la vía y grabar el recorrido.
+- **Servicio en primer plano** de ubicación con notificación (`ic_stat_rally`), arrancado al pulsar Empezar/Conducir; sigue con la pantalla apagada. Sin ubicación en segundo plano.
 - Fuera: voz (H4), notas (H3), cronometraje (H6).
 
 ### Criterios de aceptación
@@ -83,14 +98,20 @@ Navegación giro a giro completa sin conexión, con búsqueda de destino, recál
 - [ ] Con la pantalla apagada 5 min durante una navegación simulada, el servicio sigue y la posición avanza (logcat).
 - [ ] Buscar «Sóller» o «Cala Figuera» devuelve resultados sin conexión; pegar `39.83,2.81` o un enlace de Google Maps lleva a ese punto.
 - [ ] La ruta «Sinuosa» Palma → Sóller sube por el Coll de Sóller en lugar de ir por el túnel.
+- [ ] Menú de capas solo con iconos; relieve y curvas visibles en la Serra en modo avión.
+- [ ] El zoom se aleja al pasar de 30 a 90 km/h en `gps-replay` y respeta el ajuste.
+- [ ] Los 4 iconos de posición, sin círculo, elegibles en Ajustes.
+- [ ] Placas Ma-/AP-/A- con los colores oficiales de su red (según `docs/investigacion/carteleria.md`).
+- [ ] Banner de maniobras estilo WRC; capturas de las variantes para que Joan elija.
+- [ ] Todo funciona también en `rally-sin-gms-36`.
 
 ### Tests
-- Motor: parseo de instrucciones y de geometría de ruta; detección de salida de ruta (umbral y tiempo).
-- Robolectric: ViewModel de navegación con un enrutador falso.
+- Motor (TDD): zoom por velocidad, enlaces y coordenadas, polyline6 y restantes/ETA, salida de ruta (umbral y tiempo), frases de maniobra, simplificación del recorrido.
+- Robolectric: ViewModels de búsqueda y navegación con enrutador y buscador falsos; migración Room v1→v2.
 - Escenarios `qa-scenario`: `screen-off`, `background`, `process-death`, `gps-loss`.
 
 ### Estado
-pendiente · Depende de: H1 · Dudas: resueltas (2026-10-28)
+en curso (2026-10-28) · Depende de: H1 · Dudas: resueltas (2026-10-28, en el chat)
 
 ## H3 — Motor de notas
 
