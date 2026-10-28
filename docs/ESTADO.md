@@ -6,7 +6,7 @@
 |---|---|
 | Hito | H0 — Preparación |
 | Estado | **completado**; QUESTIONS.md respondidas (18/18). Siguiente: H1 |
-| Último commit | ver `git log -1`; todos los commits son locales, **sin push** (el push lo autoriza Joan) |
+| Último commit | ver `git log -1`. Publicado en `origin/main` con permiso de Joan (2026-10-28); repo **público** |
 
 ## Completado
 - 2026-10-28 · Herencia de Sous Chef/Trombito analizada y documentada ([HERENCIA.md](HERENCIA.md)).
@@ -16,6 +16,7 @@
 - 2026-10-28 · Logo: Trombito con casco jet rojo y micrófono de intercomunicador (segunda versión; la primera, blanca con visera, la rechazó Joan). Icono adaptativo, monocromo, de notificación y gráficos de Play.
 - 2026-10-28 · Investigaciones de §8 en [investigacion/](investigacion/) y resumen en [DECISIONES.md](DECISIONES.md); 16 preguntas en [QUESTIONS.md](../QUESTIONS.md).
 - 2026-10-28 · Respuestas de Joan a las 18 preguntas registradas en DECISIONES.md, QUESTIONS.md y ROADMAP.md. Casco más cuadrado. Licencia GPL-3.0 + README. Distribución por GitHub Release + Obtainium; Play pospuesto (`PLAY_HABILITADO`). `scripts/svg-a-vector.py` para regenerar los iconos.
+- 2026-10-28 · Keystore nueva en `~/.rallycopilot/`, secretos de firma en GitHub, push y repo público (con permiso de Joan). Primera release **v0.1.11** publicada por `workflow_dispatch` (APK + AAB + checksums), lista para Obtainium.
 - 2026-10-28 · `scripts/gps-replay.mjs` + traza real de la Ma-2141 ([rutas/](rutas/)), verificado en el emulador; `voice-lab/README.md` con dónde dejar el material de voz.
 
 ## Entorno
@@ -34,6 +35,8 @@
 
 ## Problemas conocidos
 - El icono adaptativo debe quedarse en `mipmap-anydpi-v26`: con `mipmap-anydpi` el release no enlaza (`@mipmap/ic_launcher` not found).
+- `gradlew` debe estar en git como ejecutable (`git update-index --chmod=+x gradlew`); si no, el CI falla con «Permission denied».
+- PR de Dependabot creado antes del arreglo de `gradlew`: falla el gate; hay que rebasarlo (`@dependabot rebase`) o cerrarlo.
 - Overpass API da 502/504 a menudo: reintentar con `--max-time` o usar otro espejo.
 
 ## Decisiones recientes
@@ -43,13 +46,14 @@
 - [QUESTIONS.md](../QUESTIONS.md): 0 abiertas (18 respondidas el 2026-10-28).
 
 ## Pendiente del usuario
-- Pasos de [pasos-manuales.md](pasos-manuales.md) para la primera release: keystore nueva propia (`python -I scripts/crear-keystore.py`) y secretos (`node scripts/subir-secretos-release.mjs`).
-- Dar permiso para el push y para hacer público el repo (y, en H1, para crear el repo público `rally-copilot-data`).
+- **Copia de seguridad de `~/.rallycopilot/`** (keystore nueva): sin ella no se pueden publicar actualizaciones.
+- Instalar la v0.1.11 con Obtainium ([obtainium.md](obtainium.md)).
+- En H1: permiso para crear el repo público `rally-copilot-data`.
 - Ir dejando material de voz en `voice-lab/data/raw/` (no bloquea hasta H11).
 
 ## Archivos importantes
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Joan:** dar permiso para el push y para hacer público `trombonet12/Rally-Copilot`; crear la keystore cuando quiera la primera release.
+- **Joan:** copia de `~/.rallycopilot/`; instalar con Obtainium si quiere.
 - **Agente:** `hito start H1` (skill `hito`): añadir MapLibre con `dependency-add` y hacer el spike de `pmtiles://` y `mbtiles://` en MapLibre Android con un PMTiles pequeño de Mallorca generado en local con Planetiler. Éxito: el mapa vectorial se ve en el emulador en modo avión. Después, preparar `rally-copilot-data` (pedir permiso para crear el repo).

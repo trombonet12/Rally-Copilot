@@ -5,14 +5,14 @@
 Marca `[x]` al terminar cada paso. Claude nunca lee ni imprime los valores de `~/.rallycopilot/`.
 
 ## Antes de la primera release (GitHub + Obtainium)
-- [ ] **Keystore nueva, propia de Rally Copilot** (no la de Sous Chef): `python -I scripts/crear-keystore.py`. Crea
+- [x] **Keystore nueva, propia de Rally Copilot** (no la de Sous Chef): `python -I scripts/crear-keystore.py`. Crea
       `~/.rallycopilot/rallycopilot-release.jks` y `release-signing.properties` sin mostrar valores. Si ya existe, no
       la toca. **Haz copia de seguridad** de esa carpeta: sin la clave no se pueden publicar actualizaciones.
-- [ ] **Secretos de firma en GitHub**: `node scripts/subir-secretos-release.mjs`. Sube `ANDROID_KEYSTORE_BASE64`,
+- [x] **Secretos de firma en GitHub**: `node scripts/subir-secretos-release.mjs`. Sube `ANDROID_KEYSTORE_BASE64`,
       `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` y `ANDROID_KEY_PASSWORD` a `trombonet12/Rally-Copilot` por stdin.
-- [ ] **Repo público**: lo hace Claude con tu permiso (`gh repo edit --visibility public`), después de comprobar que
+- [x] **Repo público**: lo hace Claude con tu permiso (`gh repo edit --visibility public`), después de comprobar que
       no hay secretos en el historial.
-- [ ] **Push a `main`**: lo decides tú; dispara el gate y, si cambia `version.properties`, la release.
+- [x] **Push a `main`**: lo decides tú; dispara el gate y, si cambia `version.properties`, la release.
 - [ ] **Obtainium** en el móvil: ver [obtainium.md](obtainium.md#configurar-obtainium-una-vez).
 
 ## Material para la voz (cuando lo tengas; se usa en H11)
