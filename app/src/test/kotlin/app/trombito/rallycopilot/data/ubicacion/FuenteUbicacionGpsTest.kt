@@ -75,7 +75,6 @@ class FuenteUbicacionGpsTest {
             assertEquals(15.0, primera.velocidadMs!!, 1e-6)
             assertEquals(90.0, primera.rumboGrados!!, 1e-6)
             assertEquals(4.0, primera.precisionM!!, 1e-6)
-            assertEquals(1_700_000_001_000L, primera.tiempoMs)
             assertEquals(120.0, recibidas[1].punto.alt!!, 1e-9)
             job.cancel()
         }
@@ -149,6 +148,25 @@ class FuenteUbicacionGpsTest {
         shadowOf(app).grantPermissions(Manifest.permission.ACCESS_COARSE_LOCATION)
 
         assertTrue(fuente.tienePermiso())
+    }
+
+    @Test
+    fun `tiempoMs es el reloj monotono y no la hora UTC de la posicion`() {
+        val l =
+            Location(LocationManager.GPS_PROVIDER).apply {
+                latitude = 39.6
+                longitude = 2.9
+                time = 1_700_000_000_000L
+                elapsedRealtimeNanos = 123_456_789_000_000L
+            }
+        val repetida =
+            Location(l).apply {
+                elapsedRealtimeNanos = 123_457_789_000_000L
+            }
+
+        assertEquals(123_456_789L, l.aFijacion()!!.tiempoMs)
+        // Con la misma hora UTC, el tiempo de la fijación sigue avanzando.
+        assertEquals(123_457_789L, repetida.aFijacion()!!.tiempoMs)
     }
 
     @Test

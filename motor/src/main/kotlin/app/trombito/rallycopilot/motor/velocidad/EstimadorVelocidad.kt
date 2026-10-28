@@ -6,7 +6,10 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Una lectura del GPS; velocidad (m/s), rumbo (grados desde el norte) y precisión (m) pueden faltar. */
+/**
+ * Una lectura del GPS; velocidad (m/s), rumbo (grados desde el norte) y precisión (m) pueden faltar.
+ * `tiempoMs` es un reloj monótono en ms (no la hora UTC del receptor, que puede repetirse o saltar).
+ */
 data class Fijacion(
     val punto: PuntoGeo,
     val tiempoMs: Long,
@@ -37,17 +40,20 @@ class EstimadorVelocidad(
     /**
      * Incorpora una fijación y devuelve la velocidad vigente (m/s) o null si no se conoce.
      * Las fijaciones desordenadas, demasiado juntas (sin velocidad propia) o con un salto imposible no
-     * modifican el estado.
+     * modifican el estado. Una fijación con el mismo tiempo que la anterior y velocidad válida del receptor sí
+     * actualiza la velocidad (no la referencia para calcular por posición).
      */
     fun actualizar(f: Fijacion): Double? {
         val prev = anterior
-        if (!aceptable(prev, f)) return vigente(f.tiempoMs)
-
-        actualizarRumbo(prev, f)
         val propia = f.velocidadMs?.takeIf { it.isFinite() && it >= 0.0 }
-        velocidad = propia ?: prev?.let { velocidadEntre(it, f) }
-        tiempoVelocidad = f.tiempoMs
-        anterior = f
+        val mismoInstante = prev != null && propia != null && f.tiempoMs == prev.tiempoMs
+        if (mismoInstante || aceptable(prev, f)) {
+            actualizarRumbo(prev, f)
+            velocidad = propia ?: prev?.let { velocidadEntre(it, f) }
+            tiempoVelocidad = f.tiempoMs
+            // Mismo instante: no sirve de referencia para calcular por posición, pero la velocidad del receptor vale.
+            if (!mismoInstante) anterior = f
+        }
         return vigente(f.tiempoMs)
     }
 

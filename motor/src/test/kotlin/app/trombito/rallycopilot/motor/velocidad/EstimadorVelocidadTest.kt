@@ -132,11 +132,42 @@ class EstimadorVelocidadTest {
     }
 
     @Test
-    fun `una fijacion con tiempo anterior o igual se descarta`() {
+    fun `una fijacion con tiempo anterior se descarta`() {
         val e = EstimadorVelocidad()
         e.actualizar(fijacion(inicio, 5_000, v = 10.0))
-        assertEquals(10.0, e.actualizar(fijacion(alNorte(1), 5_000, v = 30.0))!!, 1e-9)
         assertEquals(10.0, e.actualizar(fijacion(alNorte(1), 4_000, v = 30.0))!!, 1e-9)
+    }
+
+    @Test
+    fun `una fijacion con el mismo tiempo y velocidad GNSS valida da su velocidad`() {
+        val e = EstimadorVelocidad()
+        e.actualizar(fijacion(inicio, 5_000, v = 10.0))
+        assertEquals(30.0, e.actualizar(fijacion(alNorte(1), 5_000, v = 30.0))!!, 1e-9)
+    }
+
+    @Test
+    fun `primera sin velocidad y siguientes con velocidad y tiempo repetido dan 50 kmh`() {
+        val e = EstimadorVelocidad()
+        assertNull(e.actualizar(fijacion(inicio, 5_000)))
+        val v = e.actualizar(fijacion(alNorte(1), 5_000, v = 13.89))!!
+        assertEquals(50, kmh(v))
+        assertEquals(50, kmh(e.actualizar(fijacion(alNorte(2), 5_000, v = 13.89))!!))
+        assertEquals(50, kmh(e.actualizar(fijacion(alNorte(3), 5_000, v = 13.89))!!))
+    }
+
+    @Test
+    fun `con el mismo tiempo y sin velocidad no calcula ni actualiza`() {
+        val e = EstimadorVelocidad()
+        e.actualizar(fijacion(inicio, 5_000, v = 10.0))
+        assertEquals(10.0, e.actualizar(fijacion(alNorte(1), 5_000))!!, 1e-9)
+    }
+
+    @Test
+    fun `una velocidad GNSS con un salto de posicion absurdo y tiempo repetido se acepta sin calcular por posicion`() {
+        val e = EstimadorVelocidad()
+        e.actualizar(fijacion(inicio, 5_000, v = 10.0))
+        // La velocidad la da el receptor: el salto solo importa para la velocidad calculada por posicion.
+        assertEquals(20.0, e.actualizar(fijacion(alNorte(100), 5_000, v = 20.0))!!, 1e-9)
     }
 
     @Test

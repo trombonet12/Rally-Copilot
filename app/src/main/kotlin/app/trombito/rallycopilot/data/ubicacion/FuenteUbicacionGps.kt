@@ -99,13 +99,16 @@ private class OyenteGps(
     override fun onProviderDisabled(provider: String) = Unit
 }
 
+private const val NS_POR_MS = 1_000_000L
+
 /** Null si la latitud o la longitud no son válidas (PuntoGeo las exige en rango). */
 internal fun Location.aFijacion(): Fijacion? {
     val valida = latitude in -90.0..90.0 && longitude in -180.0..180.0
     return if (valida) {
         Fijacion(
             punto = PuntoGeo(latitude, longitude, if (hasAltitude()) altitude else null),
-            tiempoMs = time,
+            // Reloj monótono: `time` es la hora UTC del GNSS y en el emulador puede repetirse.
+            tiempoMs = elapsedRealtimeNanos / NS_POR_MS,
             velocidadMs = if (hasSpeed()) speed.toDouble() else null,
             rumboGrados = if (hasBearing()) bearing.toDouble() else null,
             precisionM = if (hasAccuracy()) accuracy.toDouble() else null,
