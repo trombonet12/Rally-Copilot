@@ -25,7 +25,7 @@ fun kmh(metrosPorSegundo: Double): Int =
 /**
  * Estima velocidad y rumbo a partir de fijaciones GPS (en orden temporal).
  *
- * @param maxSaltoMs velocidad implícita (m/s) por encima de la cual una fijación se considera un salto y se descarta.
+ * @param maxSaltoMs velocidad implícita (m/s) por encima de la cual una fijación es un salto (no se calcula velocidad).
  * @param caducidadMs antigüedad máxima de la velocidad para seguir siendo [vigente].
  */
 class EstimadorVelocidad(
@@ -39,22 +39,46 @@ class EstimadorVelocidad(
 
     /**
      * Incorpora una fijación y devuelve la velocidad vigente (m/s) o null si no se conoce.
-     * Las fijaciones desordenadas, demasiado juntas (sin velocidad propia) o con un salto imposible no
-     * modifican el estado. Una fijación con el mismo tiempo que la anterior y velocidad válida del receptor sí
-     * actualiza la velocidad (no la referencia para calcular por posición).
+     * - La velocidad del receptor (finita y >= 0) manda siempre, sin filtro de salto.
+     * - Con el mismo tiempo que la anterior solo cuenta la velocidad del receptor (no la referencia por posición);
+     *   las desordenadas se descartan.
+     * - Sin velocidad del receptor, las fijaciones a menos de 500 ms se ignoran; si implican más de `maxSaltoMs`
+     *   no se calcula velocidad (se conserva la anterior) ni rumbo entre posiciones, pero SE REANCLA la referencia
+     *   para que un salto real no bloquee las siguientes.
      */
     fun actualizar(f: Fijacion): Double? {
         val prev = anterior
         val propia = f.velocidadMs?.takeIf { it.isFinite() && it >= 0.0 }
-        val mismoInstante = prev != null && propia != null && f.tiempoMs == prev.tiempoMs
-        if (mismoInstante || aceptable(prev, f)) {
-            actualizarRumbo(prev, f)
-            velocidad = propia ?: prev?.let { velocidadEntre(it, f) }
-            tiempoVelocidad = f.tiempoMs
-            // Mismo instante: no sirve de referencia para calcular por posición, pero la velocidad del receptor vale.
-            if (!mismoInstante) anterior = f
+        val dtMs = prev?.let { f.tiempoMs - it.tiempoMs } ?: Long.MAX_VALUE
+        when {
+            dtMs < 0 -> Unit
+            dtMs == 0L && propia != null -> incorporar(prev, f, propia, salto = false)
+            dtMs == 0L || (dtMs < DT_MIN_MS && propia == null) -> Unit
+            else -> incorporar(prev, f, propia, salto = esSalto(prev, f, dtMs))
         }
         return vigente(f.tiempoMs)
+    }
+
+    private fun esSalto(
+        prev: Fijacion?,
+        f: Fijacion,
+        dtMs: Long,
+    ): Boolean = prev != null && prev.punto.distanciaA(f.punto) / (dtMs / MS_POR_S) > maxSaltoMs
+
+    private fun incorporar(
+        prev: Fijacion?,
+        f: Fijacion,
+        propia: Double?,
+        salto: Boolean,
+    ) {
+        actualizarRumbo(if (salto) null else prev, f)
+        val nueva = propia ?: if (salto) null else prev?.let { velocidadEntre(it, f) }
+        if (nueva != null || !salto) {
+            velocidad = nueva
+            tiempoVelocidad = f.tiempoMs
+        }
+        // Mismo instante: no sirve de referencia para calcular por posición.
+        if (prev == null || f.tiempoMs != prev.tiempoMs) anterior = f
     }
 
     /** Velocidad (m/s) si la última estimación no tiene más de `caducidadMs` respecto a [ahoraMs]. */
@@ -62,19 +86,6 @@ class EstimadorVelocidad(
 
     /** Último rumbo conocido en grados [0, 360): el del GPS o el calculado entre posiciones. */
     fun rumbo(): Double? = rumboActual
-
-    private fun aceptable(
-        prev: Fijacion?,
-        f: Fijacion,
-    ): Boolean {
-        if (prev == null) return true
-        val dtMs = f.tiempoMs - prev.tiempoMs
-        return when {
-            dtMs <= 0 -> false
-            dtMs < DT_MIN_MS -> f.velocidadMs != null
-            else -> prev.punto.distanciaA(f.punto) / (dtMs / MS_POR_S) <= maxSaltoMs
-        }
-    }
 
     private fun velocidadEntre(
         prev: Fijacion,

@@ -87,7 +87,7 @@ class EstimadorVelocidadTest {
     }
 
     @Test
-    fun `descarta un salto con velocidad implicita absurda y conserva la referencia`() {
+    fun `un salto sin velocidad GNSS no calcula velocidad y conserva la anterior`() {
         val e = EstimadorVelocidad()
         e.actualizar(fijacion(inicio, 0))
         val v1 = e.actualizar(fijacion(alNorte(1), 1_000))!!
@@ -95,9 +95,47 @@ class EstimadorVelocidadTest {
         val salto = e.actualizar(fijacion(alNorte(100), 2_000))
         assertEquals(v1, salto!!, 1e-9)
         assertEquals(v1, e.vigente(2_000)!!, 1e-9)
-        // La referencia sigue siendo alNorte(1) en t=1000.
-        val v2 = e.actualizar(fijacion(alNorte(2), 3_000))!!
-        assertEquals(alNorte(1).distanciaA(alNorte(2)) / 2.0, v2, 1e-6)
+    }
+
+    @Test
+    fun `tras un salto sin velocidad GNSS se reancla y la siguiente ya calcula por posicion`() {
+        val e = EstimadorVelocidad()
+        e.actualizar(fijacion(inicio, 0))
+        e.actualizar(fijacion(alNorte(1000), 1_000)) // salto: se reancla aquí
+        val v = e.actualizar(fijacion(alNorte(1001), 2_000))!!
+        assertEquals(alNorte(1000).distanciaA(alNorte(1001)), v, 1e-6)
+    }
+
+    @Test
+    fun `un pico aislado sin velocidad GNSS no produce velocidad absurda`() {
+        val e = EstimadorVelocidad()
+        e.actualizar(fijacion(inicio, 0))
+        val v1 = e.actualizar(fijacion(alNorte(1), 1_000))!!
+        e.actualizar(fijacion(alNorte(100), 2_000)) // pico
+        val despues = e.actualizar(fijacion(alNorte(2), 3_000)) // vuelta: otro salto, sin velocidad nueva
+        assertEquals(v1, despues!!, 1e-9)
+        // La siguiente ya mide desde la posición reanclada y da una velocidad normal.
+        val v = e.actualizar(fijacion(alNorte(3), 4_000))!!
+        assertEquals(alNorte(2).distanciaA(alNorte(3)), v, 1e-6)
+    }
+
+    @Test
+    fun `primera fijacion lejana sin velocidad y siguientes a 30 km con velocidad GNSS dan 50 kmh`() {
+        val e = EstimadorVelocidad()
+        e.actualizar(fijacion(PuntoGeo(39.57, 2.65), 0)) // última conocida, Palma
+        val lejos = PuntoGeo(39.84, 2.67) // ~30 km
+        assertEquals(50, kmh(e.actualizar(fijacion(lejos, 1_000, v = 13.89))!!))
+        assertEquals(50, kmh(e.actualizar(fijacion(PuntoGeo(39.8401, 2.67), 2_000, v = 13.89))!!))
+    }
+
+    @Test
+    fun `tras un salto el rumbo no se calcula entre las dos fijaciones pero el del GNSS vale`() {
+        val e = EstimadorVelocidad()
+        e.actualizar(fijacion(inicio, 0))
+        e.actualizar(fijacion(alNorte(1000), 1_000))
+        assertNull(e.rumbo())
+        e.actualizar(fijacion(alNorte(2000), 2_000, v = 10.0, rumbo = 200.0))
+        assertEquals(200.0, e.rumbo()!!, 1e-9)
     }
 
     @Test
