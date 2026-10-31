@@ -26,6 +26,8 @@ fun MapaRoute(
             AccionesMapa(
                 onVolver = onVolver,
                 onCapa = viewModel::onCapa,
+                onRelieve = viewModel::onRelieve,
+                onOrientacion = viewModel::onOrientacion,
                 onRecentrar = viewModel::onRecentrar,
                 onPedirPermiso = permiso.pedir,
                 onAbrirAjustes = permiso.abrirAjustes,
@@ -36,12 +38,20 @@ fun MapaRoute(
             VistaMapa(
                 estiloJson = estiloJson,
                 posicion = estado.posicion,
-                siguiendo = estado.siguiendo,
                 camara =
                     CamaraVistaMapa(
                         inicial = viewModel.camaraGuardada,
                         onCambio = viewModel::onCamara,
                         onSeguimientoPerdido = viewModel::onSeguimientoPerdido,
+                        onZoomManual = viewModel::onZoomManual,
+                    ),
+                preferencias =
+                    PreferenciasVistaMapa(
+                        siguiendo = estado.siguiendo,
+                        relieve = estado.relieve,
+                        icono = estado.icono,
+                        orientacion = estado.orientacion,
+                        zoomObjetivo = estado.zoomObjetivo,
                     ),
                 modifier = modificador,
             )

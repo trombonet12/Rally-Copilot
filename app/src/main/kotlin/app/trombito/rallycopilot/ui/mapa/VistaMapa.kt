@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.mapa
 
 import android.Manifest
 import android.content.ComponentCallbacks2
+import android.content.Context
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.location.Location
@@ -22,19 +23,25 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
+import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.ui.comun.recurso
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.location.LocationComponent
 import org.maplibre.android.location.LocationComponentActivationOptions
+import org.maplibre.android.location.LocationComponentOptions
 import org.maplibre.android.location.OnCameraTrackingChangedListener
 import org.maplibre.android.location.modes.CameraMode
 import org.maplibre.android.location.modes.RenderMode
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.style.layers.Property
+import org.maplibre.android.style.layers.PropertyFactory
 
 /** Centro inicial sin posición: Mallorca. */
 private const val LAT_INICIAL = 39.62
@@ -43,6 +50,10 @@ private const val ZOOM_INICIAL = 9.0
 private const val ZOOM_SEGUIMIENTO = 15.0
 private const val PROVEEDOR = "gps"
 private const val DURACION_TRANSICION_MS = 750L
+private const val BEARING_NORTE = 0.0
+
+/** Capas del estilo que forman el relieve (sombreado y curvas de nivel); si alguna no existe, se ignora. */
+internal val CAPAS_RELIEVE = listOf("relieve-sombra", "curvas-linea", "curvas-indice", "curvas-etiqueta")
 
 /** Por debajo de este zoom (vista de la isla) no es un zoom de conducción: al seguir se usa [ZOOM_SEGUIMIENTO]. */
 private const val ZOOM_MINIMO_SEGUIMIENTO = 12.0
@@ -62,6 +73,19 @@ data class CamaraVistaMapa(
     val onCambio: (CamaraMapa) -> Unit = {},
     /** El usuario movió el mapa y la cámara dejó de seguir al coche. */
     val onSeguimientoPerdido: () -> Unit = {},
+    /** El usuario cambió el zoom con un gesto: zoom final y reloj monótono (ms) para pausar el zoom automático. */
+    val onZoomManual: (zoom: Double, ahoraMs: Long) -> Unit = { _, _ -> },
+)
+
+/** Lo que el mapa pinta según los ajustes de conducción y el zoom automático. */
+data class PreferenciasVistaMapa(
+    /** La cámara sigue al coche (se pierde al mover el mapa). */
+    val siguiendo: Boolean = true,
+    val relieve: Boolean = false,
+    val icono: IconoPosicion = IconoPosicion.FLECHA_WRC,
+    val orientacion: Orientacion = Orientacion.RUMBO,
+    /** Zoom automático a aplicar mientras la cámara sigue al coche; null = el del usuario. */
+    val zoomObjetivo: Double? = null,
 )
 
 /**
@@ -74,8 +98,8 @@ data class CamaraVistaMapa(
 fun VistaMapa(
     estiloJson: String,
     posicion: Fijacion?,
-    siguiendo: Boolean,
     camara: CamaraVistaMapa,
+    preferencias: PreferenciasVistaMapa,
     modifier: Modifier = Modifier,
 ) {
     val contexto = LocalContext.current
@@ -94,6 +118,7 @@ fun VistaMapa(
                 camaraInicial = camara.inicial,
                 alCambiarCamara = { actual.value.onCambio(it) },
                 alPerderSeguimiento = { actual.value.onSeguimientoPerdido() },
+                alCambiarZoomManual = { zoom, ahora -> actual.value.onZoomManual(zoom, ahora) },
             )
         }
 
@@ -118,8 +143,8 @@ fun VistaMapa(
         }
     }
     LaunchedEffect(controlador, estiloJson) { controlador.cambiarEstilo(estiloJson) }
-    LaunchedEffect(controlador, posicion) { controlador.actualizarPosicion(posicion) }
-    LaunchedEffect(controlador, siguiendo) { controlador.seguir(siguiendo) }
+    // Posición y preferencias van juntas: una fijación nueva cancela la animación de zoom, que se pide después.
+    LaunchedEffect(controlador, posicion, preferencias) { controlador.actualizar(posicion, preferencias) }
 
     val descripcion = stringResource(R.string.mapa_vista_descripcion)
     AndroidView(factory = { vista }, modifier = modifier.semantics { contentDescription = descripcion })
@@ -211,22 +236,23 @@ private class ControladorMapa(
     private val camaraInicial: CamaraMapa?,
     private val alCambiarCamara: (CamaraMapa) -> Unit,
     private val alPerderSeguimiento: () -> Unit,
+    alCambiarZoomManual: (Double, Long) -> Unit,
 ) {
     private var mapa: MapLibreMap? = null
     private var estilo: Style? = null
     private var estiloPedido: String? = null
     private var estiloAplicado: String? = null
     private var posicion: Fijacion? = null
-    private var siguiendo = true
+    private var preferencias = PreferenciasVistaMapa()
     private var ubicacionActivada = false
     private var oyenteRegistrado = false
+    private val zoom = ZoomSeguimiento(camaraInicial?.zoom, alCambiarZoomManual)
 
     /** Entre onStart y onStop: fuera de ahí el mapa se está desmontando y no se deben guardar cambios de cámara. */
     private var activo = false
 
     /** No se guarda la cámara por defecto (Mallorca a z9): solo la restaurada o la que ya sigue al coche. */
     private var guardarCamara = camaraInicial != null
-    private var zoomActual: Double? = camaraInicial?.zoom
 
     fun activar(valor: Boolean) {
         activo = valor
@@ -252,6 +278,7 @@ private class ControladorMapa(
                         .build(),
                 ),
             )
+            zoom.escuchar(m) { activo }
             m.addOnCameraIdleListener { guardarCamaraActual(m) }
             estiloPedido?.let(::aplicarEstilo)
         }
@@ -262,7 +289,7 @@ private class ControladorMapa(
         val posicionCamara = m.cameraPosition
         val centro: LatLng? = posicionCamara.target
         if (centro == null) return
-        zoomActual = posicionCamara.zoom
+        zoom.vigente = posicionCamara.zoom
         alCambiarCamara(CamaraMapa(centro.latitude, centro.longitude, posicionCamara.zoom))
     }
 
@@ -271,14 +298,26 @@ private class ControladorMapa(
         if (mapa != null) aplicarEstilo(json)
     }
 
-    fun actualizarPosicion(nueva: Fijacion?) {
+    /** Aplica la posición y las preferencias nuevas (solo lo que cambió) y, al final, el zoom automático. */
+    fun actualizar(
+        nueva: Fijacion?,
+        nuevas: PreferenciasVistaMapa,
+    ) {
+        val previas = preferencias
+        preferencias = nuevas
         posicion = nueva
+        val componente = mapa?.locationComponent?.takeIf { ubicacionActivada }
+        if (nuevas.relieve != previas.relieve) estilo?.let { aplicarRelieve(it, nuevas.relieve) }
+        if (componente != null && nuevas.icono != previas.icono) {
+            componente.applyStyle(opcionesUbicacion(vista.context, nuevas.icono))
+        }
+        val cambioCamara = nuevas.siguiendo != previas.siguiendo || nuevas.orientacion != previas.orientacion
+        if (componente != null && cambioCamara) fijarCamara(componente)
         asegurarUbicacion()
-    }
-
-    fun seguir(valor: Boolean) {
-        siguiendo = valor
-        if (ubicacionActivada) mapa?.locationComponent?.let { fijarCamara(it) }
+        // Después de la posición: una fijación nueva cancela la animación de zoom en curso.
+        if (ubicacionActivada && nuevas.siguiendo) {
+            mapa?.locationComponent?.let { zoom.aplicar(it, nuevas.zoomObjetivo) }
+        }
     }
 
     private fun aplicarEstilo(json: String) {
@@ -289,6 +328,7 @@ private class ControladorMapa(
         ubicacionActivada = false
         m.setStyle(Style.Builder().fromJson(json)) { cargado ->
             estilo = cargado
+            aplicarRelieve(cargado, preferencias.relieve)
             asegurarUbicacion()
         }
     }
@@ -318,6 +358,7 @@ private class ControladorMapa(
             LocationComponentActivationOptions
                 .builder(vista.context, cargado)
                 .useDefaultLocationEngine(false)
+                .locationComponentOptions(opcionesUbicacion(vista.context, preferencias.icono))
                 .build(),
         )
         componente.isLocationComponentEnabled = true
@@ -339,21 +380,54 @@ private class ControladorMapa(
     }
 
     private fun fijarCamara(componente: LocationComponent) {
-        if (siguiendo) {
+        if (preferencias.siguiendo) {
             // El zoom va dentro de la transición al modo de seguimiento: `zoomWhileTracking` suelto lo cancela cada
-            // fijación nueva (1 Hz) y la cámara se quedaba al zoom inicial.
+            // fijación nueva (1 Hz) y la cámara se quedaba al zoom inicial. Rumbo arriba: el mapa gira con el GPS;
+            // norte arriba: solo sigue la posición y la transición lleva el rumbo a 0.
+            val norte = preferencias.orientacion == Orientacion.NORTE
+            val destino = preferencias.zoomObjetivo ?: zoomParaSeguir(zoom.vigente)
             componente.setCameraMode(
-                CameraMode.TRACKING_GPS,
+                if (norte) CameraMode.TRACKING else CameraMode.TRACKING_GPS,
                 DURACION_TRANSICION_MS,
-                zoomParaSeguir(zoomActual),
-                null,
+                destino,
+                if (norte) BEARING_NORTE else null,
                 null,
                 null,
             )
+            zoom.yaAplicado(destino)
         } else {
             componente.cameraMode = CameraMode.NONE
         }
     }
+}
+
+/** Muestra u oculta el relieve y las curvas de nivel; las capas que el estilo no tenga se ignoran. */
+private fun aplicarRelieve(
+    estilo: Style,
+    visible: Boolean,
+) {
+    val visibilidad = PropertyFactory.visibility(if (visible) Property.VISIBLE else Property.NONE)
+    CAPAS_RELIEVE.forEach { id -> estilo.getLayer(id)?.setProperties(visibilidad) }
+}
+
+/** Icono de posición sin círculo ni sombra de fondo y sin círculo de precisión. */
+private fun opcionesUbicacion(
+    contexto: Context,
+    icono: IconoPosicion,
+): LocationComponentOptions {
+    val dibujo = icono.recurso()
+    return LocationComponentOptions
+        .builder(contexto)
+        .gpsDrawable(dibujo)
+        .foregroundDrawable(dibujo)
+        .foregroundDrawableStale(dibujo)
+        .bearingDrawable(dibujo)
+        .backgroundDrawable(R.drawable.ic_posicion_vacio)
+        .backgroundDrawableStale(R.drawable.ic_posicion_vacio)
+        .accuracyAlpha(0f)
+        .accuracyAnimationEnabled(false)
+        .elevation(0f)
+        .build()
 }
 
 private fun Fijacion.aLocation(): Location =

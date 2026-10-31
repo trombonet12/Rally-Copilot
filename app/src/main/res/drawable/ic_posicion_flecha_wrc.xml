@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de posición «flecha_wrc» (sin círculo de fondo, apunta hacia arriba). Generado a mano; la vista previa se
+     comprueba renderizando el mismo trazado. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M24,2 L43,27 L34,27 L24,14 L14,27 L5,27 Z" android:fillColor="#14161A" android:strokeColor="#14161A" android:strokeWidth="5" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M24,19 L43,44 L34,44 L24,31 L14,44 L5,44 Z" android:fillColor="#14161A" android:strokeColor="#14161A" android:strokeWidth="5" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M24,2 L43,27 L34,27 L24,14 L14,27 L5,27 Z" android:fillColor="#E5AB46" />
+    <path android:pathData="M24,19 L43,44 L34,44 L24,31 L14,44 L5,44 Z" android:fillColor="#D8232A" />
+    <path android:pathData="M24,2 L43,27 L38.5,27 L24,8 Z" android:fillColor="#F6D58B" />
+</vector>

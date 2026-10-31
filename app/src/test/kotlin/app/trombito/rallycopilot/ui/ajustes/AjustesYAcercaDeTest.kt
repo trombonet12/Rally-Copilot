@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.ajustes
 
+import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
@@ -24,7 +25,12 @@ class AjustesYAcercaDeTest {
         var mapas = 0
         var acerca = 0
         banco.poner {
-            RallyCopilotTheme { AjustesScreen(onMapasOffline = { mapas++ }, onAcercaDe = { acerca++ }, onVolver = {}) }
+            RallyCopilotTheme {
+                AjustesScreen(
+                    ajustes = AjustesConduccion(),
+                    acciones = AccionesAjustes(onMapasOffline = { mapas++ }, onAcercaDe = { acerca++ }),
+                )
+            }
         }
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AJUSTES_MAPAS))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AJUSTES_ACERCA_DE))
@@ -38,7 +44,9 @@ class AjustesYAcercaDeTest {
     @Test
     fun `ajustes vuelve`() {
         var volver = 0
-        banco.poner { RallyCopilotTheme { AjustesScreen({}, {}, { volver++ }) } }
+        banco.poner {
+            RallyCopilotTheme { AjustesScreen(AjustesConduccion(), AccionesAjustes(onVolver = { volver++ })) }
+        }
         banco.pulsar(banco.conEtiqueta(ETIQUETA_VOLVER))
         assertEquals(1, volver)
     }

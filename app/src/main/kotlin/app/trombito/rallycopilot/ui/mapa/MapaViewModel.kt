@@ -3,6 +3,9 @@ package app.trombito.rallycopilot.ui.mapa
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.ajustes.Orientacion
+import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
@@ -19,6 +22,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -29,9 +33,9 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Presentación del mapa: combina el estado de los datos, los estilos, la capa elegida y las fijaciones GPS (que solo
- * se recogen mientras la pantalla está visible: la UI recoge `uiState` con el ciclo de vida) con la velocidad
- * estimada y la vía actual con su límite.
+ * Presentación del mapa: combina el estado de los datos, los estilos, los ajustes de conducción (capa, relieve, icono,
+ * orientación, zoom) y las fijaciones GPS (que solo se recogen mientras la pantalla está visible: la UI recoge
+ * `uiState` con el ciclo de vida) con la velocidad estimada, la vía actual con su límite y el zoom automático.
  */
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -41,9 +45,11 @@ class MapaViewModel
         private val repositorio: RepositorioDatosMapa,
         ubicacion: FuenteUbicacion,
         private val vias: ProveedorViaActual,
+        private val ajustes: RepositorioAjustesConduccion,
         private val guardado: SavedStateHandle,
     ) : ViewModel() {
-        private val capa = MutableStateFlow(CapaMapa.VECTORIAL)
+        private val zoomAutomatico = ZoomAutomatico()
+        private val preferencias = ajustes.ajustes
         private val siguiendo = guardado.getStateFlow(CLAVE_SIGUIENDO, true)
         private val permiso = MutableStateFlow(ubicacion.tienePermiso())
 
@@ -79,16 +85,25 @@ class MapaViewModel
             }
 
         val uiState: StateFlow<MapaUiState> =
-            combine(repositorio.estado, estilos, capa, lecturas, siguiendo) { datos, mapas, elegida, lectura, sigue ->
+            combine(repositorio.estado, estilos, preferencias, lecturas, siguiendo) { datos, mapas, pref, lect, sigue ->
                 MapaUiState(
                     cargando = false,
                     datos = datos,
                     estilos = mapas,
-                    capaElegida = elegida,
-                    posicion = lectura.posicion,
-                    velocidadKmh = lectura.velocidadKmh,
-                    via = lectura.via,
+                    capaElegida = pref.capa,
+                    posicion = lect.posicion,
+                    velocidadKmh = lect.velocidadKmh,
+                    via = lect.via,
                     siguiendo = sigue,
+                    relieve = pref.relieve,
+                    orientacion = pref.orientacion,
+                    icono = pref.icono,
+                    zoomObjetivo =
+                        zoomAutomatico.actualizar(
+                            lect.velocidadKmh,
+                            lect.posicion?.tiempoMs,
+                            pref.nivelZoom,
+                        ),
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), MapaUiState())
 
@@ -116,8 +131,25 @@ class MapaViewModel
             guardado[CLAVE_SIGUIENDO] = true
         }
 
-        fun onCapa(nueva: CapaMapa) {
-            capa.value = nueva
+        fun onCapa(nueva: CapaMapa) = guardarAjustes { it.copy(capa = nueva) }
+
+        fun onRelieve(activo: Boolean) = guardarAjustes { it.copy(relieve = activo) }
+
+        fun onOrientacion(nueva: Orientacion) = guardarAjustes { it.copy(orientacion = nueva) }
+
+        /**
+         * El usuario ha pellizcado el mapa: se respeta su zoom [zoom] durante [PAUSA_ZOOM_MS] y luego el zoom
+         * automático vuelve a ritmo limitado. [ahoraMs] es el reloj monótono (el mismo de las fijaciones).
+         */
+        fun onZoomManual(
+            zoom: Double,
+            ahoraMs: Long,
+        ) {
+            zoomAutomatico.pausar(zoom, ahoraMs)
+        }
+
+        private fun guardarAjustes(cambio: (AjustesConduccion) -> AjustesConduccion) {
+            viewModelScope.launch { ajustes.guardar(cambio(ajustes.ajustes.first())) }
         }
 
         /** La UI avisa de si tiene la ubicación precisa (el GPS la exige); al concederse empieza a recoger el GPS. */

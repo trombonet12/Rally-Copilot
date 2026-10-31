@@ -23,9 +23,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,15 +31,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.ui.comun.BotonVolver
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.MantenerPantallaEncendida
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_CARGANDO = "mapa-cargando"
@@ -62,6 +59,7 @@ const val ETIQUETA_PERMISO_AJUSTES = "mapa-permiso-ajustes"
 private const val OPACIDAD_SUPERFICIE_SOBRE_MAPA = 0.88f
 private val ANCHO_PANEL_LATERAL = 230.dp
 private val ALTO_MINIMO_TACTIL = 48.dp
+private val MARGEN_CONTROLES = 56.dp
 
 // Lados de los insets del sistema que respeta cada zona.
 private val LADOS_PANEL_LATERAL = WindowInsetsSides.End + WindowInsetsSides.Vertical
@@ -81,6 +79,8 @@ data class EstadoVistaMapa(
 data class AccionesMapa(
     val onVolver: () -> Unit = {},
     val onCapa: (CapaMapa) -> Unit = {},
+    val onRelieve: (Boolean) -> Unit = {},
+    val onOrientacion: (Orientacion) -> Unit = {},
     val onRecentrar: () -> Unit = {},
     val onPedirPermiso: () -> Unit = {},
     val onAbrirAjustes: () -> Unit = {},
@@ -100,6 +100,7 @@ fun MapaScreen(
     mapa: @Composable (estiloJson: String, modifier: Modifier) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    MantenerPantallaEncendida()
     BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val horizontal = maxWidth > maxHeight
         if (horizontal) {
@@ -161,6 +162,7 @@ private fun ZonaMapa(
         }
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(lados)).padding(Espacio.s)) {
             CabeceraMapa(estado, acciones, Modifier.align(Alignment.TopStart))
+            if (estado.hayDatos) ControlesMapa(estado, acciones, Modifier.align(Alignment.TopEnd))
             if (estado.hayDatos) {
                 PieMapa(estado, vista, acciones, Modifier.align(Alignment.BottomStart))
             }
@@ -219,7 +221,7 @@ private fun TarjetaMapas(
     }
 }
 
-/** Arriba: volver, conmutador Mapa/Satélite y aviso de actualización. */
+/** Arriba a la izquierda: volver y aviso de actualización. Los controles del mapa van aparte, a la derecha. */
 @Composable
 private fun CabeceraMapa(
     estado: MapaUiState,
@@ -238,37 +240,11 @@ private fun CabeceraMapa(
             ) {
                 BotonVolver(acciones.onVolver)
             }
-            if (estado.hayDatos) SelectorCapa(estado, acciones.onCapa)
         }
-        estado.datos.avisoActualizado?.let { AvisoActualizado(it, acciones.onDescartarAviso) }
-    }
-}
-
-@Composable
-private fun SelectorCapa(
-    estado: MapaUiState,
-    onCapa: (CapaMapa) -> Unit,
-) {
-    val descripcion = stringResource(R.string.mapa_capa_selector)
-    val noInstalado = stringResource(R.string.mapa_capa_satelite_no_instalado)
-    SingleChoiceSegmentedButtonRow(Modifier.semantics { contentDescription = descripcion }) {
-        SegmentedButton(
-            selected = estado.capa == CapaMapa.VECTORIAL,
-            onClick = { onCapa(CapaMapa.VECTORIAL) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-            modifier = Modifier.heightIn(min = ALTO_MINIMO_TACTIL).testTag(ETIQUETA_CAPA_MAPA),
-        ) { Text(stringResource(R.string.mapa_capa_mapa)) }
-        SegmentedButton(
-            selected = estado.capa == CapaMapa.SATELITE,
-            onClick = { onCapa(CapaMapa.SATELITE) },
-            enabled = estado.puedeSatelite,
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-            modifier =
-                Modifier
-                    .heightIn(min = ALTO_MINIMO_TACTIL)
-                    .testTag(ETIQUETA_CAPA_SATELITE)
-                    .semantics { if (!estado.puedeSatelite) stateDescription = noInstalado },
-        ) { Text(stringResource(R.string.mapa_capa_satelite)) }
+        // El aviso deja libre la columna de controles de la derecha.
+        estado.datos.avisoActualizado?.let {
+            AvisoActualizado(it, acciones.onDescartarAviso, Modifier.padding(end = MARGEN_CONTROLES))
+        }
     }
 }
 
@@ -276,11 +252,12 @@ private fun SelectorCapa(
 private fun AvisoActualizado(
     version: String,
     onCerrar: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.primaryContainer,
         shape = MaterialTheme.shapes.small,
-        modifier = Modifier.fillMaxWidth().testTag(ETIQUETA_AVISO),
+        modifier = modifier.fillMaxWidth().testTag(ETIQUETA_AVISO),
     ) {
         Row(Modifier.padding(start = Espacio.l), verticalAlignment = Alignment.CenterVertically) {
             Text(

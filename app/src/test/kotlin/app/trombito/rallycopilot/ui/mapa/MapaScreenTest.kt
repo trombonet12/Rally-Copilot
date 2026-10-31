@@ -1,8 +1,16 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import android.view.View
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.testTag
+import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
@@ -40,16 +48,18 @@ class MapaScreenTest {
         resto: MapaUiState.() -> MapaUiState = { this },
     ) = MapaUiState(cargando = false, datos = datos, estilos = estilosMapa).resto()
 
+    private val mapaFalso: @Composable (String, Modifier) -> Unit = { json, modificador ->
+        estilosPedidos += json
+        Box(modificador.fillMaxSize().testTag(ETIQUETA_MAPA_FALSO))
+    }
+
     private fun poner(
         estado: MapaUiState,
         vista: EstadoVistaMapa = EstadoVistaMapa(),
         acciones: AccionesMapa = AccionesMapa(),
     ) = banco.poner {
         RallyCopilotTheme {
-            MapaScreen(estado, vista, acciones, mapa = { json, modificador ->
-                estilosPedidos += json
-                Box(modificador.fillMaxSize().testTag(ETIQUETA_MAPA_FALSO))
-            })
+            MapaScreen(estado, vista, acciones, mapaFalso)
         }
     }
 
@@ -68,19 +78,123 @@ class MapaScreenTest {
         assertFalse(banco.textos(banco.raiz()).any { "OpenStreetMap" in it || "PNOA" in it })
     }
 
+    private fun abrirCapas() = banco.pulsar(banco.conEtiqueta(ETIQUETA_CAPAS_BOTON))
+
     @Test
-    fun `sin satelite instalado el conmutador lo deshabilita`() {
+    fun `el menu de capas empieza cerrado y el boton lo abre y lo cierra`() {
+        poner(conDatos())
+        assertFalse(banco.hay(ETIQUETA_CAPAS_PANEL))
+        assertTrue(banco.hay(ETIQUETA_CAPAS_BOTON))
+        abrirCapas()
+        assertTrue(banco.hay(ETIQUETA_CAPAS_PANEL))
+        assertTrue(banco.hay(ETIQUETA_CAPA_MAPA))
+        assertTrue(banco.hay(ETIQUETA_CAPA_SATELITE))
+        assertTrue(banco.hay(ETIQUETA_RELIEVE))
+        abrirCapas()
+        assertFalse(banco.hay(ETIQUETA_CAPAS_PANEL))
+    }
+
+    @Test
+    fun `los controles del mapa no llevan texto visible solo descripciones`() {
+        poner(conDatos())
+        abrirCapas()
+        listOf(
+            ETIQUETA_CAPAS_BOTON,
+            ETIQUETA_CAPAS_PANEL,
+            ETIQUETA_CAPA_MAPA,
+            ETIQUETA_CAPA_SATELITE,
+            ETIQUETA_RELIEVE,
+            ETIQUETA_ORIENTACION,
+        ).forEach { etiqueta ->
+            val nodo = banco.conEtiqueta(etiqueta)
+            assertTrue("$etiqueta no debe llevar texto", banco.textos(nodo).isEmpty())
+            assertTrue("$etiqueta necesita descripcion", !banco.descripcion(nodo).isNullOrBlank())
+        }
+    }
+
+    @Test
+    fun `los botones fijos del mapa tienen objetivo tactil de al menos 48 dp`() {
+        poner(conDatos())
+        val minimo = 48 * 3f // xxhdpi
+        listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION).forEach { etiqueta ->
+            val tamano = banco.conEtiqueta(etiqueta).size
+            assertTrue("$etiqueta mide $tamano", tamano.width >= minimo && tamano.height >= minimo)
+        }
+    }
+
+    @Test
+    fun `sin satelite instalado el icono de satelite esta deshabilitado`() {
         poner(conDatos(EstilosMapa(vectorial = estilos.vectorial, satelite = null)))
+        abrirCapas()
         assertFalse(banco.estaHabilitado(banco.conEtiqueta(ETIQUETA_CAPA_SATELITE)))
         assertTrue(banco.estaHabilitado(banco.conEtiqueta(ETIQUETA_CAPA_MAPA)))
     }
 
     @Test
-    fun `el conmutador pide la capa elegida`() {
+    fun `el menu de capas cambia la base`() {
         val pedidas = mutableListOf<CapaMapa>()
         poner(conDatos(), acciones = AccionesMapa(onCapa = { pedidas += it }))
+        abrirCapas()
         banco.pulsar(banco.conEtiqueta(ETIQUETA_CAPA_SATELITE))
-        assertEquals(listOf(CapaMapa.SATELITE), pedidas)
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_CAPA_MAPA))
+        assertEquals(listOf(CapaMapa.SATELITE, CapaMapa.VECTORIAL), pedidas)
+    }
+
+    @Test
+    fun `el interruptor de relieve pide lo contrario de su estado`() {
+        val pedidos = mutableListOf<Boolean>()
+        val acciones = AccionesMapa(onRelieve = { pedidos += it })
+        var estado by mutableStateOf(conDatos())
+        banco.poner { RallyCopilotTheme { MapaScreen(estado, EstadoVistaMapa(), acciones, mapaFalso) } }
+        abrirCapas()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_RELIEVE))
+        assertEquals(listOf(true), pedidos)
+        // Con el relieve ya activo, pulsar lo apaga.
+        estado = conDatos { copy(relieve = true) }
+        banco.reposo()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_RELIEVE))
+        assertEquals(listOf(true, false), pedidos)
+    }
+
+    @Test
+    fun `el boton de orientacion alterna entre rumbo y norte`() {
+        val pedidas = mutableListOf<Orientacion>()
+        val acciones = AccionesMapa(onOrientacion = { pedidas += it })
+        poner(conDatos { copy(orientacion = Orientacion.RUMBO) }, acciones = acciones)
+        assertTrue(banco.descripcion(banco.conEtiqueta(ETIQUETA_ORIENTACION))!!.startsWith("Rumbo arriba"))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_ORIENTACION))
+        assertEquals(listOf(Orientacion.NORTE), pedidas)
+    }
+
+    @Test
+    fun `con el norte arriba el boton lo dice y pide volver al rumbo`() {
+        val pedidas = mutableListOf<Orientacion>()
+        val acciones = AccionesMapa(onOrientacion = { pedidas += it })
+        poner(conDatos { copy(orientacion = Orientacion.NORTE) }, acciones = acciones)
+        assertTrue(banco.descripcion(banco.conEtiqueta(ETIQUETA_ORIENTACION))!!.startsWith("Norte arriba"))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_ORIENTACION))
+        assertEquals(listOf(Orientacion.RUMBO), pedidas)
+    }
+
+    @Test
+    fun `sin datos no hay controles de mapa`() {
+        poner(MapaUiState(cargando = false))
+        assertFalse(banco.hay(ETIQUETA_CAPAS_BOTON))
+        assertFalse(banco.hay(ETIQUETA_ORIENTACION))
+    }
+
+    @Test
+    fun `la pantalla se mantiene encendida solo mientras el mapa esta visible`() {
+        lateinit var vista: View
+        var visible by mutableStateOf(true)
+        banco.poner {
+            vista = LocalView.current
+            RallyCopilotTheme { if (visible) MapaScreen(conDatos(), EstadoVistaMapa(), AccionesMapa(), mapaFalso) }
+        }
+        assertTrue(vista.keepScreenOn)
+        visible = false
+        banco.reposo()
+        assertFalse(vista.keepScreenOn)
     }
 
     @Test

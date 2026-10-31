@@ -1,5 +1,7 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
+import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
@@ -26,6 +28,12 @@ data class MapaUiState(
     val via: ViaActual? = null,
     /** La cámara sigue al coche (se pierde al mover el mapa; sobrevive al giro de pantalla). */
     val siguiendo: Boolean = true,
+    /** Interruptor de relieve y curvas de nivel (persistido en los ajustes de conducción). */
+    val relieve: Boolean = false,
+    val orientacion: Orientacion = Orientacion.RUMBO,
+    val icono: IconoPosicion = IconoPosicion.FLECHA_WRC,
+    /** Zoom automático (por velocidad y ajuste de Joan, suavizado); null mientras no hay velocidad conocida. */
+    val zoomObjetivo: Double? = null,
 ) {
     val hayDatos: Boolean get() = estilos != null
 

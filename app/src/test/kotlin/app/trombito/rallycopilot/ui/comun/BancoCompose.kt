@@ -19,6 +19,7 @@ import org.junit.runners.model.Statement
 import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
+import org.robolectric.shadows.ShadowDialog
 import org.robolectric.shadows.ShadowSystemClock
 import java.time.Duration
 
@@ -43,7 +44,26 @@ class BancoCompose {
         return checkNotNull(vista) { "No hay contenido Compose" }.semanticsOwner.unmergedRootSemanticsNode
     }
 
-    fun nodos(): List<SemanticsNode> = aplanar(raiz())
+    /** Todos los nodos: los de la actividad y los de los diálogos abiertos (ventanas aparte). */
+    fun nodos(): List<SemanticsNode> = aplanar(raiz()) + raicesDeDialogos().flatMap { aplanar(it) }
+
+    /** Todos los textos visibles, también los de los diálogos abiertos. */
+    fun todosLosTextos(): List<String> =
+        nodos().flatMap { n ->
+            n.config
+                .getOrNull(SemanticsProperties.Text)
+                ?.map { it.text }
+                .orEmpty()
+        }
+
+    private fun raicesDeDialogos(): List<SemanticsNode> =
+        ShadowDialog.getShownDialogs().filter { it.isShowing }.mapNotNull { dialogo ->
+            dialogo.window
+                ?.decorView
+                ?.let(::buscarRaiz)
+                ?.semanticsOwner
+                ?.unmergedRootSemanticsNode
+        }
 
     fun conEtiqueta(etiqueta: String): SemanticsNode =
         checkNotNull(nodos().firstOrNull { it.config.getOrNull(SemanticsProperties.TestTag) == etiqueta }) {

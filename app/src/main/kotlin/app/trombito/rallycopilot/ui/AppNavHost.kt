@@ -6,7 +6,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import app.trombito.rallycopilot.ui.ajustes.AcercaDeRoute
-import app.trombito.rallycopilot.ui.ajustes.AjustesScreen
+import app.trombito.rallycopilot.ui.ajustes.AjustesRoute
 import app.trombito.rallycopilot.ui.inicio.EntradaInicio
 import app.trombito.rallycopilot.ui.inicio.InicioScreen
 import app.trombito.rallycopilot.ui.mapa.MapaRoute
@@ -22,7 +22,7 @@ fun AppNavHost() {
         }
         composable<RutaMapasOffline> { MapasOfflineRoute(onVolver = { nav.popBackStack() }) }
         composable<RutaAjustes> {
-            AjustesScreen(
+            AjustesRoute(
                 onMapasOffline = { nav.navigate(RutaMapasOffline) },
                 onAcercaDe = { nav.navigate(RutaAcercaDe) },
                 onVolver = { nav.popBackStack() },

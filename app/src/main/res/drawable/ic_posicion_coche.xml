@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de posición «coche» (sin círculo de fondo, apunta hacia arriba). Generado a mano; la vista previa se
+     comprueba renderizando el mismo trazado. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M8,8 h5.5 v11 h-5.5 Z" android:fillColor="#0B0C0E" android:strokeColor="#9AA0A8" android:strokeWidth="0.9" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M34.5,8 h5.5 v11 h-5.5 Z" android:fillColor="#0B0C0E" android:strokeColor="#9AA0A8" android:strokeWidth="0.9" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M8,29 h5.5 v12 h-5.5 Z" android:fillColor="#0B0C0E" android:strokeColor="#9AA0A8" android:strokeWidth="0.9" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M34.5,29 h5.5 v12 h-5.5 Z" android:fillColor="#0B0C0E" android:strokeColor="#9AA0A8" android:strokeWidth="0.9" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M24,1.5 C32,1.5 35,7 35.8,13 L36.8,22 L36.8,38 C36.8,43.5 32.5,46.5 24,46.5 C15.5,46.5 11.2,43.5 11.2,38 L11.2,22 L12.2,13 C13,7 16,1.5 24,1.5 Z" android:fillColor="#D8232A" android:strokeColor="#FFFFFF" android:strokeWidth="1.8" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M24,1.5 C32,1.5 35,7 35.8,13 L36.8,22 L36.8,38 C36.8,43.5 32.5,46.5 24,46.5 C15.5,46.5 11.2,43.5 11.2,38 L11.2,22 L12.2,13 C13,7 16,1.5 24,1.5 Z" android:strokeColor="#8E1217" android:strokeWidth="0.9" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M21.8,2.8 h4.4 v14 h-4.4 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M21.8,26 h4.4 v12 h-4.4 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M14.8,17.5 L33.2,17.5 L31.6,25 L16.4,25 Z" android:fillColor="#1B2430" />
+    <path android:pathData="M16.6,35 L31.4,35 L32.6,40.5 L15.4,40.5 Z" android:fillColor="#1B2430" />
+    <path android:pathData="M16.4,18.4 L21,18.4 L20.2,20.4 L16,20.4 Z" android:fillColor="#FFFFFF" android:fillAlpha="0.35" />
+    <path android:pathData="M14.3,5.2 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0Z" android:fillColor="#F9D768" />
+    <path android:pathData="M29.7,5.2 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0Z" android:fillColor="#F9D768" />
+    <path android:pathData="M12.5,43 h23 v2.6 h-23 Z" android:fillColor="#23262B" android:strokeColor="#FFFFFF" android:strokeWidth="0.6" android:strokeLineCap="round" android:strokeLineJoin="round" />
+</vector>

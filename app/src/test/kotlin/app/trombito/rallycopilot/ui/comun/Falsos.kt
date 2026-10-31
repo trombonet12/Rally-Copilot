@@ -1,5 +1,7 @@
 package app.trombito.rallycopilot.ui.comun
 
+import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
@@ -53,6 +55,21 @@ class FalsoRepositorioDatosMapa(
     }
 
     override suspend fun estilos(): EstilosMapa? = estilosDisponibles
+}
+
+class FalsoRepositorioAjustesConduccion(
+    inicial: AjustesConduccion = AjustesConduccion(),
+) : RepositorioAjustesConduccion {
+    val mutable = MutableStateFlow(inicial)
+    override val ajustes: Flow<AjustesConduccion> = mutable
+
+    /** Cada vez que se guarda; sirve para comprobar que algo se ha persistido. */
+    val guardados = mutableListOf<AjustesConduccion>()
+
+    override suspend fun guardar(ajustes: AjustesConduccion) {
+        guardados += ajustes
+        mutable.value = ajustes
+    }
 }
 
 class FalsaFuenteUbicacion(

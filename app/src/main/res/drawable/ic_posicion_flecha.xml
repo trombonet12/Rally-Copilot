@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de posición «flecha» (sin círculo de fondo, apunta hacia arriba). Generado a mano; la vista previa se
+     comprueba renderizando el mismo trazado. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M24,3 L41,43 L24,34 L7,43 Z" android:fillColor="#14161A" android:strokeColor="#14161A" android:strokeWidth="5" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M24,3 L7,43 L24,34 Z" android:fillColor="#F2C265" />
+    <path android:pathData="M24,3 L41,43 L24,34 Z" android:fillColor="#E5AB46" />
+    <path android:pathData="M24,3 L24,34" android:strokeColor="#B97A0C" android:strokeWidth="1.2" android:strokeLineCap="round" android:strokeLineJoin="round" />
+</vector>
