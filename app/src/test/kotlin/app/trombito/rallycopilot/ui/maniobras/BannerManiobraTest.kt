@@ -2,8 +2,11 @@ package app.trombito.rallycopilot.ui.maniobras
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_PLACA
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
@@ -46,6 +49,34 @@ class BannerManiobraTest {
             assertEquals(listOf("350 m"), otro.textos(otro.conEtiqueta(ETIQUETA_BANNER_DISTANCIA)))
             assertEquals(listOf("Gira a la izquierda"), otro.textos(otro.conEtiqueta(ETIQUETA_BANNER_FRASE)))
         }
+    }
+
+    @Test
+    fun `con via pinta la placa de la carretera junto a la frase`() {
+        banco.poner {
+            RallyCopilotTheme {
+                BannerManiobra(
+                    VarianteManiobra.PLACA_INCLINADA,
+                    TipoManiobra.IZQUIERDA,
+                    352.0,
+                    "cruce, izquierda",
+                    null,
+                    via = "Ma-2141",
+                )
+            }
+        }
+        val placa = banco.nodos().single { it.config.getOrNull(SemanticsProperties.TestTag) == ETIQUETA_PLACA }
+        assertEquals(listOf("Ma-2141"), banco.textos(placa))
+        assertEquals("carretera Ma-2141", banco.descripcion(placa))
+        assertEquals(listOf("cruce, izquierda"), banco.textos(banco.conEtiqueta(ETIQUETA_BANNER_FRASE)))
+        val frase = banco.conEtiqueta(ETIQUETA_BANNER_FRASE).boundsInRoot
+        assertTrue("la placa va a la derecha de la frase", placa.boundsInRoot.left >= frase.right - 1)
+    }
+
+    @Test
+    fun `sin via no hay placa`() {
+        poner(VarianteManiobra.PLACA_INCLINADA, 200.0)
+        assertFalse(banco.hay(ETIQUETA_PLACA))
     }
 
     @Test

@@ -17,6 +17,7 @@ import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.mapa.AccionesMapa
 import app.trombito.rallycopilot.ui.mapa.EstadoVistaMapa
@@ -264,6 +265,28 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     }
 
     @Test
+    fun `la bandera de terminar va en el panel inferior a la derecha de la velocidad`() {
+        poner(guiando())
+        val panel = banco.conEtiqueta("panel").boundsInRoot
+        val bandera = banco.conEtiqueta(ETIQUETA_TERMINAR).boundsInRoot
+        val velocidad = banco.conEtiqueta("panel-velocidad").boundsInRoot
+        assertTrue(
+            "bandera dentro del panel: $bandera vs $panel",
+            bandera.top >= panel.top && bandera.bottom <= panel.bottom,
+        )
+        assertTrue("bandera a la derecha de la velocidad", bandera.left >= velocidad.right)
+    }
+
+    @Test
+    fun `la barra de destino ocupa todo el ancho sin flecha de volver`() {
+        poner(NavegacionUiState())
+        val barra = banco.conEtiqueta(ETIQUETA_BUSCADOR).boundsInRoot
+        // Llega casi hasta el borde derecho: ya no deja sitio a la columna de controles de antes (56 dp).
+        assertTrue("barra a todo el ancho: $barra", barra.right > banco.raiz().boundsInRoot.right - 24 * 3f)
+        assertFalse(banco.hay(ETIQUETA_VOLVER))
+    }
+
+    @Test
     fun `en modo libre hay barra de destino pero ni bandera de terminar ni panel de guiado`() {
         poner(NavegacionUiState(control = EstadoNavegacion.Libre(0L, 0.0)))
         assertTrue(banco.hay(ETIQUETA_BUSCADOR))
@@ -331,9 +354,14 @@ class NavegacionEnMapaHorizontalTest : NavegacionEnMapaBase() {
     }
 
     @Test
-    fun `en horizontal guiando tambien hay terminar y panel`() {
+    fun `en horizontal guiando tambien hay terminar en el panel lateral y el hueco del panel`() {
         poner(guiando())
-        assertTrue(banco.hay(ETIQUETA_TERMINAR))
         assertTrue(banco.hay(ETIQUETA_PANEL_GUIADO))
+        val panel = banco.conEtiqueta("panel").boundsInRoot
+        val bandera = banco.conEtiqueta(ETIQUETA_TERMINAR).boundsInRoot
+        assertTrue(
+            "bandera dentro del panel: $bandera vs $panel",
+            bandera.left >= panel.left && bandera.right <= panel.right,
+        )
     }
 }

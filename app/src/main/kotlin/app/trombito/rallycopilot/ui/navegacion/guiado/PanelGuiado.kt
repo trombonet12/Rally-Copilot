@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -14,7 +13,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
@@ -29,13 +27,14 @@ import java.time.ZoneId
 const val ETIQUETA_PANEL_GUIADO = "panel_guiado"
 
 private val MARGEN = 8.dp
-private val ANCHO_MAX_BANNER_HORIZONTAL = 400.dp
 
 /** Lo que enseña el banner: maniobra, distancia hasta ella y la siguiente; [frase] null = «destino» (sin maniobras). */
 internal data class DatosBanner(
     val tipo: TipoManiobra,
     val distanciaM: Double,
     val frase: String?,
+    /** `ref` de la vía de la maniobra, para la placa; la [frase] ya no lo lleva. */
+    val via: String?,
     val salidaRotonda: Int?,
     val siguiente: Pair<TipoManiobra, String>?,
 )
@@ -60,17 +59,19 @@ internal fun datosBanner(estado: EstadoNavegacion.Guiando): DatosBanner? {
     }
     return when {
         actual != null -> {
+            val (frase, via) = separarViaDeFrase(FrasesManiobra.frase(actual), actual.vias)
             DatosBanner(
                 tipo = actual.tipo,
                 distanciaM = distanciaM,
-                frase = FrasesManiobra.frase(actual),
+                frase = frase,
+                via = via,
                 salidaRotonda = actual.salidaRotonda,
                 siguiente = siguiente?.let { it.tipo to FrasesManiobra.frase(it) },
             )
         }
 
         progreso != null -> {
-            DatosBanner(TipoManiobra.DESTINO, distanciaM, null, null, null)
+            DatosBanner(TipoManiobra.DESTINO, distanciaM, null, null, null, null)
         }
 
         else -> {
@@ -81,10 +82,9 @@ internal fun datosBanner(estado: EstadoNavegacion.Guiando): DatosBanner? {
 
 /**
  * Capa de guiado sobre el mapa (ocupa todo el espacio que se le da y no tapa el centro): arriba el banner de la
- * maniobra actual y la siguiente con el aviso de recálculo debajo, y abajo el pie con llegada, tiempo y km.
- * En vertical va a todo el ancho y centrado; en horizontal el banner queda arriba a la izquierda (≤ 400 dp) y el pie
- * abajo a la izquierda. Sin progreso todavía no hay pie. [margenLateralBanner] aparta solo el banner de los botones
- * laterales (volver y controles) sin estrechar el pie.
+ * maniobra actual y la siguiente, a todo el ancho (los botones están en el panel inferior), con el aviso de
+ * recálculo debajo, y abajo el pie con llegada, tiempo y km. Debajo del banner queda sitio para la futura franja de
+ * notas. El pie va centrado en vertical y a la izquierda en horizontal. Sin progreso todavía no hay pie.
  */
 @Composable
 fun PanelGuiado(
@@ -92,16 +92,15 @@ fun PanelGuiado(
     variante: VarianteManiobra,
     modifier: Modifier = Modifier,
     zona: ZoneId = ZoneId.systemDefault(),
-    margenLateralBanner: Dp = 0.dp,
 ) {
     BoxWithConstraints(modifier = modifier.testTag(ETIQUETA_PANEL_GUIADO)) {
         val horizontal = maxWidth > maxHeight
         Column(
-            modifier = Modifier.align(Alignment.TopStart).padding(horizontal = margenLateralBanner).padding(MARGEN),
+            modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().padding(MARGEN),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(MARGEN),
         ) {
-            datosBanner(estado)?.let { Banner(it, variante, horizontal) }
+            datosBanner(estado)?.let { Banner(it, variante) }
             AvisoRecalculo(estado.recalculando)
         }
         estado.progreso?.let {
@@ -122,24 +121,22 @@ fun PanelGuiado(
 private fun Banner(
     datos: DatosBanner,
     variante: VarianteManiobra,
-    horizontal: Boolean,
 ) {
     val frase = datos.frase ?: stringResource(R.string.guiado_destino)
     val distancia = formatearDistanciaManiobra(datos.distanciaM)
-    val descripcion = stringResource(R.string.guiado_banner_descripcion, frase, distancia)
-    Box(
-        modifier =
-            (if (horizontal) Modifier.widthIn(max = ANCHO_MAX_BANNER_HORIZONTAL) else Modifier.fillMaxWidth())
-                .clearAndSetSemantics { contentDescription = descripcion },
-    ) {
+    // La descripción hablada lleva la vía en la frase, como la oye el conductor.
+    val hablada = datos.via?.let { "$frase, $it" } ?: frase
+    val descripcion = stringResource(R.string.guiado_banner_descripcion, hablada, distancia)
+    Box(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = descripcion }) {
         BannerManiobra(
             variante = variante,
             tipo = datos.tipo,
             distanciaM = datos.distanciaM,
             frase = frase,
             siguiente = datos.siguiente,
-            modifier = if (horizontal) Modifier else Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth(),
             salidaRotonda = datos.salidaRotonda,
+            via = datos.via,
         )
     }
 }

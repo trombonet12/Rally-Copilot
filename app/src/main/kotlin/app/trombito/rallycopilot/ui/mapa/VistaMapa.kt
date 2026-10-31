@@ -282,6 +282,13 @@ private class ControladorMapa(
             )
             zoom.escuchar(m) { activo }
             m.addOnCameraIdleListener { guardarCamaraActual(m) }
+            // El alto del mapa cambia al girar o al abrir un panel: el marcador debe seguir en su sitio.
+            vista.addOnLayoutChangeListener { _, izq, arr, der, aba, oIzq, oArr, oDer, oAba ->
+                val cambio = (der - izq) != (oDer - oIzq) || (aba - arr) != (oAba - oArr)
+                if (cambio && ubicacionActivada && preferencias.siguiendo) {
+                    m.locationComponent.rellenarSeguimiento(vista.width, vista.height, 0L)
+                }
+            }
             estiloPedido?.let(::aplicarEstilo)
         }
     }
@@ -351,6 +358,8 @@ private class ControladorMapa(
             val m = mapa ?: return
             // Sin seguimiento: el componente de ubicación recolocaría la cámara con cada fijación.
             if (ubicacionActivada) m.locationComponent.cameraMode = CameraMode.NONE
+            // La vista previa encuadra la ruta entera: sin el relleno del seguimiento (vuelve al recentrar).
+            m.moveCamera(CameraUpdateFactory.paddingTo(0.0, 0.0, 0.0, 0.0))
             m.encuadrarRuta(nueva.puntos, vista.resources.displayMetrics.density, vista.height)
         }
     }
@@ -408,19 +417,40 @@ private class ControladorMapa(
             // norte arriba: solo sigue la posición y la transición lleva el rumbo a 0.
             val norte = preferencias.orientacion == Orientacion.NORTE
             val destino = preferencias.zoomObjetivo ?: zoomParaSeguir(zoom.vigente)
+            // El marcador queda abajo (relleno fijo del mapa) y el mapa se inclina con el rumbo arriba; la inclinación
+            // va dentro de la transición, igual que el zoom, para que las fijaciones de 1 Hz no la cancelen.
+            // El relleno se fija en la cámara ANTES de pedir el modo (después cancelaría la transición) y el
+            // componente lo anota después: así sabe en qué valor está si la vista previa lo puso a 0.
+            val arriba = rellenoSuperiorSeguimiento(vista.width, vista.height).toDouble()
+            mapa?.moveCamera(CameraUpdateFactory.paddingTo(0.0, arriba, 0.0, 0.0))
             componente.setCameraMode(
                 if (norte) CameraMode.TRACKING else CameraMode.TRACKING_GPS,
                 DURACION_TRANSICION_MS,
                 destino,
                 if (norte) BEARING_NORTE else null,
-                null,
+                inclinacionSeguimiento(preferencias.orientacion),
                 null,
             )
+            componente.rellenarSeguimiento(vista.width, vista.height, 0L)
             zoom.yaAplicado(destino)
         } else {
+            // Al dejar de seguir no se fuerza nada: el relleno y la inclinación se quedan como estaban.
             componente.cameraMode = CameraMode.NONE
         }
     }
+}
+
+/**
+ * Relleno superior de la cámara mientras sigue al coche, para que el marcador quede en la parte baja de la pantalla.
+ * Va por el componente de ubicación (como el zoom y la inclinación): un `moveCamera` suelto cancelaría la transición
+ * de seguimiento y el mapa dejaría de seguir.
+ */
+private fun LocationComponent.rellenarSeguimiento(
+    ancho: Int,
+    alto: Int,
+    duracionMs: Long,
+) {
+    paddingWhileTracking(doubleArrayOf(0.0, rellenoSuperiorSeguimiento(ancho, alto).toDouble(), 0.0, 0.0), duracionMs)
 }
 
 /** Muestra u oculta el relieve y las curvas de nivel; las capas que el estilo no tenga se ignoran. */

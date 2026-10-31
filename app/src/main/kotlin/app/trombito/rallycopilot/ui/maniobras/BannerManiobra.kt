@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
+import app.trombito.rallycopilot.ui.comun.PlacaCarretera
+import app.trombito.rallycopilot.ui.comun.TamanoPlaca
 
 const val ETIQUETA_BANNER = "banner_maniobra"
 const val ETIQUETA_BANNER_DISTANCIA = "banner_distancia"
@@ -105,7 +108,8 @@ private class ParalelogramoShape(
 
 /**
  * Banner superior de la próxima maniobra: icono grande, distancia en negrita cursiva, frase y, si la hay, la
- * maniobra siguiente en pequeño («Luego ↰ izquierda»). [salidaRotonda] pone el número de salida en el icono.
+ * maniobra siguiente en pequeño («Luego ↰ izquierda»). [salidaRotonda] pone el número de salida en el icono. [via] es
+ * el `ref` de la vía de la maniobra: va en una placa de carretera junto a la frase (así la frase no se corta).
  */
 @Composable
 @Suppress("LongParameterList") // firma fijada por el diseño: variante, tipo, distancia, frase y siguiente
@@ -117,6 +121,7 @@ fun BannerManiobra(
     siguiente: Pair<TipoManiobra, String>?,
     modifier: Modifier = Modifier,
     salidaRotonda: Int? = null,
+    via: String? = null,
 ) {
     val paleta = paletaBanner(variante)
     val forma = ParalelogramoShape(SESGO)
@@ -138,7 +143,7 @@ fun BannerManiobra(
             salidaRotonda = salidaRotonda,
             decorativo = true,
         )
-        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(
                 text = formatearDistanciaManiobra(distanciaM),
                 modifier = Modifier.testTag(ETIQUETA_BANNER_DISTANCIA),
@@ -146,16 +151,33 @@ fun BannerManiobra(
                 style = MaterialTheme.typography.displaySmall.copy(fontSize = 40.sp, fontWeight = FontWeight.Black),
                 maxLines = 1,
             )
-            Text(
-                text = frase,
-                modifier = Modifier.testTag(ETIQUETA_BANNER_FRASE),
-                color = paleta.frase,
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            FilaFrase(frase, via, paleta)
             if (siguiente != null) FilaSiguiente(siguiente, variante, paleta)
         }
+    }
+}
+
+/** La frase (hasta dos líneas) y, a su derecha, la placa de la vía si la hay. */
+@Composable
+private fun FilaFrase(
+    frase: String,
+    via: String?,
+    paleta: PaletaBanner,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = frase,
+            modifier = Modifier.weight(1f, fill = false).testTag(ETIQUETA_BANNER_FRASE),
+            color = paleta.frase,
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp, fontWeight = FontWeight.Bold),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (via != null) PlacaCarretera(via, tamano = TamanoPlaca.PEQUENA)
     }
 }
 

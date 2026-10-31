@@ -23,9 +23,7 @@ import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
  * maniobras de los ajustes).
  */
 @Composable
-@Suppress("LongParameterList") // callbacks de la ruta + los dos ViewModels inyectables
 fun MapaRoute(
-    onVolver: () -> Unit,
     onAbrirMapasOffline: () -> Unit,
     modifier: Modifier = Modifier,
     panelGuiado: PanelGuiado? = null,
@@ -49,7 +47,7 @@ fun MapaRoute(
     MapaScreen(
         estado = estado,
         vista = EstadoVistaMapa(permiso = permiso.estado, siguiendo = estado.siguiendo),
-        acciones = accionesMapa(viewModel, permiso, onVolver, onAbrirMapasOffline),
+        acciones = accionesMapa(viewModel, permiso, onAbrirMapasOffline),
         mapa = { estiloJson, modificador ->
             VistaMapa(
                 estiloJson = estiloJson,
@@ -67,10 +65,8 @@ fun MapaRoute(
 private fun accionesMapa(
     viewModel: MapaViewModel,
     permiso: PermisoUbicacionUi,
-    onVolver: () -> Unit,
     onAbrirMapasOffline: () -> Unit,
 ) = AccionesMapa(
-    onVolver = onVolver,
     onCapa = viewModel::onCapa,
     onRelieve = viewModel::onRelieve,
     onOrientacion = viewModel::onOrientacion,

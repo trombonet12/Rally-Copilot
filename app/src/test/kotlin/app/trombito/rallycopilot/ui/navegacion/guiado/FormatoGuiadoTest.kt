@@ -60,4 +60,19 @@ class FormatoGuiadoTest {
         assertEquals("990 m", formatearDistanciaRestante(994.0))
         assertEquals("1,0 km", formatearDistanciaRestante(996.0))
     }
+
+    @Test
+    fun `la via con referencia sale de la frase para la placa`() {
+        assertEquals("cruce, izquierda" to "Ma-2141", separarViaDeFrase("cruce, izquierda, Ma-2141", listOf("Ma-2141")))
+        assertEquals("ligera derecha" to "AP-1", separarViaDeFrase("ligera derecha, AP-1", listOf("Camí", "AP-1")))
+    }
+
+    @Test
+    fun `un nombre de calle o una frase sin via se dejan enteros`() {
+        assertEquals(
+            "cruce, derecha, Carrer Major" to null,
+            separarViaDeFrase("cruce, derecha, Carrer Major", listOf("Carrer Major")),
+        )
+        assertEquals("recto" to null, separarViaDeFrase("recto", listOf("Ma-10")))
+    }
 }

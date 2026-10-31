@@ -12,6 +12,9 @@ private const val S_POR_MIN = 60
 private const val MIN_POR_H = 60
 private val ES = Locale.forLanguageTag("es-ES")
 
+/** Los `ref` que se pintan como placa (los mismos que reconoce la frase del motor); un nombre de calle no. */
+private val REFERENCIA_PLACA = Regex("""^(MA|AP|PM|A|E|N|C)-\d+\w*$""", RegexOption.IGNORE_CASE)
+
 /** Hora de llegada «HH:mm» (24 h) en la [zona] dada; [llegadaMs] es milisegundos desde la época (reloj de pared). */
 internal fun formatearHoraLlegada(
     llegadaMs: Long,
@@ -36,4 +39,20 @@ internal fun formatearDistanciaRestante(metros: Double): String {
         if (redondeado < UN_KM) return "$redondeado m"
     }
     return String.format(ES, "%.1f km", m / UN_KM)
+}
+
+/**
+ * Separa la vía del final de la [frase] de una maniobra («cruce, izquierda, Ma-10» -> «cruce, izquierda» y «Ma-10»)
+ * para pintarla como placa. Solo si la frase acaba en «, ref» con un `ref` de [vias] que sea una referencia de
+ * carretera; en otro caso (nombre de calle, sin vía) la frase queda entera y la vía es null.
+ */
+internal fun separarViaDeFrase(
+    frase: String,
+    vias: List<String>,
+): Pair<String, String?> {
+    val via =
+        vias
+            .map { it.trim() }
+            .firstOrNull { REFERENCIA_PLACA.matches(it) && frase.endsWith(", $it") }
+    return if (via == null) frase to null else frase.removeSuffix(", $via") to via
 }

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -41,16 +42,21 @@ private val FondoSenal = Color.White
 private val TextoSenal = Color.Black
 
 /**
- * Velocidad actual (siempre visible; «—» sin dato) y señal de límite, que solo aparece si [limiteKmh] no es null.
- * En vertical va en una fila bajo el mapa; en horizontal ([enColumna]) en una columna al lado.
+ * Velocidad actual (siempre visible; «—» sin dato), señal de límite (solo si [limiteKmh] no es null) y la placa de la
+ * vía. En vertical va en una fila bajo el mapa, con [botonesIzquierda] y [botonesDerecha] (columnas de botones de
+ * icono) a los lados de la velocidad; en horizontal ([enColumna]) en una columna al lado, con todos los botones en
+ * una fila al pie.
  */
 @Composable
+@Suppress("LongParameterList") // datos de conducción + los dos grupos de botones del panel
 fun PanelVelocidad(
     velocidadKmh: Int?,
     limiteKmh: Int?,
     via: ViaActual?,
     enColumna: Boolean,
     modifier: Modifier = Modifier,
+    botonesIzquierda: List<@Composable () -> Unit> = emptyList(),
+    botonesDerecha: List<@Composable () -> Unit> = emptyList(),
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
@@ -60,23 +66,58 @@ fun PanelVelocidad(
             Velocidad(velocidadKmh)
             if (limiteKmh != null) SenalLimite(limiteKmh)
         }
-        Column(
-            modifier = Modifier.padding(horizontal = Espacio.l, vertical = Espacio.m),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterVertically),
-        ) {
-            if (enColumna) {
-                contenido()
-            } else {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Espacio.xl, Alignment.CenterHorizontally),
-                ) { contenido() }
-            }
+        val rotulo: @Composable () -> Unit = {
             RotuloVia(refsDePlaca(via?.ref), via?.nombre?.trim()?.takeIf { it.isNotEmpty() }, enColumna)
+        }
+        if (enColumna) {
+            Column(
+                modifier = Modifier.padding(horizontal = Espacio.l, vertical = Espacio.m),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterVertically),
+            ) {
+                contenido()
+                rotulo()
+                Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
+                    (botonesIzquierda + botonesDerecha).forEach { it() }
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier.padding(horizontal = Espacio.m, vertical = Espacio.m),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ColumnaBotones(botonesIzquierda, Alignment.Start)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterVertically),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Espacio.m, Alignment.CenterHorizontally),
+                    ) { contenido() }
+                    rotulo()
+                }
+                ColumnaBotones(botonesDerecha, Alignment.End)
+            }
         }
     }
 }
+
+/** Columna de botones de ancho fijo (cabe la bandera de 56 dp): la velocidad queda centrada con o sin botones. */
+@Composable
+private fun ColumnaBotones(
+    botones: List<@Composable () -> Unit>,
+    alineacion: Alignment.Horizontal,
+) {
+    Column(
+        modifier = Modifier.width(ANCHO_COLUMNA_BOTONES),
+        horizontalAlignment = alineacion,
+        verticalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterVertically),
+    ) { botones.forEach { it() } }
+}
+
+private val ANCHO_COLUMNA_BOTONES = 56.dp
 
 /** Los `ref` de OSM separados por «;», sin vacíos ni repetidos y como mucho [MAX_PLACAS]. */
 internal fun refsDePlaca(ref: String?): List<String> =

@@ -18,7 +18,8 @@ fun AppNavHost() {
     NavHost(navController = nav, startDestination = RutaInicio) {
         composable<RutaInicio> { InicioScreen(onEntrada = { abrirEntrada(nav, it) }) }
         composable<RutaMapa> {
-            MapaRoute(onVolver = { nav.popBackStack() }, onAbrirMapasOffline = { nav.navigate(RutaMapasOffline) })
+            // Sin flecha de volver en el mapa: lo cierra el atrás del sistema (la pila de navegación).
+            MapaRoute(onAbrirMapasOffline = { nav.navigate(RutaMapasOffline) })
         }
         composable<RutaMapasOffline> { MapasOfflineRoute(onVolver = { nav.popBackStack() }) }
         composable<RutaAjustes> {

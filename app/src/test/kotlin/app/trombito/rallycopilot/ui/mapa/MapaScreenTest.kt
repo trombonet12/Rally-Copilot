@@ -311,11 +311,44 @@ class MapaScreenTest {
     }
 
     @Test
-    fun `volver llama a la accion`() {
-        var volver = 0
-        poner(conDatos(), acciones = AccionesMapa(onVolver = { volver++ }))
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_VOLVER))
-        assertEquals(1, volver)
+    fun `no hay flecha de volver en la pantalla del mapa`() {
+        poner(conDatos())
+        assertFalse(banco.hay(ETIQUETA_VOLVER))
+        assertFalse(banco.nodos().mapNotNull { banco.descripcion(it) }.any { it.startsWith("Volver") })
+    }
+
+    @Test
+    fun `capas y orientacion van en el panel inferior a los lados de la velocidad`() {
+        poner(conDatos { copy(velocidadKmh = 72) })
+        val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
+        val velocidad = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
+        val capas = banco.conEtiqueta(ETIQUETA_CAPAS_BOTON).boundsInRoot
+        val orientacion = banco.conEtiqueta(ETIQUETA_ORIENTACION).boundsInRoot
+        assertTrue("capas dentro del panel: $capas vs $panel", capas.top >= panel.top && capas.bottom <= panel.bottom)
+        assertTrue("capas a la izquierda de la velocidad", capas.right <= velocidad.left)
+        assertTrue("orientacion dentro del panel", orientacion.top >= panel.top && orientacion.bottom <= panel.bottom)
+        assertTrue("orientacion a la derecha de la velocidad", orientacion.left >= velocidad.right)
+    }
+
+    @Test
+    fun `el menu de capas se abre sobre el mapa y no dentro del panel`() {
+        poner(conDatos())
+        abrirCapas()
+        val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
+        val menu = banco.conEtiqueta(ETIQUETA_CAPAS_PANEL).boundsInRoot
+        assertTrue("el menu queda encima del panel: $menu vs $panel", menu.bottom <= panel.top + 1)
+    }
+
+    @Test
+    fun `el aviso de actualizacion ocupa el ancho y no deja controles arriba`() {
+        val estado = conDatos().copy(datos = datos.copy(avisoActualizado = "2026.11.0"))
+        poner(estado)
+        val aviso = banco.conEtiqueta(ETIQUETA_AVISO).boundsInRoot
+        val raiz = banco.raiz().boundsInRoot
+        assertTrue("aviso a todo el ancho: $aviso", aviso.width > raiz.width * 0.9f)
+        listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION).forEach {
+            assertTrue("$it no esta arriba", banco.conEtiqueta(it).boundsInRoot.top > raiz.height / 2)
+        }
     }
 
     @Test
@@ -358,5 +391,27 @@ class MapaScreenHorizontalTest {
         assertTrue("El panel debe quedar a la derecha del mapa: $panel vs $mapa", panel.left >= mapa.right - 1)
         assertFalse(banco.textos(banco.raiz()).any { "OpenStreetMap" in it || "PNOA" in it })
         assertTrue(banco.hay(ETIQUETA_VELOCIDAD))
+    }
+
+    @Test
+    fun `en horizontal los botones van dentro del panel lateral y no hay flecha de volver`() {
+        val datos = EstadoDatosMapa(instalados = DatosInstalados("1", 1, conSatelite = false))
+        banco.poner {
+            RallyCopilotTheme {
+                MapaScreen(
+                    estado = MapaUiState(cargando = false, datos = datos, estilos = EstilosMapa("{}", null)),
+                    vista = EstadoVistaMapa(),
+                    acciones = AccionesMapa(),
+                    mapa = { _, m -> Box(m.testTag(ETIQUETA_MAPA_FALSO)) },
+                )
+            }
+        }
+        val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
+        listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION).forEach {
+            val boton = banco.conEtiqueta(it).boundsInRoot
+            assertTrue("$it dentro del panel: $boton vs $panel", boton.left >= panel.left && boton.right <= panel.right)
+            assertTrue("$it dentro del panel en vertical", boton.top >= panel.top && boton.bottom <= panel.bottom)
+        }
+        assertFalse(banco.hay(ETIQUETA_VOLVER))
     }
 }

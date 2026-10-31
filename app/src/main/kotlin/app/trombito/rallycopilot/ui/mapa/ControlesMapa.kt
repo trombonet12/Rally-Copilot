@@ -8,11 +8,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -27,7 +22,6 @@ import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
-import app.trombito.rallycopilot.ui.navegacion.BotonTerminar
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_CAPAS_BOTON = "mapa-capas-boton"
@@ -39,45 +33,35 @@ private const val OPACIDAD_PANEL = 0.88f
 private val RADIO_PANEL = 28.dp
 
 /**
- * Controles redondos del mapa, solo con iconos: capas (que despliega base Mapa/Satélite e interruptor de relieve) y
- * orientación (rumbo arriba / norte arriba). Con una conducción en marcha, [onTerminar] añade la bandera a cuadros
- * al final de la columna.
+ * Botones redondos del mapa, solo con iconos, para el panel negro inferior: capas (que despliega [PanelCapas] sobre el
+ * mapa) y orientación (rumbo arriba / norte arriba). Van con la bandera de terminar a los lados de la velocidad.
  */
 @Composable
-internal fun ControlesMapa(
+internal fun BotonCapas(
+    abierto: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BotonIcono(
+        descripcion = stringResource(R.string.mapa_capas_boton),
+        onClick = onClick,
+        modifier = modifier.testTag(ETIQUETA_CAPAS_BOTON),
+        estado = EstadoBotonIcono(seleccionado = abierto),
+    ) { Icon(Iconos.Capas, contentDescription = null) }
+}
+
+/** Base Mapa/Satélite e interruptor de relieve; se pinta sobre el mapa, encima del botón de capas. */
+@Composable
+internal fun PanelCapas(
     estado: MapaUiState,
     acciones: AccionesMapa,
     modifier: Modifier = Modifier,
-    onTerminar: (() -> Unit)? = null,
-) {
-    var capasAbiertas by rememberSaveable { mutableStateOf(false) }
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.End,
-        verticalArrangement = Arrangement.spacedBy(Espacio.s),
-    ) {
-        BotonIcono(
-            descripcion = stringResource(R.string.mapa_capas_boton),
-            onClick = { capasAbiertas = !capasAbiertas },
-            modifier = Modifier.testTag(ETIQUETA_CAPAS_BOTON),
-            estado = EstadoBotonIcono(seleccionado = capasAbiertas),
-        ) { Icon(Iconos.Capas, contentDescription = null) }
-        if (capasAbiertas) PanelCapas(estado, acciones)
-        BotonOrientacion(estado.orientacion, acciones.onOrientacion)
-        if (onTerminar != null) BotonTerminar(onTerminar)
-    }
-}
-
-@Composable
-private fun PanelCapas(
-    estado: MapaUiState,
-    acciones: AccionesMapa,
 ) {
     val descripcion = stringResource(R.string.mapa_capa_selector)
     Surface(
         shape = RoundedCornerShape(RADIO_PANEL),
         color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(OPACIDAD_PANEL),
-        modifier = Modifier.testTag(ETIQUETA_CAPAS_PANEL).semantics { contentDescription = descripcion },
+        modifier = modifier.testTag(ETIQUETA_CAPAS_PANEL).semantics { contentDescription = descripcion },
     ) {
         Column(Modifier.padding(Espacio.xs), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
             BotonCapa(CapaMapa.VECTORIAL, estado, acciones.onCapa)
@@ -136,7 +120,7 @@ private fun BotonRelieve(
 }
 
 @Composable
-private fun BotonOrientacion(
+internal fun BotonOrientacion(
     orientacion: Orientacion,
     onOrientacion: (Orientacion) -> Unit,
 ) {

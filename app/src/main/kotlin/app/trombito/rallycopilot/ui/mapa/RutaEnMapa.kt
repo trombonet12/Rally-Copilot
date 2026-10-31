@@ -158,5 +158,5 @@ internal fun MapLibreMap.encuadrarRuta(
     val arriba = minOf(ENCUADRE_ARRIBA_DP * densidad, alto * ENCUADRE_MAXIMO_ARRIBA).toInt()
     val abajo = minOf(ENCUADRE_ABAJO_DP * densidad, alto * ENCUADRE_MAXIMO_ABAJO).toInt()
     val lado = (ENCUADRE_LATERAL_DP * densidad).toInt()
-    easeCamera(CameraUpdateFactory.newLatLngBounds(limites, lado, arriba, lado, abajo), DURACION_ENCUADRE_MS)
+    easeCamera(CameraUpdateFactory.newLatLngBounds(limites, 0.0, 0.0, lado, arriba, lado, abajo), DURACION_ENCUADRE_MS)
 }

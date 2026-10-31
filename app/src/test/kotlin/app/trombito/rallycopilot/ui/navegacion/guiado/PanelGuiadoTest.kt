@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
@@ -13,6 +15,7 @@ import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_PLACA
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_DISTANCIA
@@ -83,13 +86,34 @@ class PanelGuiadoTest {
         RallyCopilotTheme { PanelGuiado(estado, variante, Modifier.fillMaxSize(), ZoneId.of("UTC")) }
     }
 
+    private fun placas() = banco.nodos().filter { it.config.getOrNull(SemanticsProperties.TestTag) == ETIQUETA_PLACA }
+
     private fun textosDe(etiqueta: String) = banco.textos(banco.conEtiqueta(etiqueta))
 
     @Test
     fun `muestra distancia y frase de la maniobra actual`() {
         poner(estado(progreso()))
         assertEquals(listOf("350 m"), textosDe(ETIQUETA_BANNER_DISTANCIA))
-        assertEquals(listOf("cruce, izquierda, Ma-10"), textosDe(ETIQUETA_BANNER_FRASE))
+        assertEquals(listOf("cruce, izquierda"), textosDe(ETIQUETA_BANNER_FRASE))
+    }
+
+    @Test
+    fun `la via de la maniobra va en una placa y no en el texto de la frase`() {
+        poner(estado(progreso()))
+        val placas = placas()
+        assertEquals(1, placas.size)
+        assertEquals(listOf("Ma-10"), banco.textos(placas.single()))
+        val banner = banco.conEtiqueta(ETIQUETA_BANNER).boundsInRoot
+        val placa = placas.single().boundsInRoot
+        assertTrue("la placa cabe dentro del banner: $placa vs $banner", placa.right <= banner.right)
+    }
+
+    @Test
+    fun `una via sin referencia se queda en la frase y no hay placa`() {
+        val calle = maniobra(TipoManiobra.IZQUIERDA, 800.0, vias = listOf("Carrer Major"))
+        poner(estado(progreso(actual = calle)))
+        assertEquals(listOf("cruce, izquierda, Carrer Major"), textosDe(ETIQUETA_BANNER_FRASE))
+        assertFalse(banco.hay(ETIQUETA_PLACA))
     }
 
     @Test
@@ -174,13 +198,13 @@ class PanelGuiadoTest {
 
     @Test
     @Config(qualifiers = "w891dp-h411dp-xxhdpi")
-    fun `en horizontal el banner queda a la izquierda y el pie abajo sin tapar el centro`() {
+    fun `en horizontal el banner ocupa el ancho y el pie va abajo sin tapar el centro`() {
         poner(estado(progreso()))
         val banner = banco.conEtiqueta(ETIQUETA_BANNER).boundsInRoot
         val pie = banco.conEtiqueta(ETIQUETA_PIE_GUIADO).boundsInRoot
         val raiz = banco.raiz().boundsInRoot
         val centroX = raiz.width / 2
-        assertTrue("banner a la izquierda: $banner", banner.right < centroX)
+        assertTrue("banner a todo el ancho: $banner", banner.width > raiz.width * 0.9f)
         assertTrue("banner arriba: $banner", banner.top < raiz.height / 4)
         assertTrue("pie abajo: $pie", pie.bottom > raiz.height * 3 / 4)
         assertTrue("pie sin tapar el centro: $pie", pie.right < centroX)

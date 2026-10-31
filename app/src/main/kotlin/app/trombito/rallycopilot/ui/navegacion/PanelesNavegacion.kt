@@ -2,10 +2,8 @@ package app.trombito.rallycopilot.ui.navegacion
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,13 +31,12 @@ const val ETIQUETA_ERROR_CERRAR = "nav-error-cerrar"
 private const val OPACIDAD_SOBRE_MAPA = 0.94f
 private val ANCHO_MAXIMO_AVISO = 520.dp
 
-/** Barra «¿A dónde?»; va dentro de la fila de la cabecera. */
+/** Barra «¿A dónde?»; va dentro de la fila de la cabecera y ocupa todo el ancho. */
 @Composable
 fun RowScope.CabeceraBusqueda(
     estado: NavegacionUiState,
     acciones: AccionesNavegacion,
 ) {
-    Spacer(Modifier.width(Espacio.s))
     BarraDestino(
         texto = estado.texto,
         onTexto = acciones.onTexto,
