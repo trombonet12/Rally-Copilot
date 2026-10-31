@@ -45,7 +45,7 @@ class BuscadorSqlite(
                 try {
                     consultar(db, consulta, cerca, limite)
                 } catch (e: SQLiteException) {
-                    Log.w(ETIQUETA, "Consulta fallida", e)
+                    Log.w(ETIQUETA, "Consulta fallida: ${e.javaClass.simpleName}")
                     emptyList()
                 }
             }
@@ -84,7 +84,7 @@ class BuscadorSqlite(
             try {
                 SQLiteDatabase.openDatabase(archivo.path, null, SQLiteDatabase.OPEN_READONLY)
             } catch (e: SQLiteException) {
-                Log.w(ETIQUETA, "No se pudo abrir el índice de búsqueda", e)
+                Log.w(ETIQUETA, "No se pudo abrir el índice de búsqueda: ${e.javaClass.simpleName}")
                 null
             }
         if (db != null && db.version != VERSION_ESQUEMA) {
@@ -103,13 +103,15 @@ class BuscadorSqlite(
     ): List<ResultadoBusqueda> {
         val desde = consulta
         val hasta = consulta.dropLast(1) + (consulta.last() + 1)
-        val orden = "importancia DESC" + (cerca?.let { ", ${distanciaAproximada(it)}" } ?: "")
+        // lat, lon y k van como argumentos `?` para que la posición no aparezca en el SQL (ni en sus errores).
+        val orden = "importancia DESC" + if (cerca != null) ", $DISTANCIA" else ""
+        val argumentosOrden = cerca?.let { argumentosDistancia(it) }.orEmpty()
 
         val resultados = ArrayList<ResultadoBusqueda>()
         db
             .rawQuery(
                 "$SELECT WHERE nombre_norm >= ? AND nombre_norm < ? ORDER BY $orden LIMIT $limite",
-                arrayOf(desde, hasta),
+                arrayOf(desde, hasta) + argumentosOrden,
             ).use { resultados.leer(it) }
 
         val restantes = limite - resultados.size
@@ -118,7 +120,7 @@ class BuscadorSqlite(
                 .rawQuery(
                     "$SELECT WHERE nombre_norm LIKE ? ESCAPE '\\' AND NOT (nombre_norm >= ? AND nombre_norm < ?) " +
                         "ORDER BY $orden LIMIT $restantes",
-                    arrayOf("% ${escaparLike(consulta)}%", desde, hasta),
+                    arrayOf("% ${escaparLike(consulta)}%", desde, hasta) + argumentosOrden,
                 ).use { resultados.leer(it) }
         }
         return resultados
@@ -137,10 +139,12 @@ class BuscadorSqlite(
         }
     }
 
-    /** Distancia al cuadrado en grados con la longitud escalada por cos(lat): solo sirve para ordenar. */
-    private fun distanciaAproximada(cerca: PuntoGeo): String {
+    /** Argumentos de [DISTANCIA]: lat, lat, lon, lon y k = cos²(lat). */
+    private fun argumentosDistancia(cerca: PuntoGeo): Array<String> {
         val k = cos(Math.toRadians(cerca.lat)).let { it * it }
-        return "((lat - ${cerca.lat}) * (lat - ${cerca.lat}) + (lon - ${cerca.lon}) * (lon - ${cerca.lon}) * $k)"
+        val lat = cerca.lat.toString()
+        val lon = cerca.lon.toString()
+        return arrayOf(lat, lat, lon, lon, k.toString())
     }
 
     private fun escaparLike(texto: String): String = texto.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
@@ -150,6 +154,11 @@ class BuscadorSqlite(
         const val VERSION_ESQUEMA = 2
         const val LETRAS_MINIMAS = 2
         const val SIN_ABRIR = -1L
+
+        /** Distancia al cuadrado en grados con la longitud escalada por cos(lat): solo sirve para ordenar. */
+        const val DISTANCIA =
+            "((lat - CAST(? AS REAL)) * (lat - CAST(? AS REAL)) + " +
+                "(lon - CAST(? AS REAL)) * (lon - CAST(? AS REAL)) * CAST(? AS REAL))"
         const val SELECT = "SELECT nombre, categoria, municipio, lat, lon FROM lugares"
     }
 }

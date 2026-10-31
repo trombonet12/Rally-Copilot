@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -34,8 +35,14 @@ class ControlNavegacionImpl
         private val _estado = MutableStateFlow<EstadoNavegacion>(EstadoNavegacion.Inactiva)
         override val estado: StateFlow<EstadoNavegacion> = _estado.asStateFlow()
 
+        private val cerrojo = Any()
+        private val ultimoId = AtomicLong(0)
+
+        /** Id de la sesión que puede publicar; [SIN_SESION] tras [terminar]. Solo se toca con el [cerrojo]. */
+        private var vigente = SIN_SESION
+
         @Volatile
-        private var pendiente: SolicitudNavegacion? = null
+        private var pendiente: SolicitudConId? = null
         private val huerfanosReclamados = AtomicBoolean(false)
 
         override fun empezarLibre() {
@@ -55,8 +62,11 @@ class ControlNavegacionImpl
 
         override fun terminar() {
             pendiente = null
+            synchronized(cerrojo) {
+                vigente = SIN_SESION
+                _estado.value = EstadoNavegacion.Inactiva
+            }
             contexto.stopService(Intent(contexto, ServicioNavegacion::class.java))
-            _estado.value = EstadoNavegacion.Inactiva
         }
 
         private fun arrancar(
@@ -69,29 +79,59 @@ class ControlNavegacionImpl
                 _estado.value = EstadoNavegacion.Error(contexto.getString(R.string.navegacion_error_permiso))
                 return
             }
-            pendiente = solicitud
-            _estado.value = inicial
+            val id = ultimoId.incrementAndGet()
+            pendiente = SolicitudConId(id, solicitud)
+            synchronized(cerrojo) {
+                vigente = id
+                _estado.value = inicial
+            }
             try {
                 ContextCompat.startForegroundService(contexto, Intent(contexto, ServicioNavegacion::class.java))
             } catch (e: IllegalStateException) {
                 // Android 12+: ForegroundServiceStartNotAllowedException si la app no está visible.
-                Log.w(ETIQUETA, "No se pudo arrancar el servicio de conducción: ${e.javaClass.simpleName}")
-                pendiente = null
-                _estado.value = EstadoNavegacion.Error(contexto.getString(R.string.navegacion_error_arranque))
+                falloAlArrancar(id, e)
+            } catch (e: SecurityException) {
+                // Operación de primer plano denegada (appops START_FOREGROUND o política del sistema).
+                falloAlArrancar(id, e)
             }
         }
 
+        private fun falloAlArrancar(
+            id: Long,
+            e: RuntimeException,
+        ) {
+            Log.w(ETIQUETA, "No se pudo arrancar el servicio de conducción: ${e.javaClass.simpleName}")
+            pendiente = null
+            publicar(id, EstadoNavegacion.Error(contexto.getString(R.string.navegacion_error_arranque)))
+        }
+
         /** El servicio recoge la solicitud al arrancar; null si el proceso se reinició y ya no hay nada que hacer. */
-        internal fun tomarSolicitud(): SolicitudNavegacion? = pendiente.also { pendiente = null }
+        internal fun tomarSolicitud(): SolicitudConId? = pendiente.also { pendiente = null }
+
+        /** Id de la solicitud que el servicio aún no ha recogido, para publicar su fallo de arranque. */
+        internal fun idPendiente(): Long? = pendiente?.id
 
         /** True solo la primera vez por proceso: los recorridos huérfanos solo pueden venir de un proceso anterior. */
         internal fun reclamarCierreDeHuerfanos(): Boolean = huerfanosReclamados.compareAndSet(false, true)
 
-        internal fun publicar(nuevo: EstadoNavegacion) {
-            _estado.value = nuevo
+        /** Publica solo si [id] sigue siendo la sesión vigente: tras [terminar] o una sesión nueva se ignora. */
+        internal fun publicar(
+            id: Long,
+            nuevo: EstadoNavegacion,
+        ) {
+            synchronized(cerrojo) {
+                if (id == vigente) _estado.value = nuevo
+            }
         }
 
         private companion object {
             const val ETIQUETA = "ControlNavegacion"
+            const val SIN_SESION = 0L
         }
     }
+
+/** Una [solicitud] con el id de la sesión que la atenderá. */
+internal class SolicitudConId(
+    val id: Long,
+    val solicitud: SolicitudNavegacion,
+)

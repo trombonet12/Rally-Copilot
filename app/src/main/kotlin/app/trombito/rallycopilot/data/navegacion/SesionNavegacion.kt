@@ -38,7 +38,9 @@ sealed interface SolicitudNavegacion {
 /**
  * Lógica de una conducción, sin Android: recoge las fijaciones, sigue la ruta, recalcula al salirse de ella y graba el
  * recorrido por lotes. Todo el estado se toca desde una sola corrutina (o un dispatcher de un hilo). [reloj] da ms
- * epoch y [publicar] recibe cada cambio de estado. Nunca registra coordenadas en logs.
+ * epoch (hora de pared: llegada prevista y marcas del recorrido) y [publicar] recibe cada cambio de estado. La
+ * detección de salida de ruta y el reintento del recálculo usan el reloj monótono de la fijación, que no salta con
+ * cambios de hora. Nunca registra coordenadas en logs.
  */
 class SesionNavegacion(
     private val fuente: FuenteUbicacion,
@@ -81,6 +83,7 @@ class SesionNavegacion(
         private var ultimoContado: PuntoGeo? = null
         private var distanciaM = 0.0
         private var llegado = false
+        private var ultimaFijacionMs = 0L
 
         suspend fun ejecutar() =
             coroutineScope {
@@ -101,12 +104,13 @@ class SesionNavegacion(
             alcance: CoroutineScope,
         ): Boolean {
             val ahora = reloj()
+            ultimaFijacionMs = fijacion.tiempoMs
             registrar(fijacion, ahora)
             if (guia != null) {
                 val progreso = guia.seguidor.actualizar(fijacion.punto, ahora)
                 guia.progreso = progreso
                 llegado = progreso.llegado
-                if (!llegado) vigilarSalida(guia, fijacion.punto, ahora, alcance)
+                if (!llegado) vigilarSalida(guia, fijacion, alcance)
             }
             if (!llegado) publicar(estadoActual())
             return !llegado
@@ -114,14 +118,13 @@ class SesionNavegacion(
 
         private fun vigilarSalida(
             guia: Guia,
-            punto: PuntoGeo,
-            ahora: Long,
+            fijacion: Fijacion,
             alcance: CoroutineScope,
         ) {
             val progreso = checkNotNull(guia.progreso)
-            val fuera = guia.detector.actualizar(progreso.distanciaALaRutaM, ahora)
-            if (fuera && guia.recalculo?.isActive != true && ahora >= guia.reintentoMs) {
-                guia.recalculo = alcance.launch { recalcular(guia, punto) }
+            val fuera = guia.detector.actualizar(progreso.distanciaALaRutaM, fijacion.tiempoMs)
+            if (fuera && guia.recalculo?.isActive != true && fijacion.tiempoMs >= guia.reintentoMs) {
+                guia.recalculo = alcance.launch { recalcular(guia, fijacion.punto) }
             }
         }
 
@@ -135,7 +138,7 @@ class SesionNavegacion(
             if (resultado is ResultadoRuta.Ok && resultado.ruta.puntos.size >= 2) {
                 guia.usar(resultado.ruta)
             } else {
-                guia.reintentoMs = reloj() + REINTENTO_MS
+                guia.reintentoMs = ultimaFijacionMs + REINTENTO_MS
             }
             guia.recalculando = false
             publicar(estadoActual())

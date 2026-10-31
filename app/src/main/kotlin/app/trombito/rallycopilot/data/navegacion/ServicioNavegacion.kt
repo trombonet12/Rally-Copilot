@@ -4,6 +4,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.database.sqlite.SQLiteException
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.ServiceCompat
@@ -23,6 +24,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -43,35 +45,40 @@ class ServicioNavegacion : Service() {
     @Inject lateinit var recorridos: RepositorioRecorridos
 
     private lateinit var notificacion: NotificacionNavegacion
-    private lateinit var sesion: SesionNavegacion
     private lateinit var scope: CoroutineScope
     private var trabajo: Job? = null
     private var avisos: Job? = null
     private var huerfanos: Job? = null
+    private var ultimoStartId = 0
+
+    /** Id de la sesión en curso en [ControlNavegacionImpl]; sus publicaciones se ignoran si deja de ser la vigente. */
+    private var idSesion: Long? = null
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun onCreate() {
         super.onCreate()
         notificacion = NotificacionNavegacion(this)
         notificacion.crearCanal()
-        sesion =
-            SesionNavegacion(
-                fuente,
-                enrutador,
-                recorridos,
-                reloj = System::currentTimeMillis,
-                publicar = control::publicar,
-                motivoSinGps = getString(R.string.navegacion_error_gps),
-            )
         val alFallar =
             CoroutineExceptionHandler { _, causa ->
                 Log.w(ETIQUETA, "La conducción ha fallado: ${causa.javaClass.simpleName}")
-                control.publicar(EstadoNavegacion.Error(getString(R.string.navegacion_error_arranque)))
-                enHiloPrincipal { detener() }
+                publicarFalloDeArranque(idSesion)
+                ContextCompat.getMainExecutor(this).execute { detener() }
             }
         // Un solo hilo: SesionNavegacion no es concurrente y los recálculos no deben pisar a las posiciones.
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1) + alFallar)
-        if (control.reclamarCierreDeHuerfanos()) huerfanos = scope.launch { sesion.cerrarHuerfanos() }
+        if (control.reclamarCierreDeHuerfanos()) huerfanos = scope.launch { cerrarHuerfanos() }
+    }
+
+    /** Limpieza de otro proceso: si falla no debe parar la conducción que se está arrancando. */
+    private suspend fun cerrarHuerfanos() {
+        try {
+            crearSesion(SIN_ID).cerrarHuerfanos()
+        } catch (e: SQLiteException) {
+            Log.w(ETIQUETA, "No se pudieron cerrar los recorridos huérfanos: ${e.javaClass.simpleName}")
+        } catch (e: IllegalStateException) {
+            Log.w(ETIQUETA, "No se pudieron cerrar los recorridos huérfanos: ${e.javaClass.simpleName}")
+        }
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -81,11 +88,12 @@ class ServicioNavegacion : Service() {
         flags: Int,
         startId: Int,
     ): Int {
+        ultimoStartId = startId
         if (intent?.action == ACCION_TERMINAR) {
             control.terminar()
         } else if (entrarEnPrimerPlano()) {
             val solicitud = control.tomarSolicitud()
-            if (solicitud == null) detener() else iniciar(solicitud)
+            if (solicitud == null) detener() else iniciar(solicitud.id, solicitud.solicitud)
         }
         return START_NOT_STICKY
     }
@@ -108,13 +116,19 @@ class ServicioNavegacion : Service() {
 
     private fun fallarAlArrancar(e: RuntimeException): Boolean {
         Log.w(ETIQUETA, "No se pudo pasar a primer plano: ${e.javaClass.simpleName}")
-        control.publicar(EstadoNavegacion.Error(getString(R.string.navegacion_error_arranque)))
+        publicarFalloDeArranque(control.idPendiente())
         stopSelf()
         return false
     }
 
-    private fun iniciar(solicitud: SolicitudNavegacion) {
-        if (avisos == null) avisos = scope.launch { mostrarEstado() }
+    private fun iniciar(
+        id: Long,
+        solicitud: SolicitudNavegacion,
+    ) {
+        idSesion = id
+        val sesion = crearSesion(id)
+        // En el hilo principal, igual que la cancelación, para que un `notify` no se cuele tras `onDestroy`.
+        if (avisos == null) avisos = scope.launch(Dispatchers.Main.immediate) { mostrarEstado() }
         val previo = trabajo
         val nuevo =
             scope.launch {
@@ -122,13 +136,20 @@ class ServicioNavegacion : Service() {
                 huerfanos?.join()
                 sesion.correr(solicitud)
             }
-        nuevo.invokeOnCompletion { causa -> if (causa == null) enHiloPrincipal { detener() } }
+        nuevo.invokeOnCompletion { causa ->
+            if (causa ==
+                null
+            ) {
+                ContextCompat.getMainExecutor(this).execute { detener() }
+            }
+        }
         trabajo = nuevo
     }
 
     private suspend fun mostrarEstado() {
         val gestor = getSystemService(NotificationManager::class.java)
         control.estado
+            .filter { it !is EstadoNavegacion.Inactiva }
             .map { it to notificacion.textos(it) }
             .distinctUntilChanged { a, b -> a.second == b.second }
             .collect { (estado, _) ->
@@ -142,11 +163,10 @@ class ServicioNavegacion : Service() {
 
     private fun detener() {
         avisos?.cancel()
+        avisos = null
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
-        stopSelf()
+        stopSelfResult(ultimoStartId)
     }
-
-    private fun enHiloPrincipal(accion: () -> Unit) = ContextCompat.getMainExecutor(this).execute(accion)
 
     override fun onDestroy() {
         avisos?.cancel()
@@ -161,7 +181,7 @@ class ServicioNavegacion : Service() {
         }
         val estado = control.estado.value
         if (estado is EstadoNavegacion.Libre || estado is EstadoNavegacion.Guiando) {
-            control.publicar(EstadoNavegacion.Inactiva)
+            idSesion?.let { control.publicar(it, EstadoNavegacion.Inactiva) }
         }
         super.onDestroy()
     }
@@ -169,5 +189,22 @@ class ServicioNavegacion : Service() {
     companion object {
         const val ACCION_TERMINAR = "app.trombito.rallycopilot.TERMINAR_NAVEGACION"
         private const val ETIQUETA = "ServicioNavegacion"
+
+        /** Id que nunca es el vigente: las publicaciones de la limpieza de huérfanos no llegan a nadie. */
+        private const val SIN_ID = -1L
     }
+}
+
+private fun ServicioNavegacion.crearSesion(id: Long) =
+    SesionNavegacion(
+        fuente,
+        enrutador,
+        recorridos,
+        reloj = System::currentTimeMillis,
+        publicar = { control.publicar(id, it) },
+        motivoSinGps = getString(R.string.navegacion_error_gps),
+    )
+
+private fun ServicioNavegacion.publicarFalloDeArranque(id: Long?) {
+    if (id != null) control.publicar(id, EstadoNavegacion.Error(getString(R.string.navegacion_error_arranque)))
 }

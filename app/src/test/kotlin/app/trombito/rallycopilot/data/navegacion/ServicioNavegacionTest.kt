@@ -5,6 +5,7 @@ import android.app.Application
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import org.junit.Assert.assertEquals
@@ -64,6 +65,26 @@ class ServicioNavegacionTest {
 
         assertEquals(EstadoNavegacion.Inactiva, servicio.control.estado.value)
         assertNotNull(shadowOf(app).nextStoppedService)
+    }
+
+    @Test
+    fun `tras Terminar no queda notificacion fantasma de Iniciando`() {
+        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val servicio = controlador.get()
+        servicio.control.empezarLibre()
+        controlador.withIntent(shadowOf(app).nextStartedService).startCommand(0, 1)
+        val gestor = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        servicio.control.terminar()
+        controlador.destroy()
+        // Deja que cualquier colector pendiente llegue al hilo principal y a los hilos de Default.
+        repeat(20) {
+            shadowOf(Looper.getMainLooper()).idle()
+            Thread.sleep(10)
+        }
+
+        assertEquals(EstadoNavegacion.Inactiva, servicio.control.estado.value)
+        assertTrue(gestor.activeNotifications.none { it.id == NotificacionNavegacion.ID_NOTIFICACION })
     }
 
     @Test

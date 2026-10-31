@@ -44,7 +44,13 @@ private fun p(
     2.9 + este / (METROS_POR_GRADO_LAT * cos(Math.toRadians(39.6))),
 )
 
-private fun fijacion(punto: PuntoGeo) = Fijacion(punto, 0, 10.0, null, 5.0)
+/** El reloj monótono de las fijaciones arranca en un valor sin relación con la hora de pared del test. */
+private const val MONOTONO_BASE_MS = 5_000_000L
+
+private fun fijacion(
+    punto: PuntoGeo,
+    indice: Int,
+) = Fijacion(punto, MONOTONO_BASE_MS + indice * 1000L, 10.0, null, 5.0)
 
 /** Fuente que emite cada fijación a 1 Hz de tiempo virtual y luego se queda a la espera (o termina). */
 private class FuenteFalsa(
@@ -54,8 +60,8 @@ private class FuenteFalsa(
 ) : FuenteUbicacion {
     override fun fijaciones(): Flow<Fijacion> =
         flow {
-            for (punto in puntos) {
-                emit(fijacion(punto))
+            for ((indice, punto) in puntos.withIndex()) {
+                emit(fijacion(punto, indice))
                 delay(1000)
             }
             if (!terminaAlAcabar) awaitCancellation()
@@ -156,6 +162,7 @@ class SesionNavegacionTest {
         fuente: FuenteUbicacion,
         respuestas: List<ResultadoRuta> = emptyList(),
         enCurso: List<Long> = emptyList(),
+        horaDePared: () -> Long = { testScheduler.currentTime },
     ): Escenario {
         val estados = mutableListOf<EstadoNavegacion>()
         val recorridos = RecorridosFalso(enCurso)
@@ -165,7 +172,7 @@ class SesionNavegacionTest {
                 fuente,
                 enrutador,
                 recorridos,
-                reloj = { testScheduler.currentTime },
+                reloj = horaDePared,
                 publicar = { estados += it },
                 motivoSinGps = "sin GPS",
             )
@@ -254,6 +261,33 @@ class SesionNavegacionTest {
             val ultimo = e.estados.last() as EstadoNavegacion.Guiando
             assertFalse(ultimo.recalculando)
             assertEquals(nueva, ultimo.ruta)
+            trabajo.cancel()
+        }
+
+    @Test
+    fun `un salto de la hora de pared no altera la deteccion de salida de ruta`() =
+        runTest {
+            val fuera = p(300.0, -200.0)
+            val nueva = rutaL(origen = fuera, esquina = p(1000.0, -200.0), fin = p(1000.0, 500.0))
+            var salto = 0L
+            val e =
+                escenario(
+                    FuenteFalsa(listOf(p(0.0, 0.0), p(100.0, 0.0), p(200.0, 0.0)) + List(20) { fuera }),
+                    listOf(ResultadoRuta.Ok(nueva, 50)),
+                    horaDePared = { testScheduler.currentTime + salto },
+                )
+            val trabajo = lanzar(e, guiada())
+            // La hora de pared retrocede una hora justo después de salirse de la ruta (t = 3 s).
+            launch {
+                delay(3_500)
+                salto = -3_600_000L
+            }
+            advanceTimeBy(12_000)
+
+            assertEquals(1, e.enrutador.llamadas.size)
+            val (_, _, cuando) = e.enrutador.llamadas.single()
+            assertEquals(8_000L, cuando)
+            assertEquals(nueva, (e.estados.last() as EstadoNavegacion.Guiando).ruta)
             trabajo.cancel()
         }
 
