@@ -4,10 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
+import app.trombito.rallycopilot.domain.enlaces.ResultadoResolucion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -31,6 +33,7 @@ class NavegacionViewModelTest {
     private val buscador = FalsoBuscador()
     private val enrutador = FalsoEnrutador()
     private val control = FalsoControlNavegacion()
+    private val resolvedor = FalsoResolvedor()
     private val soller = ResultadoBusqueda("Sóller", "pueblo", "Sóller", SOLLER)
     private val destino = Destino("Sóller", SOLLER)
 
@@ -44,7 +47,7 @@ class NavegacionViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun crear() = NavegacionViewModel(buscador, enrutador, control)
+    private fun crear() = NavegacionViewModel(buscador, enrutador, control, resolvedor)
 
     private fun TestScope.recoger(vm: NavegacionViewModel) =
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -130,15 +133,94 @@ class NavegacionViewModelTest {
             assertFalse(busqueda.sinNombre)
         }
 
+    private val enlaceCorto = "https://maps.app.goo.gl/AbCdEf"
+    private val enlaceLargo =
+        "https://www.google.com/maps/place/Port+de+S%C3%B3ller/@39.7948,2.6942,17z/data=!3d39.7948!4d2.6942"
+
     @Test
-    fun `un enlace corto avisa de que necesita red`() =
+    fun `un enlace corto muestra resolviendo y al llegar la URL con coordenadas ofrece la ubicacion pegada`() =
+        runTest {
+            val espera = CompletableDeferred<Unit>()
+            resolvedor.espera = espera
+            resolvedor.respuesta = ResultadoResolucion.Url(enlaceLargo)
+            val vm = crear()
+            recoger(vm)
+            vm.onTexto(enlaceCorto)
+            advanceTimeBy(300)
+            assertEquals(BusquedaDestino.Resolviendo, vm.uiState.value.busqueda)
+            assertEquals(listOf(enlaceCorto), resolvedor.urls)
+            espera.complete(Unit)
+            val busqueda = vm.uiState.value.busqueda as BusquedaDestino.Ubicacion
+            assertEquals("Port de Sóller", busqueda.destino.nombre)
+            assertEquals(39.7948, busqueda.destino.punto.lat, 1e-9)
+            assertTrue(buscador.consultas.isEmpty())
+        }
+
+    @Test
+    fun `un enlace corto sin red avisa de que hace falta internet`() =
+        runTest {
+            resolvedor.respuesta = ResultadoResolucion.SinRed
+            val vm = crear()
+            recoger(vm)
+            vm.onTexto(enlaceCorto)
+            advanceTimeBy(300)
+            assertEquals(BusquedaDestino.SinRed, vm.uiState.value.busqueda)
+        }
+
+    @Test
+    fun `un enlace corto con error o no permitido dice que no se pudo abrir`() =
         runTest {
             val vm = crear()
             recoger(vm)
-            vm.onTexto("https://maps.app.goo.gl/AbCdEf")
+            resolvedor.respuesta = ResultadoResolucion.Error
+            vm.onTexto(enlaceCorto)
             advanceTimeBy(300)
-            assertEquals(BusquedaDestino.NecesitaRed, vm.uiState.value.busqueda)
-            assertTrue(buscador.consultas.isEmpty())
+            assertEquals(BusquedaDestino.EnlaceNoAbierto, vm.uiState.value.busqueda)
+            resolvedor.respuesta = ResultadoResolucion.NoPermitido
+            vm.onTexto("$enlaceCorto?x=1")
+            advanceTimeBy(300)
+            assertEquals(BusquedaDestino.EnlaceNoAbierto, vm.uiState.value.busqueda)
+        }
+
+    @Test
+    fun `una URL final sin coordenadas dice que no se pudo abrir`() =
+        runTest {
+            resolvedor.respuesta = ResultadoResolucion.Url("https://www.google.com/maps")
+            val vm = crear()
+            recoger(vm)
+            vm.onTexto(enlaceCorto)
+            advanceTimeBy(300)
+            assertEquals(BusquedaDestino.EnlaceNoAbierto, vm.uiState.value.busqueda)
+        }
+
+    @Test
+    fun `cambiar el texto cancela la resolucion y su resultado no se muestra`() =
+        runTest {
+            val espera = CompletableDeferred<Unit>()
+            resolvedor.espera = espera
+            resolvedor.respuesta = ResultadoResolucion.Url(enlaceLargo)
+            val vm = crear()
+            recoger(vm)
+            vm.onTexto(enlaceCorto)
+            advanceTimeBy(300)
+            vm.onTexto("")
+            assertEquals(1, resolvedor.canceladas)
+            espera.complete(Unit)
+            advanceTimeBy(300)
+            assertEquals(BusquedaDestino.Inactiva, vm.uiState.value.busqueda)
+        }
+
+    @Test
+    fun `borrar la busqueda cancela la resolucion`() =
+        runTest {
+            resolvedor.espera = CompletableDeferred()
+            val vm = crear()
+            recoger(vm)
+            vm.onTexto(enlaceCorto)
+            advanceTimeBy(300)
+            vm.cancelar()
+            assertEquals(1, resolvedor.canceladas)
+            assertEquals(BusquedaDestino.Inactiva, vm.uiState.value.busqueda)
         }
 
     @Test

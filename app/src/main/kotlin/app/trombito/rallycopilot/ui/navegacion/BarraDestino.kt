@@ -152,8 +152,16 @@ fun ListaDestinos(
                 FilaDestino(titulo, detalle, { elegir(d) }, Modifier.testTag(ETIQUETA_RESULTADO + "0"))
             }
 
-            BusquedaDestino.NecesitaRed -> {
-                MensajeLista(R.string.navegacion_ui_enlace_corto, Modifier.testTag(ETIQUETA_ENLACE_CORTO))
+            BusquedaDestino.Resolviendo -> {
+                MensajeLista(R.string.navegacion_ui_enlace_resolviendo, Modifier.testTag(ETIQUETA_ENLACE_CORTO))
+            }
+
+            BusquedaDestino.SinRed -> {
+                MensajeLista(R.string.navegacion_ui_enlace_sin_red, Modifier.testTag(ETIQUETA_ENLACE_CORTO))
+            }
+
+            BusquedaDestino.EnlaceNoAbierto -> {
+                MensajeLista(R.string.navegacion_ui_enlace_no_abierto, Modifier.testTag(ETIQUETA_ENLACE_CORTO))
             }
 
             BusquedaDestino.Inactiva -> {}

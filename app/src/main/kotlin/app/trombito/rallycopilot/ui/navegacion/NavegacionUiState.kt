@@ -24,8 +24,14 @@ sealed interface BusquedaDestino {
         val sinNombre: Boolean,
     ) : BusquedaDestino
 
-    /** Enlace corto de Google/OSM: hace falta red para resolverlo. */
-    data object NecesitaRed : BusquedaDestino
+    /** Enlace corto de Google Maps: se está siguiendo su redirección por red. */
+    data object Resolviendo : BusquedaDestino
+
+    /** Enlace corto sin conexión a internet. */
+    data object SinRed : BusquedaDestino
+
+    /** El enlace corto no se pudo abrir (error, destino no permitido o sin coordenadas). */
+    data object EnlaceNoAbierto : BusquedaDestino
 }
 
 /** Resultado del cálculo de una ruta para un perfil, en la vista previa. */

@@ -162,10 +162,24 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     }
 
     @Test
-    fun `un enlace corto explica que hace falta red`() {
-        poner(NavegacionUiState(texto = "https://maps.app.goo.gl/x", busqueda = BusquedaDestino.NecesitaRed))
-        val textos = banco.textos(banco.conEtiqueta(ETIQUETA_ENLACE_CORTO))
-        assertTrue(textos.single().startsWith("Los enlaces cortos necesitan red"))
+    fun `un enlace corto en curso muestra resolviendo`() {
+        poner(NavegacionUiState(texto = "https://maps.app.goo.gl/x", busqueda = BusquedaDestino.Resolviendo))
+        assertEquals("Resolviendo enlace…", banco.textos(banco.conEtiqueta(ETIQUETA_ENLACE_CORTO)).single())
+    }
+
+    @Test
+    fun `un enlace corto sin red avisa de que hace falta internet`() {
+        poner(NavegacionUiState(texto = "https://maps.app.goo.gl/x", busqueda = BusquedaDestino.SinRed))
+        assertEquals(
+            "Sin conexión: los enlaces cortos necesitan internet; pega el enlace completo o las coordenadas",
+            banco.textos(banco.conEtiqueta(ETIQUETA_ENLACE_CORTO)).single(),
+        )
+    }
+
+    @Test
+    fun `un enlace corto que falla dice que no se pudo abrir`() {
+        poner(NavegacionUiState(texto = "https://maps.app.goo.gl/x", busqueda = BusquedaDestino.EnlaceNoAbierto))
+        assertEquals("No se pudo abrir el enlace", banco.textos(banco.conEtiqueta(ETIQUETA_ENLACE_CORTO)).single())
     }
 
     @Test

@@ -3,6 +3,8 @@ package app.trombito.rallycopilot.ui.navegacion
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.busqueda.Buscador
+import app.trombito.rallycopilot.domain.enlaces.ResolvedorEnlaces
+import app.trombito.rallycopilot.domain.enlaces.ResultadoResolucion
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
@@ -45,6 +47,7 @@ class NavegacionViewModel
         private val buscador: Buscador,
         private val enrutador: Enrutador,
         private val control: ControlNavegacion,
+        private val resolvedor: ResolvedorEnlaces,
     ) : ViewModel() {
         private val texto = MutableStateFlow("")
         private val consulta = MutableStateFlow("")
@@ -53,6 +56,7 @@ class NavegacionViewModel
         private var posicion: PuntoGeo? = null
         private var permiso: Boolean? = null
         private var calculo: Job? = null
+        private var resolucion: Job? = null
 
         val uiState: StateFlow<NavegacionUiState> =
             combine(texto, busqueda, vistaPrevia, control.estado) { t, b, v, c ->
@@ -69,7 +73,15 @@ class NavegacionViewModel
         init {
             viewModelScope.launch {
                 consulta.debounce(ESPERA_BUSQUEDA_MS).collectLatest { escrito ->
-                    busqueda.value = interpretar(buscador, escrito, posicion)
+                    val enlace = EnlaceUbicacion.leer(escrito.trim())
+                    resolucion?.cancel()
+                    if (enlace is ResultadoEnlace.NecesitaRed) {
+                        // Enlace corto: se sigue por red aparte para que un texto nuevo la cancele al instante.
+                        busqueda.value = BusquedaDestino.Resolviendo
+                        resolucion = viewModelScope.launch { busqueda.value = resolverEnlace(resolvedor, enlace.url) }
+                    } else {
+                        busqueda.value = interpretar(buscador, escrito, posicion)
+                    }
                 }
             }
         }
@@ -83,6 +95,7 @@ class NavegacionViewModel
         }
 
         fun onTexto(nuevo: String) {
+            resolucion?.cancel()
             texto.value = nuevo
             consulta.value = nuevo
             if (nuevo.trim().length < LONGITUD_MINIMA_BUSQUEDA) busqueda.value = BusquedaDestino.Inactiva
@@ -94,6 +107,7 @@ class NavegacionViewModel
         }
 
         fun elegirDestino(destino: Destino) {
+            resolucion?.cancel()
             texto.value = destino.nombre
             consulta.value = ""
             busqueda.value = BusquedaDestino.Inactiva
@@ -141,6 +155,7 @@ class NavegacionViewModel
         /** Borra el campo y cancela la vista previa si la hay. */
         fun cancelar() {
             calculo?.cancel()
+            resolucion?.cancel()
             vistaPrevia.value = null
             texto.value = ""
             consulta.value = ""
@@ -173,14 +188,11 @@ private suspend fun interpretar(
     if (limpio.length < LONGITUD_MINIMA_BUSQUEDA) return BusquedaDestino.Inactiva
     return when (val enlace = EnlaceUbicacion.leer(limpio)) {
         is ResultadoEnlace.Punto -> {
-            BusquedaDestino.Ubicacion(
-                Destino(enlace.nombre ?: coordenadas(enlace.punto), enlace.punto),
-                sinNombre = enlace.nombre == null,
-            )
+            ubicacion(enlace)
         }
 
         is ResultadoEnlace.NecesitaRed -> {
-            BusquedaDestino.NecesitaRed
+            BusquedaDestino.Resolviendo
         }
 
         ResultadoEnlace.NoReconocido -> {
@@ -188,6 +200,31 @@ private suspend fun interpretar(
         }
     }
 }
+
+private suspend fun resolverEnlace(
+    resolvedor: ResolvedorEnlaces,
+    url: String,
+): BusquedaDestino =
+    when (val resultado = resolvedor.resolver(url)) {
+        is ResultadoResolucion.Url -> {
+            (EnlaceUbicacion.leer(resultado.final) as? ResultadoEnlace.Punto)?.let(::ubicacion)
+                ?: BusquedaDestino.EnlaceNoAbierto
+        }
+
+        ResultadoResolucion.SinRed -> {
+            BusquedaDestino.SinRed
+        }
+
+        ResultadoResolucion.NoPermitido, ResultadoResolucion.Error -> {
+            BusquedaDestino.EnlaceNoAbierto
+        }
+    }
+
+private fun ubicacion(enlace: ResultadoEnlace.Punto): BusquedaDestino.Ubicacion =
+    BusquedaDestino.Ubicacion(
+        Destino(enlace.nombre ?: coordenadas(enlace.punto), enlace.punto),
+        sinNombre = enlace.nombre == null,
+    )
 
 private fun coordenadas(punto: PuntoGeo): String = String.format(Locale.ROOT, "%.5f, %.5f", punto.lat, punto.lon)
 

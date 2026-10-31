@@ -2,6 +2,8 @@ package app.trombito.rallycopilot.ui.navegacion
 
 import app.trombito.rallycopilot.domain.busqueda.Buscador
 import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
+import app.trombito.rallycopilot.domain.enlaces.ResolvedorEnlaces
+import app.trombito.rallycopilot.domain.enlaces.ResultadoResolucion
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
@@ -10,6 +12,7 @@ import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.Ruta
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +29,26 @@ fun rutaDePrueba(
     longitudM = longitudM,
     tiempoS = tiempoS,
 )
+
+/** Responde con [respuesta]; con [espera] queda suspendido hasta completarla. [canceladas] cuenta las cancelaciones. */
+class FalsoResolvedor(
+    var respuesta: ResultadoResolucion = ResultadoResolucion.Error,
+    var espera: CompletableDeferred<Unit>? = null,
+) : ResolvedorEnlaces {
+    val urls = mutableListOf<String>()
+    var canceladas = 0
+
+    override suspend fun resolver(url: String): ResultadoResolucion {
+        urls += url
+        try {
+            espera?.await()
+        } catch (e: CancellationException) {
+            canceladas++
+            throw e
+        }
+        return respuesta
+    }
+}
 
 class FalsoBuscador(
     var resultados: List<ResultadoBusqueda> = emptyList(),

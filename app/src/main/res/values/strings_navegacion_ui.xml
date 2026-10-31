@@ -4,7 +4,9 @@
     <string name="navegacion_ui_donde">¿A dónde?</string>
     <string name="navegacion_ui_limpiar">Borrar la búsqueda</string>
     <string name="navegacion_ui_sin_resultados">Sin resultados en Mallorca</string>
-    <string name="navegacion_ui_enlace_corto">Los enlaces cortos necesitan red; pega el enlace completo o las coordenadas</string>
+    <string name="navegacion_ui_enlace_resolviendo">Resolviendo enlace…</string>
+    <string name="navegacion_ui_enlace_sin_red">Sin conexión: los enlaces cortos necesitan internet; pega el enlace completo o las coordenadas</string>
+    <string name="navegacion_ui_enlace_no_abierto">No se pudo abrir el enlace</string>
     <string name="navegacion_ui_ubicacion_pegada">Ubicación pegada</string>
     <string name="navegacion_ui_resultado_detalle">%1$s · %2$s</string>
     <string name="navegacion_ui_resultados">Resultados de la búsqueda</string>
