@@ -6,11 +6,12 @@ Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuest
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **3 abiertas** (H2) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **1 abierta** (H2) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
 ## Abiertas en H2
 
 ### Arranque del modo libre (sin destino)
+- **Respondida 2026-10-31:** **B**: arranca solo al abrir el mapa y se para al salir.
 - **Contexto:** el modo libre arranca el servicio en primer plano (notificación fija) y graba el recorrido. «Conducir» abre el mapa.
 - **Opciones:** A) un botón con icono junto a la barra «¿A dónde?» lo arranca y «Terminar» lo para; B) arranca solo al abrir el mapa con permiso de ubicación y se para al salir; C) arranca solo al superar ~15 km/h.
 - **Recomendación:** A (sigo con A mientras no respondas): no deja la notificación ni graba sin que lo pidas.
@@ -27,6 +28,7 @@ Estado: **3 abiertas** (H2) · 22 respondidas (2026-10-28, en el chat). Las resp
 - **Recomendación:** A (sigo con A mientras no respondas).
 
 ### Relieve en el paquete base
+- **Respondida 2026-10-31:** **A**: en el paquete base.
 - **Contexto:** el relieve y las curvas de nivel suman unos 30–80 MB (estimado) sobre los ~400 MB actuales.
 - **Opciones:** A) en el paquete base; B) descarga opcional aparte en Mapas offline.
 - **Recomendación:** A, por sencillez (sigo con A mientras no respondas).
