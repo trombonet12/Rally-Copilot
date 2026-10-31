@@ -34,6 +34,7 @@ Skills propuestas para hitos futuros (aún sin SKILL.md): `notas-calibrar` (H3),
 - qa | [fast|full] | Ejecutar la puerta de calidad en modo fast o full e interpretar el resultado
 - qa-scenario | [process-death|apk-update|screen-off|background|gps-loss|doze|permissions|rotation|dark-theme] | Guion manual en Android por escenario
 - bugfix-flow | [descripción-del-bug] | Corregir un bug: reproducir, test que falla, arreglo, regresión y causa raíz documentada
+- notas-calibrar | [traza.gpx] | Calibrar umbrales del motor de notas sobre trazas reales de Mallorca y revisar goldens
 
 ## 5. Seguridad
 - security-review | [secrets|android-permissions|components|location|privacy|logging|ci] | Revisar seguridad de un área con findings por severidad, sin editar

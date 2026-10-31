@@ -4,7 +4,7 @@
 
 Índice generado desde `.claude/skills/*/SKILL.md`, agrupado según `docs/_meta/skills-catalog.md`.
 
-Total: 40 skills (2 manuales).
+Total: 41 skills (3 manuales).
 
 Presupuesto de descripciones: 7269 / 16000 caracteres (suma de name + description de las skills no manuales).
 
@@ -50,6 +50,7 @@ Presupuesto de descripciones: 7269 / 16000 caracteres (suma de name + descriptio
 | [qa](../.claude/skills/qa/SKILL.md)                                 | `[fast\|full]`                                                                                           | no     | Ejecutar la puerta de calidad en modo fast o full e interpretar el resultado; no para escribir tests (test-write) ni probar en dispositivo (qa-scenario).                                      |
 | [qa-scenario](../.claude/skills/qa-scenario/SKILL.md)               | `[process-death\|apk-update\|screen-off\|background\|gps-loss\|doze\|permissions\|rotation\|dark-theme]` | no     | Guion manual en Android por escenario (process-death, apk-update, screen-off, background, gps-loss, doze, permissions, rotation, dark-theme); no tests automáticos (qa).                       |
 | [bugfix-flow](../.claude/skills/bugfix-flow/SKILL.md)               | `[descripción-del-bug]`                                                                                  | no     | Corregir un bug: reproducir, test que falla, arreglo, regresión y causa raíz documentada; no para tests intermitentes (test-debug-flaky) ni para features nuevas (design-feature).             |
+| [notas-calibrar](../.claude/skills/notas-calibrar/SKILL.md)         | `[traza.gpx]`                                                                                            | sí     | Calibrar umbrales del motor de notas (TablaGrados, DetectorCurvas, UmbralesRasantes) sobre trazas reales de Mallorca y revisar los goldens; no cambia frases (test-write) ni voz (H4).         |
 
 ## 5. Seguridad
 
