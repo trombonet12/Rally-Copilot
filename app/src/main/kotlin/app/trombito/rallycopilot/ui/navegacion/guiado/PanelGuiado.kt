@@ -108,8 +108,8 @@ fun PanelGuiado(
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(MARGEN),
         ) {
-            datosBanner(estado)?.let { Banner(it, variante) }
-            FranjaNotas(notas)
+            datosBanner(estado)?.let { Banner(it, variante, compacto = horizontal) }
+            FranjaNotas(notas, compacta = horizontal)
             AvisoRecalculo(estado.recalculando)
         }
         estado.progreso?.let {
@@ -130,6 +130,7 @@ fun PanelGuiado(
 private fun Banner(
     datos: DatosBanner,
     variante: VarianteManiobra,
+    compacto: Boolean,
 ) {
     val frase = datos.frase ?: stringResource(R.string.guiado_destino)
     val distancia = formatearDistanciaManiobra(datos.distanciaM)
@@ -146,6 +147,7 @@ private fun Banner(
             modifier = Modifier.fillMaxWidth(),
             salidaRotonda = datos.salidaRotonda,
             via = datos.via,
+            compacto = compacto,
         )
     }
 }

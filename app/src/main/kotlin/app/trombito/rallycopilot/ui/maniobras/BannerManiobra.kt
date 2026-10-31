@@ -39,7 +39,9 @@ const val ETIQUETA_BANNER_FRASE = "banner_frase"
 const val ETIQUETA_BANNER_SIGUIENTE = "banner_siguiente"
 
 private val SESGO = 14.dp
+private val SESGO_COMPACTO = 8.dp
 private val TAMANO_ICONO = 84.dp
+private val TAMANO_ICONO_COMPACTO = 40.dp
 private val TAMANO_ICONO_SIGUIENTE = 26.dp
 
 /** Colores fijos de cada variante (el banner va sobre el mapa y no cambia con el tema). Todos cumplen AA. */
@@ -122,8 +124,13 @@ fun BannerManiobra(
     modifier: Modifier = Modifier,
     salidaRotonda: Int? = null,
     via: String? = null,
+    compacto: Boolean = false,
 ) {
     val paleta = paletaBanner(variante)
+    if (compacto) {
+        BannerCompacto(variante, tipo, distanciaM, frase, modifier, salidaRotonda, via, paleta)
+        return
+    }
     val forma = ParalelogramoShape(SESGO)
     Row(
         modifier =
@@ -154,6 +161,60 @@ fun BannerManiobra(
             FilaFrase(frase, via, paleta)
             if (siguiente != null) FilaSiguiente(siguiente, variante, paleta)
         }
+    }
+}
+
+/**
+ * Variante baja para pantalla apaisada: una sola línea con icono, distancia y frase (y la placa de la vía); sin la
+ * maniobra siguiente, para dejar ver el mapa.
+ */
+@Composable
+@Suppress("LongParameterList") // mismos datos que el banner completo
+private fun BannerCompacto(
+    variante: VarianteManiobra,
+    tipo: TipoManiobra,
+    distanciaM: Double,
+    frase: String,
+    modifier: Modifier,
+    salidaRotonda: Int?,
+    via: String?,
+    paleta: PaletaBanner,
+) {
+    val forma = ParalelogramoShape(SESGO_COMPACTO)
+    Row(
+        modifier =
+            modifier
+                .testTag(ETIQUETA_BANNER)
+                .background(paleta.fondo, forma)
+                .border(2.dp, paleta.borde, forma)
+                .padding(start = SESGO_COMPACTO + 10.dp, end = SESGO_COMPACTO + 6.dp, top = 4.dp, bottom = 4.dp)
+                .semantics(mergeDescendants = true) {},
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconoManiobra(
+            tipo = tipo,
+            variante = variante,
+            tamano = TAMANO_ICONO_COMPACTO,
+            salidaRotonda = salidaRotonda,
+            decorativo = true,
+        )
+        Text(
+            text = formatearDistanciaManiobra(distanciaM),
+            modifier = Modifier.testTag(ETIQUETA_BANNER_DISTANCIA),
+            color = paleta.distancia,
+            style = MaterialTheme.typography.displaySmall.copy(fontSize = 28.sp, fontWeight = FontWeight.Black),
+            maxLines = 1,
+        )
+        Text(
+            text = frase,
+            modifier = Modifier.weight(1f).testTag(ETIQUETA_BANNER_FRASE),
+            color = paleta.frase,
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        if (via != null) PlacaCarretera(via, tamano = TamanoPlaca.PEQUENA)
     }
 }
 

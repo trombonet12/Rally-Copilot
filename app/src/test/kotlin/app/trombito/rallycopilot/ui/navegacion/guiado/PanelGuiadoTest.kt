@@ -23,6 +23,7 @@ import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_FRASE
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_SIGUIENTE
 import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
 import app.trombito.rallycopilot.ui.navegacion.notas.ETIQUETA_FRANJA_NOTAS
+import app.trombito.rallycopilot.ui.navegacion.notas.ETIQUETA_NOTA_PREFIJO
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
 import app.trombito.rallycopilot.ui.navegacion.notas.deNota
 import app.trombito.rallycopilot.ui.navegacion.notas.nota
@@ -230,6 +231,27 @@ class PanelGuiadoTest {
         assertTrue("banner arriba: $banner", banner.top < raiz.height / 4)
         assertTrue("pie abajo: $pie", pie.bottom > raiz.height * 3 / 4)
         assertTrue("pie sin tapar el centro: $pie", pie.right < centroX)
+    }
+
+    @Test
+    @Config(qualifiers = "w891dp-h411dp-xxhdpi")
+    fun `en horizontal el banner es de una linea, la franja de una fila y el pie no se solapa`() {
+        val notas =
+            NotasUiState(
+                listOf(visible(deNota(nota(4))), visible(deNota(nota(2))), visible(deNota(nota(5)))),
+            )
+        poner(estado(progreso()), notas = notas)
+        val banner = banco.conEtiqueta(ETIQUETA_BANNER).boundsInRoot
+        val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
+        val pie = banco.conEtiqueta(ETIQUETA_PIE_GUIADO).boundsInRoot
+        val raiz = banco.raiz().boundsInRoot
+        assertTrue("banner bajo (<= 60 dp): $banner", banner.height <= 60 * 3f)
+        assertFalse("sin fila de luego", banco.hay(ETIQUETA_BANNER_SIGUIENTE))
+        assertTrue("franja bajo el banner: $franja", franja.top >= banner.bottom)
+        assertTrue("franja de una fila (<= 56 dp): $franja", franja.height <= 56 * 3f)
+        assertFalse("sin tercera nota", banco.hay(ETIQUETA_NOTA_PREFIJO + 2))
+        assertTrue("el pie no se solapa con la franja: $pie vs $franja", pie.top >= franja.bottom)
+        assertTrue("banner + franja dejan libre el centro: $franja", franja.bottom < raiz.height * 0.4f)
     }
 
     @Test

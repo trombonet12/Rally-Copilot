@@ -358,7 +358,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         poner(libre, notas)
         val barra = banco.conEtiqueta(ETIQUETA_BUSCADOR).boundsInRoot
         val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
-        assertEquals("DERECHA 4 LARGA · 50", banco.textos(banco.conEtiqueta(ETIQUETA_NOTA_PREFIJO + 0)).single())
+        assertEquals("DERECHA 4 LARGA · 50", banco.textos(banco.conEtiqueta(ETIQUETA_NOTA_PREFIJO + 0)).single())
         assertTrue("la franja va bajo la barra: $franja vs $barra", franja.top >= barra.bottom)
         assertTrue("la franja ocupa todo el ancho: $franja", franja.width > 411 * 3 * 0.8f)
     }

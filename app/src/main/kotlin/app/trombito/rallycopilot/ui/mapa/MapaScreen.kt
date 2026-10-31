@@ -326,7 +326,7 @@ private fun CabeceraMapa(
             )
             // Sin búsqueda ni vista previa abiertas: lo que importa de la carretera y, si toca, retomar el guiado.
             if (navegacion.estado.busqueda is BusquedaDestino.Inactiva && navegacion.estado.vistaPrevia == null) {
-                FranjaNotas(navegacion.notas)
+                FranjaNotas(navegacion.notas, compacta = horizontal)
             }
             navegacion.estado.seguir?.let {
                 TarjetaSeguir(it, navegacion.acciones.onSeguir, navegacion.acciones.onDescartarSeguir)

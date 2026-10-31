@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.navegacion.notas
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -85,8 +86,8 @@ class FranjaNotasTest : FranjaNotasBase() {
     @Test
     fun `la primera nota va grande con su texto y distancia a la siguiente, las demas en pequeno y en orden`() {
         poner(tres)
-        assertEquals("DERECHA 4 LARGA · 50", textoFila(0))
-        assertEquals("IZQUIERDA 2 CIERRA · 30", textoFila(1))
+        assertEquals("DERECHA 4 LARGA · 50", textoFila(0))
+        assertEquals("IZQ 2 CIERRA · 30", textoFila(1))
         assertEquals("PUENTE", textoFila(2))
         val (grande, segunda, tercera) = (0..2).map { fila(it).boundsInRoot }
         assertTrue("la primera es más alta: $grande vs $segunda", grande.height > segunda.height * 1.2f)
@@ -125,7 +126,8 @@ class FranjaNotasTest : FranjaNotasBase() {
     @Test
     fun `cuidado va primero aunque lo pida un aviso unido y el texto sigue la frase del motor`() {
         poner(NotasUiState(listOf(visible(deNota(nota(3, siguienteM = 50), TipoAviso.BACHE), 60.0))))
-        assertEquals("CUIDADO, RESALTO, DERECHA 3 · 50", textoFila(0))
+        assertEquals("DERECHA 3 · 50", textoFila(0))
+        assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-BACHE"))
         assertEquals("cuidado, resalto, derecha tres, cincuenta, a 60 metros", banco.descripcion(fila(0)))
         assertTrue(banco.hay(ETIQUETA_NOTA_CUIDADO_PREFIJO + 0))
     }
@@ -134,14 +136,17 @@ class FranjaNotasTest : FranjaNotasBase() {
     fun `la nota de cuidado con un aviso unido no repite cuidado`() {
         val peligrosa = nota(1, Direccion.IZQUIERDA, cuidado = true)
         poner(NotasUiState(listOf(visible(deNota(peligrosa, TipoAviso.RASANTE, TipoAviso.CUIDADO), 90.0))))
-        assertEquals("CUIDADO, RASANTE, IZQUIERDA 1", textoFila(0))
+        assertEquals("IZQUIERDA 1", textoFila(0))
+        assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-RASANTE"))
+        assertTrue(banco.hay(ETIQUETA_NOTA_CUIDADO_PREFIJO + 0))
         assertEquals("cuidado, rasante, izquierda uno, a 90 metros", banco.descripcion(fila(0)))
     }
 
     @Test
     fun `una nota con puente dentro de la curva dice sobre puente`() {
         poner(NotasUiState(listOf(visible(deNotaSobrePuente(nota(3, siguienteM = 50))))))
-        assertEquals("DERECHA 3 SOBRE PUENTE · 50", textoFila(0))
+        assertEquals("DERECHA 3 · 50", textoFila(0))
+        assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-PUENTE"))
         assertEquals("derecha tres sobre puente, cincuenta, a 120 metros", banco.descripcion(fila(0)))
     }
 
@@ -156,7 +161,7 @@ class FranjaNotasTest : FranjaNotasBase() {
                 ),
             ),
         )
-        assertEquals("HORQUILLA DERECHA MUY LARGA · 40", textoFila(0))
+        assertEquals("HORQUILLA DERECHA MUY LARGA · 40", textoFila(0))
         assertEquals("CEDA EL PASO", textoFila(1))
         assertEquals("CUIDADO, RESALTO", textoFila(2))
         assertTrue(banco.descripcion(fila(2))!!.startsWith("cuidado, resalto"))
@@ -175,15 +180,15 @@ class FranjaNotasTest : FranjaNotasBase() {
             ),
         )
         assertEquals("DERECHA CERRADA", textoFila(0))
-        assertEquals("IZQUIERDA MEDIA", textoFila(1))
-        assertEquals("DERECHA SUAVE", textoFila(2))
+        assertEquals("IZQ MEDIA", textoFila(1))
+        assertEquals("DER SUAVE", textoFila(2))
         assertTrue(banco.descripcion(fila(1))!!.startsWith("izquierda media"))
     }
 
     @Test
     fun `la horquilla se escribe entera con su direccion`() {
         poner(NotasUiState(listOf(visible(deNota(nota(null, Direccion.IZQUIERDA, siguienteM = 40))))))
-        assertEquals("HORQUILLA IZQUIERDA · 40", textoFila(0))
+        assertEquals("HORQUILLA IZQUIERDA · 40", textoFila(0))
     }
 
     @Test
@@ -196,7 +201,8 @@ class FranjaNotasTest : FranjaNotasBase() {
     @Test
     fun `los avisos unidos a una nota van como iconos y en la frase hablada`() {
         poner(NotasUiState(listOf(visible(deNota(nota(3, Direccion.IZQUIERDA), TipoAviso.RASANTE), 80.0))))
-        assertEquals("RASANTE, IZQUIERDA 3", textoFila(0))
+        assertEquals("IZQUIERDA 3", textoFila(0))
+        assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-RASANTE"))
         assertEquals("rasante, izquierda tres, a 80 metros", banco.descripcion(fila(0)))
     }
 
@@ -206,6 +212,57 @@ class FranjaNotasTest : FranjaNotasBase() {
         assertEquals("derecha cuatro larga, cincuenta, a 120 metros", banco.descripcion(fila(0)))
         poner(NotasUiState(listOf(visible(deNota(nota(1)), distanciaM = -3.0))))
         assertTrue(banco.descripcion(fila(0))!!.endsWith("a 0 metros"))
+    }
+
+    @Test
+    fun `las tarjetas pequenas abrevian y la grande va completa`() {
+        poner(
+            NotasUiState(
+                listOf(
+                    visible(deNota(nota(null, Direccion.IZQUIERDA, setOf(Modificador.MUY_LARGA), siguienteM = 40))),
+                    visible(deNota(nota(null, Direccion.DERECHA, setOf(Modificador.MUY_LARGA), siguienteM = 40))),
+                    visible(deNota(nota(3, Direccion.IZQUIERDA, setOf(Modificador.CIERRA)))),
+                ),
+            ),
+        )
+        assertEquals("HORQUILLA IZQUIERDA MUY LARGA · 40", textoFila(0))
+        assertEquals("HORQ DER MUY LARGA · 40", textoFila(1))
+        assertEquals("IZQ 3 CIERRA", textoFila(2))
+        assertEquals("horquilla derecha muy larga, cuarenta, a 120 metros", banco.descripcion(fila(1)))
+    }
+
+    @Test
+    fun `un aviso suelto lleva su palabra y la curva con avisos solo lleva iconos`() {
+        poner(
+            NotasUiState(
+                listOf(
+                    visible(deNota(nota(2, Direccion.IZQUIERDA, cuidado = true), TipoAviso.CAMBIO_RASANTE)),
+                    visible(deAviso(TipoAviso.RASANTE)),
+                    visible(deAviso(TipoAviso.PUENTE)),
+                ),
+            ),
+        )
+        assertEquals("IZQUIERDA 2", textoFila(0))
+        assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-CAMBIO_RASANTE"))
+        assertTrue(banco.hay(ETIQUETA_NOTA_CUIDADO_PREFIJO + 0))
+        assertEquals("RASANTE", textoFila(1))
+        assertEquals("PUENTE", textoFila(2))
+        assertTrue(banco.etiquetas(ETIQUETA_NOTA_AVISO_PREFIJO + "1-").isEmpty())
+    }
+
+    @Test
+    fun `una nota larga con avisos no se recorta en la grande`() {
+        val larga = nota(null, Direccion.DERECHA, setOf(Modificador.MUY_LARGA), siguienteM = 50, cuidado = true)
+        poner(NotasUiState(listOf(visible(deNota(larga, TipoAviso.CAMBIO_RASANTE, TipoAviso.RASANTE)))))
+        assertEquals("HORQUILLA DERECHA MUY LARGA · 50", textoFila(0))
+        val textos = banco.nodos().filter { it.config.getOrNull(SemanticsProperties.Text) != null }
+        val resultados = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        for (n in textos) {
+            val accion = n.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action
+            accion?.invoke(resultados)
+        }
+        assertTrue("hay textos medidos", resultados.isNotEmpty())
+        assertTrue("el texto de la curva cabe sin recortar", resultados.none { it.hasVisualOverflow })
     }
 
     @Test
@@ -231,9 +288,22 @@ class FranjaNotasHorizontalTest : FranjaNotasBase() {
     fun `en horizontal sigue el mismo orden y cabe entera`() {
         poner(tres)
         val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
-        assertEquals("DERECHA 4 LARGA · 50", textoFila(0))
+        assertEquals("DERECHA 4 LARGA · 50", textoFila(0))
         assertTrue("la franja cabe en la pantalla: $franja", franja.right <= 891 * 3f && franja.bottom <= 411 * 3f / 2)
         assertTrue(fila(1).boundsInRoot.top >= fila(0).boundsInRoot.bottom)
         assertTrue(fila(1).boundsInRoot.right <= fila(2).boundsInRoot.left)
+    }
+
+    @Test
+    fun `en horizontal compacta va en una sola fila con la grande y la siguiente`() {
+        banco.poner { RallyCopilotTheme { FranjaNotas(tres, compacta = true) } }
+        assertEquals("DERECHA 4 LARGA · 50", textoFila(0))
+        assertEquals("IZQ 2 CIERRA · 30", textoFila(1))
+        assertFalse("sin tercera nota", banco.hay(ETIQUETA_NOTA_PREFIJO + 2))
+        val (primera, segunda) = (0..1).map { fila(it).boundsInRoot }
+        assertTrue("misma fila: $primera vs $segunda", segunda.left >= primera.right)
+        assertTrue("alineadas en vertical", kotlin.math.abs(primera.center.y - segunda.center.y) < 8 * 3f)
+        assertTrue("más baja que la grande vertical: $primera", primera.height < 48 * 3f + 16 * 3f)
+        assertTrue("la franja es baja: ${banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).size}", fila(0).size.height < 56 * 3)
     }
 }
