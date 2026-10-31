@@ -134,18 +134,19 @@ Generar automáticamente notas de rally completas a partir de la geometría y la
 - Fuera: voz, edición (H8), perfil por tramo (H6).
 
 ### Criterios de aceptación
-- [ ] Notas de la Ma-2141 (Sa Calobra) y de la Ma-10 (Sóller–Lluc) revisadas por `copiloto-reviewer`: la «corbata» de Sa Calobra sale como horquilla y las rectas largas no generan notas.
-- [ ] El mismo tramo genera las mismas notas siempre (determinista) y en < 1 s para 15 km.
-- [ ] La anticipación coloca cada nota a una distancia proporcional a la velocidad, desplazada por el nivel de usuario.
-- [ ] La franja de notas se ve en el emulador con `gps-replay` por la Ma-2141 (vertical y horizontal); en modo libre salen notas y se cortan en un cruce dudoso.
-- [ ] Tras matar el proceso a mitad de un guiado, al reabrir el mapa aparece «Seguir a <destino>» y retoma la ruta.
+- [x] Notas de la Ma-2141 (Sa Calobra) y de la Ma-10 (Sóller–Lluc) revisadas por `copiloto-reviewer`: la «corbata» de Sa Calobra sale como horquilla y las rectas largas no generan notas.
+- [x] El mismo tramo genera las mismas notas siempre (determinista) y en < 1 s para 15 km.
+- [x] La anticipación coloca cada nota a una distancia proporcional a la velocidad, desplazada por el nivel de usuario.
+- [x] La franja de notas se ve en el emulador con `gps-replay` por la Ma-2141 (vertical y horizontal); en modo libre salen notas y se cortan en un cruce dudoso (el corte, verificado con tests; en el emulador no apareció ningún cruce dudoso en la traza).
+- [x] Tras matar el proceso a mitad de un guiado, al reabrir el mapa aparece «Seguir a <destino>» y retoma la ruta.
 
 ### Tests
 - Motor (TDD): radio de arcos sintéticos, grado por radio y por velocidad de la vía, modificadores, encadenado, rasantes en perfiles sintéticos, distancias redondeadas, anticipación, simplificación.
 - Regresión: notas de las trazas de `docs/rutas/` guardadas como golden files.
 
 ### Estado
-en curso (2026-10-31) · Depende de: H1 (datos de vía y elevación), H2 (ruta) · Dudas: resueltas (2026-10-28 y 2026-10-31); el glosario se refina en H11
+completado (2026-10-31) · Depende de: H1 (datos de vía y elevación), H2 (ruta) · Dudas: 4 abiertas en QUESTIONS.md § Abiertas en H3; el glosario se refina en H11
+<!-- Hecho: datos `vias-notas` (etiquetas OSM + perfil MDT05 cada 5 m, 1 MB) en datos-2026.10.31-6; motor de notas (curvas por circunradio con histéresis, grados relativos al límite o a la velocidad calibrada, horquillas, larga/muy larga por ángulo, abre/cierra, «y», distancias, rasantes convexas, avisos OSM, cruces por rango, precaución, anticipación en 5 niveles, simplificadas, calibración global, predicción de vía en modo libre), revisado por copiloto-reviewer (opus) y calibrado; goldens de la Ma-2141 y la Ma-10 (8 ms para 15 km); notas en vivo en el servicio (guiado y libre); franja de notas bajo el banner con iconos roadbook; ajustes de anticipación y simplificadas (Room v4); «Seguir a <destino>» tras la muerte del proceso; pantalla de conducción rediseñada a petición de Joan (mapa inclinado 50° con el marcador abajo, banner a todo el ancho con placa, botones en el panel inferior, sin flecha de volver, horizontal compacto); distancia del recorrido con una sola regla y sin puntos parados; arreglo del «0 m» tras recálculo; glosario `docs/glosario.md`, skill `notas-calibrar` y `scripts/traza-desde-vias.py`. 519 tests JVM de app y 463 del motor. Capturas en docs/capturas/h3/. Pendiente: corte en cruce dudoso visto solo en tests; notas con ángulo < 10° de grado 5 algo ruidosas; «cruce, stop» al arrancar en el cruce de la Ma-2141; confirmar en el móvil con GPS real. -->
 
 ## H4 — Voz y modos del copiloto
 

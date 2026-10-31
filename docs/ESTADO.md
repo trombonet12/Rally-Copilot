@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H3 — Motor de notas |
-| Estado | **H3 en curso** (2026-10-31). Desde H3 los hitos se encadenan; se para al cerrar cada uno para push + versión y dudas |
+| Hito | H3 — Motor de notas (cerrado) · siguiente: H4 — Voz y modos del copiloto |
+| Estado | **H3 cerrado** (2026-10-31). Joan pidió parar hoy al acabar H3: H4 empieza en la próxima sesión tras su respuesta al cierre |
 | Último commit | ver `git log -1`. Push a `Rally-Copilot` solo cuando Joan lo pida (2026-10-31); al cerrar H2 pidió push + versión 0.2 |
 
 ## Completado
@@ -20,6 +20,7 @@
 - 2026-10-28 · `scripts/gps-replay.mjs` + traza real de la Ma-2141 ([rutas/](rutas/)), verificado en el emulador; `voice-lab/README.md` con dónde dejar el material de voz.
 - 2026-10-28 · **H1**: PRs #1 y #2 de Dependabot fusionados (con permiso). Repo público [`trombonet12/rally-copilot-data`](https://github.com/trombonet12/rally-copilot-data) con workflow mensual (decidir → build sin token → publicar) y release `datos-2026.10.28-2`. Motor: manifest, plan de descarga, vías/límites, velocidad. App: MapLibre 13.6.1, Room, WorkManager, descarga reanudable verificada, GPS sin GMS, mapa vectorial/satélite, velocidad y límite, Mapas offline, Ajustes/Acerca de. Revisión de seguridad aplicada. Capturas en [capturas/h1/](capturas/h1/).
 
+- 2026-10-31 · **H3**: motor de notas completo y calibrado con `copiloto-reviewer`, `vias-notas` (datos-2026.10.31-6), notas en vivo en guiado y libre, franja de notas, ajustes de anticipación y simplificadas (Room v4), «Seguir a», pantalla de conducción rediseñada (mapa inclinado, botones abajo, horizontal compacto). Capturas en [capturas/h3/](capturas/h3/).
 - 2026-10-31 · **H2**: navegación offline completa (Valhalla en el dispositivo, búsqueda, coordenadas y enlaces —los cortos con red—, Más rápida/Sinuosa, banner WRC con 3 variantes elegibles —B por defecto—, pie con llegada/tiempo/km, recálculo y sentido contrario, modo libre automático que graba el recorrido, servicio en primer plano) y mapa a gusto de Joan (menú de capas con iconos, relieve y curvas MDT05, zoom por velocidad, brújula, 4 iconos de posición, placas por matrícula en mapa y panel, pantalla encendida). Icono de la app centrado. Room v3. Revisión opus aplicada. Datos `datos-2026.10.31-5`. Capturas en [capturas/h2/](capturas/h2/).
 ## Entorno
 | Pieza | Valor |
@@ -34,6 +35,7 @@
 - `assembleRelease` sin firma → falla con «Release sin firma: faltan las variables RALLY_*» (esperado).
 - Scripts: `check-claude-assets`, `gen-claude-index --check`, `check-docs`, `test-hooks` (88 OK), `node --test` de `play-promocionar` (11) y `gps-replay` (8) → verde. `actionlint` sin errores.
 - Emulador: APK debug instalado; inicio, icono y splash verificados con capturas; `gps-replay` fija la posición `gps` en la Ma-2141.
+- H3 (2026-10-31): gate verde con 519 tests JVM de app y 463 del motor; scripts y hooks (88 OK) en verde. Emulador `trombito-36` y `rally-sin-gms-36`: guiado y libre con notas, Seguir a tras `force-stop`, horizontal, ajustes.
 - H2 (2026-10-31): gate verde con 398 tests JVM de app y 233 del motor; scripts y hooks (88 OK) en verde. Emulador `trombito-36` y `rally-sin-gms-36`: rutas, búsqueda, guiado por la Ma-2141, pantalla apagada 6 min, capas, iconos, placas, galería WRC, horizontal.
 - H1 (2026-10-28): gate verde con 174 tests JVM de app y 82 del motor; `rally-copilot-data`: 5 tests de scripts + actionlint. Emulador `trombito-36` y `rally-sin-gms-36`: descarga real, corte de WiFi y reanudación, modo avión, Ma-2141 a 50 km/h con límite 90/30/sin dato, satélite, horizontal y spike `mbtiles://`.
 
@@ -68,4 +70,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H3 en curso. Hecho: datos `vias-notas` (release `datos-2026.10.31-6`), motor de notas completo (curvas, grados, modificadores, rasantes, avisos, cruces, precaución, anticipación, calibración, predicción de vía), notas en vivo en el servicio, franja, ajustes, «Seguir a», pantalla de conducción rediseñada (mapa inclinado, botones abajo), arreglo del «0 m». Falta: aplicar la revisión de `copiloto-reviewer`, verificación E2E en el emulador (guiado, libre con cruce dudoso, «Seguir a» tras matar el proceso, horizontal, sin GMS), gate completo y cierre (push + v0.3 con OK de Joan).
+- **Agente:** H3 cerrado. Al volver: si Joan aprobó, push + v0.3 (commit de versión ya preparado en local) y comprobar la release; después `hito start H4` (voz: `dependency-add` de sherpa-onnx, voces Piper davefx/sharvard, clips pregenerados en Actions, modos, ducking, frases de maniobra y notas por voz).
