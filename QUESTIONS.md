@@ -6,7 +6,7 @@ Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuest
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **1 abierta** (H2) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **0 abiertas** · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
 ## Abiertas en H2
 
@@ -17,6 +17,7 @@ Estado: **1 abierta** (H2) · 22 respondidas (2026-10-28, en el chat). Las respu
 - **Recomendación:** A (sigo con A mientras no respondas): no deja la notificación ni graba sin que lo pidas.
 
 ### Enlaces cortos de Google Maps (`maps.app.goo.gl`)
+- **Respondida 2026-10-31:** **A**: con red se resuelve la redirección; sin red, aviso.
 - **Contexto:** no llevan coordenadas; hay que seguir la redirección por internet. La app es offline por defecto.
 - **Opciones:** A) con red se resuelve la redirección (una petición a Google) y sin red se avisa; B) nunca se resuelven: se pide pegar el enlace completo o las coordenadas.
 - **Recomendación:** B en H2 (sin peticiones a terceros); A más adelante si lo usas a menudo. Sigo con B.
