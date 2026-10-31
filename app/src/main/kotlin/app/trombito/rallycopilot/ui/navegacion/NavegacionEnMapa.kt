@@ -19,7 +19,6 @@ data class AccionesNavegacion(
     val onPerfil: (PerfilRuta) -> Unit = {},
     val onEmpezar: () -> Unit = {},
     val onTerminar: () -> Unit = {},
-    val onConducirLibre: () -> Unit = {},
 )
 
 /**

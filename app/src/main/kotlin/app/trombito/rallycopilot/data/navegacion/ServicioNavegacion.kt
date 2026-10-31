@@ -93,7 +93,12 @@ class ServicioNavegacion : Service() {
             control.terminar()
         } else if (entrarEnPrimerPlano()) {
             val solicitud = control.tomarSolicitud()
-            if (solicitud == null) detener() else iniciar(solicitud.id, solicitud.solicitud)
+            // Sin solicitud pero con una sesión viva: otro arranque ya recogió la solicitud (dos seguidos); no parar.
+            if (solicitud != null) {
+                iniciar(solicitud.id, solicitud.solicitud)
+            } else if (trabajo?.isActive != true) {
+                detener()
+            }
         }
         return START_NOT_STICKY
     }
@@ -137,11 +142,8 @@ class ServicioNavegacion : Service() {
                 sesion.correr(solicitud)
             }
         nuevo.invokeOnCompletion { causa ->
-            if (causa ==
-                null
-            ) {
-                ContextCompat.getMainExecutor(this).execute { detener() }
-            }
+            // Solo la sesión vigente para el servicio: si otra la sustituyó entre medias, `trabajo` ya es la nueva.
+            if (causa == null) ContextCompat.getMainExecutor(this).execute { if (trabajo === nuevo) detener() }
         }
         trabajo = nuevo
     }

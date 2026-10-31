@@ -23,7 +23,6 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
 
-const val ETIQUETA_CONDUCIR_LIBRE = "nav-conducir-libre"
 const val ETIQUETA_EMPEZAR = "nav-empezar"
 const val ETIQUETA_CANCELAR = "nav-cancelar"
 const val ETIQUETA_TERMINAR = "nav-terminar"
@@ -31,19 +30,6 @@ const val ETIQUETA_TERMINAR = "nav-terminar"
 private val LADO_ACCION = 56.dp
 private val ANCHO_EMPEZAR = 88.dp
 private const val OPACIDAD_DESHABILITADO = 0.38f
-
-/** Icono de volante junto a la barra: empieza la conducción libre (sin destino). */
-@Composable
-fun BotonConducirLibre(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    BotonIcono(
-        descripcion = stringResource(R.string.navegacion_ui_conducir_libre),
-        onClick = onClick,
-        modifier = modifier.testTag(ETIQUETA_CONDUCIR_LIBRE),
-    ) { Icon(Iconos.Volante, contentDescription = null) }
-}
 
 /** Cancela la vista previa de rutas. */
 @Composable

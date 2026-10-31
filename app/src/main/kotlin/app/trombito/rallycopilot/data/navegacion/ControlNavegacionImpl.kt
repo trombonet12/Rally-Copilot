@@ -74,7 +74,12 @@ class ControlNavegacionImpl
             inicial: EstadoNavegacion,
         ) {
             val actual = _estado.value
-            if (actual is EstadoNavegacion.Libre || actual is EstadoNavegacion.Guiando) return
+            // Una sesión activa solo se sustituye por otra de distinto tipo (Libre <-> Guiando): el servicio sigue
+            // vivo, recibe otro arranque con id nuevo y cierra el recorrido anterior antes de abrir el siguiente.
+            val misma =
+                (actual is EstadoNavegacion.Libre && solicitud is SolicitudNavegacion.Libre) ||
+                    (actual is EstadoNavegacion.Guiando && solicitud is SolicitudNavegacion.Guiada)
+            if (misma) return
             if (!fuente.tienePermiso()) {
                 _estado.value = EstadoNavegacion.Error(contexto.getString(R.string.navegacion_error_permiso))
                 return
@@ -103,6 +108,8 @@ class ControlNavegacionImpl
             Log.w(ETIQUETA, "No se pudo arrancar el servicio de conducción: ${e.javaClass.simpleName}")
             pendiente = null
             publicar(id, EstadoNavegacion.Error(contexto.getString(R.string.navegacion_error_arranque)))
+            // Si sustituía a una sesión con el servicio vivo, que no siga grabando bajo un estado de Error.
+            contexto.stopService(Intent(contexto, ServicioNavegacion::class.java))
         }
 
         /** El servicio recoge la solicitud al arrancar; null si el proceso se reinició y ya no hay nada que hacer. */

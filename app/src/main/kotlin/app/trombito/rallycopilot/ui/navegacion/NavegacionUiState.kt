@@ -84,18 +84,18 @@ data class NavegacionUiState(
     /** El estado de la conducción, tal cual lo publica el servicio. */
     val control: EstadoNavegacion = EstadoNavegacion.Inactiva,
 ) {
-    /** Sin conducción en marcha: se puede buscar destino y ver rutas. */
-    val enReposo: Boolean get() = control is EstadoNavegacion.Inactiva
+    /** Sin destino en marcha (parado o en modo libre): se puede buscar destino y ver rutas. */
+    val enReposo: Boolean get() = control is EstadoNavegacion.Inactiva || control is EstadoNavegacion.Libre
 
-    /** Guiando o en modo libre: hay un botón para terminar. */
-    val conduciendo: Boolean get() = control is EstadoNavegacion.Guiando || control is EstadoNavegacion.Libre
+    /** Guiando hacia un destino: hay una bandera para terminar. En modo libre no hay botón (para al salir del mapa). */
+    val conduciendo: Boolean get() = control is EstadoNavegacion.Guiando
 
     /** La ruta que se dibuja en el mapa: la elegida en la vista previa o la del guiado. */
     val rutaEnMapa: Ruta?
         get() =
             when (control) {
                 is EstadoNavegacion.Guiando -> control.ruta
-                is EstadoNavegacion.Inactiva -> vistaPrevia?.rutaElegida
+                is EstadoNavegacion.Inactiva, is EstadoNavegacion.Libre -> vistaPrevia?.rutaElegida
                 else -> null
             }
 
@@ -104,7 +104,7 @@ data class NavegacionUiState(
         get() =
             when (control) {
                 is EstadoNavegacion.Guiando -> control.destino.punto
-                is EstadoNavegacion.Inactiva -> vistaPrevia?.destino?.punto
+                is EstadoNavegacion.Inactiva, is EstadoNavegacion.Libre -> vistaPrevia?.destino?.punto
                 else -> null
             }
 

@@ -33,7 +33,7 @@ const val ETIQUETA_ERROR_CERRAR = "nav-error-cerrar"
 private const val OPACIDAD_SOBRE_MAPA = 0.94f
 private val ANCHO_MAXIMO_AVISO = 520.dp
 
-/** Barra «¿A dónde?» con el botón de conducir sin destino a su lado; va dentro de la fila de la cabecera. */
+/** Barra «¿A dónde?»; va dentro de la fila de la cabecera. */
 @Composable
 fun RowScope.CabeceraBusqueda(
     estado: NavegacionUiState,
@@ -46,11 +46,6 @@ fun RowScope.CabeceraBusqueda(
         onLimpiar = acciones.onCancelar,
         modifier = Modifier.weight(1f),
     )
-    // Con una vista previa abierta ya hay destino: el modo libre no pinta nada.
-    if (estado.vistaPrevia == null) {
-        Spacer(Modifier.width(Espacio.s))
-        BotonConducirLibre(acciones.onConducirLibre)
-    }
 }
 
 /** Lo que va abajo en el mapa según la fase: vista previa, aviso de llegada o aviso de error. */
@@ -62,7 +57,7 @@ fun PanelInferiorNavegacion(
     modifier: Modifier = Modifier,
 ) {
     when (val control = estado.control) {
-        is EstadoNavegacion.Inactiva -> {
+        is EstadoNavegacion.Inactiva, is EstadoNavegacion.Libre -> {
             estado.vistaPrevia?.let { PanelVistaPrevia(it, acciones, horizontal, modifier) }
         }
 

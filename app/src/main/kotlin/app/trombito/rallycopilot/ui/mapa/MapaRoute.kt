@@ -35,7 +35,12 @@ fun MapaRoute(
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     val navegacion by navegacionViewModel.uiState.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
-    LaunchedEffect(permiso.estado) { viewModel.onPermisoUbicacion(permiso.estado == EstadoPermisoUbicacion.CONCEDIDO) }
+    LaunchedEffect(permiso.estado) {
+        val concedido = permiso.estado == EstadoPermisoUbicacion.CONCEDIDO
+        viewModel.onPermisoUbicacion(concedido)
+        // El modo libre arranca solo al abrir el mapa con permiso (o al concederlo) y se para al salir (onCleared).
+        navegacionViewModel.onPermisoUbicacion(concedido)
+    }
     LaunchedEffect(estado.posicion) { navegacionViewModel.onPosicion(estado.posicion?.punto) }
     SeguimientoSegunVistaPrevia(navegacion.encuadrar, viewModel)
     val ruta = rutaParaMapa(navegacion)
@@ -104,7 +109,6 @@ private fun accionesNavegacion(vm: NavegacionViewModel) =
         onPerfil = vm::elegirPerfil,
         onEmpezar = vm::empezar,
         onTerminar = vm::terminar,
-        onConducirLibre = vm::conducirLibre,
     )
 
 /** La ruta del guiado o de la vista previa lista para pintar; conserva la instancia mientras no cambien los puntos. */

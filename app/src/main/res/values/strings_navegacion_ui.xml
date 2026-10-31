@@ -3,7 +3,6 @@
     <!-- Barra de destino -->
     <string name="navegacion_ui_donde">¿A dónde?</string>
     <string name="navegacion_ui_limpiar">Borrar la búsqueda</string>
-    <string name="navegacion_ui_conducir_libre">Conducir sin destino</string>
     <string name="navegacion_ui_sin_resultados">Sin resultados en Mallorca</string>
     <string name="navegacion_ui_enlace_corto">Los enlaces cortos necesitan red; pega el enlace completo o las coordenadas</string>
     <string name="navegacion_ui_ubicacion_pegada">Ubicación pegada</string>

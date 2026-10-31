@@ -52,7 +52,6 @@ abstract class NavegacionEnMapaBase {
     protected var empezadas = 0
     protected var terminadas = 0
     protected var canceladas = 0
-    protected var libres = 0
     protected var panelesGuiado = 0
 
     private val acciones =
@@ -63,7 +62,6 @@ abstract class NavegacionEnMapaBase {
             onPerfil = { perfiles += it },
             onEmpezar = { empezadas++ },
             onTerminar = { terminadas++ },
-            onConducirLibre = { libres++ },
         )
 
     private val panelGuiado: PanelGuiado = { _, _ ->
@@ -113,25 +111,14 @@ abstract class NavegacionEnMapaBase {
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
 class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     @Test
-    fun `en reposo hay barra de destino y boton de conducir sin destino`() {
+    fun `en reposo hay barra de destino y ningun boton de terminar ni de volante`() {
         poner(NavegacionUiState())
         assertTrue(banco.hay(ETIQUETA_BUSCADOR))
-        assertTrue(banco.hay(ETIQUETA_CONDUCIR_LIBRE))
         assertTrue("¿A dónde?" in banco.todosLosTextos())
         assertFalse(banco.hay(ETIQUETA_VISTA_PREVIA))
         assertFalse(banco.hay(ETIQUETA_TERMINAR))
         assertFalse(banco.hay(ETIQUETA_RESULTADOS))
-    }
-
-    @Test
-    fun `el boton de conducir sin destino es un icono descrito de al menos 48 dp`() {
-        poner(NavegacionUiState())
-        val nodo = banco.conEtiqueta(ETIQUETA_CONDUCIR_LIBRE)
-        assertTrue(banco.textos(nodo).isEmpty())
-        assertEquals("Conducir sin destino", banco.descripcion(nodo))
-        assertTrue(nodo.size.width >= 48 * 3 && nodo.size.height >= 48 * 3)
-        banco.pulsar(nodo)
-        assertEquals(1, libres)
+        assertFalse("Conducir sin destino" in banco.nodos().mapNotNull { banco.descripcion(it) })
     }
 
     @Test
@@ -199,8 +186,6 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         val sinuosa = banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA))
         assertEquals(listOf("23 min", "18,4 km"), rapida)
         assertEquals(listOf("1 h 15 min", "24,0 km"), sinuosa)
-        // Sin lista de resultados ni boton de conducir sin destino durante la vista previa.
-        assertFalse(banco.hay(ETIQUETA_CONDUCIR_LIBRE))
     }
 
     @Test
@@ -256,7 +241,6 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         assertTrue(banco.hay(ETIQUETA_TERMINAR))
         assertTrue(banco.hay(ETIQUETA_PANEL_GUIADO))
         assertFalse(banco.hay(ETIQUETA_BUSCADOR))
-        assertFalse(banco.hay(ETIQUETA_CONDUCIR_LIBRE))
         val bandera = banco.conEtiqueta(ETIQUETA_TERMINAR)
         assertTrue(banco.textos(bandera).isEmpty())
         assertEquals("Terminar", banco.descripcion(bandera))
@@ -266,11 +250,20 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     }
 
     @Test
-    fun `en modo libre hay terminar pero no panel de guiado`() {
+    fun `en modo libre hay barra de destino pero ni bandera de terminar ni panel de guiado`() {
         poner(NavegacionUiState(control = EstadoNavegacion.Libre(0L, 0.0)))
-        assertTrue(banco.hay(ETIQUETA_TERMINAR))
+        assertTrue(banco.hay(ETIQUETA_BUSCADOR))
+        assertFalse(banco.hay(ETIQUETA_TERMINAR))
         assertFalse(banco.hay(ETIQUETA_PANEL_GUIADO))
         assertEquals(0, panelesGuiado)
+    }
+
+    @Test
+    fun `en modo libre se puede ver la vista previa de rutas y empezar`() {
+        poner(vistaPrevia(*dosRutas).copy(control = EstadoNavegacion.Libre(0L, 0.0)))
+        assertTrue(banco.hay(ETIQUETA_VISTA_PREVIA))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_EMPEZAR))
+        assertEquals(1, empezadas)
     }
 
     @Test

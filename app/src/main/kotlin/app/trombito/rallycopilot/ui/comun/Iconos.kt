@@ -121,15 +121,6 @@ object Iconos {
         )
     }
 
-    /** Volante: conducir sin destino. */
-    val Volante: ImageVector by lazy {
-        icono(
-            "Volante",
-            "M12,2 A10,10 0 1,1 12,22 A10,10 0 1,1 12,2Z M12,4 A8,8 0 1,0 12,20 A8,8 0 1,0 12,4Z " +
-                "M3,11 H21 V13 H3Z M11,13 H13 V21 H11Z M12,9 A3,3 0 1,1 12,15 A3,3 0 1,1 12,9Z",
-        )
-    }
-
     /** Triángulo de play: empezar la ruta. */
     val Empezar: ImageVector by lazy {
         icono("Empezar", "M8,5 V19 L19,12Z")

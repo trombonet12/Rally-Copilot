@@ -51,12 +51,13 @@ class NavegacionViewModel
         private val busqueda = MutableStateFlow<BusquedaDestino>(BusquedaDestino.Inactiva)
         private val vistaPrevia = MutableStateFlow<VistaPrevia?>(null)
         private var posicion: PuntoGeo? = null
+        private var permiso: Boolean? = null
         private var calculo: Job? = null
 
         val uiState: StateFlow<NavegacionUiState> =
             combine(texto, busqueda, vistaPrevia, control.estado) { t, b, v, c ->
-                // Con una conducción en marcha (o su aviso final) no hay búsqueda ni vista previa.
-                val reposo = c is EstadoNavegacion.Inactiva
+                // Guiando (o con su aviso final) no hay búsqueda ni vista previa; en modo libre sí.
+                val reposo = c is EstadoNavegacion.Inactiva || c is EstadoNavegacion.Libre
                 NavegacionUiState(
                     texto = t,
                     busqueda = if (reposo) b else BusquedaDestino.Inactiva,
@@ -86,7 +87,10 @@ class NavegacionViewModel
             consulta.value = nuevo
             if (nuevo.trim().length < LONGITUD_MINIMA_BUSQUEDA) busqueda.value = BusquedaDestino.Inactiva
             // Editar el texto abandona la vista previa y vuelve a la búsqueda.
-            if (vistaPrevia.value != null) cerrarVistaPrevia()
+            if (vistaPrevia.value != null) {
+                calculo?.cancel()
+                vistaPrevia.value = null
+            }
         }
 
         fun elegirDestino(destino: Destino) {
@@ -107,17 +111,37 @@ class NavegacionViewModel
             control.empezar(previa.destino, previa.perfil, ruta)
         }
 
-        fun conducirLibre() {
-            cancelar()
-            control.empezarLibre()
+        /**
+         * La pantalla informa del permiso de ubicación (preciso). Con el mapa abierto la sesión de reposo es el modo
+         * libre: arranca al abrir con permiso o en cuanto se concede, y no se repite al girar la pantalla (la
+         * pantalla se recompone, este ViewModel no).
+         */
+        fun onPermisoUbicacion(concedido: Boolean) {
+            if (permiso == concedido) return
+            permiso = concedido
+            if (concedido) {
+                val actual = control.estado.value
+                if (actual is EstadoNavegacion.Inactiva || actual is EstadoNavegacion.Error) control.empezarLibre()
+            }
         }
 
-        /** Termina la conducción (también cierra el aviso de llegada o de error). */
-        fun terminar() = control.terminar()
+        /**
+         * Termina el guiado (o cierra el aviso de llegada o de error) y vuelve al modo libre si hay permiso; sin él,
+         * para todo. El servicio no se para entre medias: el modo libre sustituye a la sesión.
+         */
+        fun terminar() {
+            if (permiso == true) control.empezarLibre() else control.terminar()
+        }
+
+        /** Al salir del mapa (o cerrar la app) se para todo, también el guiado. */
+        override fun onCleared() {
+            if (control.estado.value !is EstadoNavegacion.Inactiva) control.terminar()
+        }
 
         /** Borra el campo y cancela la vista previa si la hay. */
         fun cancelar() {
-            cerrarVistaPrevia()
+            calculo?.cancel()
+            vistaPrevia.value = null
             texto.value = ""
             consulta.value = ""
             busqueda.value = BusquedaDestino.Inactiva
@@ -137,11 +161,6 @@ class NavegacionViewModel
                         }
                     }
                 }
-        }
-
-        private fun cerrarVistaPrevia() {
-            calculo?.cancel()
-            vistaPrevia.value = null
         }
     }
 

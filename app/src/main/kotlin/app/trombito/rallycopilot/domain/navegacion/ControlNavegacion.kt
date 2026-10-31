@@ -42,12 +42,17 @@ sealed interface EstadoNavegacion {
  * Arranca y para la conducción. Empezar lanza el servicio en primer plano de ubicación (solo desde la app visible: lo
  * pide la UI tras una acción del usuario). La ruta inicial ya viene calculada por la vista previa; los recálculos los
  * hace el servicio al salirse de la ruta.
+ *
+ * Con el mapa abierto siempre hay una sesión: el modo libre es la de reposo y un destino la sustituye (y al revés), sin
+ * parar el servicio. Una sesión nueva cierra el recorrido de la anterior con la regla de siempre (< 1 km se descarta).
  */
 interface ControlNavegacion {
     val estado: StateFlow<EstadoNavegacion>
 
+    /** Empieza el modo libre; sustituye a un guiado en curso y no hace nada si ya está en libre. */
     fun empezarLibre()
 
+    /** Empieza el guiado; sustituye al modo libre y no hace nada si ya se está guiando. */
     fun empezar(
         destino: Destino,
         perfil: PerfilRuta,

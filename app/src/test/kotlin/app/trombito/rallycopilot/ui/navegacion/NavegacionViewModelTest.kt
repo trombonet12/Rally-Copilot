@@ -1,5 +1,8 @@
 package app.trombito.rallycopilot.ui.navegacion
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
@@ -303,26 +306,170 @@ class NavegacionViewModelTest {
         }
 
     @Test
-    fun `conducir sin destino empieza el modo libre`() =
+    fun `al abrir el mapa con permiso empieza el modo libre`() =
         runTest {
             val vm = crear()
             recoger(vm)
-            vm.conducirLibre()
+            vm.onPermisoUbicacion(true)
             assertEquals(1, control.libres)
             assertTrue(vm.uiState.value.control is EstadoNavegacion.Libre)
-            assertTrue(vm.uiState.value.conduciendo)
+            // En libre no hay bandera de terminar y sigue la búsqueda de destino.
+            assertFalse(vm.uiState.value.conduciendo)
+            assertTrue(vm.uiState.value.enReposo)
             assertNull(vm.uiState.value.rutaEnMapa)
         }
 
     @Test
-    fun `terminar para la conduccion y vuelve a reposo`() =
+    fun `sin permiso no hace nada y al concederlo empieza el modo libre`() =
         runTest {
             val vm = crear()
             recoger(vm)
-            vm.conducirLibre()
+            vm.onPermisoUbicacion(false)
+            assertEquals(0, control.libres)
+            assertEquals(EstadoNavegacion.Inactiva, vm.uiState.value.control)
+            vm.onPermisoUbicacion(true)
+            assertEquals(1, control.libres)
+            assertTrue(vm.uiState.value.control is EstadoNavegacion.Libre)
+        }
+
+    @Test
+    fun `tras un error al abrir el mapa se reintenta el modo libre`() =
+        runTest {
+            control.publicar(EstadoNavegacion.Error("viejo"))
+            val vm = crear()
+            recoger(vm)
+            vm.onPermisoUbicacion(true)
+            assertEquals(1, control.libres)
+            assertTrue(vm.uiState.value.control is EstadoNavegacion.Libre)
+        }
+
+    @Test
+    fun `girar la pantalla no reinicia ni para el modo libre`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            vm.onPermisoUbicacion(true)
+            // La actividad se recrea: la composición nueva repite el aviso de permiso y el ViewModel sigue vivo.
+            recoger(vm)
+            vm.onPermisoUbicacion(true)
+            assertEquals(1, control.libres)
+            assertEquals(0, control.terminadas)
+            assertTrue(vm.uiState.value.control is EstadoNavegacion.Libre)
+        }
+
+    @Test
+    fun `girar la pantalla con un error visible no lo borra`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            vm.onPermisoUbicacion(true)
+            control.publicar(EstadoNavegacion.Error("Se ha perdido la señal GPS."))
+            vm.onPermisoUbicacion(true)
+            assertEquals(1, control.libres)
+            assertEquals(EstadoNavegacion.Error("Se ha perdido la señal GPS."), vm.uiState.value.control)
+        }
+
+    @Test
+    fun `empezar un destino desde el modo libre lo sustituye por el guiado`() =
+        runTest {
+            rutasOk()
+            val vm = crear()
+            recoger(vm)
+            vm.onPermisoUbicacion(true)
+            vm.onPosicion(PALMA)
+            vm.elegirDestino(destino)
+            // En libre se ve la vista previa de rutas.
+            assertNotNull(vm.uiState.value.vistaPrevia)
+            assertTrue(vm.uiState.value.encuadrar)
+            vm.empezar()
+            assertEquals(1, control.empezadas.size)
+            assertTrue(vm.uiState.value.control is EstadoNavegacion.Guiando)
+            assertNull(vm.uiState.value.vistaPrevia)
+            assertTrue(vm.uiState.value.conduciendo)
+            assertEquals(0, control.terminadas)
+        }
+
+    @Test
+    fun `terminar el guiado vuelve al modo libre sin parar el servicio`() =
+        runTest {
+            rutasOk()
+            val vm = crear()
+            recoger(vm)
+            vm.onPermisoUbicacion(true)
+            vm.onPosicion(PALMA)
+            vm.elegirDestino(destino)
+            vm.empezar()
+            vm.terminar()
+            assertEquals(2, control.libres)
+            assertEquals(0, control.terminadas)
+            assertTrue(vm.uiState.value.control is EstadoNavegacion.Libre)
+            assertFalse(vm.uiState.value.conduciendo)
+        }
+
+    @Test
+    fun `cerrar la llegada vuelve al modo libre`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            vm.onPermisoUbicacion(true)
+            control.publicar(EstadoNavegacion.Llegada(destino))
+            vm.terminar()
+            assertTrue(vm.uiState.value.control is EstadoNavegacion.Libre)
+        }
+
+    @Test
+    fun `terminar sin permiso para todo`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            control.publicar(EstadoNavegacion.Error("x"))
             vm.terminar()
             assertEquals(1, control.terminadas)
-            assertTrue(vm.uiState.value.enReposo)
+            assertEquals(0, control.libres)
+            assertEquals(EstadoNavegacion.Inactiva, vm.uiState.value.control)
+        }
+
+    @Test
+    fun `al salir del mapa se para el modo libre`() =
+        runTest {
+            val almacen = ViewModelStore()
+            val vm = ViewModelProvider(almacen, fabrica()).get(NavegacionViewModel::class.java)
+            recoger(vm)
+            vm.onPermisoUbicacion(true)
+            almacen.clear()
+            assertEquals(1, control.terminadas)
+            assertEquals(EstadoNavegacion.Inactiva, control.estado.value)
+        }
+
+    @Test
+    fun `al salir del mapa tambien se para el guiado`() =
+        runTest {
+            rutasOk()
+            val almacen = ViewModelStore()
+            val vm = ViewModelProvider(almacen, fabrica()).get(NavegacionViewModel::class.java)
+            recoger(vm)
+            vm.onPermisoUbicacion(true)
+            vm.onPosicion(PALMA)
+            vm.elegirDestino(destino)
+            vm.empezar()
+            almacen.clear()
+            assertEquals(1, control.terminadas)
+            assertEquals(EstadoNavegacion.Inactiva, control.estado.value)
+        }
+
+    @Test
+    fun `al salir del mapa sin nada en marcha no se toca el control`() =
+        runTest {
+            val almacen = ViewModelStore()
+            ViewModelProvider(almacen, fabrica()).get(NavegacionViewModel::class.java)
+            almacen.clear()
+            assertEquals(0, control.terminadas)
+        }
+
+    private fun fabrica() =
+        object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = crear() as T
         }
 
     @Test
