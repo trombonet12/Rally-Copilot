@@ -6,7 +6,19 @@ Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuest
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **0 abiertas** · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **2 abiertas** (H3) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+
+## Abiertas en H3
+
+### Franja de notas en modo libre
+- **Contexto:** en guiado la franja va bajo el banner de maniobra; en libre no hay banner y va bajo la barra «¿A dónde?» (captura `docs/capturas/h3/05-franja-notas-libre.png`).
+- **Opciones:** A) bajo la barra (como ahora); B) encima de la barra, arriba del todo; C) ocultar la barra mientras hay notas y mostrarla al tocar el mapa.
+- **Recomendación:** A; la barra es pequeña y la franja queda a la misma altura que en guiado.
+
+### Distancia hasta la nota en la franja
+- **Contexto:** la franja enseña «DERECHA 3 LARGA · 50» (50 = distancia a la siguiente nota, como la cantaría el copiloto) y resalta la nota cuando toca leerla; la distancia desde el coche hasta la nota solo la dice TalkBack.
+- **Opciones:** A) no mostrarla (como un roadbook); B) mostrarla pequeña en la primera nota («en 120 m»).
+- **Recomendación:** A, para no mezclar dos distancias en la misma tarjeta.
 
 ## Respondidas al empezar H3 (2026-10-31, en el chat)
 - **Notas en texto (H3):** franja bajo el banner de maniobra con las 2–3 notas siguientes en estilo roadbook WRC (la primera grande). Alternativas: nota grande en lugar del banner, columna lateral.

@@ -49,9 +49,8 @@
 - APK debug de 63 MB por las librerías nativas de MapLibre en 4 ABI; valorar splits por ABI antes de H12.
 
 - `gps-replay`: al acabar la traza el emulador sigue repitiendo la última posición con velocidad; para simular GPS perdido, `adb shell cmd location set-location-enabled false`.
-- Tras algunos recálculos el banner muestra una primera maniobra a «0 m» un instante (visto en el emulador al saltar con `geo fix`); revisar en H3 con una traza real.
 - `adb shell input text` no teclea acentos (buscar «Soller»).
-- Banner de maniobra: frases largas se recortan («cruce, izquierda, Ma…»); en H3/H10 mostrar la placa en vez del ref.
+- Franja de notas: en las tarjetas pequeñas el texto largo se recorta («DERECHA 3 MU…»); dirección y grado se conservan.
 - `Log.w` se conserva en release: no registrar nunca coordenadas ni URLs (solo el tipo de excepción).
 ## Decisiones recientes
 - Ver [DECISIONES.md](DECISIONES.md) § Decisiones del usuario, § Base técnica e § Investigaciones previas.
@@ -69,4 +68,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H3 en curso según el plan aprobado (datos `vias-notas` ‖ motor de notas → app: franja, modo libre, ajustes, «Seguir a», placa en banner). v0.2.0 publicada (release en GitHub con APK, AAB y checksums).
+- **Agente:** H3 en curso. Hecho: datos `vias-notas` (release `datos-2026.10.31-6`), motor de notas completo (curvas, grados, modificadores, rasantes, avisos, cruces, precaución, anticipación, calibración, predicción de vía), notas en vivo en el servicio, franja, ajustes, «Seguir a», pantalla de conducción rediseñada (mapa inclinado, botones abajo), arreglo del «0 m». Falta: aplicar la revisión de `copiloto-reviewer`, verificación E2E en el emulador (guiado, libre con cruce dudoso, «Seguir a» tras matar el proceso, horizontal, sin GMS), gate completo y cierre (push + v0.3 con OK de Joan).
