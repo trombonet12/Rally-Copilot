@@ -7,8 +7,9 @@ import kotlin.math.roundToLong
 
 /**
  * Situación del conductor sobre la ruta. [maniobraActual] es la próxima maniobra por ejecutar (la primera cuyo punto
- * de inicio aún no se ha pasado) y [distanciaAManiobraM] lo que falta por la ruta hasta ella; [maniobraSiguiente] es la
- * que viene después. [llegadaMs] es la hora estimada de llegada en el reloj de [SeguidorRuta.actualizar].
+ * de inicio aún no se ha pasado; la salida nunca se anuncia) y [distanciaAManiobraM] lo que falta por la ruta hasta
+ * ella; [maniobraSiguiente] es la que viene después. [llegadaMs] es la hora estimada de llegada en el reloj de
+ * [SeguidorRuta.actualizar].
  */
 data class EstadoRuta(
     val progresoM: Double,
@@ -44,7 +45,10 @@ class SeguidorRuta(
         progresoPrevio = proyeccion.progresoM
         val restante = (linea.longitudM - proyeccion.progresoM).coerceAtLeast(0.0)
         val tiempoRestante = tiempoRestante(proyeccion.progresoM)
-        val indiceManiobra = ruta.maniobras.indexOfFirst { linea.progresoEn(it.inicioIndice) >= proyeccion.progresoM }
+        val indiceManiobra =
+            ruta.maniobras.indexOfFirst {
+                it.tipo != TipoManiobra.SALIDA && linea.progresoEn(it.inicioIndice) >= proyeccion.progresoM
+            }
         val actual = ruta.maniobras.getOrNull(indiceManiobra)
         return EstadoRuta(
             progresoM = proyeccion.progresoM,

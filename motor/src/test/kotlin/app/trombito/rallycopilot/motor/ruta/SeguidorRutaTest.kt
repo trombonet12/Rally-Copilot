@@ -40,15 +40,31 @@ class SeguidorRutaTest {
         )
 
     @Test
-    fun `al inicio queda toda la ruta y la salida es la maniobra actual`() {
+    fun `al inicio la maniobra actual es el primer giro, no la salida`() {
         val e = SeguidorRuta(ruta).actualizar(p(0.0, 0.0), 1_000_000)
         assertEquals(1500.0, e.distanciaRestanteM, 1.0)
         assertEquals(150.0, e.tiempoRestanteS, 0.1)
-        assertEquals(TipoManiobra.SALIDA, e.maniobraActual?.tipo)
-        assertEquals(0.0, e.distanciaAManiobraM, 1.0)
-        assertEquals(TipoManiobra.IZQUIERDA, e.maniobraSiguiente?.tipo)
+        assertEquals(TipoManiobra.IZQUIERDA, e.maniobraActual?.tipo)
+        assertEquals(1000.0, e.distanciaAManiobraM, 1.0)
+        assertEquals(TipoManiobra.DESTINO, e.maniobraSiguiente?.tipo)
         assertEquals(0.0, e.distanciaALaRutaM, 0.5)
         assertFalse(e.llegado)
+    }
+
+    @Test
+    fun `si la unica maniobra antes del destino es la salida, al inicio la actual es el destino`() {
+        val soloSalida =
+            ruta.copy(
+                maniobras =
+                    listOf(
+                        m(TipoManiobra.SALIDA, 0, 1, 1000.0, 100.0),
+                        m(TipoManiobra.DESTINO, 2, 2, 0.0, 0.0),
+                    ),
+            )
+        val e = SeguidorRuta(soloSalida).actualizar(p(0.0, 0.0), 0)
+        assertEquals(TipoManiobra.DESTINO, e.maniobraActual?.tipo)
+        assertEquals(1500.0, e.distanciaAManiobraM, 1.0)
+        assertNull(e.maniobraSiguiente)
     }
 
     @Test
