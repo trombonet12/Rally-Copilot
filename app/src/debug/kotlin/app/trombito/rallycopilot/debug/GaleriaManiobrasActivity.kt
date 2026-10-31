@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -23,10 +25,19 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import app.trombito.rallycopilot.domain.navegacion.Destino
+import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.ruta.PerfilRuta
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.ruta.EstadoRuta
+import app.trombito.rallycopilot.motor.ruta.Maniobra
+import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.ui.maniobras.BannerManiobra
 import app.trombito.rallycopilot.ui.maniobras.IconoManiobra
 import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
+import app.trombito.rallycopilot.ui.navegacion.guiado.PanelGuiado
+import app.trombito.rallycopilot.ui.navegacion.guiado.TarjetaLlegada
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import kotlin.random.Random
 
@@ -78,6 +89,25 @@ private fun Galeria() {
                 VarianteManiobra.entries.forEach { variante -> BannerEjemplo(variante) }
             }
         }
+        Text("Guiado · vertical", color = Color.White)
+        VarianteManiobra.entries.forEach { variante ->
+            FondoSatelite {
+                PanelGuiado(
+                    estado = EJEMPLO_GUIANDO,
+                    variante = variante,
+                    modifier = Modifier.fillMaxWidth().height(380.dp),
+                )
+            }
+        }
+        Text("Guiado · horizontal, recalculando y llegada", color = Color.White)
+        FondoSatelite {
+            PanelGuiado(
+                estado = EJEMPLO_GUIANDO.copy(recalculando = true),
+                variante = VarianteManiobra.PLACA_INCLINADA,
+                modifier = Modifier.width(640.dp).height(300.dp),
+            )
+        }
+        FondoSatelite { TarjetaLlegada(destino = EJEMPLO_GUIANDO.destino, onCerrar = {}) }
     }
 }
 
@@ -144,3 +174,38 @@ private fun FondoSatelite(contenido: @Composable () -> Unit) {
         Box(modifier = Modifier.padding(8.dp)) { contenido() }
     }
 }
+
+private fun maniobraEjemplo(
+    tipo: TipoManiobra,
+    vias: List<String> = emptyList(),
+    salidaRotonda: Int? = null,
+) = Maniobra(tipo, "", vias, 0, 1, 500.0, 40.0, salidaRotonda)
+
+private val IZQUIERDA_MA10 = maniobraEjemplo(TipoManiobra.IZQUIERDA, vias = listOf("Ma-10"))
+private val ROTONDA_SEGUNDA = maniobraEjemplo(TipoManiobra.ROTONDA_ENTRADA, salidaRotonda = 2)
+
+private val EJEMPLO_GUIANDO =
+    EstadoNavegacion.Guiando(
+        destino = Destino("Cala Figuera", PuntoGeo(39.33, 3.15)),
+        perfil = PerfilRuta.SINUOSA,
+        ruta =
+            Ruta(
+                puntos = listOf(PuntoGeo(39.5, 2.9), PuntoGeo(39.33, 3.15)),
+                maniobras = listOf(IZQUIERDA_MA10, ROTONDA_SEGUNDA),
+                longitudM = 12_400.0,
+                tiempoS = 3900.0,
+            ),
+        progreso =
+            EstadoRuta(
+                progresoM = 100.0,
+                distanciaRestanteM = 12_400.0,
+                tiempoRestanteS = 3900.0,
+                llegadaMs = System.currentTimeMillis() + 3_900_000L,
+                maniobraActual = IZQUIERDA_MA10,
+                distanciaAManiobraM = 352.0,
+                maniobraSiguiente = ROTONDA_SEGUNDA,
+                distanciaALaRutaM = 4.0,
+                llegado = false,
+            ),
+        recalculando = false,
+    )
