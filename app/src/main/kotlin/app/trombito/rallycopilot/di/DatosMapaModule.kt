@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.data.datosmapa.URL_MANIFEST
 import app.trombito.rallycopilot.data.db.AjustesMapasDao
 import app.trombito.rallycopilot.data.db.DatosMapaDao
 import app.trombito.rallycopilot.data.db.MIGRATION_1_2
+import app.trombito.rallycopilot.data.db.MIGRATION_2_3
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import dagger.Module
@@ -30,7 +31,7 @@ object DatosMapaModule {
     ): RallyDatabase =
         Room
             .databaseBuilder(contexto, RallyDatabase::class.java, RallyDatabase.NOMBRE)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
 
     @Provides

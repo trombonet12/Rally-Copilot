@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.ui.ajustes
 
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.ui.comun.BancoCompose
@@ -59,6 +60,21 @@ class AjustesConduccionScreenTest {
             banco.pulsar(nodo)
         }
         assertEquals(IconoPosicion.entries.toList(), pedidos)
+    }
+
+    @Test
+    fun `hay una miniatura por estilo de maniobras y se puede elegir`() {
+        val pedidos = mutableListOf<EstiloManiobras>()
+        poner(acciones = AccionesAjustes(onEstiloManiobras = { pedidos += it }))
+        assertEquals(EstiloManiobras.entries.size, banco.etiquetas(ETIQUETA_MANIOBRAS_PREFIJO).size)
+        EstiloManiobras.entries.forEach { estilo ->
+            val nodo = banco.conEtiqueta(ETIQUETA_MANIOBRAS_PREFIJO + estilo.name.lowercase())
+            assertTrue(banco.textos(nodo).isEmpty())
+            assertFalse(banco.descripcion(nodo).isNullOrBlank())
+            assertTrue("La miniatura de $estilo es un objetivo táctil de 48 dp", nodo.size.width >= 48 * 3)
+            banco.pulsar(nodo)
+        }
+        assertEquals(EstiloManiobras.entries.toList(), pedidos)
     }
 
     @Test

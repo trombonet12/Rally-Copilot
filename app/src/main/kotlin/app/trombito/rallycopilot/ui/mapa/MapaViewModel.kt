@@ -119,6 +119,7 @@ class MapaViewModel
                     relieve = pref.relieve,
                     orientacion = pref.orientacion,
                     icono = pref.icono,
+                    estiloManiobras = pref.estiloManiobras,
                     zoomObjetivo =
                         zoomAutomatico.actualizar(
                             lect.velocidadKmh,

@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.data.db.AjustesConduccionEntity
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
@@ -92,5 +93,29 @@ class RepositorioAjustesConduccionImplTest {
             )
             val ajustes = repositorio.ajustes.first()
             assertEquals(AjustesConduccion(nivelZoom = 1, relieve = true), ajustes)
+        }
+
+    @Test
+    fun `el estilo de maniobras por defecto es la placa y se guarda`() =
+        runBlocking {
+            assertEquals(EstiloManiobras.PLACA, repositorio.ajustes.first().estiloManiobras)
+            repositorio.guardar(AjustesConduccion(estiloManiobras = EstiloManiobras.NOTA))
+            assertEquals(EstiloManiobras.NOTA, repositorio.ajustes.first().estiloManiobras)
+        }
+
+    @Test
+    fun `un estilo de maniobras desconocido en disco lee la placa`() =
+        runBlocking {
+            base.ajustesConduccionDao().guardar(
+                AjustesConduccionEntity(
+                    nivelZoom = 0,
+                    icono = "CASCO",
+                    orientacion = "NORTE",
+                    capa = "SATELITE",
+                    relieve = false,
+                    estiloManiobras = "HOLOGRAMA",
+                ),
+            )
+            assertEquals(EstiloManiobras.PLACA, repositorio.ajustes.first().estiloManiobras)
         }
 }

@@ -29,20 +29,26 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
+import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.nombre
 import app.trombito.rallycopilot.ui.comun.recurso
+import app.trombito.rallycopilot.ui.maniobras.IconoManiobra
+import app.trombito.rallycopilot.ui.maniobras.nombre
+import app.trombito.rallycopilot.ui.maniobras.variante
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_AJUSTES_MAPAS = "ajustes-mapas-offline"
 const val ETIQUETA_AJUSTES_ACERCA_DE = "ajustes-acerca-de"
 const val ETIQUETA_ZOOM_PREFIJO = "ajustes-zoom-"
 const val ETIQUETA_ICONO_PREFIJO = "ajustes-icono-"
+const val ETIQUETA_MANIOBRAS_PREFIJO = "ajustes-maniobras-"
 const val ETIQUETA_ORIENTACION_RUMBO = "ajustes-orientacion-rumbo"
 const val ETIQUETA_ORIENTACION_NORTE = "ajustes-orientacion-norte"
 
@@ -60,6 +66,7 @@ data class AccionesAjustes(
     val onNivelZoom: (Int) -> Unit = {},
     val onIcono: (IconoPosicion) -> Unit = {},
     val onOrientacion: (Orientacion) -> Unit = {},
+    val onEstiloManiobras: (EstiloManiobras) -> Unit = {},
 )
 
 @StringRes
@@ -72,7 +79,10 @@ private fun textoNivelZoom(nivel: Int): Int =
         else -> R.string.ajustes_zoom_muy_cerca
     }
 
-/** Ajustes: Mapas offline, Acerca de y las preferencias de conducción (zoom, icono de posición y orientación). */
+/**
+ * Ajustes: Mapas offline, Acerca de y las preferencias de conducción (zoom, icono de posición, estilo de maniobras y
+ * orientación).
+ */
 @Composable
 fun AjustesScreen(
     ajustes: AjustesConduccion,
@@ -95,6 +105,7 @@ fun AjustesScreen(
             }
             SeccionZoom(ajustes.nivelZoom, acciones.onNivelZoom)
             SeccionIcono(ajustes.icono, acciones.onIcono)
+            SeccionManiobras(ajustes.estiloManiobras, acciones.onEstiloManiobras)
             SeccionOrientacion(ajustes.orientacion, acciones.onOrientacion)
         }
     }
@@ -150,6 +161,33 @@ private fun SeccionIcono(
                     estado = estadoSeleccion(opcion == icono),
                 ) {
                     Image(painterResource(opcion.recurso()), contentDescription = null, Modifier.size(DIBUJO_MINIATURA))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SeccionManiobras(
+    estilo: EstiloManiobras,
+    onEstilo: (EstiloManiobras) -> Unit,
+) {
+    Seccion(R.string.ajustes_maniobras_titulo) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s), verticalAlignment = Alignment.CenterVertically) {
+            EstiloManiobras.entries.forEach { opcion ->
+                BotonIcono(
+                    descripcion = stringResource(opcion.nombre()),
+                    onClick = { onEstilo(opcion) },
+                    modifier =
+                        Modifier.size(LADO_MINIATURA).testTag(ETIQUETA_MANIOBRAS_PREFIJO + opcion.name.lowercase()),
+                    estado = estadoSeleccion(opcion == estilo),
+                ) {
+                    IconoManiobra(
+                        tipo = TipoManiobra.DERECHA,
+                        variante = opcion.variante(),
+                        tamano = DIBUJO_MINIATURA,
+                        decorativo = true,
+                    )
                 }
             }
         }

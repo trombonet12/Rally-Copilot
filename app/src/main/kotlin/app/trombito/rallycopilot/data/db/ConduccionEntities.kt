@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
@@ -13,6 +14,7 @@ data class AjustesConduccionEntity(
     val orientacion: String,
     val capa: String,
     val relieve: Boolean,
+    @ColumnInfo(defaultValue = "'PLACA'") val estiloManiobras: String = "PLACA",
 )
 
 /** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */

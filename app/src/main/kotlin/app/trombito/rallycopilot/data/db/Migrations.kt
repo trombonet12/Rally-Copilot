@@ -26,3 +26,11 @@ val MIGRATION_1_2: Migration =
             CREAR_TABLAS_V2.forEach(db::execSQL)
         }
     }
+
+/** v2 -> v3: estilo de los iconos de maniobra en los ajustes de conducción (la fila existente queda en PLACA). */
+val MIGRATION_2_3: Migration =
+    object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `estiloManiobras` TEXT NOT NULL DEFAULT 'PLACA'")
+        }
+    }

@@ -6,6 +6,9 @@ import kotlinx.coroutines.flow.Flow
 /** Icono de la posición en el mapa (sin círculo de fondo). Joan lo elige en Ajustes. */
 enum class IconoPosicion { FLECHA, FLECHA_WRC, COCHE_RALLY, CASCO }
 
+/** Estilo gráfico de los iconos de maniobra del guiado: chevron latón, placa roja inclinada o nota de rally. */
+enum class EstiloManiobras { CHEVRON, PLACA, NOTA }
+
 /** Orientación del mapa al conducir: rumbo arriba (gira con el coche) o norte arriba. */
 enum class Orientacion { RUMBO, NORTE }
 
@@ -19,6 +22,7 @@ data class AjustesConduccion(
     val orientacion: Orientacion = Orientacion.RUMBO,
     val capa: CapaMapa = CapaMapa.VECTORIAL,
     val relieve: Boolean = false,
+    val estiloManiobras: EstiloManiobras = EstiloManiobras.PLACA,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }

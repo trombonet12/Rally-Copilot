@@ -20,9 +20,9 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * Migración v1 -> v2. No hay `room-testing` (MigrationTestHelper) en el proyecto: la base v1 se crea con el SQL
- * exportado en `schemas/.../1.json` y Room la abre como v2; al abrir valida el esquema resultante contra `2.json`
- * (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
+ * Migraciones v1 -> v2 -> v3. No hay `room-testing` (MigrationTestHelper) en el proyecto: la base antigua se crea
+ * con el SQL exportado en `schemas/.../N.json` y Room la abre como v3; al abrir valida el esquema resultante contra
+ * `3.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
  */
 @RunWith(RobolectricTestRunner::class)
 class MigracionRoomTest {
@@ -44,12 +44,12 @@ class MigracionRoomTest {
             .jsonObject
     }
 
-    private fun crearBaseV1(): File {
+    private fun crearBase(version: Int): File {
         val archivo = contexto.getDatabasePath(NOMBRE)
         archivo.parentFile?.mkdirs()
         val db = SQLiteDatabase.openOrCreateDatabase(archivo, null)
-        val esquemaV1 = esquema(1)
-        for (entidad in esquemaV1.getValue("entities").jsonArray) {
+        val esquemaAntiguo = esquema(version)
+        for (entidad in esquemaAntiguo.getValue("entities").jsonArray) {
             val sql =
                 entidad.jsonObject
                     .getValue("createSql")
@@ -63,24 +63,25 @@ class MigracionRoomTest {
                 ),
             )
         }
-        esquemaV1.getValue("setupQueries").jsonArray.forEach { db.execSQL(it.jsonPrimitive.content) }
+        esquemaAntiguo.getValue("setupQueries").jsonArray.forEach { db.execSQL(it.jsonPrimitive.content) }
         db.execSQL("INSERT INTO archivo_instalado VALUES ('mapa', 'mapa.pmtiles', '${"a".repeat(64)}', 123, 'v1')")
         db.execSQL("INSERT INTO ajustes_mapas VALUES (1, 0, 777)")
         db.execSQL("INSERT INTO estado_datos VALUES (1, 'v1', NULL, 'SIN_RED')")
-        db.version = 1
+        if (version >= 2) db.execSQL("INSERT INTO ajustes_conduccion VALUES (1, 2, 'CASCO', 'NORTE', 'SATELITE', 1)")
+        db.version = version
         db.close()
         return archivo
     }
 
     @Test
-    fun `de v1 a v2 conserva los datos y crea las tablas nuevas`() =
+    fun `de v1 a v3 conserva los datos y crea las tablas nuevas`() =
         runBlocking {
-            crearBaseV1()
+            crearBase(1)
 
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -100,7 +101,35 @@ class MigracionRoomTest {
             nueva.recorridosDao().anadirPuntos(id, listOf(RecorridoPuntoEntity(id, 0, 39.5, 2.9, 10, null)))
             assertEquals(1, nueva.recorridosDao().puntos(id).size)
             assertNotNull(nueva.openHelper.writableDatabase)
-            assertEquals(2, nueva.openHelper.writableDatabase.version)
+            assertEquals(3, nueva.openHelper.writableDatabase.version)
+        }
+
+    @Test
+    fun `de v2 a v3 conserva los ajustes y la fila existente queda con la placa`() =
+        runBlocking {
+            crearBase(2)
+
+            val nueva =
+                Room
+                    .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .allowMainThreadQueries()
+                    .build()
+            base = nueva
+
+            val fila = nueva.ajustesConduccionDao().observar().first()
+            assertEquals(
+                AjustesConduccionEntity(
+                    nivelZoom = 2,
+                    icono = "CASCO",
+                    orientacion = "NORTE",
+                    capa = "SATELITE",
+                    relieve = true,
+                    estiloManiobras = "PLACA",
+                ),
+                fila,
+            )
+            assertEquals(3, nueva.openHelper.writableDatabase.version)
         }
 
     private companion object {

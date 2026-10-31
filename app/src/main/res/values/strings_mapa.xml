@@ -97,6 +97,10 @@
     <string name="ajustes_icono_flecha_wrc">Flecha de rally</string>
     <string name="ajustes_icono_coche">Coche de rally</string>
     <string name="ajustes_icono_casco">Casco de Trombito</string>
+    <string name="ajustes_maniobras_titulo">Iconos de maniobra</string>
+    <string name="ajustes_maniobras_chevron">Chevron</string>
+    <string name="ajustes_maniobras_placa">Placa inclinada</string>
+    <string name="ajustes_maniobras_nota">Nota de rally</string>
     <string name="ajustes_orientacion_titulo">Orientación del mapa</string>
     <string name="ajustes_orientacion_rumbo">Rumbo arriba</string>
     <string name="ajustes_orientacion_norte">Norte arriba</string>

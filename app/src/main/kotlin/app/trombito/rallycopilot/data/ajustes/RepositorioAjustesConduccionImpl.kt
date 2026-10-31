@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.ajustes
 import app.trombito.rallycopilot.data.db.AjustesConduccionDao
 import app.trombito.rallycopilot.data.db.AjustesConduccionEntity
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
@@ -34,6 +35,7 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         orientacion = enumOrNull<Orientacion>(orientacion) ?: defecto.orientacion,
         capa = enumOrNull<CapaMapa>(capa) ?: defecto.capa,
         relieve = relieve,
+        estiloManiobras = enumOrNull<EstiloManiobras>(estiloManiobras) ?: defecto.estiloManiobras,
     )
 }
 
@@ -44,6 +46,7 @@ internal fun AjustesConduccion.aEntidad() =
         orientacion = orientacion.name,
         capa = capa.name,
         relieve = relieve,
+        estiloManiobras = estiloManiobras.name,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

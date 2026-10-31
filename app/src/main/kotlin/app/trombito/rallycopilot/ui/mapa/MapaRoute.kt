@@ -9,16 +9,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.trombito.rallycopilot.ui.maniobras.variante
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 import app.trombito.rallycopilot.ui.navegacion.NavegacionUiState
 import app.trombito.rallycopilot.ui.navegacion.NavegacionViewModel
 import app.trombito.rallycopilot.ui.navegacion.PanelGuiado
-import app.trombito.rallycopilot.ui.navegacion.PanelGuiadoMapa
+import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
 
 /**
  * Une los ViewModels (mapa y navegación), el permiso de ubicación y el mapa real con la pantalla sin lógica.
- * [panelGuiado] es el hueco del banner de maniobra y el pie de guiado (por defecto, el panel real).
+ * [panelGuiado] es el hueco del banner de maniobra y el pie de guiado (por defecto, el panel real con el estilo de
+ * maniobras de los ajustes).
  */
 @Composable
 @Suppress("LongParameterList") // callbacks de la ruta + los dos ViewModels inyectables
@@ -26,7 +28,7 @@ fun MapaRoute(
     onVolver: () -> Unit,
     onAbrirMapasOffline: () -> Unit,
     modifier: Modifier = Modifier,
-    panelGuiado: PanelGuiado = PanelGuiadoMapa,
+    panelGuiado: PanelGuiado? = null,
     viewModel: MapaViewModel = hiltViewModel(),
     navegacionViewModel: NavegacionViewModel = hiltViewModel(),
 ) {
@@ -37,6 +39,7 @@ fun MapaRoute(
     LaunchedEffect(estado.posicion) { navegacionViewModel.onPosicion(estado.posicion?.punto) }
     SeguimientoSegunVistaPrevia(navegacion.encuadrar, viewModel)
     val ruta = rutaParaMapa(navegacion)
+    val panel = panelGuiado ?: remember(estado.estiloManiobras) { panelGuiadoMapa(estado.estiloManiobras.variante()) }
 
     MapaScreen(
         estado = estado,
@@ -52,7 +55,7 @@ fun MapaRoute(
             )
         },
         modifier = modifier,
-        navegacion = NavegacionEnMapa(navegacion, accionesNavegacion(navegacionViewModel), panelGuiado),
+        navegacion = NavegacionEnMapa(navegacion, accionesNavegacion(navegacionViewModel), panel),
     )
 }
 

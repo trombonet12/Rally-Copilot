@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.ajustes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
@@ -14,7 +15,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Ajustes de conducción: zoom del mapa, icono de posición y orientación, persistidos en el repositorio. */
+/**
+ * Ajustes de conducción: zoom del mapa, icono de posición, orientación y estilo de las maniobras, persistidos en el
+ * repositorio.
+ */
 @HiltViewModel
 class AjustesViewModel
     @Inject
@@ -35,6 +39,10 @@ class AjustesViewModel
 
         fun onOrientacion(orientacion: Orientacion) {
             guardar { it.copy(orientacion = orientacion) }
+        }
+
+        fun onEstiloManiobras(estilo: EstiloManiobras) {
+            guardar { it.copy(estiloManiobras = estilo) }
         }
 
         private fun guardar(cambio: (AjustesConduccion) -> AjustesConduccion) {

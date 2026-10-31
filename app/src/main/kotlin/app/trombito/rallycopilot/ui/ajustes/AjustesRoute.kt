@@ -26,6 +26,7 @@ fun AjustesRoute(
                 onNivelZoom = viewModel::onNivelZoom,
                 onIcono = viewModel::onIcono,
                 onOrientacion = viewModel::onOrientacion,
+                onEstiloManiobras = viewModel::onEstiloManiobras,
             ),
         modifier = modifier,
     )

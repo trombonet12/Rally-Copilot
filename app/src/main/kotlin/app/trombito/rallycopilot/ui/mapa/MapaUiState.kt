@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
@@ -32,6 +33,7 @@ data class MapaUiState(
     val relieve: Boolean = false,
     val orientacion: Orientacion = Orientacion.RUMBO,
     val icono: IconoPosicion = IconoPosicion.FLECHA_WRC,
+    val estiloManiobras: EstiloManiobras = EstiloManiobras.PLACA,
     /** Zoom automático (por velocidad y ajuste de Joan, suavizado); null mientras no hay velocidad conocida. */
     val zoomObjetivo: Double? = null,
 ) {
