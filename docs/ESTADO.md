@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H2 — Navegación offline y mapa a tu gusto |
-| Estado | **H2 cerrado** (2026-10-31); H3 sin empezar (solo cuando Joan lo pida) |
+| Hito | H3 — Motor de notas |
+| Estado | **H3 en curso** (2026-10-31). Desde H3 los hitos se encadenan; se para al cerrar cada uno para push + versión y dudas |
 | Último commit | ver `git log -1`. Push a `Rally-Copilot` solo cuando Joan lo pida (2026-10-31); al cerrar H2 pidió push + versión 0.2 |
 
 ## Completado
@@ -57,7 +57,7 @@
 - Ver [DECISIONES.md](DECISIONES.md) § Decisiones del usuario, § Base técnica e § Investigaciones previas.
 
 ## Dudas abiertas
-- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las de H2 respondidas el 2026-10-31.
+- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las de H2 y las del arranque de H3 respondidas el 2026-10-31.
 
 ## Pendiente del usuario
 - **Copia de seguridad de `~/.rallycopilot/`** (keystore): sin ella no se pueden publicar actualizaciones.
@@ -69,4 +69,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H2 cerrado. No empezar H3 hasta que Joan lo pida. Al empezar H3: unificar en `:motor` la distancia del recorrido y dejar de grabar puntos parados (DECISIONES 2026-10-31), y mostrar la placa en el banner en lugar del ref.
+- **Agente:** H3 en curso según el plan aprobado (datos `vias-notas` ‖ motor de notas → app: franja, modo libre, ajustes, «Seguir a», placa en banner). v0.2.0 publicada (release en GitHub con APK, AAB y checksums).

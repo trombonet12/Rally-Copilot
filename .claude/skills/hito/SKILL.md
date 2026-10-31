@@ -18,7 +18,7 @@ Operación `$0` sobre el hito `$1` (sección `## Hn` de `ROADMAP.md`, estructura
 - Diseñar una funcionalidad concreta dentro del hito → usa `design-feature`.
 
 ## Precondiciones
-- Modo desatendido: se avanza hito a hito, pero **nunca se empieza un hito que el usuario no ha autorizado** (al cerrar uno se para y se presentan las dudas).
+- Modo desatendido: se avanza hito a hito, pero **nunca se empieza un hito que el usuario no ha autorizado** (al cerrar uno se para y se presentan las dudas; desde H3 la respuesta al cierre autoriza el siguiente).
 - `ROADMAP.md` leído entero, junto a `docs/ESTADO.md`, `QUESTIONS.md` y las secciones citadas de `docs/DECISIONES.md`.
 - `docs/ESTADO.md` es reservado: esta skill redacta el texto a añadir y lo entrega al agente principal (`session-handoff`).
 
@@ -47,7 +47,7 @@ Operación `$0` sobre el hito `$1` (sección `## Hn` de `ROADMAP.md`, estructura
 2. Gates: `./gradlew ktlintCheck detekt lintDebug testDebugUnitTest :motor:test assembleDebug :app:minifyReleaseWithR8`, `node scripts/check-claude-assets.mjs`, `bash scripts/test-hooks.sh`, `node scripts/check-docs.mjs`.
 3. Si algo falla o queda abierto: no cerrar; listarlo en el Estado del hito con destino (otro hito o TODO en ESTADO.md).
 4. Si todo pasa: Estado `completado (AAAA-MM-DD)` con qué se hizo y qué quedó pendiente; entregar el texto de ESTADO.md al agente principal.
-5. **Parar** y presentar al usuario el cierre y todas las dudas acumuladas de `QUESTIONS.md` juntas. No arrancar el siguiente hito.
+5. **Parar** y presentar al usuario el cierre, la confirmación de push + versión y todas las dudas acumuladas de `QUESTIONS.md` juntas. Desde H3 (MEMORIA 2026-10-31) los hitos se encadenan: con la respuesta del usuario se publica si lo aprueba y se arranca el siguiente; sin esa autorización, no arrancar el siguiente hito.
 
 ## Validaciones / tests
 - `start`/`plan`/`split`: `node scripts/check-docs.mjs`. `complete`: los gates de arriba, todos en verde.

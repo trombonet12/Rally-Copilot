@@ -8,6 +8,15 @@ se marca como respondida. Ordenadas por el hito que bloquean.
 
 Estado: **0 abiertas** · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
+## Respondidas al empezar H3 (2026-10-31, en el chat)
+- **Notas en texto (H3):** franja bajo el banner de maniobra con las 2–3 notas siguientes en estilo roadbook WRC (la primera grande). Alternativas: nota grande en lugar del banner, columna lateral.
+- **Modo libre:** sí hay notas, prediciendo la vía (mismo ref o la más recta); más allá de un cruce dudoso no se canta. Alternativa: solo con destino.
+- **Calibración:** perfil global con los recorridos grabados ya en H3 (sin datos, el límite de la vía); el perfil por tramo en H6.
+- **Ajustes en H3:** anticipación (5 niveles) y notas simplificadas ya en H3; se pulen en H10.
+- **Muerte del proceso:** al reabrir el mapa, botón «Seguir a <destino>» con el mismo destino y perfil (no arranca solo en segundo plano).
+- **H11 sin material de voz:** saltar a H12 y dejar H11 pendiente.
+- **Cierre de cada hito:** parar solo para confirmar push + versión menor nueva (H3 → 0.3…) y presentar dudas; después seguir con el siguiente hito.
+
 ## Abiertas en H2
 
 ### Arranque del modo libre (sin destino)

@@ -25,7 +25,7 @@ JDK 21 vía `~/.gradle/gradle.properties` (`org.gradle.java.installations.paths`
 - Antes de trabajar: `docs/ESTADO.md`, el hito activo de `ROADMAP.md` y `docs/MEMORIA.md` (skill session-start).
   Al terminar: ESTADO.md (skill session-handoff). Al cerrar un hito: ROADMAP.md (estado, hecho, pendiente).
 - **Modo desatendido**: avanzar hito a hito. Parar solo al cerrar un hito o si no se puede avanzar; entonces presentar
-  todas las dudas acumuladas juntas.
+  todas las dudas acumuladas juntas y pedir push + versión. Desde H3, con su respuesta se arranca el siguiente hito.
 - **No decidir producto** (funcionalidad, interfaz, alcance): apuntar en `QUESTIONS.md` con contexto, opciones y
   recomendación, y seguir con lo que no dependa. Lo técnico menor se decide y se registra en `docs/DECISIONES.md`
   (skill registrar-decision).

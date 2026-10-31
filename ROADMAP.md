@@ -1,6 +1,6 @@
 # Roadmap
 
-> Propósito: plan de Rally Copilot por hitos, con alcance, criterios de aceptación, tests y estado · Audiencia: Joan y agentes · Actualizado: 2026-10-28 · Relacionado: [docs/DECISIONES.md](docs/DECISIONES.md), [QUESTIONS.md](QUESTIONS.md), [docs/ESTADO.md](docs/ESTADO.md)
+> Propósito: plan de Rally Copilot por hitos, con alcance, criterios de aceptación, tests y estado · Audiencia: Joan y agentes · Actualizado: 2026-10-31 · Relacionado: [docs/DECISIONES.md](docs/DECISIONES.md), [QUESTIONS.md](QUESTIONS.md), [docs/ESTADO.md](docs/ESTADO.md)
 
 Hitos en orden de dependencia, basados en la propuesta del prompt (§9) y refinados. Cada hito termina con el gate en
 verde, ROADMAP y ESTADO actualizados, y las dudas acumuladas presentadas a Joan. Skill `hito` para arrancar, planificar
@@ -125,21 +125,27 @@ Generar automáticamente notas de rally completas a partir de la geometría y la
 - Se cantan todos los grados (también el 6), horquilla sin grado, orden «derecha cuatro», distancia después de la nota; avisos de precaución generosos (también curvas cerradas sin visibilidad y cambios de grado bruscos).
 - Glosario de copiloto español (borrador en la investigación; se refina en H11 con transcripciones).
 - Anticipación de lectura adaptativa a la velocidad + ajuste de usuario en 5 niveles; notas simplificadas (suave/media/cerrada).
-- Presentación provisional en pantalla (texto) para validar; la voz llega en H4.
+- Presentación provisional en pantalla (texto) para validar, en una **franja bajo el banner** con las 2–3 notas siguientes (la primera grande); la voz llega en H4.
+- **Modo libre** con notas: predicción de la vía (mismo ref o la más recta) que se corta en un cruce dudoso.
+- Calibración **global** con los recorridos grabados (por tramo en H6); anticipación (5 niveles) y notas simplificadas en Ajustes.
+- Datos: artefacto opcional `vias-notas` (etiquetas OSM de puentes, túneles, badenes, cruces, carriles y perfil de altura MDT05 cada 5 m).
+- Arrastrado de H2: distancia del recorrido en una sola función del motor y grabación sin puntos parados; placa en el banner en lugar del ref; «0 m» tras recálculo; botón «Seguir a <destino>» tras la muerte del proceso.
 - Skill `notas-calibrar` y agente `copiloto-reviewer` para revisar notas sobre trazas reales.
-- Fuera: voz, edición (H8).
+- Fuera: voz, edición (H8), perfil por tramo (H6).
 
 ### Criterios de aceptación
 - [ ] Notas de la Ma-2141 (Sa Calobra) y de la Ma-10 (Sóller–Lluc) revisadas por `copiloto-reviewer`: la «corbata» de Sa Calobra sale como horquilla y las rectas largas no generan notas.
 - [ ] El mismo tramo genera las mismas notas siempre (determinista) y en < 1 s para 15 km.
 - [ ] La anticipación coloca cada nota a una distancia proporcional a la velocidad, desplazada por el nivel de usuario.
+- [ ] La franja de notas se ve en el emulador con `gps-replay` por la Ma-2141 (vertical y horizontal); en modo libre salen notas y se cortan en un cruce dudoso.
+- [ ] Tras matar el proceso a mitad de un guiado, al reabrir el mapa aparece «Seguir a <destino>» y retoma la ruta.
 
 ### Tests
 - Motor (TDD): radio de arcos sintéticos, grado por radio y por velocidad de la vía, modificadores, encadenado, rasantes en perfiles sintéticos, distancias redondeadas, anticipación, simplificación.
 - Regresión: notas de las trazas de `docs/rutas/` guardadas como golden files.
 
 ### Estado
-pendiente · Depende de: H1 (datos de vía y elevación), H2 (ruta) · Dudas: resueltas (2026-10-28); el glosario se refina en H11
+en curso (2026-10-31) · Depende de: H1 (datos de vía y elevación), H2 (ruta) · Dudas: resueltas (2026-10-28 y 2026-10-31); el glosario se refina en H11
 
 ## H4 — Voz y modos del copiloto
 
