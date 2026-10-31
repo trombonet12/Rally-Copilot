@@ -38,6 +38,9 @@ internal fun deNota(
     vararg unidos: TipoAviso,
 ) = ElementoHoja.DeNota(nota, unidos.map { Aviso(nota.posicionM - 10.0, it) })
 
+internal fun deNotaSobrePuente(nota: Nota) =
+    ElementoHoja.DeNota(nota, sobrePuente = Aviso(nota.posicionM + 10.0, TipoAviso.PUENTE))
+
 internal fun deAviso(tipo: TipoAviso) = ElementoHoja.DeAviso(Aviso(300.0, tipo))
 
 internal fun visible(
@@ -120,6 +123,46 @@ class FranjaNotasTest : FranjaNotasBase() {
     }
 
     @Test
+    fun `cuidado va primero aunque lo pida un aviso unido y el texto sigue la frase del motor`() {
+        poner(NotasUiState(listOf(visible(deNota(nota(3, siguienteM = 50), TipoAviso.BACHE), 60.0))))
+        assertEquals("CUIDADO, RESALTO, DERECHA 3 · 50", textoFila(0))
+        assertEquals("cuidado, resalto, derecha tres, cincuenta, a 60 metros", banco.descripcion(fila(0)))
+        assertTrue(banco.hay(ETIQUETA_NOTA_CUIDADO_PREFIJO + 0))
+    }
+
+    @Test
+    fun `la nota de cuidado con un aviso unido no repite cuidado`() {
+        val peligrosa = nota(1, Direccion.IZQUIERDA, cuidado = true)
+        poner(NotasUiState(listOf(visible(deNota(peligrosa, TipoAviso.RASANTE, TipoAviso.CUIDADO), 90.0))))
+        assertEquals("CUIDADO, RASANTE, IZQUIERDA 1", textoFila(0))
+        assertEquals("cuidado, rasante, izquierda uno, a 90 metros", banco.descripcion(fila(0)))
+    }
+
+    @Test
+    fun `una nota con puente dentro de la curva dice sobre puente`() {
+        poner(NotasUiState(listOf(visible(deNotaSobrePuente(nota(3, siguienteM = 50))))))
+        assertEquals("DERECHA 3 SOBRE PUENTE · 50", textoFila(0))
+        assertEquals("derecha tres sobre puente, cincuenta, a 120 metros", banco.descripcion(fila(0)))
+    }
+
+    @Test
+    fun `la horquilla muy larga y el ceda el paso salen como los canta el motor`() {
+        poner(
+            NotasUiState(
+                listOf(
+                    visible(deNota(nota(null, Direccion.DERECHA, setOf(Modificador.MUY_LARGA), siguienteM = 40))),
+                    visible(deAviso(TipoAviso.CEDA)),
+                    visible(deAviso(TipoAviso.BACHE)),
+                ),
+            ),
+        )
+        assertEquals("HORQUILLA DERECHA MUY LARGA · 40", textoFila(0))
+        assertEquals("CEDA EL PASO", textoFila(1))
+        assertEquals("CUIDADO, RESALTO", textoFila(2))
+        assertTrue(banco.descripcion(fila(2))!!.startsWith("cuidado, resalto"))
+    }
+
+    @Test
     fun `con las notas simplificadas se ve cerrada, media o suave en vez del grado`() {
         poner(
             NotasUiState(
@@ -153,7 +196,7 @@ class FranjaNotasTest : FranjaNotasBase() {
     @Test
     fun `los avisos unidos a una nota van como iconos y en la frase hablada`() {
         poner(NotasUiState(listOf(visible(deNota(nota(3, Direccion.IZQUIERDA), TipoAviso.RASANTE), 80.0))))
-        assertEquals("IZQUIERDA 3", textoFila(0))
+        assertEquals("RASANTE, IZQUIERDA 3", textoFila(0))
         assertEquals("rasante, izquierda tres, a 80 metros", banco.descripcion(fila(0)))
     }
 

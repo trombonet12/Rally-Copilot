@@ -1,8 +1,6 @@
 package app.trombito.rallycopilot.ui.navegacion.notas
 
 import app.trombito.rallycopilot.motor.notas.Direccion
-import app.trombito.rallycopilot.motor.notas.GradoSimplificado
-import app.trombito.rallycopilot.motor.notas.Modificador
 import app.trombito.rallycopilot.motor.notas.TipoAviso
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -31,10 +29,10 @@ class IconosNotaTest {
     }
 
     @Test
-    fun `todo tipo de aviso tiene icono y texto`() {
+    fun `todo tipo de aviso tiene icono y frase`() {
         TipoAviso.entries.forEach {
             assertTrue("icono de $it", iconoAviso(it) != 0)
-            assertTrue("texto de $it", nombreAviso(it) != 0)
+            assertTrue("frase de $it", it.frase.isNotEmpty())
         }
         // Rasante y cambio de rasante comparten dibujo; el resto son distintos.
         val distintos =
@@ -46,8 +44,9 @@ class IconosNotaTest {
     }
 
     @Test
-    fun `todo modificador y categoria simplificada tiene texto`() {
-        Modificador.entries.forEach { assertTrue(nombreModificador(it) != 0) }
-        GradoSimplificado.entries.forEach { assertTrue(nombreSimplificado(it) != 0) }
+    fun `el resalto se llama resalto y conserva el icono del bache`() {
+        assertEquals("cuidado, resalto", TipoAviso.BACHE.frase)
+        assertTrue(TipoAviso.BACHE.esCuidado)
+        assertTrue(iconoAviso(TipoAviso.BACHE) != 0)
     }
 }

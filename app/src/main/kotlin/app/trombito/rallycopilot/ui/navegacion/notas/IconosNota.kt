@@ -1,12 +1,10 @@
 package app.trombito.rallycopilot.ui.navegacion.notas
 
 import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.GradoSimplificado
-import app.trombito.rallycopilot.motor.notas.Modificador
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.notas.TipoAviso
 
@@ -82,44 +80,4 @@ internal fun iconoElemento(
     when (elemento) {
         is ElementoHoja.DeNota -> iconoCurva(elemento.nota, simplificada)
         is ElementoHoja.DeAviso -> iconoAviso(elemento.aviso.tipo)
-    }
-
-private val NOMBRES_AVISO: Map<TipoAviso, Int> =
-    mapOf(
-        TipoAviso.PUENTE to R.string.notas_aviso_puente,
-        TipoAviso.TUNEL to R.string.notas_aviso_tunel,
-        TipoAviso.ROTONDA to R.string.notas_aviso_rotonda,
-        TipoAviso.ESTRECHA to R.string.notas_aviso_estrecha,
-        TipoAviso.BACHE to R.string.notas_aviso_bache,
-        TipoAviso.BADEN to R.string.notas_aviso_baden,
-        TipoAviso.PASO_A_NIVEL to R.string.notas_aviso_paso_a_nivel,
-        TipoAviso.STOP to R.string.notas_aviso_stop,
-        TipoAviso.CEDA to R.string.notas_aviso_ceda,
-        TipoAviso.SEMAFORO to R.string.notas_aviso_semaforo,
-        TipoAviso.CRUCE to R.string.notas_aviso_cruce,
-        TipoAviso.RASANTE to R.string.notas_aviso_rasante,
-        TipoAviso.CAMBIO_RASANTE to R.string.notas_aviso_cambio_rasante,
-        TipoAviso.SALTO to R.string.notas_aviso_salto,
-        TipoAviso.CUIDADO to R.string.notas_aviso_cuidado,
-    )
-
-@StringRes
-internal fun nombreAviso(tipo: TipoAviso): Int = NOMBRES_AVISO.getValue(tipo)
-
-@StringRes
-internal fun nombreModificador(m: Modificador): Int =
-    when (m) {
-        Modificador.LARGA -> R.string.notas_larga
-        Modificador.MUY_LARGA -> R.string.notas_muy_larga
-        Modificador.CIERRA -> R.string.notas_cierra
-        Modificador.ABRE -> R.string.notas_abre
-    }
-
-@StringRes
-internal fun nombreSimplificado(g: GradoSimplificado): Int =
-    when (g) {
-        GradoSimplificado.CERRADA -> R.string.notas_cerrada
-        GradoSimplificado.MEDIA -> R.string.notas_media
-        GradoSimplificado.SUAVE -> R.string.notas_suave
-        GradoSimplificado.HORQUILLA -> R.string.notas_horquilla
     }

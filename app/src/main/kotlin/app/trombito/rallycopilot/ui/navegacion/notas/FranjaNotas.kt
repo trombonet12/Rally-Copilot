@@ -37,6 +37,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.FrasesNota
+import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.notas.NotaVisible
 import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.ui.maniobras.ParalelogramoShape
@@ -129,10 +130,13 @@ private fun FilaNota(
     ) {
         if (elemento is ElementoHoja.DeNota) {
             elemento.avisosUnidos
-                .filterNot { it.tipo == TipoAviso.CUIDADO && elemento.nota.cuidado }
+                .filterNot { it.tipo == TipoAviso.CUIDADO }
                 .forEach { Icono(iconoAviso(it.tipo), colorAviso(it.tipo, color), medidas.avisoUnido) }
         }
         Icono(iconoElemento(elemento, simplificadas), color, medidas.icono)
+        if (elemento is ElementoHoja.DeNota && elemento.sobrePuente != null) {
+            Icono(iconoAviso(TipoAviso.PUENTE), color, medidas.avisoUnido)
+        }
         Text(
             text = textoNota(recursos, elemento, simplificadas),
             color = color,
@@ -167,16 +171,17 @@ private fun Icono(
     Icon(painterResource(recurso), contentDescription = null, tint = color, modifier = modifier.size(lado))
 }
 
+/** Pide precaución: la nota lleva la marca o alguno de sus avisos es de «cuidado» (resalto, badén, cuidado). */
 private fun esCuidado(elemento: ElementoHoja): Boolean =
     when (elemento) {
-        is ElementoHoja.DeNota -> elemento.nota.cuidado
-        is ElementoHoja.DeAviso -> elemento.aviso.tipo == TipoAviso.CUIDADO
+        is ElementoHoja.DeNota -> elemento.nota.cuidado || elemento.avisosUnidos.any { it.tipo.esCuidado }
+        is ElementoHoja.DeAviso -> elemento.aviso.tipo.esCuidado
     }
 
 private fun colorAviso(
     tipo: TipoAviso,
     normal: Color,
-): Color = if (tipo == TipoAviso.CUIDADO) RallyOscuro.aviso else normal
+): Color = if (tipo.esCuidado) RallyOscuro.aviso else normal
 
 /** Ámbar si pide precaución, latón si toca cantarla ya, y blanco roto en los demás casos. */
 private fun colorNota(
@@ -189,36 +194,49 @@ private fun colorNota(
         else -> ColoresGuiado.Texto
     }
 
-/** Texto visible en mayúsculas: «DERECHA 4 LARGA · 50», «HORQUILLA IZQUIERDA», «CERRADA» (simplificada) o «PUENTE». */
+/**
+ * Texto visible en mayúsculas: la frase del motor sin la distancia y, aparte, «· 50»: «CUIDADO, RESALTO, HORQUILLA
+ * IZQUIERDA MUY LARGA · 40», «DERECHA 3 SOBRE PUENTE · 50», «CEDA EL PASO».
+ */
 internal fun textoNota(
     recursos: Resources,
     elemento: ElementoHoja,
     simplificada: Boolean,
+): String {
+    val frase = fraseSinDistancia(elemento, simplificada).uppercase()
+    val siguiente =
+        (elemento as? ElementoHoja.DeNota)?.nota?.distanciaSiguienteM?.let {
+            " " + recursos.getString(R.string.notas_distancia_siguiente, it)
+        }
+    return frase + siguiente.orEmpty()
+}
+
+/** Frase del motor de la nota sin la distancia a la siguiente, que se pinta aparte. */
+private fun fraseSinDistancia(
+    elemento: ElementoHoja,
+    simplificada: Boolean,
 ): String =
     when (elemento) {
-        is ElementoHoja.DeAviso -> recursos.getString(nombreAviso(elemento.aviso.tipo))
-        is ElementoHoja.DeNota -> textoCurva(recursos, elemento, simplificada)
+        is ElementoHoja.DeAviso -> {
+            elemento.frase
+        }
+
+        is ElementoHoja.DeNota -> {
+            val nota = elemento.nota.copy(distanciaSiguienteM = null)
+            cifraEnVezDePalabra(elemento.copy(nota = nota).frase(simplificada), nota, simplificada)
+        }
     }
 
-private fun textoCurva(
-    recursos: Resources,
-    elemento: ElementoHoja.DeNota,
+/** En pantalla el grado va en cifra («derecha 4 larga»): cambia solo la palabra del grado de la frase del motor. */
+private fun cifraEnVezDePalabra(
+    frase: String,
+    nota: Nota,
     simplificada: Boolean,
 ): String {
-    val nota = elemento.nota
-    val izquierda = nota.direccion == Direccion.IZQUIERDA
-    val base =
-        if (nota.grado == null) {
-            recursos.getString(if (izquierda) R.string.notas_horquilla_izquierda else R.string.notas_horquilla_derecha)
-        } else {
-            val direccion = recursos.getString(if (izquierda) R.string.notas_izquierda else R.string.notas_derecha)
-            val grado =
-                if (simplificada) recursos.getString(nombreSimplificado(nota.simplificada())) else "${nota.grado}"
-            recursos.getString(R.string.notas_giro, direccion, grado)
-        }
-    val modificadores = nota.modificadores.sorted().joinToString("") { " " + recursos.getString(nombreModificador(it)) }
-    val siguiente = nota.distanciaSiguienteM?.let { " " + recursos.getString(R.string.notas_distancia_siguiente, it) }
-    return base + modificadores + siguiente.orEmpty()
+    val grado = nota.grado
+    if (simplificada || grado == null) return frase
+    val direccion = if (nota.direccion == Direccion.IZQUIERDA) "izquierda" else "derecha"
+    return frase.replace("$direccion ${FrasesNota.enPalabras(grado)}", "$direccion $grado")
 }
 
 /** Lo que lee TalkBack: la misma frase que canta la voz y a cuántos metros queda (redondeado a 10). */
@@ -229,14 +247,8 @@ internal fun descripcionNota(
 ): String {
     val hablada =
         when (val elemento = visible.elemento) {
-            is ElementoHoja.DeAviso -> {
-                elemento.aviso.tipo.frase
-            }
-
-            is ElementoHoja.DeNota -> {
-                val previos = elemento.avisosUnidos.filterNot { it.tipo == TipoAviso.CUIDADO && elemento.nota.cuidado }
-                (previos.map { it.tipo.frase } + FrasesNota.frase(elemento.nota, simplificada)).joinToString(", ")
-            }
+            is ElementoHoja.DeAviso -> elemento.frase
+            is ElementoHoja.DeNota -> elemento.frase(simplificada)
         }
     val metros = (visible.distanciaM.coerceAtLeast(0.0) / PASO_DISTANCIA_M).roundToInt() * PASO_DISTANCIA_M
     return recursos.getString(R.string.notas_descripcion, hablada, metros)

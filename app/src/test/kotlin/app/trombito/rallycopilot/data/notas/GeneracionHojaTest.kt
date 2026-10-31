@@ -44,6 +44,7 @@ class GeneracionHojaTest {
     fun `el grado de una curva es relativo al limite de la via o al de su clase`() {
         // 90 grados de radio 60 m: v = 67,6 km/h.
         val medida = RutaMedida(trazadoConCurva())
+
         fun grado(datos: ContextoNotas?) = generarHoja(medida, datos, null).notas.single().grado
 
         // Sin vías, umbrales absolutos: 67,6 km/h es grado 3.
