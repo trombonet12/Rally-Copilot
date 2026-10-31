@@ -24,11 +24,11 @@ class DetectorSalidaRutaTest {
     }
 
     @Test
-    fun `por defecto avisa a los 3 segundos continuados fuera de ruta`() {
+    fun `por defecto avisa a los 2 segundos continuados fuera de ruta`() {
         val d = DetectorSalidaRuta()
         assertFalse(d.actualizar(60.0, 1000))
-        assertFalse(d.actualizar(60.0, 3999))
-        assertTrue(d.actualizar(60.0, 4000))
+        assertFalse(d.actualizar(60.0, 2999))
+        assertTrue(d.actualizar(60.0, 3000))
     }
 
     @Test
@@ -89,11 +89,11 @@ class DetectorSalidaRutaTest {
     fun `volver dentro del umbral antes de tiempo reinicia la cuenta`() {
         val d = DetectorSalidaRuta()
         assertFalse(d.actualizar(60.0, 0))
-        assertFalse(d.actualizar(60.0, 2500))
-        assertFalse(d.actualizar(10.0, 2800))
-        assertFalse(d.actualizar(60.0, 3000))
-        assertFalse(d.actualizar(60.0, 5999))
-        assertTrue(d.actualizar(60.0, 6000))
+        assertFalse(d.actualizar(60.0, 1500))
+        assertFalse(d.actualizar(10.0, 1800))
+        assertFalse(d.actualizar(60.0, 2000))
+        assertFalse(d.actualizar(60.0, 3999))
+        assertTrue(d.actualizar(60.0, 4000))
     }
 
     @Test

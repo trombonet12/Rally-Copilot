@@ -239,7 +239,7 @@ class SesionNavegacionTest {
         }
 
     @Test
-    fun `tres segundos fuera de la ruta recalculan desde la posicion actual y adoptan la nueva`() =
+    fun `dos segundos fuera de la ruta recalculan desde la posicion actual y adoptan la nueva`() =
         runTest {
             // 3 posiciones en la ruta y luego 200 m al sur, parado.
             val fuera = p(300.0, -200.0)
@@ -256,7 +256,7 @@ class SesionNavegacionTest {
             val (origen, hacia, cuando) = e.enrutador.llamadas.single()
             assertEquals(fuera, origen)
             assertEquals(destino.punto, hacia)
-            assertEquals(6_000L, cuando) // fuera desde t=3 s; a los 3 s sostenidos, t=6 s
+            assertEquals(5_000L, cuando) // fuera desde t=3 s; a los 2 s sostenidos, t=5 s
             assertTrue(e.estados.any { it is EstadoNavegacion.Guiando && it.recalculando })
             val ultimo = e.estados.last() as EstadoNavegacion.Guiando
             assertFalse(ultimo.recalculando)
@@ -307,7 +307,7 @@ class SesionNavegacionTest {
 
             assertEquals(1, e.enrutador.llamadas.size)
             val (_, _, cuando) = e.enrutador.llamadas.single()
-            assertEquals(6_000L, cuando)
+            assertEquals(5_000L, cuando)
             assertEquals(nueva, (e.estados.last() as EstadoNavegacion.Guiando).ruta)
             trabajo.cancel()
         }
