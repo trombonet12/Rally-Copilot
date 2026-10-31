@@ -9,7 +9,8 @@ enum class GradoSimplificado { HORQUILLA, CERRADA, MEDIA, SUAVE }
 /**
  * Nota de rally de una curva. [posicionM] es el inicio de la curva y [finM] su final (metros desde el inicio de la
  * traza). [grado] va de 1 (la más cerrada) a 6; `null` es una horquilla. [distanciaSiguienteM] es el hueco hasta la
- * nota siguiente ya redondeado (`null` si va [unidaConSiguiente] o si es la última).
+ * nota siguiente ya redondeado (`null` si va [unidaConSiguiente] o si es la última). [cuidado] marca una curva que
+ * pide precaución (su frase empieza por «cuidado,»); lo decide la hoja de notas, no el generador de notas.
  */
 data class Nota(
     val posicionM: Double,
@@ -19,6 +20,7 @@ data class Nota(
     val modificadores: Set<Modificador> = emptySet(),
     val distanciaSiguienteM: Int? = null,
     val unidaConSiguiente: Boolean = false,
+    val cuidado: Boolean = false,
 ) {
     init {
         require(grado == null || grado in 1..6) { "Grado fuera de 1..6: $grado" }

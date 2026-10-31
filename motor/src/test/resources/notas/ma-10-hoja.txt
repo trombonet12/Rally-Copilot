@@ -1,0 +1,346 @@
+   15 m  cruce, ceda, izquierda dos abre y
+   35 m  derecha uno abre, doscientos
+   50 m  cruce
+  114 m  cruce
+  295 m  cuidado, derecha uno cierra y
+  298 m  cruce
+  300 m  puente
+  322 m  ceda
+  328 m  cambio de rasante
+  350 m  cruce
+  365 m  izquierda tres abre y
+  425 m  derecha tres cierra, ciento veinte
+  449 m  cruce
+  610 m  izquierda dos, doscientos cincuenta
+  629 m  cruce
+  633 m  ceda
+  745 m  puente
+  927 m  cruce
+  970 m  derecha cinco cierra y
+  987 m  ceda
+  990 m  cuidado, izquierda dos, ciento veinte
+  994 m  cruce
+ 1024 m  paso a nivel
+ 1150 m  derecha tres larga cierra, trescientos
+ 1195 m  ceda
+ 1201 m  cruce
+ 1560 m  derecha tres, ochenta
+ 1720 m  derecha tres cierra, ciento veinte
+ 1905 m  izquierda dos larga abre, treinta
+ 1963 m  cruce
+ 2020 m  izquierda dos larga, cincuenta
+ 2170 m  derecha dos y
+ 2270 m  izquierda cuatro y
+ 2335 m  cuidado, horquilla derecha y
+ 2409 m  cruce
+ 2458 m  cambio de rasante
+ 2485 m  izquierda tres muy larga cierra, ochenta
+ 2663 m  cambio de rasante
+ 2725 m  derecha tres larga, cuarenta
+ 2860 m  izquierda dos larga abre y
+ 2960 m  derecha dos larga y
+ 3080 m  izquierda tres abre, cincuenta
+ 3175 m  izquierda cuatro y
+ 3270 m  derecha cuatro larga cierra y
+ 3298 m  cambio de rasante
+ 3333 m  cambio de rasante
+ 3405 m  izquierda tres muy larga cierra, cincuenta
+ 3660 m  cuidado, izquierda dos cierra y
+ 3740 m  derecha dos larga abre y
+ 3870 m  izquierda cuatro muy larga abre, ochenta
+ 4165 m  cuidado, derecha dos y
+ 4240 m  izquierda tres larga abre, sesenta
+ 4395 m  derecha tres larga y
+ 4515 m  izquierda cinco, ochenta
+ 4650 m  cuidado, izquierda dos cierra y
+ 4698 m  cambio de rasante
+ 4710 m  derecha dos abre, treinta
+ 4800 m  izquierda tres muy larga abre, setenta
+ 5065 m  cuidado, derecha dos larga y
+ 5163 m  cambio de rasante
+ 5203 m  cambio de rasante
+ 5215 m  izquierda dos abre y
+ 5305 m  derecha cuatro abre, cincuenta
+ 5334 m  cruce
+ 5388 m  cruce
+ 5415 m  izquierda tres larga abre y
+ 5525 m  derecha dos abre, veinte
+ 5625 m  izquierda cuatro abre, ciento cincuenta
+ 5835 m  izquierda tres, ciento veinte
+ 6030 m  cuidado, horquilla izquierda, cuarenta
+ 6195 m  derecha dos, trescientos
+ 6563 m  cambio de rasante
+ 6623 m  cambio de rasante
+ 6645 m  derecha tres cierra y
+ 6708 m  cambio de rasante
+ 6710 m  izquierda dos abre, setenta
+ 6835 m  derecha cuatro y
+ 6853 m  cambio de rasante
+ 6898 m  cambio de rasante
+ 6920 m  cuidado, izquierda dos abre, cien
+ 7100 m  derecha tres muy larga, setenta
+ 7430 m  izquierda cuatro, doscientos
+ 7578 m  cuidado bache
+ 7680 m  izquierda dos larga, treinta
+ 7762 m  cuidado bache
+ 7805 m  cuidado, horquilla derecha, veinte
+ 7876 m  stop
+ 7965 m  cuidado bache, izquierda cuatro y
+ 8045 m  cuidado, derecha dos larga cierra, sesenta
+ 8113 m  cambio de rasante
+ 8157 m  cuidado bache
+ 8158 m  cambio de rasante
+ 8195 m  derecha cinco cierra y
+ 8250 m  cuidado, izquierda dos larga, cien
+ 8440 m  izquierda tres, ciento cincuenta
+ 8690 m  izquierda dos larga abre, treinta
+ 8835 m  derecha tres larga, cincuenta
+ 9015 m  derecha dos larga y
+ 9063 m  cambio de rasante
+ 9103 m  cambio de rasante
+ 9140 m  izquierda tres, trescientos
+ 9268 m  cambio de rasante
+ 9465 m  cambio de rasante
+ 9525 m  derecha cuatro y
+ 9535 m  túnel
+ 9546 m  salto
+ 9595 m  cuidado, izquierda tres, ciento veinte
+ 9663 m  cambio de rasante
+ 9800 m  cambio de rasante, izquierda cinco abre, cien
+ 9838 m  cambio de rasante
+ 9878 m  cambio de rasante
+ 9950 m  derecha cuatro larga cierra, ochenta
+10130 m  izquierda cuatro larga, doscientos cincuenta
+10540 m  derecha dos larga abre, cuarenta
+10618 m  cambio de rasante
+10685 m  cambio de rasante, izquierda cinco, cien
+10845 m  cuidado, izquierda tres larga, ciento veinte
+11070 m  izquierda cuatro, cincuenta
+11170 m  derecha cuatro abre, ciento veinte
+11335 m  izquierda cinco, sesenta
+11435 m  derecha cuatro, cien
+11605 m  derecha tres, ciento veinte
+11738 m  cambio de rasante
+11805 m  derecha tres, cuarenta
+11873 m  cambio de rasante
+11900 m  izquierda tres cierra y
+11985 m  izquierda cinco y
+12110 m  derecha cuatro, sesenta
+12140 m  cambio de rasante
+12225 m  izquierda cinco cierra, ochenta
+12360 m  cuidado, derecha tres y
+12430 m  cuidado, horquilla izquierda, sesenta
+12528 m  cambio de rasante
+12615 m  cuidado, horquilla derecha, veinte
+12618 m  cambio de rasante
+12728 m  cambio de rasante
+12775 m  izquierda tres, ciento cincuenta
+12878 m  cambio de rasante
+13020 m  derecha cuatro muy larga, ciento veinte
+13093 m  cambio de rasante
+13138 m  cambio de rasante
+13415 m  cambio de rasante, cuidado, izquierda dos larga, ciento veinte
+13690 m  izquierda cinco y
+13775 m  cuidado, derecha dos larga y
+13880 m  izquierda dos larga, cien
+14065 m  izquierda cuatro abre y
+14165 m  izquierda cuatro larga cierra y
+14233 m  cambio de rasante
+14280 m  cuidado, horquilla derecha y
+14293 m  cambio de rasante
+14418 m  cambio de rasante
+14425 m  izquierda dos y
+14495 m  derecha tres larga y
+14578 m  cambio de rasante
+14610 m  izquierda cuatro abre y
+14700 m  derecha cuatro y
+14790 m  izquierda cinco abre y
+14850 m  cuidado, derecha tres abre, treinta
+14960 m  derecha cuatro, cuarenta
+15060 m  derecha cuatro y
+15130 m  cuidado, izquierda dos, treinta
+15225 m  derecha cuatro, ciento cincuenta
+15440 m  cuidado, izquierda dos cierra, trescientos
+15490 m  túnel
+15503 m  cambio de rasante
+15880 m  salto, cuidado, izquierda dos larga abre, treinta
+15923 m  cambio de rasante
+15990 m  derecha tres, quinientos
+16705 m  izquierda cinco abre, sesenta
+16815 m  cuidado, derecha tres abre, ciento veinte
+16985 m  izquierda cuatro, ochenta
+17125 m  cuidado, horquilla derecha, cien
+17345 m  izquierda tres cierra, cuarenta
+17450 m  cambio de rasante, izquierda cinco y
+17515 m  cuidado, derecha tres y
+17518 m  salto
+17553 m  cambio de rasante
+17575 m  cuidado, izquierda dos abre, cien
+17765 m  cambio de rasante, derecha cinco, doscientos
+17793 m  cambio de rasante
+17990 m  cuidado, derecha dos larga cierra, cuarenta
+18145 m  izquierda cuatro larga cierra, cien
+18365 m  cuidado, izquierda dos larga, ciento veinte
+18620 m  cuidado, derecha dos larga cierra, veinte
+18725 m  izquierda dos, cuarenta
+18803 m  cambio de rasante
+18835 m  izquierda dos y
+18915 m  derecha cuatro y
+18970 m  izquierda tres, sesenta
+19085 m  izquierda cuatro abre y
+19165 m  derecha cinco, setenta
+19265 m  cuidado, izquierda dos abre y
+19340 m  derecha dos abre, ochenta
+19490 m  izquierda tres larga cierra y
+19590 m  derecha dos abre, cincuenta
+19720 m  izquierda cuatro y
+19800 m  derecha tres larga abre y
+19878 m  cambio de rasante
+19895 m  izquierda tres abre, cincuenta
+20000 m  izquierda tres larga, sesenta
+20145 m  cambio de rasante, izquierda tres, ciento veinte
+20320 m  derecha cuatro abre, ciento veinte
+20515 m  izquierda cuatro larga abre, cuarenta
+20650 m  izquierda cuatro larga, ochenta
+20815 m  puente, cuidado, derecha dos larga, setenta
+20818 m  cambio de rasante
+20965 m  izquierda cinco, quinientos
+21930 m  izquierda cinco cierra, doscientos cincuenta
+22255 m  derecha cinco y
+22320 m  izquierda cuatro, ciento cincuenta
+22418 m  cambio de rasante
+22520 m  cuidado, izquierda dos cierra, doscientos
+22570 m  túnel
+22583 m  cambio de rasante
+22800 m  izquierda dos, cien
+22803 m  cambio de rasante
+22970 m  cuidado, derecha dos muy larga abre, cuarenta
+23170 m  izquierda cuatro cierra, ciento veinte
+23370 m  izquierda cuatro, ciento veinte
+23555 m  derecha tres muy larga cierra, treinta
+23631 m  cruce
+23698 m  cruce
+23745 m  derecha cinco y
+23795 m  izquierda cinco abre y
+23830 m  puente
+23833 m  cambio de rasante
+23908 m  cambio de rasante
+23953 m  cambio de rasante
+23998 m  cambio de rasante
+24010 m  cuidado, derecha tres, ciento veinte
+24033 m  cambio de rasante
+24073 m  cambio de rasante
+24210 m  izquierda dos larga abre, cien
+24243 m  cambio de rasante
+24410 m  derecha dos larga y
+24463 m  cambio de rasante
+24540 m  cuidado, izquierda uno larga cierra y
+24630 m  derecha dos abre y
+24705 m  izquierda cuatro muy larga y
+24905 m  derecha tres cierra, cuarenta
+25000 m  cuidado, izquierda dos cierra y
+25023 m  cambio de rasante
+25060 m  derecha uno abre y
+25105 m  salto
+25115 m  izquierda cuatro abre y
+25160 m  derecha cinco abre, ciento cincuenta
+25338 m  cambio de rasante
+25393 m  cambio de rasante
+25465 m  izquierda cuatro cierra, cuarenta
+25503 m  cambio de rasante
+25545 m  izquierda cinco y
+25615 m  derecha cinco cierra, ciento veinte
+25740 m  rasante
+25833 m  cambio de rasante
+25855 m  cuidado, derecha tres y
+25945 m  izquierda cinco y
+26015 m  izquierda cinco y
+26053 m  cambio de rasante
+26065 m  derecha cuatro larga cierra, cincuenta
+26093 m  cambio de rasante
+26210 m  izquierda cuatro larga cierra y
+26365 m  derecha cuatro larga, cien
+26424 m  rasante
+26478 m  cambio de rasante
+26538 m  cambio de rasante
+26615 m  derecha cuatro, ochenta
+26638 m  cambio de rasante
+26735 m  cuidado, izquierda dos larga, setenta
+26900 m  izquierda cuatro larga cierra y
+26973 m  cambio de rasante
+27000 m  derecha tres larga abre, trescientos
+27425 m  izquierda cuatro, cuarenta
+27493 m  cambio de rasante
+27520 m  derecha tres larga cierra y
+27533 m  cambio de rasante
+27620 m  izquierda tres abre, ciento cincuenta
+27820 m  derecha cuatro, cien
+27855 m  rasante
+27928 m  cambio de rasante
+27985 m  cambio de rasante, derecha cuatro cierra y
+28030 m  izquierda tres larga cierra y
+28120 m  derecha seis abre y
+28198 m  cambio de rasante
+28250 m  cuidado, izquierda dos y
+28263 m  cambio de rasante
+28305 m  derecha cuatro abre y
+28328 m  rasante
+28390 m  cuidado, izquierda dos larga abre, setenta
+28398 m  cambio de rasante
+28560 m  derecha seis abre y
+28705 m  cuidado, izquierda tres abre, cincuenta
+28800 m  cuidado, derecha dos larga cierra, ciento veinte
+29020 m  cambio de rasante, cuidado, derecha dos cierra y
+29085 m  izquierda uno abre y
+29170 m  derecha dos y
+29215 m  izquierda dos y
+29223 m  cambio de rasante
+29265 m  derecha tres, ciento veinte
+29295 m  rasante
+29343 m  cambio de rasante
+29450 m  cuidado, izquierda dos larga cierra y
+29535 m  derecha dos abre, cuarenta
+29645 m  izquierda tres larga y
+29765 m  derecha cinco y
+29845 m  derecha cinco abre, doscientos
+30225 m  izquierda tres larga, sesenta
+30365 m  derecha dos abre y
+30383 m  cambio de rasante
+30435 m  izquierda tres y
+30500 m  derecha cuatro muy larga abre y
+30685 m  izquierda tres larga cierra y
+30775 m  derecha tres larga abre y
+30818 m  cambio de rasante
+30875 m  izquierda dos larga abre y
+30995 m  cuidado, derecha uno y
+31055 m  izquierda tres larga y
+31148 m  cambio de rasante
+31195 m  izquierda tres y
+31270 m  derecha cuatro larga cierra y
+31375 m  izquierda tres larga y
+31480 m  derecha cuatro cierra, ochenta
+31605 m  izquierda cinco y
+31650 m  derecha cuatro cierra y
+31690 m  cuidado, izquierda dos y
+31765 m  derecha tres cierra y
+31810 m  izquierda cuatro cierra y
+31855 m  cuidado, derecha dos, cuarenta
+31950 m  izquierda cinco y
+32000 m  cuidado, derecha tres, ciento cincuenta
+32113 m  cambio de rasante
+32260 m  izquierda uno abre, cuarenta
+32282 m  cruce
+32288 m  cambio de rasante
+32293 m  stop
+32360 m  izquierda cuatro abre y
+32425 m  derecha tres abre y
+32515 m  izquierda cuatro, cincuenta
+32615 m  derecha cinco cierra, doscientos
+32633 m  cambio de rasante
+32905 m  cuidado, izquierda dos muy larga abre, cien
+33165 m  cuidado, derecha dos cierra y
+33250 m  izquierda dos abre, cuarenta
+33345 m  cuidado, derecha dos cierra, sesenta
+33480 m  izquierda cinco, ochenta
+33585 m  cuidado, izquierda dos cierra y
+33640 m  derecha dos abre

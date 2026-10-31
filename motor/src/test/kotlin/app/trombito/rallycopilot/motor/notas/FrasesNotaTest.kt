@@ -4,13 +4,15 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class FrasesNotaTest {
+    @Suppress("LongParameterList")
     private fun nota(
         direccion: Direccion = Direccion.DERECHA,
         grado: Int? = 4,
         modificadores: Set<Modificador> = emptySet(),
         distancia: Int? = null,
         unida: Boolean = false,
-    ) = Nota(0.0, 50.0, direccion, grado, modificadores, distancia, unida)
+        cuidado: Boolean = false,
+    ) = Nota(0.0, 50.0, direccion, grado, modificadores, distancia, unida, cuidado)
 
     @Test
     fun `numeros en palabras`() {
@@ -125,5 +127,22 @@ class FrasesNotaTest {
         val secuencia = listOf(nota(grado = 2, distancia = 100), nota(Direccion.IZQUIERDA, null))
         assertEquals("derecha dos, cien. horquilla izquierda", FrasesNota.secuencia(secuencia))
         assertEquals("", FrasesNota.secuencia(emptyList()))
+    }
+
+    @Test
+    fun `una nota con cuidado empieza por cuidado`() {
+        assertEquals(
+            "cuidado, derecha dos cierra",
+            FrasesNota.frase(nota(grado = 2, cuidado = true, modificadores = setOf(Modificador.CIERRA))),
+        )
+        assertEquals("cuidado, horquilla izquierda", FrasesNota.frase(nota(Direccion.IZQUIERDA, null, cuidado = true)))
+        assertEquals("cuidado, derecha cuatro, cincuenta", FrasesNota.frase(nota(distancia = 50, cuidado = true)))
+        assertEquals("cuidado, derecha media", FrasesNota.frase(nota(cuidado = true), simplificada = true))
+    }
+
+    @Test
+    fun `en una secuencia el cuidado va solo en la nota marcada`() {
+        val secuencia = listOf(nota(Direccion.IZQUIERDA, 3, unida = true), nota(Direccion.DERECHA, 1, cuidado = true))
+        assertEquals("izquierda tres y cuidado, derecha uno", FrasesNota.secuencia(secuencia))
     }
 }

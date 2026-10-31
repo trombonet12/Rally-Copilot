@@ -14,7 +14,10 @@ object FrasesNota {
             "ciento doscientos trescientos cuatrocientos quinientos seiscientos setecientos ochocientos novecientos"
         ).split(' ')
 
-    /** «derecha cuatro larga, cincuenta»; la distancia (si hay) va después. Con [simplificada], «derecha media». */
+    /**
+     * «derecha cuatro larga, cincuenta»; la distancia (si hay) va después. Con [simplificada], «derecha media». Si la
+     * nota pide precaución empieza por «cuidado,».
+     */
     fun frase(
         nota: Nota,
         simplificada: Boolean = false,
@@ -51,6 +54,11 @@ object FrasesNota {
     }
 
     private fun base(
+        nota: Nota,
+        simplificada: Boolean,
+    ): String = (if (nota.cuidado) "cuidado, " else "") + giro(nota, simplificada)
+
+    private fun giro(
         nota: Nota,
         simplificada: Boolean,
     ): String {

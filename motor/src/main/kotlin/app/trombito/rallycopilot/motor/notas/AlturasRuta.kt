@@ -45,12 +45,13 @@ object AlturasRuta {
         return rellenar(crudas)
     }
 
-    private class Muestra(
+    /** Muestra de la ruta a `k * PASO_M` metros con su rumbo; la comparte el extractor de avisos. */
+    internal class Muestra(
         val punto: PuntoGeo,
         val rumboGrados: Double?,
     )
 
-    private fun muestrear(ruta: List<PuntoGeo>): List<Muestra> {
+    internal fun muestrear(ruta: List<PuntoGeo>): List<Muestra> {
         val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(ruta.sumOf { it.lat } / ruta.size.coerceAtLeast(1)))
         val origen = ruta.firstOrNull() ?: return emptyList()
         val xs = DoubleArray(ruta.size) { Math.toRadians(ruta[it].lon - origen.lon) * escalaX }
