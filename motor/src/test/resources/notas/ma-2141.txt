@@ -1,0 +1,118 @@
+   15 m  izquierda tres abre, sesenta
+  140 m  derecha dos larga cierra y
+  290 m  izquierda dos abre, treinta
+  375 m  izquierda cinco abre, sesenta
+  465 m  izquierda tres, cincuenta
+  595 m  derecha cuatro, doscientos cincuenta
+  905 m  izquierda cinco y
+  975 m  derecha tres muy larga abre y
+ 1150 m  izquierda dos, sesenta
+ 1285 m  derecha tres larga y
+ 1385 m  horquilla izquierda y
+ 1455 m  derecha tres abre y
+ 1490 m  izquierda tres y
+ 1555 m  horquilla derecha, cincuenta
+ 1695 m  derecha cuatro cierra y
+ 1730 m  izquierda tres y
+ 1770 m  derecha dos cierra y
+ 1830 m  izquierda seis abre y
+ 1930 m  izquierda cuatro larga abre y
+ 2075 m  derecha cinco abre y
+ 2145 m  derecha uno cierra y
+ 2230 m  izquierda dos y
+ 2275 m  derecha tres abre y
+ 2325 m  izquierda cinco abre y
+ 2505 m  derecha tres y
+ 2570 m  izquierda tres muy larga abre, cuarenta
+ 2760 m  derecha tres cierra y
+ 2825 m  izquierda cinco, doscientos
+ 3120 m  izquierda tres abre y
+ 3185 m  horquilla derecha y
+ 3335 m  izquierda tres abre, cincuenta
+ 3455 m  derecha tres larga cierra y
+ 3565 m  izquierda uno abre, treinta
+ 3675 m  derecha dos cierra, veinte
+ 3760 m  derecha uno abre y
+ 3810 m  izquierda tres abre y
+ 3870 m  horquilla derecha, cuarenta
+ 3975 m  horquilla izquierda y
+ 4065 m  derecha tres larga cierra y
+ 4180 m  horquilla izquierda y
+ 4240 m  derecha cuatro larga abre y
+ 4350 m  izquierda dos abre y
+ 4430 m  derecha cinco y
+ 4480 m  izquierda cuatro larga abre, cien
+ 4720 m  horquilla izquierda, ochenta
+ 4875 m  derecha cuatro muy larga cierra y
+ 5085 m  izquierda cuatro abre y
+ 5155 m  horquilla derecha y
+ 5225 m  izquierda dos larga abre y
+ 5365 m  derecha cuatro larga abre y
+ 5460 m  izquierda dos abre, cuarenta
+ 5565 m  derecha tres larga cierra y
+ 5675 m  izquierda cuatro, sesenta
+ 5770 m  izquierda cinco y
+ 5830 m  horquilla derecha y
+ 5940 m  izquierda tres larga cierra y
+ 6040 m  derecha cinco abre, ochenta
+ 6180 m  horquilla derecha y
+ 6245 m  izquierda dos larga y
+ 6375 m  derecha tres abre, cuarenta
+ 6460 m  derecha cuatro, ciento cincuenta
+ 6655 m  horquilla derecha, cien
+ 6830 m  izquierda tres, cuarenta
+ 6925 m  izquierda dos larga y
+ 7025 m  derecha cinco abre, cien
+ 7230 m  derecha tres y
+ 7320 m  izquierda tres larga abre y
+ 7475 m  derecha dos, treinta
+ 7565 m  derecha tres muy larga cierra, cuarenta
+ 7780 m  derecha cinco y
+ 7840 m  izquierda tres abre, ciento veinte
+ 8015 m  izquierda cuatro muy larga abre, ciento cincuenta
+ 8330 m  derecha cuatro cierra y
+ 8410 m  izquierda tres y
+ 8480 m  derecha cuatro abre, setenta
+ 8585 m  izquierda cinco y
+ 8645 m  derecha cuatro, ochenta
+ 8785 m  derecha cuatro y
+ 8845 m  izquierda cuatro abre, cincuenta
+ 8975 m  izquierda cinco abre, cincuenta
+ 9105 m  derecha tres y
+ 9170 m  derecha uno cierra y
+ 9240 m  izquierda tres larga abre, sesenta
+ 9385 m  izquierda dos larga, cincuenta
+ 9540 m  derecha tres cierra y
+ 9605 m  izquierda cuatro larga abre, setenta
+ 9780 m  izquierda cuatro cierra y
+ 9810 m  horquilla derecha y
+ 9870 m  izquierda tres larga abre y
+10020 m  derecha cuatro cierra y
+10105 m  izquierda cuatro larga y
+10220 m  derecha cuatro y
+10270 m  izquierda cuatro cierra y
+10315 m  derecha cuatro abre, cincuenta
+10395 m  izquierda cuatro cierra y
+10445 m  derecha cuatro, ciento cincuenta
+10645 m  derecha cinco cierra y
+10725 m  derecha dos larga cierra y
+10855 m  izquierda tres y
+10890 m  derecha cinco abre, setenta
+11060 m  izquierda tres cierra y
+11115 m  derecha cuatro larga y
+11225 m  izquierda cinco y
+11295 m  derecha cuatro y
+11380 m  derecha dos cierra y
+11440 m  izquierda uno cierra y
+11510 m  derecha dos abre y
+11610 m  izquierda dos larga abre y
+11725 m  horquilla derecha, setenta
+11880 m  derecha cinco cierra y
+11965 m  izquierda cuatro larga abre y
+12130 m  derecha cuatro larga cierra, cincuenta
+12285 m  derecha cuatro abre, cuarenta
+12360 m  izquierda tres, ochenta
+12480 m  izquierda cuatro cierra y
+12535 m  derecha cuatro abre y
+12610 m  izquierda dos cierra y
+12675 m  derecha dos abre

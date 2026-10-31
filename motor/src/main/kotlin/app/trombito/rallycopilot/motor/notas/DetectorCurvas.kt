@@ -11,7 +11,8 @@ enum class Direccion { IZQUIERDA, DERECHA }
 /**
  * Curva detectada. Posiciones en metros desde el inicio de la polilínea; [anguloGrados] es el cambio de rumbo
  * total (positivo). Los radios (m) son medianas: [radioCentralM] del 50 % central, [radioEntradaM] y
- * [radioSalidaM] del primer y del último tercio; [radioMinM] es el mínimo puntual (sobreestima la cerrazón).
+ * [radioSalidaM] del primer y del último tercio del núcleo (sin la cola de histéresis); [radioMinM] es el
+ * mínimo puntual (sobreestima la cerrazón).
  */
 data class Curva(
     val inicioM: Double,
@@ -27,12 +28,13 @@ data class Curva(
 /**
  * Segmenta una traza en curvas con histéresis: una curva entra con R < [radioEntradaM] y sale con
  * R > [radioSalidaM] o al cambiar el signo de la curvatura; las del mismo sentido separadas menos de [fusionM]
- * metros se fusionan. Determinista y sin estado.
+ * metros se fusionan y se descartan las de menos de [anguloMinGrados] (ruido). Determinista y sin estado.
  */
 class DetectorCurvas(
-    private val radioEntradaM: Double = 250.0,
-    private val radioSalidaM: Double = 400.0,
+    private val radioEntradaM: Double = 400.0,
+    private val radioSalidaM: Double = 600.0,
     private val fusionM: Double = 20.0,
+    private val anguloMinGrados: Double = 5.0,
 ) {
     init {
         require(radioEntradaM > 0.0 && radioSalidaM >= radioEntradaM) { "Umbrales de radio inválidos" }
@@ -45,7 +47,10 @@ class DetectorCurvas(
     /** Detecta las curvas de una traza ya remuestreada y suavizada. */
     fun detectar(traza: TrazaPlana): List<Curva> {
         val k = Curvatura.calcular(traza)
-        return fusionar(segmentar(k), k, traza).map { construir(it, k, traza) }
+        return fusionar(segmentar(k), k, traza).map { construir(it, k, traza) }.filter {
+            it.anguloGrados >=
+                anguloMinGrados
+        }
     }
 
     private fun segmentar(k: DoubleArray): List<IntRange> {
@@ -99,16 +104,28 @@ class DetectorCurvas(
     ): Curva {
         val radios = DoubleArray(r.last - r.first + 1) { 1.0 / abs(k[r.first + it]) }
         val n = radios.size
+        val nucleo = nucleo(radios)
+        val m = nucleo.size
         return Curva(
             inicioM = traza.s[r.first],
             finM = traza.s[r.last],
             direccion = direccion(r, k),
             anguloGrados = angulo(r, traza),
             radioCentralM = mediana(radios, n / 4, n - n / 4),
-            radioEntradaM = mediana(radios, 0, n / 3),
-            radioSalidaM = mediana(radios, n - n / 3, n),
+            radioEntradaM = mediana(nucleo, 0, m / 3),
+            radioSalidaM = mediana(nucleo, m - m / 3, m),
             radioMinM = radios.min(),
         )
+    }
+
+    /**
+     * Recorta por ambos extremos las muestras con R > [radioEntradaM] (la cola de histéresis, que sesgaría la
+     * comparación entrada/salida). Si no queda ninguna, devuelve [radios] entero.
+     */
+    private fun nucleo(radios: DoubleArray): DoubleArray {
+        val primera = radios.indexOfFirst { it <= radioEntradaM }
+        val ultima = radios.indexOfLast { it <= radioEntradaM }
+        return if (primera < 0) radios else radios.copyOfRange(primera, ultima + 1)
     }
 
     /** Cambio de rumbo total entre las tangentes (diferencias centrales) de la primera y la última muestra. */
