@@ -24,9 +24,9 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.navegacion.guiado.TarjetaLlegada
 import app.trombito.rallycopilot.ui.theme.Espacio
 
-const val ETIQUETA_LLEGADA = "nav-llegada"
 const val ETIQUETA_ERROR = "nav-error"
 const val ETIQUETA_ERROR_CERRAR = "nav-error-cerrar"
 
@@ -67,11 +67,7 @@ fun PanelInferiorNavegacion(
         }
 
         is EstadoNavegacion.Llegada -> {
-            AvisoNavegacion(
-                texto = stringResource(R.string.navegacion_ui_llegada, control.destino.nombre),
-                etiqueta = ETIQUETA_LLEGADA,
-                modifier = modifier,
-            ) { BotonTerminar(acciones.onTerminar) }
+            TarjetaLlegada(control.destino, acciones.onTerminar, modifier)
         }
 
         is EstadoNavegacion.Error -> {
@@ -84,9 +80,7 @@ fun PanelInferiorNavegacion(
             }
         }
 
-        else -> {
-            Unit
-        }
+        else -> {}
     }
 }
 

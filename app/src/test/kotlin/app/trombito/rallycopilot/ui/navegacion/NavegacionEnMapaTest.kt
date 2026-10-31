@@ -22,6 +22,8 @@ import app.trombito.rallycopilot.ui.mapa.AccionesMapa
 import app.trombito.rallycopilot.ui.mapa.EstadoVistaMapa
 import app.trombito.rallycopilot.ui.mapa.MapaScreen
 import app.trombito.rallycopilot.ui.mapa.MapaUiState
+import app.trombito.rallycopilot.ui.navegacion.guiado.ETIQUETA_LLEGADA_CERRAR
+import app.trombito.rallycopilot.ui.navegacion.guiado.ETIQUETA_TARJETA_LLEGADA
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -281,8 +283,9 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     @Test
     fun `la llegada se avisa y se cierra con la bandera`() {
         poner(NavegacionUiState(control = EstadoNavegacion.Llegada(destino)))
-        assertTrue("Has llegado a Sóller" in banco.textos(banco.conEtiqueta(ETIQUETA_LLEGADA)))
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_TERMINAR))
+        val textos = banco.textos(banco.conEtiqueta(ETIQUETA_TARJETA_LLEGADA))
+        assertTrue("Has llegado" in textos && "Sóller" in textos)
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_LLEGADA_CERRAR))
         assertEquals(1, terminadas)
     }
 

@@ -14,6 +14,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
@@ -82,7 +83,8 @@ internal fun datosBanner(estado: EstadoNavegacion.Guiando): DatosBanner? {
  * Capa de guiado sobre el mapa (ocupa todo el espacio que se le da y no tapa el centro): arriba el banner de la
  * maniobra actual y la siguiente con el aviso de recálculo debajo, y abajo el pie con llegada, tiempo y km.
  * En vertical va a todo el ancho y centrado; en horizontal el banner queda arriba a la izquierda (≤ 400 dp) y el pie
- * abajo a la izquierda. Sin progreso todavía no hay pie.
+ * abajo a la izquierda. Sin progreso todavía no hay pie. [margenLateralBanner] aparta solo el banner de los botones
+ * laterales (volver y controles) sin estrechar el pie.
  */
 @Composable
 fun PanelGuiado(
@@ -90,11 +92,12 @@ fun PanelGuiado(
     variante: VarianteManiobra,
     modifier: Modifier = Modifier,
     zona: ZoneId = ZoneId.systemDefault(),
+    margenLateralBanner: Dp = 0.dp,
 ) {
     BoxWithConstraints(modifier = modifier.testTag(ETIQUETA_PANEL_GUIADO)) {
         val horizontal = maxWidth > maxHeight
         Column(
-            modifier = Modifier.align(Alignment.TopStart).padding(MARGEN),
+            modifier = Modifier.align(Alignment.TopStart).padding(horizontal = margenLateralBanner).padding(MARGEN),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(MARGEN),
         ) {

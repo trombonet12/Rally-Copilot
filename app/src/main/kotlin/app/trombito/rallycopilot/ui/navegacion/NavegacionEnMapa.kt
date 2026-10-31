@@ -1,10 +1,14 @@
 package app.trombito.rallycopilot.ui.navegacion
 
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
+import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
 
 /** Callbacks de la navegación sobre el mapa. */
 data class AccionesNavegacion(
@@ -29,6 +33,22 @@ typealias PanelGuiado = @Composable BoxScope.(guiando: EstadoNavegacion.Guiando,
 
 /** Hueco vacío: no pinta nada. */
 val SinPanelGuiado: PanelGuiado = { _, _ -> }
+
+/** Estilo de los iconos de maniobra del banner. Un solo sitio: Joan elegirá entre las tres al cerrar el hito. */
+val VARIANTE_MANIOBRA_POR_DEFECTO = VarianteManiobra.CHEVRON_HUD
+
+/** Margen lateral del panel: deja libres el botón de volver (izquierda) y la columna de controles (derecha). */
+private val MARGEN_LATERAL_PANEL = 48.dp
+
+/** El panel de guiado real: banner arriba entre los botones laterales y pie abajo a todo el ancho. */
+val PanelGuiadoMapa: PanelGuiado = { guiando, _ ->
+    app.trombito.rallycopilot.ui.navegacion.guiado.PanelGuiado(
+        estado = guiando,
+        variante = VARIANTE_MANIOBRA_POR_DEFECTO,
+        modifier = Modifier.fillMaxSize(),
+        margenLateralBanner = MARGEN_LATERAL_PANEL,
+    )
+}
 
 /** Lo que [app.trombito.rallycopilot.ui.mapa.MapaScreen] necesita de la navegación, agrupado. */
 data class NavegacionEnMapa(

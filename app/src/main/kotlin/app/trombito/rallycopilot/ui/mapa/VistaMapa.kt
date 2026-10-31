@@ -345,7 +345,7 @@ private class ControladorMapa(
     ) {
         if (nueva == previa) return
         val cambiaronPuntos = nueva?.puntos != previa?.puntos
-        if (cambiaronPuntos) estilo?.let { CapaRuta.actualizar(it, nueva?.puntos.orEmpty()) }
+        if (cambiaronPuntos || nueva?.destino != previa?.destino) estilo?.let { CapaRuta.actualizar(it, nueva) }
         val nuevoEncuadre = cambiaronPuntos || previa?.encuadrar != true
         if (nueva != null && nueva.encuadrar && nuevoEncuadre) {
             val m = mapa ?: return

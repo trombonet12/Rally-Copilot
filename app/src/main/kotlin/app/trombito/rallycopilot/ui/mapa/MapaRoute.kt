@@ -14,11 +14,11 @@ import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 import app.trombito.rallycopilot.ui.navegacion.NavegacionUiState
 import app.trombito.rallycopilot.ui.navegacion.NavegacionViewModel
 import app.trombito.rallycopilot.ui.navegacion.PanelGuiado
-import app.trombito.rallycopilot.ui.navegacion.SinPanelGuiado
+import app.trombito.rallycopilot.ui.navegacion.PanelGuiadoMapa
 
 /**
  * Une los ViewModels (mapa y navegación), el permiso de ubicación y el mapa real con la pantalla sin lógica.
- * [panelGuiado] es el hueco del banner de maniobra y el pie de guiado (vacío por defecto).
+ * [panelGuiado] es el hueco del banner de maniobra y el pie de guiado (por defecto, el panel real).
  */
 @Composable
 @Suppress("LongParameterList") // callbacks de la ruta + los dos ViewModels inyectables
@@ -26,7 +26,7 @@ fun MapaRoute(
     onVolver: () -> Unit,
     onAbrirMapasOffline: () -> Unit,
     modifier: Modifier = Modifier,
-    panelGuiado: PanelGuiado = SinPanelGuiado,
+    panelGuiado: PanelGuiado = PanelGuiadoMapa,
     viewModel: MapaViewModel = hiltViewModel(),
     navegacionViewModel: NavegacionViewModel = hiltViewModel(),
 ) {
@@ -108,8 +108,11 @@ private fun accionesNavegacion(vm: NavegacionViewModel) =
 @Composable
 private fun rutaParaMapa(navegacion: NavegacionUiState): RutaEnMapa? {
     val ruta = navegacion.rutaEnMapa
+    val destino = navegacion.destinoEnMapa
     val encuadrar = navegacion.encuadrar
-    return remember(ruta, encuadrar) { ruta?.let { RutaEnMapa(it.puntos, encuadrar) } }
+    return remember(ruta, destino, encuadrar) {
+        if (ruta == null && destino == null) null else RutaEnMapa(ruta?.puntos.orEmpty(), encuadrar, destino)
+    }
 }
 
 /**

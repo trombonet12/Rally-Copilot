@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.Ruta
 
 /** Lo que la barra «¿A dónde?» muestra bajo el campo de texto. */
@@ -95,6 +96,15 @@ data class NavegacionUiState(
             when (control) {
                 is EstadoNavegacion.Guiando -> control.ruta
                 is EstadoNavegacion.Inactiva -> vistaPrevia?.rutaElegida
+                else -> null
+            }
+
+    /** El punto de destino que marca el mapa: el de la vista previa o el del guiado. */
+    val destinoEnMapa: PuntoGeo?
+        get() =
+            when (control) {
+                is EstadoNavegacion.Guiando -> control.destino.punto
+                is EstadoNavegacion.Inactiva -> vistaPrevia?.destino?.punto
                 else -> null
             }
 

@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import android.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.theme.DarkColors
@@ -8,6 +9,7 @@ import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
+import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
@@ -22,11 +24,19 @@ import org.maplibre.geojson.Point
 data class RutaEnMapa(
     val puntos: List<PuntoGeo>,
     val encuadrar: Boolean = false,
+    /** Marcador del destino (círculo rojo de la marca con borde); null = sin marcador. */
+    val destino: PuntoGeo? = null,
 )
 
 private const val ID_FUENTE = "ruta-fuente"
 private const val ID_BORDE = "ruta-borde"
 private const val ID_LINEA = "ruta-linea"
+private const val ID_FUENTE_DESTINO = "ruta-destino-fuente"
+private const val ID_DESTINO_HALO = "ruta-destino-halo"
+private const val ID_DESTINO = "ruta-destino"
+private const val RADIO_HALO = 13f
+private const val RADIO_DESTINO = 8f
+private const val GROSOR_HALO = 3f
 private const val EXPONENTE_ANCHO = 1.5f
 private const val ZOOM_ANCHO_MINIMO = 8
 private const val ZOOM_ANCHO_MEDIO = 14
@@ -38,10 +48,10 @@ private const val EXTRA_BORDE = 4f
 private const val DURACION_ENCUADRE_MS = 800
 
 // Margen del encuadre: deja sitio a la barra de arriba y al panel de abajo (dp, con tope relativo al alto del mapa).
-private const val ENCUADRE_ARRIBA_DP = 96f
+private const val ENCUADRE_ARRIBA_DP = 128f
 private const val ENCUADRE_ABAJO_DP = 220f
 private const val ENCUADRE_LATERAL_DP = 40f
-private const val ENCUADRE_MAXIMO_ARRIBA = 0.2f
+private const val ENCUADRE_MAXIMO_ARRIBA = 0.25f
 private const val ENCUADRE_MAXIMO_ABAJO = 0.4f
 
 /**
@@ -56,23 +66,35 @@ internal object CapaRuta {
         ruta: RutaEnMapa?,
     ) {
         estilo.addSource(GeoJsonSource(ID_FUENTE, lineaGeoJson(ruta?.puntos.orEmpty())))
+        estilo.addSource(GeoJsonSource(ID_FUENTE_DESTINO, puntoGeoJson(ruta?.destino)))
         val borde = capa(ID_BORDE, DarkColors.surfaceContainerLowest.toArgb(), EXTRA_BORDE)
         val linea = capa(ID_LINEA, DarkColors.primary.toArgb(), 0f)
         val etiquetas = estilo.layers.firstOrNull { it is SymbolLayer }?.id
-        if (etiquetas != null) {
-            estilo.addLayerBelow(borde, etiquetas)
-            estilo.addLayerBelow(linea, etiquetas)
-        } else {
-            estilo.addLayer(borde)
-            estilo.addLayer(linea)
+        val halo = capaDestino(ID_DESTINO_HALO, Color.WHITE, RADIO_HALO)
+        val punto = capaDestino(ID_DESTINO, DarkColors.tertiary.toArgb(), RADIO_DESTINO)
+        listOf(borde, linea, halo, punto).forEach { capa ->
+            if (etiquetas != null) estilo.addLayerBelow(capa, etiquetas) else estilo.addLayer(capa)
         }
     }
 
+    private fun capaDestino(
+        id: String,
+        color: Int,
+        radio: Float,
+    ): CircleLayer =
+        CircleLayer(id, ID_FUENTE_DESTINO).withProperties(
+            PropertyFactory.circleColor(color),
+            PropertyFactory.circleRadius(radio),
+            PropertyFactory.circleStrokeColor(DarkColors.surfaceContainerLowest.toArgb()),
+            PropertyFactory.circleStrokeWidth(GROSOR_HALO),
+        )
+
     fun actualizar(
         estilo: Style,
-        puntos: List<PuntoGeo>,
+        ruta: RutaEnMapa?,
     ) {
-        estilo.getSourceAs<GeoJsonSource>(ID_FUENTE)?.setGeoJson(lineaGeoJson(puntos))
+        estilo.getSourceAs<GeoJsonSource>(ID_FUENTE)?.setGeoJson(lineaGeoJson(ruta?.puntos.orEmpty()))
+        estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_DESTINO)?.setGeoJson(puntoGeoJson(ruta?.destino))
     }
 
     private fun capa(
@@ -104,6 +126,14 @@ internal fun lineaGeoJson(puntos: List<PuntoGeo>): FeatureCollection =
         FeatureCollection.fromFeature(
             Feature.fromGeometry(LineString.fromLngLats(puntos.map { Point.fromLngLat(it.lon, it.lat) })),
         )
+    }
+
+/** Un punto (o nada) listo para un `GeoJsonSource`. */
+internal fun puntoGeoJson(punto: PuntoGeo?): FeatureCollection =
+    if (punto == null) {
+        FeatureCollection.fromFeatures(emptyList<Feature>())
+    } else {
+        FeatureCollection.fromFeature(Feature.fromGeometry(Point.fromLngLat(punto.lon, punto.lat)))
     }
 
 /** Rectángulo que abarca todos los puntos; null con menos de dos. */

@@ -241,6 +241,7 @@ class NavegacionViewModelTest {
             assertTrue(estado.control is EstadoNavegacion.Guiando)
             assertNull(estado.vistaPrevia)
             assertEquals(ruta, estado.rutaEnMapa)
+            assertEquals(SOLLER, estado.destinoEnMapa)
             assertFalse(estado.encuadrar)
             assertTrue(estado.conduciendo)
         }
@@ -267,6 +268,7 @@ class NavegacionViewModelTest {
             vm.elegirDestino(destino)
             val estado = vm.uiState.value
             assertNotNull(estado.rutaEnMapa)
+            assertEquals(SOLLER, estado.destinoEnMapa)
             assertTrue(estado.encuadrar)
         }
 

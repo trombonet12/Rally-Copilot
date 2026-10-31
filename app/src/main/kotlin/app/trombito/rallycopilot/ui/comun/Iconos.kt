@@ -108,7 +108,7 @@ object Iconos {
 
     /** Carretera con curvas: la ruta sinuosa. */
     val Curvas: ImageVector by lazy {
-        icono("Curvas", "M5,22 C5,15 16,15 16,9 C16,6 8,6 8,2 L12,2 C12,6 20,6 20,9 C20,15 9,15 9,22Z")
+        icono("Curvas", "M5,22 C5,10 13,14 13,2 L19,2 C19,14 11,10 11,22Z")
     }
 
     /** Bandera a cuadros (cuadrícula 4x3 con huecos alternos): terminar el tramo. */

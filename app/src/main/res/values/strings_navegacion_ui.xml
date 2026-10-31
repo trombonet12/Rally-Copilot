@@ -23,7 +23,4 @@
     <string name="navegacion_ui_sin_posicion">Esperando tu posición GPS para calcular la ruta…</string>
     <string name="navegacion_ui_empezar">Empezar</string>
     <string name="navegacion_ui_cancelar">Cancelar la ruta</string>
-
-    <!-- Conducción -->
-    <string name="navegacion_ui_llegada">Has llegado a %1$s</string>
 </resources>

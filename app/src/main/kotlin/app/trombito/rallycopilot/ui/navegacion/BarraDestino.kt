@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,7 +24,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -61,6 +66,7 @@ fun BarraDestino(
     modifier: Modifier = Modifier,
 ) {
     val colores = MaterialTheme.colorScheme
+    val cerrarTeclado = cerrarTeclado()
     Surface(
         shape = RoundedCornerShape(RADIO_BARRA),
         color = colores.surfaceContainerHigh.copy(OPACIDAD_SOBRE_MAPA),
@@ -85,6 +91,7 @@ fun BarraDestino(
                     textStyle = MaterialTheme.typography.bodyLarge.copy(color = colores.onSurface),
                     cursorBrush = SolidColor(colores.primary),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = { cerrarTeclado() }),
                     modifier = Modifier.fillMaxWidth().testTag(ETIQUETA_BUSCADOR),
                     decorationBox = { campo ->
                         if (texto.isEmpty()) {
@@ -120,6 +127,11 @@ fun ListaDestinos(
     modifier: Modifier = Modifier,
 ) {
     if (busqueda is BusquedaDestino.Inactiva) return
+    val cerrarTeclado = cerrarTeclado()
+    val elegir: (Destino) -> Unit = {
+        cerrarTeclado()
+        onElegir(it)
+    }
     val descripcion = stringResource(R.string.navegacion_ui_resultados)
     Surface(
         shape = MaterialTheme.shapes.medium,
@@ -129,7 +141,7 @@ fun ListaDestinos(
         val alto: Dp = if (horizontal) ALTO_LISTA_HORIZONTAL else ALTO_LISTA_VERTICAL
         when (busqueda) {
             is BusquedaDestino.Resultados -> {
-                FilasResultados(busqueda.items, onElegir, Modifier.heightIn(max = alto))
+                FilasResultados(busqueda.items, elegir, Modifier.heightIn(max = alto))
             }
 
             is BusquedaDestino.Ubicacion -> {
@@ -137,7 +149,7 @@ fun ListaDestinos(
                 val pegada = stringResource(R.string.navegacion_ui_ubicacion_pegada)
                 val titulo = if (busqueda.sinNombre) pegada else d.nombre
                 val detalle = if (busqueda.sinNombre) d.nombre else null
-                FilaDestino(titulo, detalle, { onElegir(d) }, Modifier.testTag(ETIQUETA_RESULTADO + "0"))
+                FilaDestino(titulo, detalle, { elegir(d) }, Modifier.testTag(ETIQUETA_RESULTADO + "0"))
             }
 
             BusquedaDestino.NecesitaRed -> {
@@ -226,4 +238,15 @@ private fun MensajeLista(
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier.fillMaxWidth().padding(Espacio.l),
     )
+}
+
+/** Quita el foco del campo y esconde el teclado (al elegir un destino el mapa recupera todo su alto). */
+@Composable
+private fun cerrarTeclado(): () -> Unit {
+    val foco: FocusManager = LocalFocusManager.current
+    val teclado: SoftwareKeyboardController? = LocalSoftwareKeyboardController.current
+    return {
+        foco.clearFocus()
+        teclado?.hide()
+    }
 }
