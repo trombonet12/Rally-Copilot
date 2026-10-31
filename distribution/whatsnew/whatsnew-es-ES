@@ -1,1 +1,5 @@
-• Primera versión de prueba de Rally Copilot
+• Navegación sin conexión: busca destinos, coordenadas o enlaces de Google Maps y elige ruta Más rápida o Sinuosa.
+• Banner de maniobras estilo WRC, hora de llegada y km restantes; recalcula si te sales.
+• Modo libre automático que graba el recorrido.
+• Mapa: capas con relieve y curvas, zoom según la velocidad, icono de posición a elegir y placas de carretera con su color.
+• Pantalla siempre encendida al conducir.
