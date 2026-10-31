@@ -93,25 +93,26 @@ cartelería de maniobras estilo WRC.
 - Fuera: voz (H4), notas (H3), cronometraje (H6).
 
 ### Criterios de aceptación
-- [ ] Ruta Palma → Sa Calobra calculada en modo avión en < 3 s en el emulador.
-- [ ] Con `gps-replay` saliéndose de la ruta, recalcula en < 5 s.
-- [ ] Con la pantalla apagada 5 min durante una navegación simulada, el servicio sigue y la posición avanza (logcat).
-- [ ] Buscar «Sóller» o «Cala Figuera» devuelve resultados sin conexión; pegar `39.83,2.81` o un enlace de Google Maps lleva a ese punto.
-- [ ] La ruta «Sinuosa» Palma → Sóller sube por el Coll de Sóller en lugar de ir por el túnel.
-- [ ] Menú de capas solo con iconos; relieve y curvas visibles en la Serra en modo avión.
-- [ ] El zoom se aleja al pasar de 30 a 90 km/h en `gps-replay` y respeta el ajuste.
-- [ ] Los 4 iconos de posición, sin círculo, elegibles en Ajustes.
-- [ ] Placas Ma-/AP-/A- con los colores oficiales de su red (según `docs/investigacion/carteleria.md`).
-- [ ] Banner de maniobras estilo WRC; capturas de las variantes para que Joan elija.
-- [ ] Todo funciona también en `rally-sin-gms-36`.
+- [x] Ruta Palma → Sa Calobra calculada en modo avión en < 3 s en el emulador.
+- [x] Con `gps-replay` saliéndose de la ruta, recalcula en < 5 s.
+- [x] Con la pantalla apagada 5 min durante una navegación simulada, el servicio sigue y la posición avanza (logcat).
+- [x] Buscar «Sóller» o «Cala Figuera» devuelve resultados sin conexión; pegar `39.83,2.81` o un enlace de Google Maps lleva a ese punto.
+- [x] La ruta «Sinuosa» Palma → Sóller sube por el Coll de Sóller en lugar de ir por el túnel.
+- [x] Menú de capas solo con iconos; relieve y curvas visibles en la Serra en modo avión.
+- [x] El zoom se aleja al pasar de 30 a 90 km/h en `gps-replay` y respeta el ajuste.
+- [x] Los 4 iconos de posición, sin círculo, elegibles en Ajustes.
+- [x] Placas Ma-/AP-/A- con los colores oficiales de su red (según `docs/investigacion/carteleria.md`).
+- [x] Banner de maniobras estilo WRC; capturas de las variantes para que Joan elija.
+- [x] Todo funciona también en `rally-sin-gms-36`.
 
 ### Tests
-- Motor (TDD): zoom por velocidad, enlaces y coordenadas, polyline6 y restantes/ETA, salida de ruta (umbral y tiempo), frases de maniobra, simplificación del recorrido.
+- Motor (TDD): zoom por velocidad, enlaces y coordenadas, polyline6 y restantes/ETA, salida de ruta (umbral, tiempo y sentido contrario), frases de maniobra, simplificación del recorrido.
 - Robolectric: ViewModels de búsqueda y navegación con enrutador y buscador falsos; migración Room v1→v2.
 - Escenarios `qa-scenario`: `screen-off`, `background`, `process-death`, `gps-loss`.
 
 ### Estado
-en curso (2026-10-28) · Depende de: H1 · Dudas: resueltas (2026-10-28, en el chat)
+completado (2026-10-31) · Depende de: H1 · Dudas: resueltas (2026-10-31, en el chat)
+<!-- Hecho: datos (Valhalla solo coche 25,9 MB, búsqueda 4,9 MB, relieve MDT05 50,8 MB, curvas 18,5 MB; placas por matrícula en datos-2026.10.31-5); valhalla-mobile 0.6.4 (Palma→Sa Calobra 1034 ms la 1.ª vez, 81 ms después); Sinuosa por el Coll; búsqueda offline, coordenadas y enlaces (los cortos con red); vista previa Más rápida/Sinuosa; banner WRC en 3 variantes (B por defecto, elegible); pie con llegada/tiempo/km; recálculo con 2 s fuera de ruta (ruta nueva a 1,5–3,1 s en el emulador) y sentido contrario a 1 s (3,6 s); modo libre automático que graba el recorrido; servicio en primer plano probado 6 min con pantalla apagada; mapa con menú de capas, relieve y curvas, zoom por velocidad, brújula, 4 iconos de posición, placas con color en mapa y panel, pantalla encendida; Room v3; revisión opus de arquitectura y seguridad aplicada (0 BLOCKER, HIGH arreglado). 398 tests JVM de app y 233 del motor. Capturas en docs/capturas/h2/ (43). Pendiente → H3: distancia del recorrido en una sola función del motor y grabación sin puntos parados; recortes de texto largos en el banner (mostrar la placa en lugar del ref); probar un enlace corto real de Joan; confirmar en el móvil con GPS real. -->
 
 ## H3 — Motor de notas
 

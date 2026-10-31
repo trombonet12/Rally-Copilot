@@ -1,12 +1,12 @@
 # Estado
 
-> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-10-28 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
+> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-10-31 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
 
 | Campo | Valor |
 |---|---|
 | Hito | H2 — Navegación offline y mapa a tu gusto |
-| Estado | **en curso** (2026-10-28): investigación (cartelería, relieve) ‖ teselas Valhalla en el repo de datos |
-| Último commit | ver `git log -1`. **Commits de H1 sin publicar** en `Rally-Copilot` (push solo con permiso de Joan); `rally-copilot-data` publicado |
+| Estado | **H2 cerrado** (2026-10-31); H3 sin empezar (solo cuando Joan lo pida) |
+| Último commit | ver `git log -1`. Push a `Rally-Copilot` solo cuando Joan lo pida (2026-10-31); al cerrar H2 pidió push + versión 0.2 |
 
 ## Completado
 - 2026-10-28 · Herencia de Sous Chef/Trombito analizada y documentada ([HERENCIA.md](HERENCIA.md)).
@@ -20,6 +20,7 @@
 - 2026-10-28 · `scripts/gps-replay.mjs` + traza real de la Ma-2141 ([rutas/](rutas/)), verificado en el emulador; `voice-lab/README.md` con dónde dejar el material de voz.
 - 2026-10-28 · **H1**: PRs #1 y #2 de Dependabot fusionados (con permiso). Repo público [`trombonet12/rally-copilot-data`](https://github.com/trombonet12/rally-copilot-data) con workflow mensual (decidir → build sin token → publicar) y release `datos-2026.10.28-2`. Motor: manifest, plan de descarga, vías/límites, velocidad. App: MapLibre 13.6.1, Room, WorkManager, descarga reanudable verificada, GPS sin GMS, mapa vectorial/satélite, velocidad y límite, Mapas offline, Ajustes/Acerca de. Revisión de seguridad aplicada. Capturas en [capturas/h1/](capturas/h1/).
 
+- 2026-10-31 · **H2**: navegación offline completa (Valhalla en el dispositivo, búsqueda, coordenadas y enlaces —los cortos con red—, Más rápida/Sinuosa, banner WRC con 3 variantes elegibles —B por defecto—, pie con llegada/tiempo/km, recálculo y sentido contrario, modo libre automático que graba el recorrido, servicio en primer plano) y mapa a gusto de Joan (menú de capas con iconos, relieve y curvas MDT05, zoom por velocidad, brújula, 4 iconos de posición, placas por matrícula en mapa y panel, pantalla encendida). Icono de la app centrado. Room v3. Revisión opus aplicada. Datos `datos-2026.10.31-5`. Capturas en [capturas/h2/](capturas/h2/).
 ## Entorno
 | Pieza | Valor |
 |---|---|
@@ -33,6 +34,7 @@
 - `assembleRelease` sin firma → falla con «Release sin firma: faltan las variables RALLY_*» (esperado).
 - Scripts: `check-claude-assets`, `gen-claude-index --check`, `check-docs`, `test-hooks` (88 OK), `node --test` de `play-promocionar` (11) y `gps-replay` (8) → verde. `actionlint` sin errores.
 - Emulador: APK debug instalado; inicio, icono y splash verificados con capturas; `gps-replay` fija la posición `gps` en la Ma-2141.
+- H2 (2026-10-31): gate verde con 398 tests JVM de app y 233 del motor; scripts y hooks (88 OK) en verde. Emulador `trombito-36` y `rally-sin-gms-36`: rutas, búsqueda, guiado por la Ma-2141, pantalla apagada 6 min, capas, iconos, placas, galería WRC, horizontal.
 - H1 (2026-10-28): gate verde con 174 tests JVM de app y 82 del motor; `rally-copilot-data`: 5 tests de scripts + actionlint. Emulador `trombito-36` y `rally-sin-gms-36`: descarga real, corte de WiFi y reanudación, modo avión, Ma-2141 a 50 km/h con límite 90/30/sin dato, satélite, horizontal y spike `mbtiles://`.
 
 ## Problemas conocidos
@@ -46,20 +48,25 @@
 - La etiqueta «MAR BALEAR» de Protomaps cae dentro de la isla (dato de Natural Earth); cosmético.
 - APK debug de 63 MB por las librerías nativas de MapLibre en 4 ABI; valorar splits por ABI antes de H12.
 
+- `gps-replay`: al acabar la traza el emulador sigue repitiendo la última posición con velocidad; para simular GPS perdido, `adb shell cmd location set-location-enabled false`.
+- Tras algunos recálculos el banner muestra una primera maniobra a «0 m» un instante (visto en el emulador al saltar con `geo fix`); revisar en H3 con una traza real.
+- `adb shell input text` no teclea acentos (buscar «Soller»).
+- Banner de maniobra: frases largas se recortan («cruce, izquierda, Ma…»); en H3/H10 mostrar la placa en vez del ref.
+- `Log.w` se conserva en release: no registrar nunca coordenadas ni URLs (solo el tipo de excepción).
 ## Decisiones recientes
 - Ver [DECISIONES.md](DECISIONES.md) § Decisiones del usuario, § Base técnica e § Investigaciones previas.
 
 ## Dudas abiertas
-- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las 4 de H1 respondidas el 2026-10-28.
+- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las de H2 respondidas el 2026-10-31.
 
 ## Pendiente del usuario
-- **Copia de seguridad de `~/.rallycopilot/`** (keystore nueva): sin ella no se pueden publicar actualizaciones.
-- Instalar la v0.1.11 con Obtainium ([obtainium.md](obtainium.md)).
-- Permiso para el push de los commits de H1 a `Rally-Copilot` (dispara el CI; no publica release porque `version.properties` no cambia).
+- **Copia de seguridad de `~/.rallycopilot/`** (keystore): sin ella no se pueden publicar actualizaciones.
+- Instalar la v0.2 con Obtainium y probar en el móvil con GPS real (velocidad, límite, guiado, modo libre).
+- Pasarme un enlace corto real de Google Maps (`maps.app.goo.gl/…`) para probar el caso de éxito.
 - Ir dejando material de voz en `voice-lab/data/raw/` (no bloquea hasta H11).
 
 ## Archivos importantes
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H1 está cerrado. Si Joan lo autoriza: push de los commits de H1 a `Rally-Copilot`; implementar las dos respuestas pendientes de H1 (botón rumbo arriba/norte arriba y diálogo al desactivar «Solo con WiFi»; ver DECISIONES.md); después `hito start H2` (Valhalla: añadir las teselas de ruta al workflow de `rally-copilot-data`).
+- **Agente:** H2 cerrado. No empezar H3 hasta que Joan lo pida. Al empezar H3: unificar en `:motor` la distancia del recorrido y dejar de grabar puntos parados (DECISIONES 2026-10-31), y mostrar la placa en el banner en lugar del ref.
