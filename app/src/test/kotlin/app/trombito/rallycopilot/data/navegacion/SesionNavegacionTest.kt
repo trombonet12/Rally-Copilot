@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.distanciaRecorrido
 import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
@@ -218,6 +219,39 @@ class SesionNavegacionTest {
             advanceTimeBy(10_000)
             assertEquals(0.0, (e.estados.last() as EstadoNavegacion.Libre).distanciaM, 0.01)
             trabajo.cancel()
+        }
+
+    @Test
+    fun `sesenta fijaciones paradas con ruido de 3 m graban un punto y 0 m`() =
+        runTest {
+            val ruido = listOf(0.0 to 0.0, 3.0 to 0.0, -3.0 to 0.0, 0.0 to 3.0, 0.0 to -3.0)
+            val puntos = List(60) { p(ruido[it % ruido.size].first, ruido[it % ruido.size].second) }
+            val e = escenario(FuenteFalsa(puntos))
+            val trabajo = lanzar(e, SolicitudNavegacion.Libre)
+            advanceTimeBy(60_000)
+            assertEquals(0.0, (e.estados.last() as EstadoNavegacion.Libre).distanciaM, 0.0)
+            trabajo.cancel()
+            runCurrent()
+
+            assertEquals(1, e.recorridos.lotes.size)
+        }
+
+    @Test
+    fun `ir y parar la distancia de la notificacion y la guardada coinciden`() =
+        runTest {
+            val ruido = listOf(0.0, 3.0, -2.0, 1.0)
+            val puntos = List(20) { p(0.0, it * 10.0) } + List(40) { p(ruido[it % ruido.size], 190.0) }
+            val e = escenario(FuenteFalsa(puntos))
+            val trabajo = lanzar(e, SolicitudNavegacion.Libre)
+            advanceTimeBy(60_000)
+            val notificada = (e.estados.last() as EstadoNavegacion.Libre).distanciaM
+            trabajo.cancel()
+            runCurrent()
+
+            assertEquals(190.0, notificada, 3.0)
+            assertEquals(20, e.recorridos.lotes.size)
+            val guardados = e.recorridos.lotes.map { PuntoGeo(it.lat, it.lon) }
+            assertEquals(notificada, guardados.distanciaRecorrido(), 1e-6)
         }
 
     @Test

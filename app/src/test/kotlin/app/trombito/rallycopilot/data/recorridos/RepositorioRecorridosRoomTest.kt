@@ -64,6 +64,20 @@ class RepositorioRecorridosRoomTest {
         }
 
     @Test
+    fun `la distancia guardada ignora los puntos de deriva a menos de 5 m`() =
+        runBlocking {
+            val id = repositorio.empezar()
+            val tramo = ruta(11)
+            // Entre cada par de puntos, una deriva a ~2 m del anterior.
+            val conDeriva = tramo.flatMap { listOf(it, it.copy(lat = it.lat + 0.00002, tiempoMs = it.tiempoMs + 500)) }
+            repositorio.anadirPuntos(id, conDeriva)
+
+            val recorrido = repositorio.terminar(id)
+
+            assertEquals(1_112.0, recorrido?.distanciaM ?: 0.0, 5.0)
+        }
+
+    @Test
     fun `un recorrido de menos de 1 km se descarta con sus puntos`() =
         runBlocking {
             val id = repositorio.empezar()

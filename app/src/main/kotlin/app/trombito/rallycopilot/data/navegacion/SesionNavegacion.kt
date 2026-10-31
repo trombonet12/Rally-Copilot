@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
+import app.trombito.rallycopilot.motor.geo.AcumuladorRecorrido
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.DetectorSalidaRuta
 import app.trombito.rallycopilot.motor.ruta.EstadoRuta
@@ -80,8 +81,7 @@ class SesionNavegacion(
         private val inicioMs = reloj()
         private val guia: Guia? = (solicitud as? SolicitudNavegacion.Guiada)?.let { Guia(it) }
         private val lote = ArrayList<PuntoRecorrido>(TAMANO_LOTE)
-        private var ultimoContado: PuntoGeo? = null
-        private var distanciaM = 0.0
+        private val acumulador = AcumuladorRecorrido()
         private var llegado = false
         private var ultimaFijacionMs = 0L
 
@@ -153,13 +153,7 @@ class SesionNavegacion(
             fijacion: Fijacion,
             ahora: Long,
         ) {
-            val previo = ultimoContado
-            if (previo == null) {
-                ultimoContado = fijacion.punto
-            } else if (previo.distanciaA(fijacion.punto) >= PASO_MIN_M) {
-                distanciaM += previo.distanciaA(fijacion.punto)
-                ultimoContado = fijacion.punto
-            }
+            if (!acumulador.anadir(fijacion.punto)) return
             lote += PuntoRecorrido(fijacion.punto.lat, fijacion.punto.lon, ahora, fijacion.velocidadMs)
             if (lote.size >= TAMANO_LOTE) volcar()
         }
@@ -171,7 +165,8 @@ class SesionNavegacion(
             recorridos.anadirPuntos(id, pendientes)
         }
 
-        private fun estadoActual(): EstadoNavegacion = guia?.estado() ?: EstadoNavegacion.Libre(inicioMs, distanciaM)
+        private fun estadoActual(): EstadoNavegacion =
+            guia?.estado() ?: EstadoNavegacion.Libre(inicioMs, acumulador.distanciaM)
     }
 
     private class Guia(
@@ -201,8 +196,5 @@ class SesionNavegacion(
         const val TAMANO_LOTE = 10
         const val ESPERA_LLEGADA_MS = 10_000L
         const val REINTENTO_MS = 10_000L
-
-        /** Un paso menor que esto se toma por ruido del GPS parado y no suma distancia. */
-        private const val PASO_MIN_M = 5.0
     }
 }

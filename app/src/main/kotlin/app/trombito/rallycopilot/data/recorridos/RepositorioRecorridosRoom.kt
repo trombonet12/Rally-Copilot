@@ -4,7 +4,7 @@ import app.trombito.rallycopilot.data.db.RecorridoEntity
 import app.trombito.rallycopilot.data.db.RecorridoPuntoEntity
 import app.trombito.rallycopilot.data.db.RecorridosDao
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import app.trombito.rallycopilot.motor.geo.longitudMetros
+import app.trombito.rallycopilot.motor.geo.distanciaRecorrido
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -37,7 +37,7 @@ class RepositorioRecorridosRoom(
         withContext(dispatcher) {
             val recorrido = dao.recorrido(id) ?: return@withContext null
             val puntos = dao.puntos(id)
-            val distancia = puntos.map { PuntoGeo(it.lat, it.lon) }.longitudMetros()
+            val distancia = puntos.map { PuntoGeo(it.lat, it.lon) }.distanciaRecorrido()
             if (distancia < RepositorioRecorridos.DISTANCIA_MINIMA_M) {
                 dao.borrar(id)
                 return@withContext null
