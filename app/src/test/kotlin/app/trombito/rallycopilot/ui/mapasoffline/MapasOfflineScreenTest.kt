@@ -166,11 +166,58 @@ class MapasOfflineScreenTest {
     }
 
     @Test
-    fun `el interruptor de solo WiFi invierte el ajuste`() {
+    fun `desactivar solo WiFi pide confirmar y cancelar deja el ajuste como estaba`() {
+        val cambios = mutableListOf<Boolean>()
+        poner(ajustes = AjustesMapas(soloWifi = true), acciones = AccionesMapasOffline(onSoloWifi = { cambios += it }))
+        assertFalse(banco.hay(ETIQUETA_DATOS_CONFIRMAR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_SOLO_WIFI))
+        assertTrue(banco.hay(ETIQUETA_DATOS_CONFIRMAR))
+        assertTrue("¿Usar datos móviles?" in banco.todosLosTextos())
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_DATOS_CANCELAR))
+        assertFalse(banco.hay(ETIQUETA_DATOS_CONFIRMAR))
+        assertEquals(emptyList<Boolean>(), cambios)
+    }
+
+    @Test
+    fun `aceptar el aviso de datos moviles desactiva solo WiFi`() {
         val cambios = mutableListOf<Boolean>()
         poner(ajustes = AjustesMapas(soloWifi = true), acciones = AccionesMapasOffline(onSoloWifi = { cambios += it }))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_SOLO_WIFI))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_DATOS_CONFIRMAR))
         assertEquals(listOf(false), cambios)
+        assertFalse(banco.hay(ETIQUETA_DATOS_CONFIRMAR))
+    }
+
+    @Test
+    fun `activar solo WiFi no pide confirmacion`() {
+        val cambios = mutableListOf<Boolean>()
+        poner(ajustes = AjustesMapas(soloWifi = false), acciones = AccionesMapasOffline(onSoloWifi = { cambios += it }))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_SOLO_WIFI))
+        assertFalse(banco.hay(ETIQUETA_DATOS_CONFIRMAR))
+        assertEquals(listOf(true), cambios)
+    }
+
+    @Test
+    fun `el aviso de datos moviles dice cuanto queda por bajar`() {
+        val progreso = ProgresoDescarga(bytesHechos = 400_000_000, bytesTotales = 1_000_000_000, esperandoRed = true)
+        poner(EstadoDatosMapa(descarga = progreso), AjustesMapas(soloWifi = true))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_SOLO_WIFI))
+        val aviso = banco.todosLosTextos().first { it.startsWith("Se pueden gastar unos ") }
+        assertTrue("Faltan 600 MB: $aviso", "MB" in aviso && "600" in aviso)
+    }
+
+    @Test
+    fun `sin descarga el aviso usa el tamano del paquete instalado y sin nada no da cifra`() {
+        poner(EstadoDatosMapa(instalados = instalados), AjustesMapas(soloWifi = true))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_SOLO_WIFI))
+        assertTrue(banco.todosLosTextos().any { it.startsWith("Se pueden gastar unos ") && "GB" in it })
+    }
+
+    @Test
+    fun `sin tamano conocido el aviso no inventa una cifra`() {
+        poner(ajustes = AjustesMapas(soloWifi = true))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_SOLO_WIFI))
+        assertTrue("La descarga puede gastar muchos datos móviles." in banco.todosLosTextos())
     }
 
     @Test

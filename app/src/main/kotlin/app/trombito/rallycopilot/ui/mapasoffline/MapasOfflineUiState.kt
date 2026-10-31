@@ -30,6 +30,19 @@ data class MapasOfflineUiState(
             return if (actual.bytesTotales > 0) actual else ultimoProgreso
         }
 
+    /**
+     * Bytes que se bajarían por la red al desactivar «Solo con WiFi»: lo pendiente de la descarga en curso o, si no
+     * hay ninguna, el tamaño del paquete instalado (lo que ocuparía una descarga nueva). Null si no se conoce.
+     */
+    val bytesPendientes: Long?
+        get() {
+            val actual = progreso
+            return when {
+                actual != null -> (actual.bytesTotales - actual.bytesHechos).coerceAtLeast(0).takeIf { it > 0 }
+                else -> datos.instalados?.bytes
+            }
+        }
+
     /** Porcentaje entero de la descarga, o null si aún no se conoce el total. */
     val porcentaje: Int? get() = progreso?.porcentaje()
 }

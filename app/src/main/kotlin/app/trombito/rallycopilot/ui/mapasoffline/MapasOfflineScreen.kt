@@ -58,7 +58,6 @@ const val ETIQUETA_DESCARGAR = "mapas-descargar"
 const val ETIQUETA_CANCELAR = "mapas-cancelar"
 const val ETIQUETA_BORRAR = "mapas-borrar"
 const val ETIQUETA_BORRAR_CONFIRMAR = "mapas-borrar-confirmar"
-const val ETIQUETA_SOLO_WIFI = "mapas-solo-wifi"
 const val ETIQUETA_LIMITE_PREFIJO = "mapas-limite-"
 
 private val ALTO_MINIMO_TACTIL = 48.dp
@@ -278,26 +277,7 @@ private fun AjustesDescarga(
     estado: MapasOfflineUiState,
     acciones: AccionesMapasOffline,
 ) {
-    val soloWifi = estado.ajustes.soloWifi
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .testTag(ETIQUETA_SOLO_WIFI)
-                .toggleable(value = soloWifi, role = Role.Switch, onValueChange = acciones.onSoloWifi),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.mapas_solo_wifi), style = MaterialTheme.typography.titleMedium)
-            Text(
-                text = stringResource(R.string.mapas_solo_wifi_detalle),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Switch(checked = soloWifi, onCheckedChange = null)
-    }
+    FilaSoloWifi(estado, acciones)
     Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
         Text(
             text = stringResource(R.string.mapas_limite_titulo),
