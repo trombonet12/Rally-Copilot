@@ -49,7 +49,7 @@ class HojaNotasTest {
             )
         val frases = Ensamblado.unir(notas, avisos).map { it.frase }
         assertEquals(
-            listOf("rasante, derecha tres", "stop", "puente, izquierda cuatro", "cuidado bache"),
+            listOf("rasante, derecha tres", "stop", "puente, izquierda cuatro", "cuidado, resalto"),
             frases,
         )
     }
@@ -71,14 +71,72 @@ class HojaNotasTest {
     fun `varios avisos se unen en orden`() {
         val avisos = listOf(aviso(90.0, TipoAviso.PUENTE), aviso(95.0, TipoAviso.BACHE))
         val elementos = Ensamblado.unir(listOf(nota(100.0)), avisos)
-        assertEquals(listOf("puente, cuidado bache, derecha cuatro"), elementos.map { it.frase })
+        assertEquals(listOf("cuidado, puente, resalto, derecha cuatro"), elementos.map { it.frase })
     }
 
     @Test
-    fun `un aviso antes de la segunda nota de una cadena va suelto`() {
+    fun `un aviso a menos de 20 m de una nota que continua una cadena se mete dentro de la cadena`() {
         val notas = listOf(nota(100.0, unida = true), nota(150.0, direccion = Direccion.IZQUIERDA))
         val elementos = Ensamblado.unir(notas, listOf(aviso(140.0, TipoAviso.RASANTE)))
-        assertEquals(listOf("derecha cuatro", "rasante", "izquierda cuatro"), elementos.map { it.frase })
+        assertEquals(listOf("derecha cuatro", "rasante, izquierda cuatro"), elementos.map { it.frase })
+    }
+
+    @Test
+    fun `un cambio de rasante dentro de una cadena se descarta`() {
+        val notas = listOf(nota(100.0, unida = true), nota(150.0, direccion = Direccion.IZQUIERDA))
+        val elementos = Ensamblado.unir(notas, listOf(aviso(140.0, TipoAviso.CAMBIO_RASANTE)))
+        assertEquals(listOf("derecha cuatro", "izquierda cuatro"), elementos.map { it.frase })
+    }
+
+    @Test
+    fun `un aviso a 20 m o mas de una nota que continua una cadena va suelto`() {
+        val notas = listOf(nota(100.0, unida = true), nota(150.0, direccion = Direccion.IZQUIERDA))
+        val elementos = Ensamblado.unir(notas, listOf(aviso(125.0, TipoAviso.CAMBIO_RASANTE)))
+        assertEquals(listOf("derecha cuatro", "cambio de rasante", "izquierda cuatro"), elementos.map { it.frase })
+    }
+
+    @Test
+    fun `el cuidado va siempre primero en la frase`() {
+        val n = nota(100.0, grado = null).copy(cuidado = true)
+        val unida = Ensamblado.unir(listOf(n), listOf(aviso(90.0, TipoAviso.RASANTE)))
+        assertEquals(listOf("cuidado, rasante, horquilla derecha"), unida.map { it.frase })
+        val conBache =
+            Ensamblado.unir(
+                listOf(nota(100.0)),
+                listOf(aviso(90.0, TipoAviso.RASANTE), aviso(95.0, TipoAviso.BACHE)),
+            )
+        assertEquals(listOf("cuidado, rasante, resalto, derecha cuatro"), conBache.map { it.frase })
+        val ambos = Ensamblado.unir(listOf(n), listOf(aviso(95.0, TipoAviso.BACHE)))
+        assertEquals(listOf("cuidado, resalto, horquilla derecha"), ambos.map { it.frase })
+    }
+
+    @Test
+    fun `un puente dentro de una curva se dice sobre puente al final de la nota`() {
+        val n = nota(100.0, finM = 160.0).copy(distanciaSiguienteM = 50)
+        val elementos = Ensamblado.unir(listOf(n), listOf(aviso(130.0, TipoAviso.PUENTE)))
+        assertEquals(listOf("derecha cuatro sobre puente, cincuenta"), elementos.map { it.frase })
+        assertTrue(elementos.single() is ElementoHoja.DeNota)
+        assertEquals(TipoAviso.PUENTE, HojaNotas(elementos).avisos.single().tipo)
+    }
+
+    @Test
+    fun `un puente fuera de la curva sigue sus reglas normales`() {
+        val n = nota(100.0, finM = 160.0)
+        val elementos =
+            Ensamblado.unir(
+                listOf(n),
+                listOf(aviso(60.0, TipoAviso.PUENTE), aviso(200.0, TipoAviso.PUENTE)),
+            )
+        assertEquals(listOf("puente", "derecha cuatro", "puente"), elementos.map { it.frase })
+        val unido = Ensamblado.unir(listOf(n), listOf(aviso(90.0, TipoAviso.PUENTE)))
+        assertEquals(listOf("puente, derecha cuatro"), unido.map { it.frase })
+    }
+
+    @Test
+    fun `otros avisos dentro de una curva no se tratan como puente`() {
+        val n = nota(100.0, finM = 160.0)
+        val elementos = Ensamblado.unir(listOf(n), listOf(aviso(130.0, TipoAviso.TUNEL)))
+        assertEquals(listOf("derecha cuatro", "túnel"), elementos.map { it.frase })
     }
 
     @Test
@@ -91,7 +149,7 @@ class HojaNotasTest {
     fun `sin notas todos los avisos van sueltos y ordenados`() {
         val avisos = listOf(aviso(10.0, TipoAviso.CEDA), aviso(20.0, TipoAviso.CRUCE))
         val elementos = Ensamblado.unir(emptyList(), avisos)
-        assertEquals(listOf("ceda", "cruce"), elementos.map { it.frase })
+        assertEquals(listOf("ceda el paso", "cruce"), elementos.map { it.frase })
         assertTrue(elementos.all { it is ElementoHoja.DeAviso })
     }
 
@@ -110,11 +168,11 @@ class HojaNotasTest {
                 TipoAviso.TUNEL to "túnel",
                 TipoAviso.ROTONDA to "rotonda",
                 TipoAviso.ESTRECHA to "estrecha",
-                TipoAviso.BACHE to "cuidado bache",
+                TipoAviso.BACHE to "cuidado, resalto",
                 TipoAviso.BADEN to "cuidado badén",
                 TipoAviso.PASO_A_NIVEL to "paso a nivel",
                 TipoAviso.STOP to "stop",
-                TipoAviso.CEDA to "ceda",
+                TipoAviso.CEDA to "ceda el paso",
                 TipoAviso.SEMAFORO to "semáforo",
                 TipoAviso.CRUCE to "cruce",
                 TipoAviso.RASANTE to "rasante",
@@ -143,7 +201,7 @@ class HojaNotasTest {
         assertEquals(listOf(true), marcar(n, listOf(aviso(450.0, TipoAviso.RASANTE))))
         assertEquals(listOf(true), marcar(n, listOf(aviso(440.0, TipoAviso.SALTO))))
         assertEquals(listOf(false), marcar(n, listOf(aviso(430.0, TipoAviso.RASANTE))))
-        assertEquals(listOf(false), marcar(n, listOf(aviso(450.0, TipoAviso.CAMBIO_RASANTE))))
+        assertEquals(listOf(true), marcar(n, listOf(aviso(450.0, TipoAviso.CAMBIO_RASANTE))))
         assertEquals(listOf(false), marcar(n, listOf(aviso(520.0, TipoAviso.RASANTE))))
         assertEquals(listOf(false), marcar(listOf(nota(500.0, grado = 4)), listOf(aviso(450.0, TipoAviso.RASANTE))))
     }
@@ -168,6 +226,27 @@ class HojaNotasTest {
         assertFalse(segunda(5, 3, inicio = 290.0))
         assertTrue(segunda(5, 3, inicio = 289.0))
         assertFalse(segunda(null, 3))
+    }
+
+    @Test
+    fun `el salto de grado no marca si hubo otra horquilla a menos de 400 m`() {
+        fun tercera(inicio: Double) =
+            marcar(
+                listOf(
+                    nota(100.0, null, finM = 140.0),
+                    nota(200.0, 5, finM = 240.0),
+                    nota(inicio, 3),
+                ),
+            )[2]
+        assertFalse(tercera(300.0))
+        // Sin la horquilla, el mismo salto de grado si marca.
+        assertTrue(marcar(listOf(nota(200.0, 5, finM = 240.0), nota(300.0, 3)))[1])
+    }
+
+    @Test
+    fun `el salto de grado marca si la horquilla anterior queda a 400 m o mas`() {
+        val notas = listOf(nota(100.0, null, finM = 140.0), nota(600.0, 5, finM = 640.0), nota(700.0, 3))
+        assertTrue(marcar(notas)[2])
     }
 
     @Test
@@ -253,7 +332,7 @@ class HojaNotasTest {
         val hoja = GeneradorHoja(contexto = contextoSobre(listOf(viaDe(1, arco)), listOf(bache))).generar(arco)
         val elemento = hoja.elementos.single() as ElementoHoja.DeNota
         assertEquals(listOf(TipoAviso.BACHE), elemento.avisosUnidos.map { it.tipo })
-        assertTrue(elemento.frase, elemento.frase.startsWith("cuidado bache, "))
+        assertTrue(elemento.frase, elemento.frase.startsWith("cuidado, resalto, "))
         assertEquals(listOf(TipoAviso.BACHE), hoja.avisos.map { it.tipo })
     }
 

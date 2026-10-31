@@ -147,10 +147,11 @@ class NotasSesionTest {
                 factor: Double? = null,
             ) = escenario(FuenteFalsa(fijacionesPor(traza)), contextoDe(listOf(via(1, traza, limite))), factor)
             val sinLimite = caso()
-            val conLimite = caso("50")
-            val calibrada = caso("50", 0.6)
-            val calibradaSinLimite = caso(factor = 0.6)
-            val calibradaRapida = caso("50", 1.2)
+            // Curva de R 60 m (v = 67,6 km/h): los grados son relativos a la referencia (límite, o 90 km/h de primary).
+            val conLimite = caso("40")
+            val calibrada = caso("40", 0.4)
+            val calibradaSinLimite = caso(factor = 0.4)
+            val calibradaRapida = caso("40", 1.2)
             val todos = listOf(sinLimite, conLimite, calibrada, calibradaSinLimite, calibradaRapida)
             val trabajos = todos.map { lanzar(it, guiada()) }
             advanceTimeBy(3_500)

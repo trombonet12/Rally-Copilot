@@ -267,4 +267,121 @@ class AvisosTest {
         val r = extraer(contexto(listOf(via(1, 0.0, 600.0)), nodos = nodos))
         assertEquals(listOf(TipoAviso.BACHE, TipoAviso.CEDA, TipoAviso.STOP), r.avisos.map { it.tipo })
     }
+
+    @Test
+    fun `los avisos de bache y ceda usan las frases nuevas`() {
+        assertEquals("cuidado, resalto", TipoAviso.BACHE.frase)
+        assertEquals("ceda el paso", TipoAviso.CEDA.frase)
+    }
+
+    @Test
+    fun `un cruce con solo una calle de servicio y la ruta recta no es un cruce`() {
+        val vias =
+            listOf(
+                via(1, 0.0, 600.0, intermedios = listOf(300.0)),
+                lateral(9, "service", p(0.0, 300.0), p(100.0, 300.0)),
+            )
+        assertTrue(extraer(contexto(vias)).avisos.none { it.tipo == TipoAviso.CRUCE })
+    }
+
+    // --- STOP y CEDA de la otra via ---------------------------------------------------------------------------------
+
+    private fun viaConRef(
+        id: Long,
+        clase: String,
+        ref: String?,
+        nortes: List<Double>,
+    ) = Via(id, clase, null, null, null, SentidoUnico.NO, ref, null, nortes.map { p(0.0, it) })
+
+    private fun avisosDelNodo(
+        tipo: String,
+        vias: List<Via>,
+    ) = extraer(contexto(vias, nodos = listOf(nodoA(tipo, 300.0, 0.0)))).avisos.map { it.tipo }
+
+    @Test
+    fun `un stop o ceda en un cruce al que la ruta llega por la via de mayor rango no se avisa`() {
+        val vias =
+            listOf(
+                viaConRef(1, "secondary", "Ma-1", listOf(0.0, 300.0, 600.0)),
+                lateral(9, "residential", p(0.0, 300.0), p(100.0, 300.0)),
+            )
+        assertTrue(avisosDelNodo("stop", vias).none { it == TipoAviso.STOP })
+        assertTrue(avisosDelNodo("give_way", vias).none { it == TipoAviso.CEDA })
+    }
+
+    @Test
+    fun `un stop en un cruce al que la ruta llega por la via de menor rango si se avisa`() {
+        val vias =
+            listOf(
+                viaConRef(1, "residential", null, listOf(0.0, 300.0, 600.0)),
+                lateral(9, "secondary", p(0.0, 300.0), p(100.0, 300.0)),
+            )
+        assertTrue(TipoAviso.STOP in avisosDelNodo("stop", vias))
+        assertTrue(TipoAviso.CEDA in avisosDelNodo("give_way", vias))
+    }
+
+    @Test
+    fun `con rangos iguales y sin ref el stop de un cruce se avisa y con ref no`() {
+        fun vias(ref: String?) =
+            listOf(
+                viaConRef(1, "residential", ref, listOf(0.0, 300.0, 600.0)),
+                lateral(9, "residential", p(0.0, 300.0), p(100.0, 300.0)),
+            )
+        assertTrue(TipoAviso.STOP in avisosDelNodo("stop", vias(null)))
+        assertTrue(TipoAviso.STOP !in avisosDelNodo("stop", vias("Ma-1")))
+    }
+
+    @Test
+    fun `un stop en un cruce donde la ruta sigue por la misma ref no se avisa`() {
+        fun vias(ref: String?) =
+            listOf(
+                viaConRef(1, "residential", ref, listOf(0.0, 300.0)),
+                viaConRef(2, "residential", ref, listOf(300.0, 600.0)),
+                lateral(9, "residential", p(0.0, 300.0), p(100.0, 300.0)),
+            )
+        assertTrue(avisosDelNodo("stop", vias("Ma-10")).none { it == TipoAviso.STOP })
+        assertTrue(TipoAviso.STOP in avisosDelNodo("stop", vias(null)))
+    }
+
+    @Test
+    fun `un stop sin cruce se avisa siempre`() {
+        val vias = listOf(viaConRef(1, "secondary", "Ma-1", listOf(0.0, 600.0)))
+        assertTrue(TipoAviso.STOP in avisosDelNodo("stop", vias))
+    }
+
+    // --- Rasantes junto a puentes y tuneles --------------------------------------------------------------------------
+
+    /** Vias 0-200 (rampa del 8 %), 200-400 con [central] y 400-600; la central sube hasta el metro [cimaM] y baja. */
+    private fun contextoConCima(
+        central: EtiquetasVia?,
+        cimaM: Double,
+    ): ContextoVias {
+        val vias = listOf(via(1, 0.0, 200.0), via(2, 200.0, 400.0), via(3, 400.0, 600.0))
+        val rampa = PerfilVia(5.0, (0..40).map { 100.0 + 0.4 * it })
+        val k0 = (cimaM / 5.0).toInt()
+        val cima = PerfilVia(5.0, (0..40).map { 116.0 + 0.4 * (if (it <= k0) it else 2 * k0 - it) })
+        val etiquetas = if (central == null) emptyMap() else mapOf(2L to central)
+        return contexto(vias, etiquetas, perfiles = mapOf(1L to rampa, 2L to cima))
+    }
+
+    private fun rasantes(r: AvisosRuta) = r.avisos.filter { it.tipo == TipoAviso.RASANTE }
+
+    @Test
+    fun `una cresta junto a la entrada de un puente o tunel se descarta`() {
+        assertEquals(1, rasantes(extraer(contextoConCima(null, 25.0))).size)
+        assertTrue(rasantes(extraer(contextoConCima(etiquetas(bridge = "yes"), 25.0))).isEmpty())
+        assertTrue(rasantes(extraer(contextoConCima(etiquetas(tunnel = "yes"), 25.0))).isEmpty())
+    }
+
+    @Test
+    fun `una cresta junto a la salida de un puente se descarta`() {
+        assertTrue(rasantes(extraer(contextoConCima(etiquetas(bridge = "yes"), 175.0))).isEmpty())
+    }
+
+    @Test
+    fun `una cresta en mitad de un puente se conserva`() {
+        val r = rasantes(extraer(contextoConCima(etiquetas(bridge = "yes"), 100.0)))
+        assertEquals(1, r.size)
+        assertEquals(300.0, r.single().posicionM, 10.0)
+    }
 }

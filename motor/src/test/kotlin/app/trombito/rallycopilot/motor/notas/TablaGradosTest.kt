@@ -11,7 +11,10 @@ class TablaGradosTest {
     private val tabla = TablaGrados()
 
     /** Radio al que la curva se toma justo a [kmh] con la tabla por defecto. */
-    private fun radioPara(kmh: Double): Double = (kmh / 3.6) * (kmh / 3.6) / (0.6 * 9.81)
+    private fun radioPara(
+        kmh: Double,
+        mu: Double = 0.6,
+    ): Double = (kmh / 3.6) * (kmh / 3.6) / (mu * 9.81)
 
     @Test
     fun `los bordes de cada umbral separan los grados 1 a 6`() {
@@ -33,12 +36,57 @@ class TablaGradosTest {
     }
 
     @Test
-    fun `la velocidad de referencia manda y pasa a grado 6`() {
-        // R = 100 m es v = 87,3 km/h: grado 4 salvo que el límite sea igual o menor.
-        assertEquals(4, tabla.grado(100.0, 90.0))
-        assertEquals(6, tabla.grado(100.0, 80.0))
-        assertEquals(6, tabla.grado(100.0, tabla.velocidadCurvaKmh(100.0)))
+    fun `con velocidad de referencia el grado es relativo a ella`() {
+        // Radio al que la velocidad de curva es r veces la de referencia (factor 1).
+        val vRef = 90.0
+        listOf(0.45, 0.60, 0.72, 0.86, 1.0).forEachIndexed { i, banda ->
+            val r = radioPara(vRef * banda, 0.6)
+            assertEquals("justo por debajo de $banda", i + 1, tabla.grado(r * 0.99, vRef))
+            // El 6 exige además el radio de confort: a 90 km/h son 182 m, y la banda 1,0 cae en 106 m.
+            val esperado = if (i == 4) 5 else i + 2
+            assertEquals("justo por encima de $banda", esperado, tabla.grado(r * 1.01, vRef))
+        }
+    }
+
+    @Test
+    fun `la misma curva es mas cerrada cuanto menor es la velocidad de referencia`() {
+        // R = 100 m es v = 87,3 km/h.
+        assertEquals(5, tabla.grado(100.0, 90.0))
+        assertEquals(4, tabla.grado(100.0, 110.0))
+        assertEquals(3, tabla.grado(100.0, 130.0))
+        assertEquals(2, tabla.grado(100.0, 180.0))
+        assertEquals(1, tabla.grado(100.0, 250.0))
         assertEquals(4, tabla.grado(100.0, null))
+    }
+
+    @Test
+    fun `un seis exige el radio de confort y si no es cinco`() {
+        // BLOCKER: a 50 km/h, R = 40 m (v = 55 km/h > vRef) no es seis; el radio de confort son 56,2 m.
+        assertEquals(5, tabla.grado(40.0, 50.0))
+        assertEquals(56.2, tabla.radioMinimoSeisM(50.0), 0.05)
+        assertEquals(5, tabla.grado(56.0, 50.0))
+        assertEquals(6, tabla.grado(56.5, 50.0))
+        assertEquals(6, tabla.grado(300.0, 50.0))
+        // A 90 km/h: 182 m.
+        assertEquals(5, tabla.grado(150.0, 90.0))
+        assertEquals(6, tabla.grado(300.0, 90.0))
+    }
+
+    @Test
+    fun `el factor se aplica a la velocidad de curva tambien con referencia`() {
+        // BLOCKER: con factor 0,7 una R = 60 m (v = 47,4 km/h) no es grado uno en ningun caso.
+        val lenta = TablaGrados(factor = 0.7)
+        assertEquals(2, lenta.grado(60.0))
+        assertEquals(2, lenta.grado(60.0, 90.0))
+        assertEquals(5, lenta.grado(60.0, 50.0))
+        assertEquals(4, lenta.grado(60.0, 60.0))
+        assertEquals(1, TablaGrados(factor = 0.7).grado(60.0, 150.0))
+    }
+
+    @Test
+    fun `una velocidad de referencia no positiva se ignora`() {
+        assertEquals(tabla.grado(100.0), tabla.grado(100.0, 0.0))
+        assertEquals(tabla.grado(100.0), tabla.grado(100.0, -5.0))
     }
 
     @Test
@@ -67,5 +115,10 @@ class TablaGradosTest {
     @Test(expected = IllegalArgumentException::class)
     fun `los umbrales deben ser cinco y crecientes`() {
         TablaGrados(umbralesKmh = listOf(45.0, 40.0, 85.0, 110.0, 140.0))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `las bandas relativas deben ser cinco y crecientes`() {
+        TablaGrados(bandasRelativas = listOf(0.45, 0.60, 0.60, 0.86, 1.0))
     }
 }

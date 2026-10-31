@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.motor.vias
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import kotlin.math.acos
 import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.hypot
@@ -92,11 +93,10 @@ class GrafoVias(
     }
 
     /**
-     * Cruce que merece aviso: tiene al menos 3 ramas (una por dirección en que se puede salir de cada vía que pasa)
-     * y, si la vía principal es secondary o superior, alguna rama extra (las dos primeras son la propia carretera)
-     * es de rango mayor que residential/unclassified.
+     * Rangos de las ramas del nodo (una por dirección en que se puede salir de cada vía que pasa), de mayor a menor.
+     * Un nodo con menos de 3 ramas no es un cruce.
      */
-    private fun esCruce(nodo: Int): Boolean {
+    private fun rangosDeRamas(nodo: Int): List<Int> {
         val rangos = ArrayList<Int>()
         for (k in inicioNodo[nodo] until inicioNodo[nodo + 1]) {
             val g = puntosDeNodo[k]
@@ -106,8 +106,7 @@ class GrafoVias(
             repeat(ramas) { rangos.add(rangoClase(vias[v].clase)) }
         }
         rangos.sortDescending()
-        return rangos.size >= RAMAS_MINIMAS_CRUCE &&
-            (rangos[0] < RANGO_SECONDARY || rangos.drop(2).any { it > RANGO_BAJO })
+        return rangos
     }
 
     private val puntoDeNodo: (Int) -> PuntoGeo = { nodo ->
@@ -117,8 +116,13 @@ class GrafoVias(
     private val cruce: IntArray by lazy {
         var n = 0
         val nodos = IntArray(inicioNodo.size - 1)
-        for (nodo in nodos.indices) if (esCruce(nodo)) nodos[n++] = nodo
+        for (nodo in nodos.indices) if (rangosDeRamas(nodo).size >= RAMAS_MINIMAS_CRUCE) nodos[n++] = nodo
         nodos.copyOf(n)
+    }
+
+    /** Por cada cruce candidato: alguna rama extra (las dos primeras son la carretera) es unclassified o mayor. */
+    private val ramaExtraImportante: BooleanArray by lazy {
+        BooleanArray(cruce.size) { c -> rangosDeRamas(cruce[c]).drop(2).any { it >= RANGO_BAJO } }
     }
     private val latCruce: DoubleArray by lazy {
         DoubleArray(cruce.size) { puntoDeNodo(cruce[it]).lat }
@@ -138,31 +142,39 @@ class GrafoVias(
 
     /**
      * Posiciones (metros a lo largo de [polilinea]) de los cruces del grafo que caen sobre ella a menos de
-     * [toleranciaM]. Un cruce es un nodo con 3 o más ramas (contando las dos direcciones de una vía que pasa),
-     * salvo que la vía principal sea secondary o superior y todas las ramas extra sean residential, living_street,
-     * unclassified o menores. Ordenadas y sin duplicados a menos de 15 m.
+     * [toleranciaM]. Un cruce es un nodo con 3 o más ramas (contando las dos direcciones de una vía que pasa) y,
+     * además, alguna rama extra es unclassified o de rango mayor, o la polilínea gira en el nodo más de
+     * 30°. Ordenadas y sin duplicados a menos de 50 m.
      */
     fun cruces(
         polilinea: List<PuntoGeo>,
         toleranciaM: Double = 3.0,
     ): List<Double> {
-        val encontrados = ArrayList<Double>()
-        var acumulada = 0.0
-        polilinea.zipWithNext { a, b ->
-            val largo = a.distanciaA(b)
-            buscarEnSegmento(Segmento(a, b, acumulada, largo), toleranciaM, encontrados)
-            acumulada += largo
+        val encontrados = ArrayList<Hallazgo>()
+        val acumulada = DoubleArray(polilinea.size)
+        for (i in 0 until polilinea.size - 1) {
+            val largo = polilinea[i].distanciaA(polilinea[i + 1])
+            buscarEnSegmento(Segmento(polilinea[i], polilinea[i + 1], acumulada[i], largo), toleranciaM, encontrados)
+            acumulada[i + 1] = acumulada[i] + largo
         }
-        return encontrados.sorted().fold(ArrayList<Double>()) { sin, pos ->
-            if (sin.isEmpty() || pos - sin.last() >= DISTANCIA_DUPLICADOS_M) sin.add(pos)
-            sin
-        }
+        return encontrados
+            .sortedBy { it.posicionM }
+            .filter { ramaExtraImportante[it.cruce] || Giro.esGiro(polilinea, acumulada, it.posicionM) }
+            .fold(ArrayList<Double>()) { sin, h ->
+                if (sin.isEmpty() || h.posicionM - sin.last() >= DISTANCIA_DUPLICADOS_M) sin.add(h.posicionM)
+                sin
+            }
     }
+
+    private class Hallazgo(
+        val posicionM: Double,
+        val cruce: Int,
+    )
 
     private fun buscarEnSegmento(
         segmento: Segmento,
         toleranciaM: Double,
-        salida: MutableList<Double>,
+        salida: MutableList<Hallazgo>,
     ) {
         val a = segmento.a
         val b = segmento.b
@@ -181,13 +193,13 @@ class GrafoVias(
         segmento: Segmento,
         cruceIndice: Int,
         toleranciaM: Double,
-        salida: MutableList<Double>,
+        salida: MutableList<Hallazgo>,
     ) {
         val px = (lonCruce[cruceIndice] - segmento.a.lon) * segmento.cosLat * METROS_POR_GRADO
         val py = (latCruce[cruceIndice] - segmento.a.lat) * METROS_POR_GRADO
         val t = segmento.proyectar(px, py)
         if (hypot(px - t * segmento.bx, py - t * segmento.by) <= toleranciaM) {
-            salida.add(segmento.acumuladaM + t * segmento.largoM)
+            salida.add(Hallazgo(segmento.acumuladaM + t * segmento.largoM, cruceIndice))
         }
     }
 
@@ -231,9 +243,8 @@ class GrafoVias(
         private const val DESPLAZA_LON_E6 = 180_000_000L
         private const val ANCHO_LON_E6 = 400_000_000L
         private const val RAMAS_MINIMAS_CRUCE = 3
-        private const val RANGO_SECONDARY = 4
         private const val RANGO_BAJO = 1
-        private const val DISTANCIA_DUPLICADOS_M = 15.0
+        private const val DISTANCIA_DUPLICADOS_M = 50.0
         private const val METROS_POR_GRADO = PuntoGeo.RADIO_TIERRA_M * Math.PI / 180.0
         private const val COS_MINIMO = 0.01
         private const val CELDAS_POR_GRADO = 1000.0
@@ -251,10 +262,62 @@ class GrafoVias(
                 "motorway" -> 7
                 "trunk" -> 6
                 "primary" -> 5
-                "secondary" -> RANGO_SECONDARY
+                "secondary" -> 4
                 "tertiary" -> 3
                 "unclassified", "residential", "living_street" -> RANGO_BAJO
                 else -> 0
             }
+    }
+}
+
+/** Giro de una polilínea en un punto de ella. */
+private object Giro {
+    const val GIRO_MINIMO_GRADOS = 30.0
+    const val VENTANA_M = 20.0
+    const val LADO_MINIMO_M = 5.0
+    const val METROS_POR_GRADO = PuntoGeo.RADIO_TIERRA_M * Math.PI / 180.0
+
+    /** La polilínea gira en [posicionM] más de 30 grados. */
+    fun esGiro(
+        polilinea: List<PuntoGeo>,
+        acumulada: DoubleArray,
+        posicionM: Double,
+    ): Boolean = en(polilinea, acumulada, posicionM) > GIRO_MINIMO_GRADOS
+
+    /** Giro (grados, 0..180) de [polilinea] en [posicionM]: rumbo de los 20 m previos contra los 20 m siguientes. */
+    private fun en(
+        polilinea: List<PuntoGeo>,
+        acumulada: DoubleArray,
+        posicionM: Double,
+    ): Double {
+        val total = acumulada.last()
+        val antes = puntoEn(polilinea, acumulada, (posicionM - VENTANA_M).coerceAtLeast(0.0))
+        val centro = puntoEn(polilinea, acumulada, posicionM)
+        val despues = puntoEn(polilinea, acumulada, (posicionM + VENTANA_M).coerceAtMost(total))
+        val cosLat = cos(Math.toRadians(centro.lat))
+        val ax = (centro.lon - antes.lon) * cosLat
+        val ay = centro.lat - antes.lat
+        val bx = (despues.lon - centro.lon) * cosLat
+        val by = despues.lat - centro.lat
+        val na = hypot(ax, ay) * METROS_POR_GRADO
+        val nb = hypot(bx, by) * METROS_POR_GRADO
+        if (na < LADO_MINIMO_M || nb < LADO_MINIMO_M) return 0.0
+        val coseno = ((ax * bx + ay * by) / (hypot(ax, ay) * hypot(bx, by))).coerceIn(-1.0, 1.0)
+        return Math.toDegrees(acos(coseno))
+    }
+
+    private fun puntoEn(
+        polilinea: List<PuntoGeo>,
+        acumulada: DoubleArray,
+        posicionM: Double,
+    ): PuntoGeo {
+        val k = acumulada.binarySearch(posicionM)
+        if (k >= 0) return polilinea[k]
+        val i = (-k - 2).coerceIn(0, polilinea.size - 2)
+        val largo = acumulada[i + 1] - acumulada[i]
+        val t = if (largo > 0.0) ((posicionM - acumulada[i]) / largo).coerceIn(0.0, 1.0) else 0.0
+        val a = polilinea[i]
+        val b = polilinea[i + 1]
+        return PuntoGeo(a.lat + t * (b.lat - a.lat), a.lon + t * (b.lon - a.lon))
     }
 }

@@ -24,11 +24,11 @@ data class UmbralesRasantes(
     val pendienteSubidaCrestaPct: Double = 4.0,
     val pendienteBajadaCrestaPct: Double = 2.0,
     val ventanaCrestaM: Double = 60.0,
-    val variacionCambioPuntos: Double = 5.0,
+    val variacionCambioPuntos: Double = 8.0,
     val ventanaCambioM: Double = 40.0,
-    val variacionSaltoPuntos: Double = 12.0,
+    val variacionSaltoPuntos: Double = 20.0,
     val ventanaSaltoM: Double = 30.0,
-    val separacionM: Double = 30.0,
+    val separacionM: Double = 60.0,
 ) {
     init {
         require(pasoM > 0.0 && sigmaM >= 0.0 && separacionM >= 0.0) { "Paso, sigma o separación inválidos" }
@@ -39,8 +39,9 @@ data class UmbralesRasantes(
  * Detecta rasantes sobre un perfil de alturas equiespaciadas (típicamente [AlturasRuta]): suaviza con un núcleo
  * gaussiano (reflejo impar en los extremos, que conserva las rampas), deriva la pendiente y busca crestas
  * (la pendiente pasa de subida fuerte a bajada en poca distancia), saltos (crestas con caída brusca) y cambios de
- * pendiente. Entre dos rasantes a menos de [UmbralesRasantes.separacionM] solo queda la de mayor prioridad
- * (SALTO > RASANTE > CAMBIO_RASANTE). Puro y determinista.
+ * pendiente convexos (la pendiente baja y quita visibilidad; los cóncavos no se avisan). Entre dos rasantes a menos
+ * de [UmbralesRasantes.separacionM] solo queda la de mayor prioridad (SALTO > RASANTE > CAMBIO_RASANTE). Puro y
+ * determinista.
  */
 class DetectorRasantes(
     private val umbrales: UmbralesRasantes = UmbralesRasantes(),
@@ -101,14 +102,14 @@ class DetectorRasantes(
         }
     }
 
-    /** Ventana de pendientes `[i, j]` y su variación absoluta. */
+    /** Ventana de pendientes `[i, j]` y la caída de pendiente entre ellas. */
     private class Ventana(
         val i: Int,
         val j: Int,
         val delta: Double,
     )
 
-    /** La ventana que empieza en [i] con mayor variación absoluta de pendiente (j = -1 si no hay). */
+    /** La ventana que empieza en [i] con mayor caída de pendiente (convexo; j = -1 si no hay). */
     private fun mejorVentana(
         p: DoubleArray,
         i: Int,
@@ -116,7 +117,7 @@ class DetectorRasantes(
     ): Ventana {
         var mejor = Ventana(i, -1, 0.0)
         for (j in i + 1..minOf(p.lastIndex, i + maxVentana)) {
-            val d = abs(p[j] - p[i])
+            val d = p[i] - p[j]
             if (d > mejor.delta) mejor = Ventana(i, j, d)
         }
         return mejor

@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.motor.notas
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.vias.Arista
 import app.trombito.rallycopilot.motor.vias.DatosNotasVias
 import app.trombito.rallycopilot.motor.vias.EtiquetasVia
 import app.trombito.rallycopilot.motor.vias.GrafoVias
@@ -12,25 +13,31 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.hypot
 
-/** Tipo de aviso de la hoja de notas y lo que se canta. */
+/**
+ * Tipo de aviso de la hoja de notas y lo que se canta. [frase] es la frase suelta; los avisos de precaución
+ * ([esCuidado]) se cantan en una nota como «cuidado» al principio de la frase más su [palabra] (vacía si es solo
+ * «cuidado»).
+ */
 enum class TipoAviso(
     val frase: String,
+    val esCuidado: Boolean = false,
+    val palabra: String = frase,
 ) {
     PUENTE("puente"),
     TUNEL("túnel"),
     ROTONDA("rotonda"),
     ESTRECHA("estrecha"),
-    BACHE("cuidado bache"),
-    BADEN("cuidado badén"),
+    BACHE("cuidado, resalto", esCuidado = true, palabra = "resalto"),
+    BADEN("cuidado badén", esCuidado = true, palabra = "badén"),
     PASO_A_NIVEL("paso a nivel"),
     STOP("stop"),
-    CEDA("ceda"),
+    CEDA("ceda el paso"),
     SEMAFORO("semáforo"),
     CRUCE("cruce"),
     RASANTE("rasante"),
     CAMBIO_RASANTE("cambio de rasante"),
     SALTO("salto"),
-    CUIDADO("cuidado"),
+    CUIDADO("cuidado", esCuidado = true, palabra = ""),
 }
 
 /** Aviso en [posicionM] metros desde el inicio de la ruta. */
@@ -85,7 +92,8 @@ class ExtractorAvisos(
         val tramos = LectorTramos(contexto).leer(muestras)
         val nodos = avisosDeNodos(ruta, tramos.viasRuta)
         val cruces = crucesFueraDeRotondas(ruta, tramos.rotondas)
-        val avisos = tramos.avisos + nodos.avisos + cruces + rasantes(ruta)
+        val rasantes = rasantes(ruta).filterNot { enJunta(it.posicionM, tramos.extremosEstructuraM) }
+        val avisos = tramos.avisos + nodos.avisos + cruces + rasantes
         return AvisosRuta(avisos.sinDuplicados(), (tramos.curvasPeligrosasM + nodos.curvasPeligrosasM).sorted())
     }
 
@@ -101,6 +109,7 @@ class ExtractorAvisos(
                         plana
                             .proyectar(nodo.punto, RADIO_NODO_M)
                             ?.takeIf { perteneceARuta(nodo.punto, viasRuta) }
+                            ?.takeIf { !esDeOtraVia(clase, nodo.punto, viasRuta) }
                             ?.let { clase to it }
                     }
                 }.partition { it.first == ClaseNodo.CURVA_PELIGROSA }
@@ -116,6 +125,44 @@ class ExtractorAvisos(
         return aristas.isEmpty() || aristas.any { it.via.id in viasRuta }
     }
 
+    /**
+     * STOP y CEDA de un cruce que son de la otra vía: la ruta llega desde una vía de mayor rango que las demás, o de
+     * igual rango y siguiendo la misma `ref` (entra y sale por ella). Si la ruta llega por una vía de menor rango o
+     * empatada sin `ref`, se avisa. Fuera de un cruce (menos de 3 ramas) siempre se avisa.
+     */
+    private fun esDeOtraVia(
+        clase: ClaseNodo,
+        punto: PuntoGeo,
+        viasRuta: Set<Long>,
+    ): Boolean {
+        val aristas = contexto.grafo.aristas(punto)
+        val esCruce = aristas.sumOf { ramas(it) } >= RAMAS_CRUCE
+        return (clase == ClaseNodo.STOP || clase == ClaseNodo.CEDA) && esCruce && llegaPorLaPrincipal(aristas, viasRuta)
+    }
+
+    private fun llegaPorLaPrincipal(
+        aristas: List<Arista>,
+        viasRuta: Set<Long>,
+    ): Boolean {
+        val deRuta = aristas.filter { it.via.id in viasRuta }
+        val mismaRef =
+            deRuta
+                .filter { it.via.ref != null }
+                .groupBy { it.via.ref }
+                .values
+                .any { grupo -> grupo.sumOf { ramas(it) } >= 2 }
+        val rangoRuta = deRuta.maxOfOrNull { GrafoVias.rangoClase(it.via.clase) } ?: 0
+        val rangoOtras = aristas.filter { it.via.id !in viasRuta }.maxOfOrNull { GrafoVias.rangoClase(it.via.clase) }
+        return when {
+            rangoOtras == null -> false
+            else -> rangoRuta > rangoOtras || (mismaRef && rangoRuta == rangoOtras)
+        }
+    }
+
+    /** Direcciones en que se puede salir del nodo por esta arista (1 en un extremo de la vía, 2 en medio). */
+    private fun ramas(arista: Arista): Int =
+        (if (arista.indice > 0) 1 else 0) + (if (arista.indice < arista.via.puntos.size - 1) 1 else 0)
+
     private fun crucesFueraDeRotondas(
         ruta: List<PuntoGeo>,
         rotondas: List<ClosedFloatingPointRange<Double>>,
@@ -124,6 +171,12 @@ class ExtractorAvisos(
             .cruces(ruta)
             .filter { s -> rotondas.none { s >= it.start - ANTES_ROTONDA_M && s <= it.endInclusive } }
             .map { Aviso(it, TipoAviso.CRUCE) }
+
+    /** Las rasantes a [JUNTA_M] o menos de un extremo de puente o túnel son un artefacto del MDT. */
+    private fun enJunta(
+        posicionM: Double,
+        extremosM: List<Double>,
+    ): Boolean = extremosM.any { abs(it - posicionM) <= JUNTA_M }
 
     private fun rasantes(ruta: List<PuntoGeo>): List<Aviso> {
         val alturas = AlturasRuta.calcular(ruta, contexto.indice, contexto.datosNotas.perfiles)
@@ -142,6 +195,8 @@ class ExtractorAvisos(
     private companion object {
         const val RADIO_NODO_M = 12.0
         const val ANTES_ROTONDA_M = 25.0
+        const val RAMAS_CRUCE = 3
+        const val JUNTA_M = 30.0
     }
 }
 
@@ -189,12 +244,16 @@ private enum class ClaseNodo(
     }
 }
 
-/** Resultado de recorrer las muestras: avisos de tramo, rotondas (rangos en metros) y vías de la ruta. */
+/**
+ * Resultado de recorrer las muestras: avisos de tramo, rotondas (rangos en metros), vías de la ruta, curvas peligrosas
+ * y extremos (inicio y fin) de los puentes y túneles, donde el MDT da rasantes falsas.
+ */
 private class Tramos(
     val avisos: List<Aviso>,
     val rotondas: List<ClosedFloatingPointRange<Double>>,
     val viasRuta: Set<Long>,
     val curvasPeligrosasM: List<Double>,
+    val extremosEstructuraM: List<Double>,
 )
 
 /**
@@ -210,6 +269,7 @@ private class LectorTramos(
     private val rotondas = ArrayList<ClosedFloatingPointRange<Double>>()
     private val vias = HashSet<Long>()
     private val curvasPeligrosas = ArrayList<Double>()
+    private val extremosEstructura = ArrayList<Double>()
     private var peligroPrevio: String? = null
 
     fun leer(muestras: List<AlturasRuta.Muestra>): Tramos {
@@ -225,7 +285,7 @@ private class LectorTramos(
         }
         val fin = (muestras.size - 1) * AlturasRuta.PASO_M
         if (activos[POS_ROTONDA]) rotondas.add(inicios[POS_ROTONDA]..fin)
-        return Tramos(avisos, rotondas, vias, curvasPeligrosas)
+        return Tramos(avisos, rotondas, vias, curvasPeligrosas, extremosEstructura)
     }
 
     private fun actualizarTramos(
@@ -236,8 +296,10 @@ private class LectorTramos(
             if (banderas[t] && !activos[t]) {
                 avisos.add(Aviso(s, TIPOS[t]))
                 inicios[t] = s
-            } else if (!banderas[t] && activos[t] && t == POS_ROTONDA) {
-                rotondas.add(inicios[t]..s)
+                if (t in ESTRUCTURAS) extremosEstructura.add(s)
+            } else if (!banderas[t] && activos[t]) {
+                if (t == POS_ROTONDA) rotondas.add(inicios[t]..s)
+                if (t in ESTRUCTURAS) extremosEstructura.add(s)
             }
             activos[t] = banderas[t]
         }
@@ -274,6 +336,7 @@ private class LectorTramos(
     private companion object {
         val TIPOS = listOf(TipoAviso.PUENTE, TipoAviso.TUNEL, TipoAviso.ROTONDA, TipoAviso.ESTRECHA)
         val POS_ROTONDA = TIPOS.indexOf(TipoAviso.ROTONDA)
+        val ESTRUCTURAS = setOf(TIPOS.indexOf(TipoAviso.PUENTE), TIPOS.indexOf(TipoAviso.TUNEL))
         const val ANCHO_ESTRECHA_M = 5.0
     }
 }

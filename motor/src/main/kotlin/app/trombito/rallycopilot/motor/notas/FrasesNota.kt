@@ -63,9 +63,9 @@ object FrasesNota {
         simplificada: Boolean,
     ): String {
         val direccion = if (nota.direccion == Direccion.IZQUIERDA) "izquierda" else "derecha"
-        if (nota.grado == null) return "horquilla $direccion"
-        val grado = if (simplificada) palabra(nota.simplificada()) else enPalabras(nota.grado)
         val modificadores = nota.modificadores.sorted().joinToString("") { " " + palabra(it) }
+        if (nota.grado == null) return "horquilla $direccion$modificadores"
+        val grado = if (simplificada) palabra(nota.simplificada()) else enPalabras(nota.grado)
         return "$direccion $grado$modificadores"
     }
 

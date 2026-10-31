@@ -9,10 +9,8 @@ import kotlin.math.roundToInt
 
 /** Detector + generador sobre la Ma-2141 (Sa Calobra) comparados con un golden file. */
 class GeneradorNotasRealTest {
-    private val notas by lazy {
-        val curvas = DetectorCurvas().detectar(TrazasDePrueba.cargarGpx("ma-2141-sa-calobra.gpx"))
-        GeneradorNotas().generar(curvas)
-    }
+    private val curvas by lazy { DetectorCurvas().detectar(TrazasDePrueba.cargarGpx("ma-2141-sa-calobra.gpx")) }
+    private val notas by lazy { GeneradorNotas().generar(curvas) }
 
     @Test
     fun `la corbata de los 3,2 km sale como horquilla`() {
@@ -45,7 +43,9 @@ class GeneradorNotasRealTest {
         val actual =
             notas.joinToString("") {
                 val unida = if (it.unidaConSiguiente) " y" else ""
-                "${it.posicionM.roundToInt().toString().padStart(5)} m  ${FrasesNota.frase(it)}$unida\n"
+                val curva = curvas.first { c -> c.inicioM == it.posicionM }
+                val medidas = "  [${curva.anguloGrados.roundToInt()}° R${curva.radioCentralM.roundToInt()} m]"
+                "${it.posicionM.roundToInt().toString().padStart(5)} m  ${FrasesNota.frase(it)}$unida$medidas\n"
             }
         val golden = File("src/test/resources/notas/ma-2141.txt")
         if (!golden.exists()) {

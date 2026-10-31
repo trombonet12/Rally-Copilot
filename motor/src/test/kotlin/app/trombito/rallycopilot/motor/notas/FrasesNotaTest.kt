@@ -41,6 +41,9 @@ class FrasesNotaTest {
                 300 to "trescientos",
                 400 to "cuatrocientos",
                 500 to "quinientos",
+                600 to "seiscientos",
+                700 to "setecientos",
+                800 to "ochocientos",
                 999 to "novecientos noventa y nueve",
             )
         esperado.forEach { (n, palabras) -> assertEquals("$n", palabras, FrasesNota.enPalabras(n)) }
@@ -80,6 +83,15 @@ class FrasesNotaTest {
     fun `la horquilla no lleva grado`() {
         assertEquals("horquilla izquierda", FrasesNota.frase(nota(Direccion.IZQUIERDA, null)))
         assertEquals("horquilla derecha, cuarenta", FrasesNota.frase(nota(grado = null, distancia = 40)))
+    }
+
+    @Test
+    fun `la horquilla lleva larga o muy larga pero no grado`() {
+        val larga = nota(grado = null, modificadores = setOf(Modificador.LARGA))
+        assertEquals("horquilla derecha larga", FrasesNota.frase(larga))
+        val muyLarga = nota(Direccion.IZQUIERDA, null, setOf(Modificador.MUY_LARGA), distancia = 600)
+        assertEquals("horquilla izquierda muy larga, seiscientos", FrasesNota.frase(muyLarga))
+        assertEquals("horquilla izquierda muy larga, seiscientos", FrasesNota.frase(muyLarga, simplificada = true))
     }
 
     @Test

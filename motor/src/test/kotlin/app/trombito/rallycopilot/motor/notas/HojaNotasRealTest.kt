@@ -18,18 +18,31 @@ class HojaNotasRealTest {
     private val hoja2141 by lazy { GeneradorHoja(contexto = contexto).generar(ma2141) }
     private val hoja10 by lazy { GeneradorHoja(contexto = contexto).generar(ma10) }
 
-    private fun texto(hoja: HojaNotas): String =
-        hoja.elementos.joinToString("") {
-            val unida = if (it is ElementoHoja.DeNota && it.nota.unidaConSiguiente) " y" else ""
-            "${it.posicionM.roundToInt().toString().padStart(5)} m  ${it.frase}$unida\n"
+    /** Una línea por elemento; las notas de curva llevan además `[ángulo° R radio central m]` para revisarlas. */
+    private fun texto(
+        hoja: HojaNotas,
+        ruta: List<PuntoGeo>,
+    ): String {
+        val curvas = DetectorCurvas().detectar(ruta).associateBy { it.inicioM }
+        return hoja.elementos.joinToString("") {
+            val nota = (it as? ElementoHoja.DeNota)?.nota
+            val unida = if (nota?.unidaConSiguiente == true) " y" else ""
+            val medidas =
+                nota
+                    ?.let { n -> curvas[n.posicionM] }
+                    ?.let { c -> "  [${c.anguloGrados.roundToInt()}° R${c.radioCentralM.roundToInt()} m]" }
+                    .orEmpty()
+            "${it.posicionM.roundToInt().toString().padStart(5)} m  ${it.frase}$unida$medidas\n"
         }
+    }
 
     private fun comparar(
         hoja: HojaNotas,
+        ruta: List<PuntoGeo>,
         nombre: String,
     ) {
         val golden = File("src/test/resources/notas/$nombre")
-        val actual = texto(hoja)
+        val actual = texto(hoja, ruta)
         if (!golden.exists()) {
             golden.parentFile.mkdirs()
             golden.writeText(actual)
@@ -41,10 +54,10 @@ class HojaNotasRealTest {
     }
 
     @Test
-    fun `la hoja de la Ma-2141 coincide con el golden file`() = comparar(hoja2141, "ma-2141-hoja.txt")
+    fun `la hoja de la Ma-2141 coincide con el golden file`() = comparar(hoja2141, ma2141, "ma-2141-hoja.txt")
 
     @Test
-    fun `la hoja de la Ma-10 coincide con el golden file`() = comparar(hoja10, "ma-10-hoja.txt")
+    fun `la hoja de la Ma-10 coincide con el golden file`() = comparar(hoja10, ma10, "ma-10-hoja.txt")
 
     @Test
     fun `las notas de la hoja son las del generador de notas con la precaucion añadida`() {

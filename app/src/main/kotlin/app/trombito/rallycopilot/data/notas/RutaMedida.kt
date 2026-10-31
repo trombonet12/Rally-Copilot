@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.notas
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.vias.Coincidencia
 import app.trombito.rallycopilot.motor.vias.IndiceVias
 import app.trombito.rallycopilot.motor.vias.LimiteVelocidad
 import kotlin.math.atan2
@@ -71,11 +72,13 @@ internal class RutaMedida(
     fun limiteKmhEn(
         indice: IndiceVias,
         posicionM: Double,
-    ): Double? =
-        indice
-            .cercana(puntoEn(posicionM), rumboEn(posicionM), RADIO_VIA_M)
-            ?.let { LimiteVelocidad.aplicable(it.via, it.adelante) }
-            ?.toDouble()
+    ): Double? = viaEn(indice, posicionM)?.let { LimiteVelocidad.aplicable(it.via, it.adelante) }?.toDouble()
+
+    /** Vía que casa a [posicionM] en el sentido de la marcha, o null si no hay ninguna a [RADIO_VIA_M]. */
+    fun viaEn(
+        indice: IndiceVias,
+        posicionM: Double,
+    ): Coincidencia? = indice.cercana(puntoEn(posicionM), rumboEn(posicionM), RADIO_VIA_M)
 
     /** Índice del segmento [i, i+1] que contiene la posición (búsqueda binaria). */
     private fun segmentoEn(posicionM: Double): Int {
