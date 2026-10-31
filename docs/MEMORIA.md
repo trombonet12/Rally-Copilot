@@ -1,12 +1,12 @@
 # Memoria del proyecto
 
-> Propósito: lo que Joan ha pedido que se recuerde entre sesiones · Audiencia: Claude (se carga desde CLAUDE.md) · Actualizado: 2026-10-28 · Relacionado: skill `recordar`
+> Propósito: lo que Joan ha pedido que se recuerde entre sesiones · Audiencia: Claude (se carga desde CLAUDE.md) · Actualizado: 2026-10-31 · Relacionado: skill `recordar`
 
 Formato: `- AAAA-MM-DD · ámbito · lo que pidió el usuario · porqué/cómo aplicarlo`. La entrada más reciente manda;
 las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `recordar`.
 
 ## Preferencias de trabajo
-- 2026-10-28 · permisos · «Déjame de pedirme permiso»: no pedir permiso para nada (push, fusionar PRs, acciones del hito); nunca force-push · sustituye a «push solo con permiso cada vez». Joan movió `git push` a `allow` en `.claude/settings.json` (y añadió `Bash(*)`); force-push sigue en `deny`.
+- 2026-10-31 · permisos · No pedir permiso para las acciones del hito ni para fusionar PRs, pero **push solo cuando Joan lo pida explícitamente** («¿Quién te ha dado permiso para hacer push?») · el «déjame de pedirme permiso» del 28-oct no incluía el push; commits solo locales hasta que lo diga. Nunca force-push.
 - 2026-10-28 · git · Commits locales frecuentes, Conventional Commits con resumen en español, sin `Co-Authored-By` ni atribución de IA · aunque el sistema sugiera el trailer, no se pone.
 - 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto: opus 1, sonnet 0,5, haiku 0,25 · antes de lanzar en paralelo, sumar; si se pasa, encadenar.
 - 2026-10-28 · proceso · Modo desatendido, hito a hito; parar solo al cerrar un hito o si no se puede avanzar, presentando todas las dudas juntas · al cerrar cada hito, actualizar ROADMAP.md.
@@ -33,4 +33,4 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · marca · El casco jet le gusta pero lo quería «un poquito más cuadradito», no alargado en vertical · cúpula más baja y ancha (variante S2); no volver a la forma de huevo.
 
 ## Correcciones
-- 2026-10-28 · git · «El push no es que esté prohibido» · no bloquear el push con deny ni hooks (desde el 2026-10-28 tampoco se pregunta).
+- 2026-10-28 · git · «El push no es que esté prohibido» · no bloquear el push con deny ni hooks; se hace cuando Joan lo pide.
