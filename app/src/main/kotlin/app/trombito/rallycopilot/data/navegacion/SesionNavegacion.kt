@@ -90,6 +90,7 @@ class SesionNavegacion(
         private val notas = fabricaNotas?.crear()
         private var llegado = false
         private var ultimaFijacionMs = 0L
+        private var ultimaPosicion: PuntoGeo? = null
 
         suspend fun ejecutar() =
             coroutineScope {
@@ -113,6 +114,7 @@ class SesionNavegacion(
         ): Boolean {
             val ahora = reloj()
             ultimaFijacionMs = fijacion.tiempoMs
+            ultimaPosicion = fijacion.punto
             registrar(fijacion, ahora)
             if (guia != null) {
                 val progreso = guia.seguidor.actualizar(fijacion.punto, ahora)
@@ -154,7 +156,8 @@ class SesionNavegacion(
             publicar(estadoActual())
             val resultado = enrutador.ruta(origen, guia.destino.punto, guia.perfil)
             if (resultado is ResultadoRuta.Ok && resultado.ruta.puntos.size >= 2) {
-                guia.usar(resultado.ruta)
+                // Se proyecta ya la última posición: sin progreso el banner enseñaría la salida de la ruta nueva (0 m).
+                guia.usar(resultado.ruta, ultimaPosicion, reloj())
                 notas?.nuevaRuta(resultado.ruta.puntos)
             } else {
                 guia.reintentoMs = ultimaFijacionMs + REINTENTO_MS
@@ -201,11 +204,15 @@ class SesionNavegacion(
         var reintentoMs = 0L
         var recalculo: Job? = null
 
-        fun usar(nueva: Ruta) {
+        fun usar(
+            nueva: Ruta,
+            posicion: PuntoGeo?,
+            ahoraMs: Long,
+        ) {
             ruta = nueva
             seguidor = SeguidorRuta(nueva)
             detector = DetectorSalidaRuta()
-            progreso = null
+            progreso = posicion?.let { seguidor.actualizar(it, ahoraMs) }
         }
 
         fun estado() = EstadoNavegacion.Guiando(destino, perfil, ruta, progreso, recalculando)

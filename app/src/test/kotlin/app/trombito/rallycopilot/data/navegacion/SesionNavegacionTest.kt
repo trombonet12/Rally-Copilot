@@ -299,6 +299,26 @@ class SesionNavegacionTest {
         }
 
     @Test
+    fun `al adoptar la ruta recalculada nunca se publica sin progreso`() =
+        runTest {
+            // Regresión: sin progreso el banner enseña la primera maniobra de la ruta nueva (la salida, a 0 m).
+            val fuera = p(300.0, -200.0)
+            val nueva = rutaL(origen = fuera, esquina = p(1000.0, -200.0), fin = p(1000.0, 500.0))
+            val e =
+                escenario(
+                    FuenteFalsa(listOf(p(0.0, 0.0), p(100.0, 0.0), p(200.0, 0.0)) + List(20) { fuera }),
+                    listOf(ResultadoRuta.Ok(nueva, 50)),
+                )
+            val trabajo = lanzar(e, guiada())
+            advanceTimeBy(12_000)
+
+            val conNueva = e.estados.filterIsInstance<EstadoNavegacion.Guiando>().filter { it.ruta == nueva }
+            assertTrue(conNueva.isNotEmpty())
+            assertTrue("estados con la ruta nueva y sin progreso", conNueva.all { it.progreso != null })
+            trabajo.cancel()
+        }
+
+    @Test
     fun `circular en sentido contrario por la ruta recalcula desde la posicion actual`() =
         runTest {
             // 51 posiciones avanzando cada 17 m (60 km/h) y luego marcha atrás por la misma carretera.

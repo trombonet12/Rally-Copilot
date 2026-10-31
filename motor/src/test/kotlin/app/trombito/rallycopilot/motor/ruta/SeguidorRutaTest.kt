@@ -52,6 +52,26 @@ class SeguidorRutaTest {
     }
 
     @Test
+    fun `una posicion ligeramente detras del inicio no anuncia la salida ni una maniobra a 0 m`() {
+        // Ruta recalculada: la salida (0..1) y el primer giro real a 300 m; el conductor ya iba 15 m por delante.
+        val nueva =
+            Ruta(
+                puntos = listOf(p(0.0, 0.0), p(300.0, 0.0), p(300.0, 500.0)),
+                maniobras =
+                    listOf(
+                        m(TipoManiobra.SALIDA, 0, 1, 300.0, 30.0),
+                        m(TipoManiobra.DERECHA, 1, 2, 500.0, 50.0),
+                        m(TipoManiobra.DESTINO, 2, 2, 0.0, 0.0),
+                    ),
+                longitudM = 800.0,
+                tiempoS = 80.0,
+            )
+        val e = SeguidorRuta(nueva).actualizar(p(-15.0, 0.0), 0)
+        assertEquals(TipoManiobra.DERECHA, e.maniobraActual?.tipo)
+        assertEquals(300.0, e.distanciaAManiobraM, 1.0)
+    }
+
+    @Test
     fun `si la unica maniobra antes del destino es la salida, al inicio la actual es el destino`() {
         val soloSalida =
             ruta.copy(
