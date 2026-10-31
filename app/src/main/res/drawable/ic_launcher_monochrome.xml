@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Silueta para iconos temáticos (Android 13+): solo cuenta el alfa. Casco jet y cara en una pieza; la franja del
-     casco y las gafas son huecos (evenOdd); el micrófono, un trazo. -->
+     casco y las gafas son huecos (evenOdd); el micrófono, un trazo. Escala 0,75 y traslado (-1,76; 2,7) dp, los mismos que
+     ic_launcher_foreground.xml (ver scripts/svg-a-vector.py), para centrar la caja pintada en la zona segura. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group android:translateY="8.4">
+    <group android:translateX="-1.76" android:translateY="2.7">
         <group
             android:pivotX="54"
             android:pivotY="54"
