@@ -7,11 +7,15 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.hypot
 
-/** Vía más cercana a una posición: distancia al segmento en metros y si la marcha sigue el sentido de dibujo. */
+/**
+ * Vía más cercana a una posición: distancia al segmento en metros, si la marcha sigue el sentido de dibujo y
+ * [posicionEnViaM], los metros (haversine) desde el primer punto de la vía hasta la proyección del punto.
+ */
 data class Coincidencia(
     val via: Via,
     val distanciaMetros: Double,
     val adelante: Boolean,
+    val posicionEnViaM: Double = 0.0,
 )
 
 /** Coincidencia con su puntuación (distancia + penalización de rumbo), para comparar candidatas. */
@@ -33,6 +37,8 @@ class IndiceVias(
     private val bx: DoubleArray
     private val by: DoubleArray
     private val viaDeSegmento: IntArray
+    private val inicioSegmentoM: DoubleArray
+    private val largoSegmentoM: DoubleArray
     private val celdas: Map<Long, IntArray>
 
     init {
@@ -43,10 +49,16 @@ class IndiceVias(
         bx = DoubleArray(total)
         by = DoubleArray(total)
         viaDeSegmento = IntArray(total)
+        inicioSegmentoM = DoubleArray(total)
+        largoSegmentoM = DoubleArray(total)
         val construccion = HashMap<Long, MutableList<Int>>()
         var s = 0
         vias.forEachIndexed { indiceVia, via ->
+            var acumuladaM = 0.0
             via.puntos.zipWithNext { a, b ->
+                inicioSegmentoM[s] = acumuladaM
+                largoSegmentoM[s] = a.distanciaA(b)
+                acumuladaM += largoSegmentoM[s]
                 ax[s] = x(a)
                 ay[s] = y(a)
                 bx[s] = x(b)
@@ -84,7 +96,13 @@ class IndiceVias(
             }
         }
         if (mejor.segmento < 0) return null
-        val coincidencia = Coincidencia(vias[viaDeSegmento[mejor.segmento]], mejor.distancia, mejor.adelante)
+        val coincidencia =
+            Coincidencia(
+                vias[viaDeSegmento[mejor.segmento]],
+                mejor.distancia,
+                mejor.adelante,
+                inicioSegmentoM[mejor.segmento] + mejor.t * largoSegmentoM[mejor.segmento],
+            )
         return Candidata(coincidencia, mejor.puntuacion)
     }
 
@@ -100,6 +118,7 @@ class IndiceVias(
         var distancia = 0.0
         var puntuacion = Double.POSITIVE_INFINITY
         var adelante = true
+        var t = 0.0
     }
 
     private fun evaluarCelda(
@@ -119,7 +138,8 @@ class IndiceVias(
         consulta: Consulta,
         mejor: Mejor,
     ) {
-        val distancia = distanciaASegmento(s, consulta.px, consulta.py)
+        val t = proyeccion(s, consulta.px, consulta.py)
+        val distancia = hypot(consulta.px - (ax[s] + t * (bx[s] - ax[s])), consulta.py - (ay[s] + t * (by[s] - ay[s])))
         if (distancia > consulta.radioMetros) return
         val dx = bx[s] - ax[s]
         val dy = by[s] - ay[s]
@@ -137,10 +157,12 @@ class IndiceVias(
             mejor.distancia = distancia
             mejor.puntuacion = puntuacion
             mejor.adelante = adelante
+            mejor.t = t
         }
     }
 
-    private fun distanciaASegmento(
+    /** Fracción 0..1 del segmento [s] donde cae la proyección de (px, py). */
+    private fun proyeccion(
         s: Int,
         px: Double,
         py: Double,
@@ -148,8 +170,7 @@ class IndiceVias(
         val dx = bx[s] - ax[s]
         val dy = by[s] - ay[s]
         val largo2 = dx * dx + dy * dy
-        val t = if (largo2 == 0.0) 0.0 else (((px - ax[s]) * dx + (py - ay[s]) * dy) / largo2).coerceIn(0.0, 1.0)
-        return hypot(px - (ax[s] + t * dx), py - (ay[s] + t * dy))
+        return if (largo2 == 0.0) 0.0 else (((px - ax[s]) * dx + (py - ay[s]) * dy) / largo2).coerceIn(0.0, 1.0)
     }
 
     private fun registrar(
