@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.notas
 
+import app.trombito.rallycopilot.data.vias.CargadorVias
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -24,7 +25,8 @@ class ContextoNotasRepositorioTest {
     private val vias get() = File(carpeta.root, "vias-mallorca.tsv.gz")
     private val notas get() = File(carpeta.root, "vias-notas-mallorca.tsv.gz")
 
-    private fun repositorio() = ContextoNotasRepositorio(vias, notas, UnconfinedTestDispatcher())
+    private fun repositorio() =
+        ContextoNotasRepositorio(CargadorVias(vias, UnconfinedTestDispatcher()), notas, UnconfinedTestDispatcher())
 
     private fun escribir(
         archivo: File,

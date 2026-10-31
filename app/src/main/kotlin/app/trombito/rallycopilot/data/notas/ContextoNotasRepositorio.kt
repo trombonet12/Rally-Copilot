@@ -2,11 +2,12 @@ package app.trombito.rallycopilot.data.notas
 
 import android.content.Context
 import android.util.Log
+import app.trombito.rallycopilot.data.vias.DatosVias
+import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.motor.notas.ContextoVias
 import app.trombito.rallycopilot.motor.vias.DatosNotasVias
 import app.trombito.rallycopilot.motor.vias.GrafoVias
 import app.trombito.rallycopilot.motor.vias.IndiceVias
-import app.trombito.rallycopilot.motor.vias.LectorVias
 import app.trombito.rallycopilot.motor.vias.LectorViasNotas
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -36,33 +37,27 @@ interface FuenteContextoNotas {
 }
 
 /**
- * Carga perezosa, una sola vez y en [dispatcher], de `filesDir/mapa/vias-mallorca.tsv.gz` y, si existe,
- * `vias-notas-mallorca.tsv.gz`. Si alguno cambia (fecha o tamaño; p. ej. al actualizar los datos) se recarga en la
- * siguiente petición. Los archivos ilegibles se tratan como ausentes y no se reintentan hasta que cambien.
+ * Contexto de notas sobre las vías que da [fuente] (una única lectura compartida con el seguimiento de la vía actual)
+ * y, si existe, `vias-notas-mallorca.tsv.gz`, cargado perezosamente en [dispatcher]. Si cambian las vías o el archivo
+ * de notas (fecha o tamaño; p. ej. al actualizar los datos) se rehace en la siguiente petición. Un archivo de notas
+ * ilegible se trata como ausente y no se reintenta hasta que cambie.
  */
 @Singleton
 class ContextoNotasRepositorio internal constructor(
-    private val archivoVias: File,
+    private val fuente: FuenteVias,
     private val archivoNotas: File,
     private val dispatcher: CoroutineDispatcher,
 ) : FuenteContextoNotas {
     @Inject
     constructor(
+        fuente: FuenteVias,
         @ApplicationContext contexto: Context,
-    ) : this(
-        File(contexto.filesDir, RUTA_VIAS),
-        File(contexto.filesDir, RUTA_VIAS_NOTAS),
-        Dispatchers.IO,
-    )
-
-    private data class Firma(
-        val vias: Pair<Long, Long>,
-        val notas: Pair<Long, Long>?,
-    )
+    ) : this(fuente, File(contexto.filesDir, RUTA_VIAS_NOTAS), Dispatchers.IO)
 
     private class Cargado(
-        val firma: Firma,
-        val contexto: ContextoNotas?,
+        val vias: DatosVias,
+        val notas: Pair<Long, Long>?,
+        val contexto: ContextoNotas,
     )
 
     private val mutex = Mutex()
@@ -70,35 +65,30 @@ class ContextoNotasRepositorio internal constructor(
 
     override suspend fun contexto(): ContextoNotas? =
         mutex.withLock {
+            val vias = fuente.datos()
+            if (vias == null) {
+                cargado = null
+                return@withLock null
+            }
             withContext(dispatcher) {
-                if (!archivoVias.isFile) {
-                    cargado = null
-                    return@withContext null
-                }
-                val firma =
-                    Firma(
-                        archivoVias.lastModified() to archivoVias.length(),
-                        archivoNotas.takeIf { it.isFile }?.let { it.lastModified() to it.length() },
-                    )
+                val notas = archivoNotas.takeIf { it.isFile }?.let { it.lastModified() to it.length() }
                 val actual = cargado
-                if (actual != null && actual.firma == firma) {
+                if (actual != null && actual.vias === vias && actual.notas == notas) {
                     actual.contexto
                 } else {
-                    val contexto = cargar()
-                    cargado = Cargado(firma, contexto)
+                    val contexto = cargar(vias)
+                    cargado = Cargado(vias, notas, contexto)
                     contexto
                 }
             }
         }
 
-    private fun cargar(): ContextoNotas? {
-        val lectura = leer(archivoVias) { LectorVias.leer(it) } ?: return null
-        val indice = IndiceVias(lectura.vias)
-        val grafo = GrafoVias(lectura.vias)
+    private fun cargar(vias: DatosVias): ContextoNotas {
+        val grafo = GrafoVias(vias.vias)
         val datosNotas: DatosNotasVias? =
             archivoNotas.takeIf { it.isFile }?.let { archivo -> leer(archivo) { LectorViasNotas.leer(it) } }
-        Log.i(ETIQUETA, "Contexto de notas: ${lectura.vias.size} vías, datos de notas: ${datosNotas != null}")
-        return ContextoNotas(indice, grafo, datosNotas?.let { ContextoVias(indice, grafo, it) })
+        Log.i(ETIQUETA, "Contexto de notas: ${vias.vias.size} vías, datos de notas: ${datosNotas != null}")
+        return ContextoNotas(vias.indice, grafo, datosNotas?.let { ContextoVias(vias.indice, grafo, it) })
     }
 
     private fun <T> leer(
@@ -119,7 +109,6 @@ class ContextoNotasRepositorio internal constructor(
 
     private companion object {
         const val ETIQUETA = "ContextoNotas"
-        const val RUTA_VIAS = "mapa/vias-mallorca.tsv.gz"
         const val RUTA_VIAS_NOTAS = "mapa/vias-notas-mallorca.tsv.gz"
     }
 }

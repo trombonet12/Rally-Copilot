@@ -21,7 +21,7 @@ import java.util.zip.GZIPOutputStream
 class ProveedorViaActualOsmTest {
     @get:Rule val carpeta = TemporaryFolder()
 
-    private fun proveedor(archivo: File) = ProveedorViaActualOsm(archivo, UnconfinedTestDispatcher())
+    private fun proveedor(archivo: File) = ProveedorViaActualOsm(CargadorVias(archivo, UnconfinedTestDispatcher()))
 
     private fun fijacion(
         lat: Double,

@@ -5,9 +5,9 @@ import app.trombito.rallycopilot.motor.notas.HojaNotas
 import app.trombito.rallycopilot.motor.notas.TablaGrados
 
 /**
- * Hoja de [medida]. Con [factorCalibrado] la tabla usa la velocidad real del piloto; sin él, la velocidad de
- * referencia de cada curva es el límite de la vía donde cae (si hay vías). Sin ruta, la hoja sale vacía. Pesado:
- * llamar fuera del hilo de las fijaciones.
+ * Hoja de [medida]. Con [factorCalibrado] la tabla escala la velocidad de curva con la del piloto. Con vías, el
+ * límite de la vía donde cae cada curva es siempre su velocidad de referencia (tope), también con factor calibrado.
+ * Sin ruta, la hoja sale vacía. Pesado: llamar fuera del hilo de las fijaciones.
  */
 internal fun generarHoja(
     medida: RutaMedida?,
@@ -17,7 +17,7 @@ internal fun generarHoja(
     if (medida == null) return HojaNotas(emptyList())
     val tabla = if (factorCalibrado != null) TablaGrados(factor = factorCalibrado) else TablaGrados()
     val vRef: (Double) -> Double? =
-        if (factorCalibrado == null && datos != null) {
+        if (datos != null) {
             { posicion -> medida.limiteKmhEn(datos.indice, posicion) }
         } else {
             { null }

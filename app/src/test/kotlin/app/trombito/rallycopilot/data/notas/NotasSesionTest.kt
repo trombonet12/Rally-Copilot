@@ -138,13 +138,21 @@ class NotasSesionTest {
         }
 
     @Test
-    fun `sin factor la velocidad de referencia es el limite de la via y con factor manda la tabla calibrada`() =
+    fun `el limite de la via es siempre el tope y el factor solo escala la velocidad de curva`() =
         runTest {
             val traza = trazadoConCurva()
-            val sinLimite = escenario(FuenteFalsa(fijacionesPor(traza)), contextoDe(listOf(via(1, traza))))
-            val conLimite = escenario(FuenteFalsa(fijacionesPor(traza)), contextoDe(listOf(via(1, traza, "50"))))
-            val calibrada = escenario(FuenteFalsa(fijacionesPor(traza)), contextoDe(listOf(via(1, traza, "50"))), 0.6)
-            val trabajos = listOf(sinLimite, conLimite, calibrada).map { lanzar(it, guiada()) }
+
+            fun caso(
+                limite: String? = null,
+                factor: Double? = null,
+            ) = escenario(FuenteFalsa(fijacionesPor(traza)), contextoDe(listOf(via(1, traza, limite))), factor)
+            val sinLimite = caso()
+            val conLimite = caso("50")
+            val calibrada = caso("50", 0.6)
+            val calibradaSinLimite = caso(factor = 0.6)
+            val calibradaRapida = caso("50", 1.2)
+            val todos = listOf(sinLimite, conLimite, calibrada, calibradaSinLimite, calibradaRapida)
+            val trabajos = todos.map { lanzar(it, guiada()) }
             advanceTimeBy(3_500)
 
             val gradoSin = gradoUnico(sinLimite)
@@ -153,6 +161,9 @@ class NotasSesionTest {
             assertTrue("sin límite: $gradoSin", gradoSin in 2..4)
             assertEquals(6, gradoLimite)
             assertTrue("calibrada: $gradoCalibrado", gradoCalibrado < gradoSin)
+            // Con factor calibrado el límite de la vía también topa: la misma curva sin límite sale más abierta.
+            assertTrue("calibrada sin límite: ${gradoUnico(calibradaSinLimite)}", gradoUnico(calibradaSinLimite) < 6)
+            assertEquals(6, gradoUnico(calibradaRapida))
             // La calibración llega en segundo plano: antes y después hubo una hoja publicada.
             assertTrue(calibrada.publicadas.size >= 2)
             trabajos.forEach { it.cancel() }
