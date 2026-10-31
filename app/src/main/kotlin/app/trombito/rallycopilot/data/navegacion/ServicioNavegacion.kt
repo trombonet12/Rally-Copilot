@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.Enrutador
@@ -43,6 +44,8 @@ class ServicioNavegacion : Service() {
     @Inject lateinit var enrutador: Enrutador
 
     @Inject lateinit var recorridos: RepositorioRecorridos
+
+    @Inject lateinit var fabricaNotas: FabricaNotasSesion
 
     private lateinit var notificacion: NotificacionNavegacion
     private lateinit var scope: CoroutineScope
@@ -205,6 +208,7 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         reloj = System::currentTimeMillis,
         publicar = { control.publicar(id, it) },
         motivoSinGps = getString(R.string.navegacion_error_gps),
+        fabricaNotas = fabricaNotas,
     )
 
 private fun ServicioNavegacion.publicarFalloDeArranque(id: Long?) {

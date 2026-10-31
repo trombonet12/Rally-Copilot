@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.navegacion
 
+import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.domain.navegacion.Destino
@@ -41,8 +42,10 @@ sealed interface SolicitudNavegacion {
  * recorrido por lotes. Todo el estado se toca desde una sola corrutina (o un dispatcher de un hilo). [reloj] da ms
  * epoch (hora de pared: llegada prevista y marcas del recorrido) y [publicar] recibe cada cambio de estado. La
  * detección de salida de ruta y el reintento del recálculo usan el reloj monótono de la fijación, que no salta con
- * cambios de hora. Nunca registra coordenadas en logs.
+ * cambios de hora. Nunca registra coordenadas en logs. Si hay [fabricaNotas], genera y publica las notas de rally
+ * de la conducción (guiada: hoja de la ruta; libre: hoja de la carretera prevista); sin ella, no hay notas.
  */
+@Suppress("LongParameterList") // colaboradores de la sesión: fuente, enrutador, grabación, reloj, salidas y notas
 class SesionNavegacion(
     private val fuente: FuenteUbicacion,
     private val enrutador: Enrutador,
@@ -50,6 +53,7 @@ class SesionNavegacion(
     private val reloj: () -> Long,
     private val publicar: (EstadoNavegacion) -> Unit,
     private val motivoSinGps: String,
+    private val fabricaNotas: FabricaNotasSesion? = null,
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
     suspend fun cerrarHuerfanos() {
@@ -67,6 +71,7 @@ class SesionNavegacion(
         try {
             ejecucion.ejecutar()
         } finally {
+            ejecucion.cerrarNotas()
             withContext(NonCancellable) {
                 ejecucion.volcar()
                 recorridos.terminar(id)
@@ -82,14 +87,17 @@ class SesionNavegacion(
         private val guia: Guia? = (solicitud as? SolicitudNavegacion.Guiada)?.let { Guia(it) }
         private val lote = ArrayList<PuntoRecorrido>(TAMANO_LOTE)
         private val acumulador = AcumuladorRecorrido()
+        private val notas = fabricaNotas?.crear()
         private var llegado = false
         private var ultimaFijacionMs = 0L
 
         suspend fun ejecutar() =
             coroutineScope {
+                if (guia != null) notas?.iniciarGuiado(guia.ruta.puntos) else notas?.iniciarLibre()
                 publicar(estadoActual())
                 fuente.fijaciones().takeWhile { procesar(it, this) }.collect()
                 guia?.recalculo?.cancel()
+                cerrarNotas()
                 if (llegado && guia != null) {
                     publicar(EstadoNavegacion.Llegada(guia.destino))
                     delay(ESPERA_LLEGADA_MS)
@@ -110,7 +118,12 @@ class SesionNavegacion(
                 val progreso = guia.seguidor.actualizar(fijacion.punto, ahora)
                 guia.progreso = progreso
                 llegado = progreso.llegado
-                if (!llegado) vigilarSalida(guia, fijacion, alcance)
+                if (!llegado) {
+                    notas?.posicionGuiada(progreso.progresoM, fijacion.velocidadMs)
+                    vigilarSalida(guia, fijacion, alcance)
+                }
+            } else {
+                notas?.posicionLibre(fijacion)
             }
             if (!llegado) publicar(estadoActual())
             return !llegado
@@ -142,6 +155,7 @@ class SesionNavegacion(
             val resultado = enrutador.ruta(origen, guia.destino.punto, guia.perfil)
             if (resultado is ResultadoRuta.Ok && resultado.ruta.puntos.size >= 2) {
                 guia.usar(resultado.ruta)
+                notas?.nuevaRuta(resultado.ruta.puntos)
             } else {
                 guia.reintentoMs = ultimaFijacionMs + REINTENTO_MS
             }
@@ -156,6 +170,11 @@ class SesionNavegacion(
             if (!acumulador.anadir(fijacion.punto)) return
             lote += PuntoRecorrido(fijacion.punto.lat, fijacion.punto.lon, ahora, fijacion.velocidadMs)
             if (lote.size >= TAMANO_LOTE) volcar()
+        }
+
+        /** Publica «sin notas» y cancela su trabajo en segundo plano; se puede llamar más de una vez. */
+        fun cerrarNotas() {
+            notas?.terminar()
         }
 
         suspend fun volcar() {
