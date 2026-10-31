@@ -16,7 +16,9 @@ import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import app.trombito.rallycopilot.ui.comun.fijacion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -51,11 +53,19 @@ class MapaViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun crear(guardado: SavedStateHandle = SavedStateHandle()) =
-        MapaViewModel(repositorio, ubicacion, vias, ajustes, guardado)
+    /** Reloj monótono del test: el tiempo virtual del planificador más un origen común con las fijaciones. */
+    private var origenRelojMs = 0L
+    private lateinit var planificador: TestCoroutineScheduler
 
-    private fun TestScope.recoger(vm: MapaViewModel) =
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+    private fun crear(guardado: SavedStateHandle = SavedStateHandle()) =
+        MapaViewModel(repositorio, ubicacion, vias, ajustes, guardado).also {
+            it.reloj = { origenRelojMs + (if (::planificador.isInitialized) planificador.currentTime else 0L) }
+        }
+
+    private fun TestScope.recoger(vm: MapaViewModel): Job {
+        planificador = testScheduler
+        return backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+    }
 
     @Test
     fun `el estado inicial es de carga y se resuelve al llegar los datos`() =
@@ -96,6 +106,28 @@ class MapaViewModelTest {
             assertEquals(50, estado.limiteKmh)
             assertEquals(f, estado.posicion)
             assertEquals("Ma-1110", estado.via?.ref)
+        }
+
+    @Test
+    fun `sin nuevas fijaciones la velocidad caduca y pasa a null`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            origenRelojMs = 1_000
+            val f = fijacion(tiempoMs = 1_000, velocidadMs = 16.7)
+            ubicacion.flujo.emit(f)
+            assertEquals(60, vm.uiState.value.velocidadKmh)
+            // Dentro del plazo de caducidad (5 s) sigue el último valor.
+            advanceTimeBy(4_000)
+            assertEquals(60, vm.uiState.value.velocidadKmh)
+            // Pasado el plazo, sin ninguna fijación nueva, ya no se conoce; la posición se conserva.
+            advanceTimeBy(2_000)
+            runCurrent()
+            assertNull(vm.uiState.value.velocidadKmh)
+            assertEquals(f, vm.uiState.value.posicion)
+            // Una fijación nueva la recupera.
+            ubicacion.flujo.emit(fijacion(tiempoMs = 7_000, velocidadMs = 10.0))
+            assertEquals(36, vm.uiState.value.velocidadKmh)
         }
 
     @Test

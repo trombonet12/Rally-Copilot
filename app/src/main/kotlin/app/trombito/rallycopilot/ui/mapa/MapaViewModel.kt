@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import android.os.SystemClock
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,19 +17,19 @@ import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.velocidad.kmh
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -48,6 +49,9 @@ class MapaViewModel
         private val ajustes: RepositorioAjustesConduccion,
         private val guardado: SavedStateHandle,
     ) : ViewModel() {
+        /** Reloj monótono (ms), el mismo de `Fijacion.tiempoMs`; sustituible en los tests. */
+        internal var reloj: () -> Long = { SystemClock.elapsedRealtime() }
+
         private val zoomAutomatico = ZoomAutomatico()
         private val preferencias = ajustes.ajustes
         private val siguiendo = guardado.getStateFlow(CLAVE_SIGUIENDO, true)
@@ -72,15 +76,32 @@ class MapaViewModel
                 } else {
                     val estimador = EstimadorVelocidad()
                     var viaPrevia: ViaActual? = null
-                    ubicacion
-                        .fijaciones()
-                        .transform { fijacion ->
-                            val velocidad = estimador.actualizar(fijacion)?.let(::kmh)
-                            // Primero la velocidad: la vía puede tardar (carga perezosa del archivo de vías).
-                            emit(Lectura(fijacion, velocidad, viaPrevia))
-                            viaPrevia = vias.viaEn(fijacion)
-                            emit(Lectura(fijacion, velocidad, viaPrevia))
-                        }.onStart { emit(LECTURA_VACIA) }
+                    var ultima = LECTURA_VACIA
+                    // Sin fijaciones (túnel, GPS perdido) la velocidad caduca por el reloj, no por una fijación nueva.
+                    // Ambas corrutinas corren en el hilo del colector; solo se recoge con la pantalla visible.
+                    channelFlow {
+                        send(LECTURA_VACIA)
+                        launch {
+                            ubicacion.fijaciones().collect { fijacion ->
+                                val velocidad = estimador.actualizar(fijacion)?.let(::kmh)
+                                // Primero la velocidad: la vía puede tardar (carga perezosa del archivo de vías).
+                                ultima = Lectura(fijacion, velocidad, viaPrevia)
+                                send(ultima)
+                                viaPrevia = vias.viaEn(fijacion)
+                                ultima = Lectura(fijacion, velocidad, viaPrevia)
+                                send(ultima)
+                            }
+                        }
+                        launch {
+                            while (true) {
+                                delay(TICK_CADUCIDAD_MS)
+                                if (ultima.velocidadKmh != null && estimador.vigente(reloj()) == null) {
+                                    ultima = Lectura(ultima.posicion, null, ultima.via)
+                                    send(ultima)
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -163,6 +184,7 @@ class MapaViewModel
 
         private companion object {
             const val PARADA_MS = 5_000L
+            const val TICK_CADUCIDAD_MS = 1_000L
             const val CLAVE_SIGUIENDO = "mapa-siguiendo"
             const val CLAVE_CAMARA = "mapa-camara"
             const val TAMANO_CAMARA = 3
