@@ -122,7 +122,12 @@ class SesionNavegacion(
             alcance: CoroutineScope,
         ) {
             val progreso = checkNotNull(guia.progreso)
-            val fuera = guia.detector.actualizar(progreso.distanciaALaRutaM, fijacion.tiempoMs)
+            val fuera =
+                guia.detector.actualizar(
+                    progreso.distanciaALaRutaM,
+                    fijacion.tiempoMs,
+                    progreso.sentidoContrario,
+                )
             if (fuera && guia.recalculo?.isActive != true && fijacion.tiempoMs >= guia.reintentoMs) {
                 guia.recalculo = alcance.launch { recalcular(guia, fijacion.punto) }
             }

@@ -21,12 +21,15 @@ data class EstadoRuta(
     val maniobraSiguiente: Maniobra?,
     val distanciaALaRutaM: Double,
     val llegado: Boolean,
+    val sentidoContrario: Boolean = false,
 )
 
 /**
  * Proyecta posiciones GPS sobre la polilínea de la [ruta]. Tras la primera posición solo se aceptan puntos entre
  * 30 m por detrás y 500 m por delante de la anterior (así una calle paralela o el tramo de vuelta no engañan),
  * salvo salto: si en esa ventana la ruta queda a más de 60 m pero en otro punto está a 30 m o menos, se da por bueno.
+ * Recuerda el progreso máximo alcanzado: si el actual queda a más de 50 m por detrás, el conductor va en sentido
+ * contrario ([EstadoRuta.sentidoContrario]); el jitter del GPS y los retrocesos breves no llegan a ese margen.
  */
 class SeguidorRuta(
     private val ruta: Ruta,
@@ -34,6 +37,7 @@ class SeguidorRuta(
     private val linea = Polilinea(ruta.puntos)
     private val final = ruta.puntos.last()
     private var progresoPrevio: Double? = null
+    private var progresoMaximo = 0.0
 
     fun actualizar(
         punto: PuntoGeo,
@@ -43,6 +47,7 @@ class SeguidorRuta(
         val y = linea.y(punto)
         val proyeccion = elegir(x, y)
         progresoPrevio = proyeccion.progresoM
+        progresoMaximo = maxOf(progresoMaximo, proyeccion.progresoM)
         val restante = (linea.longitudM - proyeccion.progresoM).coerceAtLeast(0.0)
         val tiempoRestante = tiempoRestante(proyeccion.progresoM)
         val indiceManiobra =
@@ -60,6 +65,7 @@ class SeguidorRuta(
             maniobraSiguiente = if (actual == null) null else ruta.maniobras.getOrNull(indiceManiobra + 1),
             distanciaALaRutaM = proyeccion.distanciaM,
             llegado = restante <= RADIO_LLEGADA_M && punto.distanciaA(final) <= RADIO_LLEGADA_M,
+            sentidoContrario = progresoMaximo - proyeccion.progresoM > SENTIDO_CONTRARIO_M,
         )
     }
 
@@ -104,6 +110,7 @@ class SeguidorRuta(
         const val LEJOS_M = 60.0
         const val SOBRE_RUTA_M = 30.0
         const val RADIO_LLEGADA_M = 30.0
+        const val SENTIDO_CONTRARIO_M = 50.0
         const val MS_POR_S = 1000.0
     }
 }

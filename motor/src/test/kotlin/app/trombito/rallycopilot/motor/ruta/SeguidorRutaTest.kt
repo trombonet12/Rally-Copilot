@@ -154,4 +154,79 @@ class SeguidorRutaTest {
         val e = SeguidorRuta(horquilla).actualizar(p(300.0, 20.0), 0)
         assertEquals(2020.0 - 1720.0, e.distanciaRestanteM, 1.0)
     }
+
+    // Recta de 3000 m al este para recorrerla hacia atrás.
+    private val recta =
+        Ruta(
+            puntos = listOf(p(0.0, 0.0), p(3000.0, 0.0)),
+            maniobras = listOf(m(TipoManiobra.DESTINO, 1, 1, 0.0, 0.0)),
+            longitudM = 3000.0,
+            tiempoS = 300.0,
+        )
+
+    @Test
+    fun `avanzar nunca marca sentido contrario`() {
+        val seguidor = SeguidorRuta(recta)
+        for (i in 0..100) assertFalse(seguidor.actualizar(p(i * 17.0, 0.0), i * 1000L).sentidoContrario)
+    }
+
+    @Test
+    fun `recorrer la ruta hacia atras a 60 kmh se marca antes de 100 m de retroceso`() {
+        val seguidor = SeguidorRuta(recta)
+        for (i in 0..90) seguidor.actualizar(p(i * 17.0, 0.0), i * 1000L)
+        val maximo = 90 * 17.0
+        var retroceso = 0.0
+        var marcado = -1.0
+        for (paso in 1..20) {
+            retroceso = paso * 17.0
+            val e = seguidor.actualizar(p(maximo - retroceso, 0.0), (90 + paso) * 1000L)
+            if (e.sentidoContrario && marcado < 0) marcado = retroceso
+            // Hasta superar 50 m de retroceso no se marca.
+            if (retroceso <= 50.0) assertFalse("retroceso $retroceso", e.sentidoContrario)
+        }
+        assertTrue("marcado a $marcado m", marcado in 50.0..100.0)
+    }
+
+    @Test
+    fun `el jitter de gps de mas menos 10 m no marca sentido contrario`() {
+        val seguidor = SeguidorRuta(recta)
+        var este = 500.0
+        for (i in 0..200) {
+            este += 17.0.coerceAtMost(3000.0 - este - 20.0)
+            val jitter = if (i % 2 == 0) 10.0 else -10.0
+            assertFalse(seguidor.actualizar(p(este + jitter, 0.0), i * 1000L).sentidoContrario)
+        }
+    }
+
+    @Test
+    fun `parado con jitter de 10 m tampoco marca sentido contrario`() {
+        val seguidor = SeguidorRuta(recta)
+        seguidor.actualizar(p(1000.0, 0.0), 0)
+        for (i in 1..50) {
+            val este = 1000.0 + if (i % 2 == 0) 10.0 else -10.0
+            assertFalse(seguidor.actualizar(p(este, 0.0), i * 1000L).sentidoContrario)
+        }
+    }
+
+    @Test
+    fun `un retroceso breve de 20 m no marca sentido contrario y volver a avanzar tampoco`() {
+        val seguidor = SeguidorRuta(recta)
+        seguidor.actualizar(p(1000.0, 0.0), 0)
+        assertFalse(seguidor.actualizar(p(990.0, 0.0), 1000).sentidoContrario)
+        assertFalse(seguidor.actualizar(p(980.0, 0.0), 2000).sentidoContrario)
+        assertFalse(seguidor.actualizar(p(1010.0, 0.0), 3000).sentidoContrario)
+        assertFalse(seguidor.actualizar(p(1100.0, 0.0), 4000).sentidoContrario)
+    }
+
+    @Test
+    fun `el sentido contrario se quita al volver cerca del progreso maximo`() {
+        val seguidor = SeguidorRuta(recta)
+        for (i in 0..60) seguidor.actualizar(p(1000.0 + i * 17.0, 0.0), i * 1000L)
+        val maximo = 1000.0 + 60 * 17.0
+        var e = seguidor.actualizar(p(maximo, 0.0), 61_000)
+        for (paso in 1..5) e = seguidor.actualizar(p(maximo - paso * 17.0, 0.0), (61 + paso) * 1000L)
+        assertTrue(e.sentidoContrario)
+        e = seguidor.actualizar(p(maximo - 10.0, 0.0), 70_000)
+        assertFalse(e.sentidoContrario)
+    }
 }

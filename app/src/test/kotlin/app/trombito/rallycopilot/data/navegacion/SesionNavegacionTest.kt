@@ -239,7 +239,7 @@ class SesionNavegacionTest {
         }
 
     @Test
-    fun `cinco segundos fuera de la ruta recalculan desde la posicion actual y adoptan la nueva`() =
+    fun `tres segundos fuera de la ruta recalculan desde la posicion actual y adoptan la nueva`() =
         runTest {
             // 3 posiciones en la ruta y luego 200 m al sur, parado.
             val fuera = p(300.0, -200.0)
@@ -256,11 +256,32 @@ class SesionNavegacionTest {
             val (origen, hacia, cuando) = e.enrutador.llamadas.single()
             assertEquals(fuera, origen)
             assertEquals(destino.punto, hacia)
-            assertEquals(8_000L, cuando) // fuera desde t=3 s; a los 5 s sostenidos, t=8 s
+            assertEquals(6_000L, cuando) // fuera desde t=3 s; a los 3 s sostenidos, t=6 s
             assertTrue(e.estados.any { it is EstadoNavegacion.Guiando && it.recalculando })
             val ultimo = e.estados.last() as EstadoNavegacion.Guiando
             assertFalse(ultimo.recalculando)
             assertEquals(nueva, ultimo.ruta)
+            trabajo.cancel()
+        }
+
+    @Test
+    fun `circular en sentido contrario por la ruta recalcula desde la posicion actual`() =
+        runTest {
+            // 51 posiciones avanzando cada 17 m (60 km/h) y luego marcha atrás por la misma carretera.
+            val avance = List(51) { p(it * 17.0, 0.0) }
+            val atras = List(4) { p(850.0 - (it + 1) * 17.0, 0.0) }
+            val origenNuevo = p(850.0 - 4 * 17.0, 0.0)
+            val nueva = rutaL(origen = origenNuevo)
+            val e = escenario(FuenteFalsa(avance + atras), listOf(ResultadoRuta.Ok(nueva, 50)))
+            val trabajo = lanzar(e, guiada())
+            advanceTimeBy(70_000)
+
+            assertEquals(1, e.enrutador.llamadas.size)
+            val (origen, _, cuando) = e.enrutador.llamadas.single()
+            assertEquals(origenNuevo, origen)
+            // Marcado a los 51 m de retroceso (3.ª posición hacia atrás, t=53 s) y confirmado 1 s después.
+            assertEquals(54_000L, cuando)
+            assertEquals(nueva, (e.estados.last() as EstadoNavegacion.Guiando).ruta)
             trabajo.cancel()
         }
 
@@ -286,7 +307,7 @@ class SesionNavegacionTest {
 
             assertEquals(1, e.enrutador.llamadas.size)
             val (_, _, cuando) = e.enrutador.llamadas.single()
-            assertEquals(8_000L, cuando)
+            assertEquals(6_000L, cuando)
             assertEquals(nueva, (e.estados.last() as EstadoNavegacion.Guiando).ruta)
             trabajo.cancel()
         }
