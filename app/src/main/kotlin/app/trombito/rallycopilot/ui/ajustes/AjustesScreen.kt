@@ -32,6 +32,7 @@ import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
+import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
 import app.trombito.rallycopilot.ui.comun.BotonIcono
@@ -67,6 +68,8 @@ data class AccionesAjustes(
     val onIcono: (IconoPosicion) -> Unit = {},
     val onOrientacion: (Orientacion) -> Unit = {},
     val onEstiloManiobras: (EstiloManiobras) -> Unit = {},
+    val onAnticipacion: (NivelAnticipacion) -> Unit = {},
+    val onNotasSimplificadas: (Boolean) -> Unit = {},
 )
 
 @StringRes
@@ -80,8 +83,8 @@ private fun textoNivelZoom(nivel: Int): Int =
     }
 
 /**
- * Ajustes: Mapas offline, Acerca de y las preferencias de conducción (zoom, icono de posición, estilo de maniobras y
- * orientación).
+ * Ajustes: Mapas offline, Acerca de y las preferencias de conducción (zoom, icono de posición, estilo de maniobras,
+ * orientación, anticipación de las notas y notas simplificadas).
  */
 @Composable
 fun AjustesScreen(
@@ -107,12 +110,13 @@ fun AjustesScreen(
             SeccionIcono(ajustes.icono, acciones.onIcono)
             SeccionManiobras(ajustes.estiloManiobras, acciones.onEstiloManiobras)
             SeccionOrientacion(ajustes.orientacion, acciones.onOrientacion)
+            SeccionNotas(ajustes, acciones)
         }
     }
 }
 
 @Composable
-private fun Seccion(
+internal fun Seccion(
     @StringRes titulo: Int,
     contenido: @Composable () -> Unit,
 ) {
@@ -218,7 +222,7 @@ private fun SeccionOrientacion(
 }
 
 @Composable
-private fun estadoSeleccion(seleccionado: Boolean) =
+internal fun estadoSeleccion(seleccionado: Boolean) =
     EstadoBotonIcono(
         seleccionado = seleccionado,
         descripcionEstado = if (seleccionado) stringResource(R.string.ajustes_seleccionado) else null,

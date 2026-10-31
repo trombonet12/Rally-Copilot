@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Calzada estrecha. Icono monocromo de la franja de notas: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M5,6 V42 M43,6 V42" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="butt" android:strokeLineJoin="round" />
+    <path android:pathData="M11,24 L21,15 V33 Z M37,24 L27,15 V33 Z" android:fillColor="#FFFFFF" />
+</vector>

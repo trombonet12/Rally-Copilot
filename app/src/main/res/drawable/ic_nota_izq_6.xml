@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nota de izquierda grado 6. Icono monocromo de la franja de notas: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M24,44 V28 A40,40 0 0 0 20.25,11.1" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="5" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M15.6,1.13 L26.6,8.14 L13.91,14.05 Z" android:fillColor="#FFFFFF" />
+</vector>

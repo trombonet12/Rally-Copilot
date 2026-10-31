@@ -81,6 +81,27 @@ data class VistaPrevia(
     }
 }
 
+/** En qué punto está «Seguir a <destino>». */
+enum class FaseSeguir {
+    /** Esperando el toque. */
+    LISTA,
+
+    /** Calculando la ruta desde la posición actual. */
+    CALCULANDO,
+
+    /** Se tocó sin fijación GPS: empieza en cuanto llegue una. */
+    SIN_POSICION,
+
+    /** No se pudo calcular la ruta (sin datos o error): se puede reintentar. */
+    ERROR,
+}
+
+/** Oferta «Seguir a <destino>»: el guiado que quedó a medias al morir el proceso. */
+data class OfertaSeguir(
+    val destino: Destino,
+    val fase: FaseSeguir = FaseSeguir.LISTA,
+)
+
 /** Estado inmutable de la navegación sobre el mapa (búsqueda, vista previa y conducción). */
 data class NavegacionUiState(
     /** Texto del campo «¿A dónde?». */
@@ -89,6 +110,8 @@ data class NavegacionUiState(
     val vistaPrevia: VistaPrevia? = null,
     /** El estado de la conducción, tal cual lo publica el servicio. */
     val control: EstadoNavegacion = EstadoNavegacion.Inactiva,
+    /** «Seguir a <destino>»: solo en reposo, sin búsqueda ni vista previa abiertas. */
+    val seguir: OfertaSeguir? = null,
 ) {
     /** Sin destino en marcha (parado o en modo libre): se puede buscar destino y ver rutas. */
     val enReposo: Boolean get() = control is EstadoNavegacion.Inactiva || control is EstadoNavegacion.Libre

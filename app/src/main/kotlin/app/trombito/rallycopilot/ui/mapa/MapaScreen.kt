@@ -44,10 +44,13 @@ import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.MantenerPantallaEncendida
 import app.trombito.rallycopilot.ui.navegacion.BotonTerminar
+import app.trombito.rallycopilot.ui.navegacion.BusquedaDestino
 import app.trombito.rallycopilot.ui.navegacion.CabeceraBusqueda
 import app.trombito.rallycopilot.ui.navegacion.ListaDestinos
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 import app.trombito.rallycopilot.ui.navegacion.PanelInferiorNavegacion
+import app.trombito.rallycopilot.ui.navegacion.TarjetaSeguir
+import app.trombito.rallycopilot.ui.navegacion.notas.FranjaNotas
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_CARGANDO = "mapa-cargando"
@@ -231,7 +234,7 @@ private fun ZonaMapa(
             if (estado.hayDatos) {
                 PieMapa(estado, vista, acciones, navegacion, Modifier.align(Alignment.BottomStart))
                 (navegacion.estado.control as? EstadoNavegacion.Guiando)?.let {
-                    navegacion.panelGuiado(this, it, vista.horizontal)
+                    navegacion.panelGuiado(this, it, vista.horizontal, navegacion.notas)
                 }
                 // Encima de todo y pegado al panel inferior, junto al botón de capas que lo abre.
                 if (contenido.capasAbiertas) {
@@ -298,8 +301,9 @@ private fun TarjetaMapas(
 }
 
 /**
- * Arriba: en reposo, la barra «¿A dónde?» a todo el ancho con su lista de resultados; debajo, el aviso de
- * actualización. Mientras se guía, el banner de maniobra ocupa esa franja y el aviso espera a que acabe.
+ * Arriba: en reposo, la barra «¿A dónde?» a todo el ancho con su lista de resultados; debajo, la franja de notas de
+ * la carretera (modo libre), «Seguir a <destino>» si hay un guiado a medias y el aviso de actualización. Mientras se
+ * guía, el banner de maniobra y la franja de notas ocupan esa franja y el aviso espera a que acabe.
  */
 @Composable
 private fun CabeceraMapa(
@@ -320,6 +324,13 @@ private fun CabeceraMapa(
                 onElegir = navegacion.acciones.onElegirDestino,
                 horizontal = horizontal,
             )
+            // Sin búsqueda ni vista previa abiertas: lo que importa de la carretera y, si toca, retomar el guiado.
+            if (navegacion.estado.busqueda is BusquedaDestino.Inactiva && navegacion.estado.vistaPrevia == null) {
+                FranjaNotas(navegacion.notas)
+            }
+            navegacion.estado.seguir?.let {
+                TarjetaSeguir(it, navegacion.acciones.onSeguir, navegacion.acciones.onDescartarSeguir)
+            }
         }
         if (!navegacion.estado.conduciendo) {
             estado.datos.avisoActualizado?.let { AvisoActualizado(it, acciones.onDescartarAviso) }

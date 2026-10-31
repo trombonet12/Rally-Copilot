@@ -22,6 +22,8 @@ import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.ui.maniobras.BannerManiobra
 import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
 import app.trombito.rallycopilot.ui.maniobras.formatearDistanciaManiobra
+import app.trombito.rallycopilot.ui.navegacion.notas.FranjaNotas
+import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
 import java.time.ZoneId
 
 const val ETIQUETA_PANEL_GUIADO = "panel_guiado"
@@ -40,7 +42,8 @@ internal data class DatosBanner(
 )
 
 /**
- * Con progreso: la maniobra actual y su distancia. Sin progreso: la primera maniobra de la ruta y su longitud total.
+ * Con progreso: la maniobra actual y su distancia. Sin progreso: la primera maniobra que no sea la salida, a la
+ * distancia desde el inicio de la ruta.
  * Si ya no quedan maniobras por delante (último tramo), «destino» a la distancia restante.
  */
 internal fun datosBanner(estado: EstadoNavegacion.Guiando): DatosBanner? {
@@ -49,9 +52,12 @@ internal fun datosBanner(estado: EstadoNavegacion.Guiando): DatosBanner? {
     val siguiente: Maniobra?
     val distanciaM: Double
     if (progreso == null) {
-        actual = estado.ruta.maniobras.firstOrNull()
-        siguiente = estado.ruta.maniobras.getOrNull(1)
-        distanciaM = actual?.longitudM ?: 0.0
+        // Aún sin fijación: el banner nunca anuncia la salida; enseña el primer giro y lo que falta hasta él.
+        val maniobras = estado.ruta.maniobras
+        val indice = maniobras.indexOfFirst { it.tipo != TipoManiobra.SALIDA }
+        actual = maniobras.getOrNull(indice)
+        siguiente = if (indice >= 0) maniobras.getOrNull(indice + 1) else null
+        distanciaM = if (indice > 0) maniobras.take(indice).sumOf { it.longitudM } else 0.0
     } else {
         actual = progreso.maniobraActual
         siguiente = progreso.maniobraSiguiente
@@ -83,8 +89,9 @@ internal fun datosBanner(estado: EstadoNavegacion.Guiando): DatosBanner? {
 /**
  * Capa de guiado sobre el mapa (ocupa todo el espacio que se le da y no tapa el centro): arriba el banner de la
  * maniobra actual y la siguiente, a todo el ancho (los botones están en el panel inferior), con el aviso de
- * recálculo debajo, y abajo el pie con llegada, tiempo y km. Debajo del banner queda sitio para la futura franja de
- * notas. El pie va centrado en vertical y a la izquierda en horizontal. Sin progreso todavía no hay pie.
+ * recálculo debajo, y abajo el pie con llegada, tiempo y km. Entre el banner y el aviso va la franja de notas (a todo
+ * el ancho; no pinta nada si no hay notas). El pie va centrado en vertical y a la izquierda en horizontal. Sin
+ * progreso todavía no hay pie.
  */
 @Composable
 fun PanelGuiado(
@@ -92,6 +99,7 @@ fun PanelGuiado(
     variante: VarianteManiobra,
     modifier: Modifier = Modifier,
     zona: ZoneId = ZoneId.systemDefault(),
+    notas: NotasUiState = NotasUiState(),
 ) {
     BoxWithConstraints(modifier = modifier.testTag(ETIQUETA_PANEL_GUIADO)) {
         val horizontal = maxWidth > maxHeight
@@ -101,6 +109,7 @@ fun PanelGuiado(
             verticalArrangement = Arrangement.spacedBy(MARGEN),
         ) {
             datosBanner(estado)?.let { Banner(it, variante) }
+            FranjaNotas(notas)
             AvisoRecalculo(estado.recalculando)
         }
         estado.progreso?.let {

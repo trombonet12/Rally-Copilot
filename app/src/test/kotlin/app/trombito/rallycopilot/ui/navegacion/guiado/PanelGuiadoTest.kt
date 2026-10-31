@@ -22,9 +22,15 @@ import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_DISTANCIA
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_FRASE
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_SIGUIENTE
 import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
+import app.trombito.rallycopilot.ui.navegacion.notas.ETIQUETA_FRANJA_NOTAS
+import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
+import app.trombito.rallycopilot.ui.navegacion.notas.deNota
+import app.trombito.rallycopilot.ui.navegacion.notas.nota
+import app.trombito.rallycopilot.ui.navegacion.notas.visible
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -82,8 +88,9 @@ class PanelGuiadoTest {
     private fun poner(
         estado: EstadoNavegacion.Guiando,
         variante: VarianteManiobra = VarianteManiobra.CHEVRON_HUD,
+        notas: NotasUiState = NotasUiState(),
     ) = banco.poner {
-        RallyCopilotTheme { PanelGuiado(estado, variante, Modifier.fillMaxSize(), ZoneId.of("UTC")) }
+        RallyCopilotTheme { PanelGuiado(estado, variante, Modifier.fillMaxSize(), ZoneId.of("UTC"), notas) }
     }
 
     private fun placas() = banco.nodos().filter { it.config.getOrNull(SemanticsProperties.TestTag) == ETIQUETA_PLACA }
@@ -141,12 +148,27 @@ class PanelGuiadoTest {
     }
 
     @Test
-    fun `sin progreso el banner enseña la primera maniobra y su longitud, y no hay pie`() {
+    fun `sin progreso el banner salta la salida y enseña el primer giro a la distancia desde el inicio`() {
         poner(estado(null))
         assertEquals(listOf("120 m"), textosDe(ETIQUETA_BANNER_DISTANCIA))
-        assertEquals(listOf("en marcha"), textosDe(ETIQUETA_BANNER_FRASE))
-        assertEquals(listOf("Luego", "cruce, izquierda, Ma-10"), textosDe(ETIQUETA_BANNER_SIGUIENTE))
+        assertEquals(listOf("cruce, izquierda"), textosDe(ETIQUETA_BANNER_FRASE))
+        assertEquals(listOf("Luego", "recto"), textosDe(ETIQUETA_BANNER_SIGUIENTE))
         assertFalse(banco.hay(ETIQUETA_PIE_GUIADO))
+    }
+
+    @Test
+    fun `sin progreso la distancia suma lo que queda antes del primer giro`() {
+        val dos = ruta.copy(maniobras = listOf(salida, maniobra(TipoManiobra.SALIDA, 50.0), izquierda, recto))
+        poner(EstadoNavegacion.Guiando(destino, PerfilRuta.MAS_RAPIDA, dos, null, false))
+        assertEquals(listOf("170 m"), textosDe(ETIQUETA_BANNER_DISTANCIA))
+        assertEquals(listOf("cruce, izquierda"), textosDe(ETIQUETA_BANNER_FRASE))
+    }
+
+    @Test
+    fun `sin progreso ni siquiera una ruta solo con salida anuncia la salida`() {
+        val soloSalida = ruta.copy(maniobras = listOf(salida))
+        val guiando = EstadoNavegacion.Guiando(destino, PerfilRuta.MAS_RAPIDA, soloSalida, null, false)
+        assertNull(datosBanner(guiando))
     }
 
     @Test
@@ -236,5 +258,22 @@ class PanelGuiadoTest {
         val la = a.luminance().toDouble()
         val lb = b.luminance().toDouble()
         return (maxOf(la, lb) + 0.05) / (minOf(la, lb) + 0.05)
+    }
+
+    @Test
+    fun `la franja de notas va a todo el ancho justo debajo del banner`() {
+        poner(estado(progreso()), notas = NotasUiState(listOf(visible(deNota(nota(4))))))
+        val banner = banco.conEtiqueta(ETIQUETA_BANNER).boundsInRoot
+        val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
+        val panel = banco.conEtiqueta(ETIQUETA_PANEL_GUIADO).boundsInRoot
+        assertTrue("la franja va bajo el banner: $franja vs $banner", franja.top >= banner.bottom)
+        // Todo el ancho menos el margen de 8 dp por lado.
+        assertEquals(panel.width - 2 * 8 * 3f, franja.width, 2f)
+    }
+
+    @Test
+    fun `sin notas no hay franja`() {
+        poner(estado(progreso()))
+        assertFalse(banco.hay(ETIQUETA_FRANJA_NOTAS))
     }
 }

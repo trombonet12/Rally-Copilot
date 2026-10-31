@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Cruce. Icono monocromo de la franja de notas: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M19,4 H29 V19 H44 V29 H29 V44 H19 V29 H4 V19 H19 Z" android:fillColor="#FFFFFF" />
+</vector>

@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.domain.enlaces.ResultadoResolucion
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
@@ -17,12 +18,14 @@ import app.trombito.rallycopilot.motor.geo.ResultadoEnlace
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -36,11 +39,12 @@ private const val LONGITUD_MINIMA_BUSQUEDA = 2
 /**
  * Presentación de la navegación sobre el mapa: búsqueda de destino (con espera de ~250 ms al teclear), vista previa
  * con las dos rutas calculadas en paralelo desde la última fijación, y el estado de la conducción que publica
- * [ControlNavegacion]. La posición se la da la pantalla del mapa con [onPosicion] (ya recoge el GPS con el ciclo de
- * vida y el permiso).
+ * [ControlNavegacion], más «Seguir a <destino>» tras la muerte del proceso. La posición se la da la pantalla del mapa
+ * con [onPosicion] (ya recoge el GPS con el ciclo de vida y el permiso).
  */
 @HiltViewModel
 @OptIn(FlowPreview::class)
+@Suppress("TooManyFunctions") // un ViewModel para búsqueda, vista previa, conducción y «Seguir a»
 class NavegacionViewModel
     @Inject
     constructor(
@@ -48,6 +52,7 @@ class NavegacionViewModel
         private val enrutador: Enrutador,
         private val control: ControlNavegacion,
         private val resolvedor: ResolvedorEnlaces,
+        private val guiadoPendiente: RepositorioGuiadoPendiente,
     ) : ViewModel() {
         private val texto = MutableStateFlow("")
         private val consulta = MutableStateFlow("")
@@ -57,16 +62,27 @@ class NavegacionViewModel
         private var permiso: Boolean? = null
         private var calculo: Job? = null
         private var resolucion: Job? = null
+        private var seguimiento: Job? = null
+        private val faseSeguir = MutableStateFlow(FaseSeguir.LISTA)
+
+        private val ofertaSeguir: Flow<OfertaSeguir?> =
+            combine(guiadoPendiente.pendiente, faseSeguir) { pendiente, fase ->
+                pendiente?.let { OfertaSeguir(it.destino, fase) }
+            }
 
         val uiState: StateFlow<NavegacionUiState> =
-            combine(texto, busqueda, vistaPrevia, control.estado) { t, b, v, c ->
+            combine(texto, busqueda, vistaPrevia, control.estado, ofertaSeguir) { t, b, v, c, oferta ->
                 // Guiando (o con su aviso final) no hay búsqueda ni vista previa; en modo libre sí.
                 val reposo = c is EstadoNavegacion.Inactiva || c is EstadoNavegacion.Libre
+                val busquedaVisible = if (reposo) b else BusquedaDestino.Inactiva
+                val previaVisible = if (reposo) v else null
+                val hayBusqueda = busquedaVisible != BusquedaDestino.Inactiva
                 NavegacionUiState(
                     texto = t,
-                    busqueda = if (reposo) b else BusquedaDestino.Inactiva,
-                    vistaPrevia = if (reposo) v else null,
+                    busqueda = busquedaVisible,
+                    vistaPrevia = previaVisible,
                     control = c,
+                    seguir = oferta.takeIf { reposo && previaVisible == null && !hayBusqueda },
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), NavegacionUiState())
 
@@ -92,6 +108,7 @@ class NavegacionViewModel
             posicion = punto
             val previa = vistaPrevia.value
             if (previa != null && previa.sinPosicion) calcular(previa.destino)
+            if (faseSeguir.value == FaseSeguir.SIN_POSICION) seguirPendiente()
         }
 
         fun onTexto(nuevo: String) {
@@ -123,6 +140,40 @@ class NavegacionViewModel
             val ruta = previa.rutaElegida ?: return
             cancelar()
             control.empezar(previa.destino, previa.perfil, ruta)
+        }
+
+        /**
+         * «Seguir a <destino>»: recalcula desde la posición actual hasta el destino del guiado pendiente, con el mismo
+         * perfil, y empieza el guiado. Sin fijación GPS espera a la primera; si la ruta falla, se puede reintentar.
+         */
+        fun seguirPendiente() {
+            if (faseSeguir.value == FaseSeguir.CALCULANDO) return
+            seguimiento?.cancel()
+            seguimiento =
+                viewModelScope.launch {
+                    val pendiente = guiadoPendiente.pendiente.first() ?: return@launch
+                    val origen = posicion
+                    if (origen == null) {
+                        faseSeguir.value = FaseSeguir.SIN_POSICION
+                        return@launch
+                    }
+                    faseSeguir.value = FaseSeguir.CALCULANDO
+                    val ruta = (enrutador.ruta(origen, pendiente.destino.punto, pendiente.perfil) as? ResultadoRuta.Ok)
+                    if (ruta == null) {
+                        faseSeguir.value = FaseSeguir.ERROR
+                    } else {
+                        faseSeguir.value = FaseSeguir.LISTA
+                        cancelar()
+                        control.empezar(pendiente.destino, pendiente.perfil, ruta.ruta)
+                    }
+                }
+        }
+
+        /** Descarta «Seguir a <destino>»: borra el guiado pendiente. */
+        fun descartarSeguir() {
+            seguimiento?.cancel()
+            faseSeguir.value = FaseSeguir.LISTA
+            viewModelScope.launch { guiadoPendiente.borrar() }
         }
 
         /**

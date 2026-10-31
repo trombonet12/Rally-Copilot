@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -16,6 +17,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -86,5 +89,19 @@ class AjustesViewModelTest {
             val guardado = repositorio.mutable.value
             assertEquals(EstiloManiobras.CHEVRON, guardado.estiloManiobras)
             assertEquals(1, guardado.nivelZoom)
+        }
+
+    @Test
+    fun `la anticipacion y las notas simplificadas se guardan`() =
+        runTest {
+            val vm = crear()
+            assertEquals(NivelAnticipacion.NORMAL, vm.uiState.value.anticipacion)
+            assertFalse(vm.uiState.value.notasSimplificadas)
+            vm.onAnticipacion(NivelAnticipacion.MUY_PRONTO)
+            vm.onNotasSimplificadas(true)
+            assertEquals(NivelAnticipacion.MUY_PRONTO, repositorio.mutable.value.anticipacion)
+            assertTrue(repositorio.mutable.value.notasSimplificadas)
+            // Lo demás no se toca.
+            assertEquals(AjustesConduccion().nivelZoom, repositorio.mutable.value.nivelZoom)
         }
 }

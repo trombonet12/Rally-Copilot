@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Anticipacion de las notas, nivel 5 de 5: barras llenas = cuanto antes se cantan. Se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M5.0,32 h6 v10 h-6 Z" android:fillColor="#FFFFFF" android:fillAlpha="1" />
+    <path android:pathData="M13.6,26 h6 v16 h-6 Z" android:fillColor="#FFFFFF" android:fillAlpha="1" />
+    <path android:pathData="M22.2,20 h6 v22 h-6 Z" android:fillColor="#FFFFFF" android:fillAlpha="1" />
+    <path android:pathData="M30.8,14 h6 v28 h-6 Z" android:fillColor="#FFFFFF" android:fillAlpha="1" />
+    <path android:pathData="M39.4,8 h6 v34 h-6 Z" android:fillColor="#FFFFFF" android:fillAlpha="1" />
+</vector>

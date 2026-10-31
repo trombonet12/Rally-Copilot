@@ -16,6 +16,9 @@ import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
+import app.trombito.rallycopilot.motor.notas.Direccion
+import app.trombito.rallycopilot.motor.notas.Modificador
+import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
@@ -25,6 +28,13 @@ import app.trombito.rallycopilot.ui.mapa.MapaScreen
 import app.trombito.rallycopilot.ui.mapa.MapaUiState
 import app.trombito.rallycopilot.ui.navegacion.guiado.ETIQUETA_LLEGADA_CERRAR
 import app.trombito.rallycopilot.ui.navegacion.guiado.ETIQUETA_TARJETA_LLEGADA
+import app.trombito.rallycopilot.ui.navegacion.notas.ETIQUETA_FRANJA_NOTAS
+import app.trombito.rallycopilot.ui.navegacion.notas.ETIQUETA_NOTA_PREFIJO
+import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
+import app.trombito.rallycopilot.ui.navegacion.notas.deAviso
+import app.trombito.rallycopilot.ui.navegacion.notas.deNota
+import app.trombito.rallycopilot.ui.navegacion.notas.nota
+import app.trombito.rallycopilot.ui.navegacion.notas.visible
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -54,6 +64,8 @@ abstract class NavegacionEnMapaBase {
     protected var terminadas = 0
     protected var canceladas = 0
     protected var panelesGuiado = 0
+    protected var seguidas = 0
+    protected var descartadas = 0
 
     private val acciones =
         AccionesNavegacion(
@@ -63,25 +75,29 @@ abstract class NavegacionEnMapaBase {
             onPerfil = { perfiles += it },
             onEmpezar = { empezadas++ },
             onTerminar = { terminadas++ },
+            onSeguir = { seguidas++ },
+            onDescartarSeguir = { descartadas++ },
         )
 
-    private val panelGuiado: PanelGuiado = { _, _ ->
+    private val panelGuiado: PanelGuiado = { _, _, _ ->
         panelesGuiado++
         Box(Modifier.fillMaxSize().testTag(ETIQUETA_PANEL_GUIADO)) { Text("banner") }
     }
 
-    protected fun poner(estado: NavegacionUiState) =
-        banco.poner {
-            RallyCopilotTheme {
-                MapaScreen(
-                    estado = mapa,
-                    vista = EstadoVistaMapa(),
-                    acciones = AccionesMapa(),
-                    mapa = { _, modificador -> Box(modificador.fillMaxSize().testTag(ETIQUETA_MAPA_FALSO)) },
-                    navegacion = NavegacionEnMapa(estado, acciones, panelGuiado),
-                )
-            }
+    protected fun poner(
+        estado: NavegacionUiState,
+        notas: NotasUiState = NotasUiState(),
+    ) = banco.poner {
+        RallyCopilotTheme {
+            MapaScreen(
+                estado = mapa,
+                vista = EstadoVistaMapa(),
+                acciones = AccionesMapa(),
+                mapa = { _, modificador -> Box(modificador.fillMaxSize().testTag(ETIQUETA_MAPA_FALSO)) },
+                navegacion = NavegacionEnMapa(estado, acciones, panelGuiado, notas),
+            )
         }
+    }
 
     protected fun vistaPrevia(
         vararg opciones: Pair<PerfilRuta, OpcionRuta>,
@@ -326,6 +342,87 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         banco.pulsar(banco.conEtiqueta(ETIQUETA_ERROR_CERRAR))
         assertEquals(1, terminadas)
     }
+
+    private val notas =
+        NotasUiState(
+            listOf(
+                visible(deNota(nota(4, modificadores = setOf(Modificador.LARGA), siguienteM = 50))),
+                visible(deAviso(TipoAviso.PUENTE), 300.0),
+            ),
+        )
+
+    private val libre = NavegacionUiState(control = EstadoNavegacion.Libre(0L, 0.0))
+
+    @Test
+    fun `en modo libre la franja de notas va arriba, bajo la barra de destino`() {
+        poner(libre, notas)
+        val barra = banco.conEtiqueta(ETIQUETA_BUSCADOR).boundsInRoot
+        val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
+        assertEquals("DERECHA 4 LARGA · 50", banco.textos(banco.conEtiqueta(ETIQUETA_NOTA_PREFIJO + 0)).single())
+        assertTrue("la franja va bajo la barra: $franja vs $barra", franja.top >= barra.bottom)
+        assertTrue("la franja ocupa todo el ancho: $franja", franja.width > 411 * 3 * 0.8f)
+    }
+
+    @Test
+    fun `la franja se esconde con una busqueda o una vista previa abiertas y sin notas`() {
+        poner(libre.copy(texto = "S", busqueda = BusquedaDestino.Resultados(emptyList())), notas)
+        assertFalse(banco.hay(ETIQUETA_FRANJA_NOTAS))
+        poner(vistaPrevia(*dosRutas).copy(control = EstadoNavegacion.Libre(0L, 0.0)), notas)
+        assertFalse(banco.hay(ETIQUETA_FRANJA_NOTAS))
+        poner(libre)
+        assertFalse(banco.hay(ETIQUETA_FRANJA_NOTAS))
+    }
+
+    @Test
+    fun `guiando las notas las pinta el panel de guiado y no se duplican arriba`() {
+        poner(guiando(), notas)
+        assertFalse(banco.hay(ETIQUETA_FRANJA_NOTAS))
+    }
+
+    @Test
+    fun `con un guiado pendiente aparece seguir a destino bajo la barra y empieza con un toque`() {
+        poner(NavegacionUiState(seguir = OfertaSeguir(destino)))
+        val barra = banco.conEtiqueta(ETIQUETA_BUSCADOR).boundsInRoot
+        val tarjeta = banco.conEtiqueta(ETIQUETA_SEGUIR)
+        assertEquals(listOf("Seguir a Sóller"), banco.textos(tarjeta))
+        assertTrue(tarjeta.boundsInRoot.top >= barra.bottom)
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_SEGUIR_BOTON))
+        assertEquals(1, seguidas)
+        assertEquals(0, descartadas)
+    }
+
+    @Test
+    fun `la x de seguir descarta el guiado pendiente y es un objetivo tactil de 48 dp`() {
+        poner(NavegacionUiState(seguir = OfertaSeguir(destino)))
+        val x = banco.conEtiqueta(ETIQUETA_SEGUIR_DESCARTAR)
+        assertTrue(x.children.any { banco.descripcion(it) == "Descartar" } || banco.descripcion(x) == "Descartar")
+        assertTrue(x.size.width >= 48 * 3 && x.size.height >= 48 * 3)
+        banco.pulsar(x)
+        assertEquals(1, descartadas)
+        assertEquals(0, seguidas)
+    }
+
+    @Test
+    fun `mientras calcula la ruta seguir lo dice y no admite otro toque`() {
+        poner(NavegacionUiState(seguir = OfertaSeguir(destino, FaseSeguir.CALCULANDO)))
+        assertEquals(listOf("Calculando la ruta"), banco.textos(banco.conEtiqueta(ETIQUETA_SEGUIR_ESTADO)))
+        assertFalse(banco.estaHabilitado(banco.conEtiqueta(ETIQUETA_SEGUIR_BOTON)))
+    }
+
+    @Test
+    fun `sin ubicacion o con error seguir explica el motivo`() {
+        poner(NavegacionUiState(seguir = OfertaSeguir(destino, FaseSeguir.SIN_POSICION)))
+        assertEquals(listOf("Esperando la ubicación"), banco.textos(banco.conEtiqueta(ETIQUETA_SEGUIR_ESTADO)))
+        poner(NavegacionUiState(seguir = OfertaSeguir(destino, FaseSeguir.ERROR)))
+        assertEquals(listOf("No se pudo calcular la ruta"), banco.textos(banco.conEtiqueta(ETIQUETA_SEGUIR_ESTADO)))
+        assertTrue(banco.estaHabilitado(banco.conEtiqueta(ETIQUETA_SEGUIR_BOTON)))
+    }
+
+    @Test
+    fun `guiando no se ofrece seguir aunque haya un pendiente`() {
+        poner(guiando().copy(seguir = OfertaSeguir(destino)))
+        assertFalse(banco.hay(ETIQUETA_SEGUIR))
+    }
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -363,5 +460,28 @@ class NavegacionEnMapaHorizontalTest : NavegacionEnMapaBase() {
             "bandera dentro del panel: $bandera vs $panel",
             bandera.left >= panel.left && bandera.right <= panel.right,
         )
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "w891dp-h411dp-xxhdpi")
+class NavegacionEnMapaNotasHorizontalTest : NavegacionEnMapaBase() {
+    @Test
+    fun `en horizontal la franja y seguir caben sobre el mapa`() {
+        val notas =
+            NotasUiState(
+                listOf(
+                    visible(deNota(nota(4, siguienteM = 50))),
+                    visible(deAviso(TipoAviso.PUENTE), 300.0),
+                    visible(deNota(nota(2, Direccion.IZQUIERDA)), 500.0),
+                ),
+            )
+        poner(NavegacionUiState(control = EstadoNavegacion.Libre(0L, 0.0), seguir = OfertaSeguir(destino)), notas)
+        val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
+        val tarjeta = banco.conEtiqueta(ETIQUETA_SEGUIR).boundsInRoot
+        assertTrue("la franja no pasa de la mitad de la pantalla: $franja", franja.bottom <= 411 * 3 * 0.6f)
+        assertTrue("seguir va bajo la franja", tarjeta.top >= franja.bottom)
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_SEGUIR_BOTON))
+        assertEquals(1, seguidas)
     }
 }

@@ -7,6 +7,8 @@ import app.trombito.rallycopilot.domain.enlaces.ResultadoResolucion
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.navegacion.GuiadoPendiente
+import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
@@ -14,6 +16,7 @@ import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -113,5 +116,26 @@ class FalsoControlNavegacion : ControlNavegacion {
     override fun terminar() {
         terminadas++
         mutable.value = EstadoNavegacion.Inactiva
+    }
+}
+
+/** Guiado pendiente en memoria; [borrados] cuenta las veces que se ha borrado. */
+class FalsoGuiadoPendiente(
+    inicial: GuiadoPendiente? = null,
+) : RepositorioGuiadoPendiente {
+    val mutable = MutableStateFlow(inicial)
+    override val pendiente: Flow<GuiadoPendiente?> = mutable
+    var borrados = 0
+
+    override suspend fun guardar(
+        destino: Destino,
+        perfil: PerfilRuta,
+    ) {
+        mutable.value = GuiadoPendiente(destino, perfil, 0L)
+    }
+
+    override suspend fun borrar() {
+        borrados++
+        mutable.value = null
     }
 }

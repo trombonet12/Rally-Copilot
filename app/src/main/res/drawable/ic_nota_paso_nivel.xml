@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paso a nivel. Icono monocromo de la franja de notas: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M9,9 L39,39 M39,9 L9,39" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="7" android:strokeLineCap="butt" android:strokeLineJoin="miter" />
+</vector>

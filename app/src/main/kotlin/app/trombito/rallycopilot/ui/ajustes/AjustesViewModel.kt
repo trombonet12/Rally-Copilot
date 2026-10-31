@@ -7,6 +7,7 @@ import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,8 +17,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * Ajustes de conducción: zoom del mapa, icono de posición, orientación y estilo de las maniobras, persistidos en el
- * repositorio.
+ * Ajustes de conducción: zoom del mapa, icono de posición, orientación, estilo de las maniobras, anticipación de las
+ * notas y notas simplificadas, persistidos en el repositorio.
  */
 @HiltViewModel
 class AjustesViewModel
@@ -43,6 +44,14 @@ class AjustesViewModel
 
         fun onEstiloManiobras(estilo: EstiloManiobras) {
             guardar { it.copy(estiloManiobras = estilo) }
+        }
+
+        fun onAnticipacion(nivel: NivelAnticipacion) {
+            guardar { it.copy(anticipacion = nivel) }
+        }
+
+        fun onNotasSimplificadas(simplificadas: Boolean) {
+            guardar { it.copy(notasSimplificadas = simplificadas) }
         }
 
         private fun guardar(cambio: (AjustesConduccion) -> AjustesConduccion) {

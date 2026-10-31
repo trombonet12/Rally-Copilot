@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Franja de notas: texto visible en mayúsculas, como el roadbook; TalkBack lee la frase hablada. -->
+    <string name="notas_franja_descripcion">Próximas notas</string>
+    <string name="notas_descripcion">%1$s, a %2$d metros</string>
+    <string name="notas_ahora">Ahora</string>
+    <string name="notas_cuidado_icono">Cuidado</string>
+    <string name="notas_distancia_siguiente">· %1$d</string>
+
+    <string name="notas_izquierda">IZQUIERDA</string>
+    <string name="notas_derecha">DERECHA</string>
+    <string name="notas_horquilla_izquierda">HORQUILLA IZQUIERDA</string>
+    <string name="notas_horquilla_derecha">HORQUILLA DERECHA</string>
+    <string name="notas_horquilla">HORQUILLA</string>
+    <string name="notas_giro">%1$s %2$s</string>
+    <string name="notas_cerrada">CERRADA</string>
+    <string name="notas_media">MEDIA</string>
+    <string name="notas_suave">SUAVE</string>
+    <string name="notas_larga">LARGA</string>
+    <string name="notas_muy_larga">MUY LARGA</string>
+    <string name="notas_cierra">CIERRA</string>
+    <string name="notas_abre">ABRE</string>
+
+    <string name="notas_aviso_puente">PUENTE</string>
+    <string name="notas_aviso_tunel">TÚNEL</string>
+    <string name="notas_aviso_rotonda">ROTONDA</string>
+    <string name="notas_aviso_estrecha">ESTRECHA</string>
+    <string name="notas_aviso_bache">BACHE</string>
+    <string name="notas_aviso_baden">BADÉN</string>
+    <string name="notas_aviso_paso_a_nivel">PASO A NIVEL</string>
+    <string name="notas_aviso_stop">STOP</string>
+    <string name="notas_aviso_ceda">CEDA</string>
+    <string name="notas_aviso_semaforo">SEMÁFORO</string>
+    <string name="notas_aviso_cruce">CRUCE</string>
+    <string name="notas_aviso_rasante">RASANTE</string>
+    <string name="notas_aviso_cambio_rasante">CAMBIO DE RASANTE</string>
+    <string name="notas_aviso_salto">SALTO</string>
+    <string name="notas_aviso_cuidado">CUIDADO</string>
+
+    <!-- Ajustes: anticipación de las notas y notas simplificadas -->
+    <string name="ajustes_anticipacion_titulo">Anticipación de las notas</string>
+    <string name="ajustes_anticipacion_muy_pronto">Muy pronto</string>
+    <string name="ajustes_anticipacion_pronto">Pronto</string>
+    <string name="ajustes_anticipacion_normal">Normal</string>
+    <string name="ajustes_anticipacion_tarde">Tarde</string>
+    <string name="ajustes_anticipacion_muy_tarde">Muy tarde</string>
+    <string name="ajustes_notas_simplificadas">Notas simplificadas</string>
+
+    <!-- Seguir a <destino> tras la muerte del proceso -->
+    <string name="seguir_a">Seguir a %1$s</string>
+    <string name="seguir_calculando">Calculando la ruta</string>
+    <string name="seguir_sin_posicion">Esperando la ubicación</string>
+    <string name="seguir_error">No se pudo calcular la ruta</string>
+    <string name="seguir_descartar">Descartar</string>
+</resources>

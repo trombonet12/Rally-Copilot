@@ -34,6 +34,7 @@ class NavegacionViewModelTest {
     private val enrutador = FalsoEnrutador()
     private val control = FalsoControlNavegacion()
     private val resolvedor = FalsoResolvedor()
+    private val pendiente = FalsoGuiadoPendiente()
     private val soller = ResultadoBusqueda("Sóller", "pueblo", "Sóller", SOLLER)
     private val destino = Destino("Sóller", SOLLER)
 
@@ -47,7 +48,7 @@ class NavegacionViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun crear() = NavegacionViewModel(buscador, enrutador, control, resolvedor)
+    private fun crear() = NavegacionViewModel(buscador, enrutador, control, resolvedor, pendiente)
 
     private fun TestScope.recoger(vm: NavegacionViewModel) =
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }

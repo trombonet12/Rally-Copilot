@@ -85,7 +85,7 @@ internal fun paletaBanner(variante: VarianteManiobra): PaletaBanner =
     }
 
 /** Caja inclinada tipo HUD de retransmisión: paralelogramo con las esquinas superior e inferior desplazadas [sesgo]. */
-private class ParalelogramoShape(
+internal class ParalelogramoShape(
     private val sesgo: Dp,
 ) : Shape {
     override fun createOutline(

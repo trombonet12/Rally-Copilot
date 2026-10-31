@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
+import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
 
 /** Callbacks de la navegación sobre el mapa. */
 data class AccionesNavegacion(
@@ -18,29 +19,36 @@ data class AccionesNavegacion(
     val onPerfil: (PerfilRuta) -> Unit = {},
     val onEmpezar: () -> Unit = {},
     val onTerminar: () -> Unit = {},
+    /** Toca «Seguir a <destino>»: recalcula desde la posición actual y empieza el guiado. */
+    val onSeguir: () -> Unit = {},
+    /** Descarta «Seguir a <destino>» (borra el guiado pendiente). */
+    val onDescartarSeguir: () -> Unit = {},
 )
 
 /**
  * Hueco del panel de guiado (banner de maniobra arriba y pie de guiado abajo). Se pinta dentro de la capa de
  * superposición del mapa (el `Box` a pantalla completa de la zona del mapa, ya con los insets del sistema y 8 dp de
  * margen), solo mientras el estado es [EstadoNavegacion.Guiando]; el segundo parámetro dice si la pantalla es
- * apaisada. Los botones están en el panel negro inferior, así que la franja superior es toda del banner.
+ * apaisada y el tercero trae las notas que van en la franja bajo el banner. Los botones están en el panel negro
+ * inferior, así que la franja superior es toda del banner.
  */
-typealias PanelGuiado = @Composable BoxScope.(guiando: EstadoNavegacion.Guiando, horizontal: Boolean) -> Unit
+typealias PanelGuiado =
+    @Composable BoxScope.(guiando: EstadoNavegacion.Guiando, horizontal: Boolean, notas: NotasUiState) -> Unit
 
 /** Hueco vacío: no pinta nada. */
-val SinPanelGuiado: PanelGuiado = { _, _ -> }
+val SinPanelGuiado: PanelGuiado = { _, _, _ -> }
 
 /**
  * El panel de guiado real: banner arriba a todo el ancho y pie abajo. [variante] es el estilo de los iconos de
  * maniobra elegido en Ajustes (por defecto, la placa inclinada).
  */
 fun panelGuiadoMapa(variante: VarianteManiobra = VarianteManiobra.PLACA_INCLINADA): PanelGuiado =
-    { guiando, _ ->
+    { guiando, _, notas ->
         app.trombito.rallycopilot.ui.navegacion.guiado.PanelGuiado(
             estado = guiando,
             variante = variante,
             modifier = Modifier.fillMaxSize(),
+            notas = notas,
         )
     }
 
@@ -49,4 +57,6 @@ data class NavegacionEnMapa(
     val estado: NavegacionUiState = NavegacionUiState(),
     val acciones: AccionesNavegacion = AccionesNavegacion(),
     val panelGuiado: PanelGuiado = SinPanelGuiado,
+    /** Notas de la franja: bajo el banner al guiar y arriba del todo en modo libre. */
+    val notas: NotasUiState = NotasUiState(),
 )

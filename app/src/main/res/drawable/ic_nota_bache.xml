@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bache. Icono monocromo de la franja de notas: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M24,12 L30,19 L39,20 L34,28 L37,38 L26,34 L17,39 L16,29 L8,24 L18,20 Z" android:fillColor="#FFFFFF" />
+</vector>

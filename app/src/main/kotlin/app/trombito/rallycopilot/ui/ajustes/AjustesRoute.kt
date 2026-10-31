@@ -27,6 +27,8 @@ fun AjustesRoute(
                 onIcono = viewModel::onIcono,
                 onOrientacion = viewModel::onOrientacion,
                 onEstiloManiobras = viewModel::onEstiloManiobras,
+                onAnticipacion = viewModel::onAnticipacion,
+                onNotasSimplificadas = viewModel::onNotasSimplificadas,
             ),
         modifier = modifier,
     )

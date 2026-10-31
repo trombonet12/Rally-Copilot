@@ -15,6 +15,7 @@ import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 import app.trombito.rallycopilot.ui.navegacion.NavegacionUiState
 import app.trombito.rallycopilot.ui.navegacion.NavegacionViewModel
 import app.trombito.rallycopilot.ui.navegacion.PanelGuiado
+import app.trombito.rallycopilot.ui.navegacion.notas.NotasViewModel
 import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
 
 /**
@@ -23,15 +24,18 @@ import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
  * maniobras de los ajustes).
  */
 @Composable
+@Suppress("LongParameterList") // un ViewModel por bloque (mapa, navegación, notas) más los huecos de prueba
 fun MapaRoute(
     onAbrirMapasOffline: () -> Unit,
     modifier: Modifier = Modifier,
     panelGuiado: PanelGuiado? = null,
     viewModel: MapaViewModel = hiltViewModel(),
     navegacionViewModel: NavegacionViewModel = hiltViewModel(),
+    notasViewModel: NotasViewModel = hiltViewModel(),
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     val navegacion by navegacionViewModel.uiState.collectAsStateWithLifecycle()
+    val notas by notasViewModel.uiState.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
     LaunchedEffect(permiso.estado) {
         val concedido = permiso.estado == EstadoPermisoUbicacion.CONCEDIDO
@@ -58,7 +62,7 @@ fun MapaRoute(
             )
         },
         modifier = modifier,
-        navegacion = NavegacionEnMapa(navegacion, accionesNavegacion(navegacionViewModel), panel),
+        navegacion = NavegacionEnMapa(navegacion, accionesNavegacion(navegacionViewModel), panel, notas),
     )
 }
 
@@ -105,6 +109,8 @@ private fun accionesNavegacion(vm: NavegacionViewModel) =
         onPerfil = vm::elegirPerfil,
         onEmpezar = vm::empezar,
         onTerminar = vm::terminar,
+        onSeguir = vm::seguirPendiente,
+        onDescartarSeguir = vm::descartarSeguir,
     )
 
 /** La ruta del guiado o de la vista previa lista para pintar; conserva la instancia mientras no cambien los puntos. */

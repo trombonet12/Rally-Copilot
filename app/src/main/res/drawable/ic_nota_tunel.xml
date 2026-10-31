@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Túnel. Icono monocromo de la franja de notas: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M8,42 V24 A16,16 0 0 1 40,24 V42" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="5" android:strokeLineCap="butt" android:strokeLineJoin="round" />
+    <path android:pathData="M17,42 V26 A7,7 0 0 1 31,26 V42 Z" android:fillColor="#FFFFFF" />
+</vector>

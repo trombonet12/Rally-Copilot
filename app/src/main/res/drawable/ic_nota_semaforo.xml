@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Semáforo. Icono monocromo de la franja de notas: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M16,4 H32 A4,4 0 0 1 36,8 V40 A4,4 0 0 1 32,44 H16 A4,4 0 0 1 12,40 V8 A4,4 0 0 1 16,4 Z" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="3" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M20,14 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0 Z M20,24 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0 Z M20,34 a4,4 0 1 0 8,0 a4,4 0 1 0 -8,0 Z" android:fillColor="#FFFFFF" />
+</vector>
