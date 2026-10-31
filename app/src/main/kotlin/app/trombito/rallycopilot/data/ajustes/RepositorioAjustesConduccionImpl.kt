@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -36,6 +37,8 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         capa = enumOrNull<CapaMapa>(capa) ?: defecto.capa,
         relieve = relieve,
         estiloManiobras = enumOrNull<EstiloManiobras>(estiloManiobras) ?: defecto.estiloManiobras,
+        anticipacion = enumOrNull<NivelAnticipacion>(anticipacion) ?: defecto.anticipacion,
+        notasSimplificadas = notasSimplificadas,
     )
 }
 
@@ -47,6 +50,8 @@ internal fun AjustesConduccion.aEntidad() =
         capa = capa.name,
         relieve = relieve,
         estiloManiobras = estiloManiobras.name,
+        anticipacion = anticipacion.name,
+        notasSimplificadas = notasSimplificadas,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

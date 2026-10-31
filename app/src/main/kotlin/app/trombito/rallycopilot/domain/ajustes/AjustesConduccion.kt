@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.domain.ajustes
 
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import kotlinx.coroutines.flow.Flow
 
 /** Icono de la posición en el mapa (sin círculo de fondo). Joan lo elige en Ajustes. */
@@ -14,7 +15,8 @@ enum class Orientacion { RUMBO, NORTE }
 
 /**
  * Preferencias de la pantalla de conducción. [nivelZoom] va de -2 (más lejos) a 2 (más cerca) y desplaza el zoom
- * automático por velocidad (`ZoomPorVelocidad` del motor).
+ * automático por velocidad (`ZoomPorVelocidad` del motor). [anticipacion] es cuánto antes de la curva se canta la nota;
+ * [notasSimplificadas] reduce las notas a las curvas relevantes.
  */
 data class AjustesConduccion(
     val nivelZoom: Int = 0,
@@ -23,6 +25,8 @@ data class AjustesConduccion(
     val capa: CapaMapa = CapaMapa.VECTORIAL,
     val relieve: Boolean = false,
     val estiloManiobras: EstiloManiobras = EstiloManiobras.PLACA,
+    val anticipacion: NivelAnticipacion = NivelAnticipacion.NORMAL,
+    val notasSimplificadas: Boolean = false,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }

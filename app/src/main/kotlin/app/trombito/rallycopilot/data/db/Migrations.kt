@@ -34,3 +34,20 @@ val MIGRATION_2_3: Migration =
             db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `estiloManiobras` TEXT NOT NULL DEFAULT 'PLACA'")
         }
     }
+
+/**
+ * v3 -> v4: anticipación de las notas y notas simplificadas en los ajustes de conducción (la fila existente queda en
+ * NORMAL y sin simplificar) y tabla del guiado pendiente. El SQL es el `createSql` de `schemas/.../4.json`.
+ */
+val MIGRATION_3_4: Migration =
+    object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `anticipacion` TEXT NOT NULL DEFAULT 'NORMAL'")
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `notasSimplificadas` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `guiado_pendiente` (`id` INTEGER NOT NULL, " +
+                    "`destinoNombre` TEXT NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, " +
+                    "`perfil` TEXT NOT NULL, `desdeMs` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+            )
+        }
+    }

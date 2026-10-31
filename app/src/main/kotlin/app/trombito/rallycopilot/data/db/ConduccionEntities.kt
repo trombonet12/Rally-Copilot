@@ -15,6 +15,8 @@ data class AjustesConduccionEntity(
     val capa: String,
     val relieve: Boolean,
     @ColumnInfo(defaultValue = "'PLACA'") val estiloManiobras: String = "PLACA",
+    @ColumnInfo(defaultValue = "'NORMAL'") val anticipacion: String = "NORMAL",
+    @ColumnInfo(defaultValue = "0") val notasSimplificadas: Boolean = false,
 )
 
 /** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */
@@ -47,4 +49,15 @@ data class RecorridoPuntoEntity(
     val lon: Double,
     val tiempoMs: Long,
     val velocidadMs: Double?,
+)
+
+/** Guiado en curso, para ofrecer «Seguir a <destino>» si el proceso muere. Una sola fila (`id` = [FILA_UNICA]). */
+@Entity(tableName = "guiado_pendiente")
+data class GuiadoPendienteEntity(
+    @PrimaryKey val id: Int = FILA_UNICA,
+    val destinoNombre: String,
+    val lat: Double,
+    val lon: Double,
+    val perfil: String,
+    val desdeMs: Long,
 )

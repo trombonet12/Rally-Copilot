@@ -2,19 +2,26 @@ package app.trombito.rallycopilot.data.navegacion
 
 import android.content.Context
 import android.content.Intent
+import android.database.sqlite.SQLiteException
 import android.util.Log
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
@@ -24,14 +31,42 @@ import javax.inject.Singleton
  * Punto de entrada de la conducción: guarda la solicitud, arranca [ServicioNavegacion] en primer plano y expone su
  * estado. Solo se llama tras una acción del usuario con la app visible (Android 12+ no deja arrancar un servicio en
  * primer plano desde segundo plano).
+ *
+ * Recuerda el destino del guiado en [guiadoPendiente]: lo guarda al empezar y lo borra al terminar, llegar o pasar a
+ * libre. Si el proceso muere la fila queda, y la UI la usa para ofrecer «Seguir a destino». Las escrituras van por
+ * una cola en [alcance] para conservar el orden sin bloquear al llamante.
  */
 @Singleton
 class ControlNavegacionImpl
-    @Inject
-    constructor(
+    internal constructor(
         @ApplicationContext private val contexto: Context,
         private val fuente: FuenteUbicacion,
+        private val guiadoPendiente: RepositorioGuiadoPendiente,
+        alcance: CoroutineScope,
     ) : ControlNavegacion {
+        @Inject
+        constructor(
+            @ApplicationContext contexto: Context,
+            fuente: FuenteUbicacion,
+            guiadoPendiente: RepositorioGuiadoPendiente,
+        ) : this(contexto, fuente, guiadoPendiente, CoroutineScope(SupervisorJob() + Dispatchers.IO))
+
+        private val cola = Channel<suspend () -> Unit>(Channel.UNLIMITED)
+
+        init {
+            alcance.launch {
+                for (tarea in cola) {
+                    try {
+                        tarea()
+                    } catch (e: SQLiteException) {
+                        Log.w(ETIQUETA, "No se pudo actualizar el guiado pendiente: ${e.javaClass.simpleName}")
+                    } catch (e: IllegalStateException) {
+                        Log.w(ETIQUETA, "No se pudo actualizar el guiado pendiente: ${e.javaClass.simpleName}")
+                    }
+                }
+            }
+        }
+
         private val _estado = MutableStateFlow<EstadoNavegacion>(EstadoNavegacion.Inactiva)
         override val estado: StateFlow<EstadoNavegacion> = _estado.asStateFlow()
 
@@ -46,6 +81,7 @@ class ControlNavegacionImpl
         private val huerfanosReclamados = AtomicBoolean(false)
 
         override fun empezarLibre() {
+            if (_estado.value is EstadoNavegacion.Guiando) borrarPendiente()
             arrancar(SolicitudNavegacion.Libre, EstadoNavegacion.Libre(System.currentTimeMillis(), 0.0))
         }
 
@@ -54,14 +90,19 @@ class ControlNavegacionImpl
             perfil: PerfilRuta,
             ruta: Ruta,
         ) {
+            val yaGuiando = _estado.value is EstadoNavegacion.Guiando
             arrancar(
                 SolicitudNavegacion.Guiada(destino, perfil, ruta),
                 EstadoNavegacion.Guiando(destino, perfil, ruta, progreso = null, recalculando = false),
             )
+            if (!yaGuiando && _estado.value is EstadoNavegacion.Guiando) {
+                cola.trySend { guiadoPendiente.guardar(destino, perfil) }
+            }
         }
 
         override fun terminar() {
             pendiente = null
+            borrarPendiente()
             synchronized(cerrojo) {
                 vigente = SIN_SESION
                 _estado.value = EstadoNavegacion.Inactiva
@@ -107,6 +148,7 @@ class ControlNavegacionImpl
         ) {
             Log.w(ETIQUETA, "No se pudo arrancar el servicio de conducción: ${e.javaClass.simpleName}")
             pendiente = null
+            borrarPendiente()
             publicar(id, EstadoNavegacion.Error(contexto.getString(R.string.navegacion_error_arranque)))
             // Si sustituía a una sesión con el servicio vivo, que no siga grabando bajo un estado de Error.
             contexto.stopService(Intent(contexto, ServicioNavegacion::class.java))
@@ -127,8 +169,15 @@ class ControlNavegacionImpl
             nuevo: EstadoNavegacion,
         ) {
             synchronized(cerrojo) {
-                if (id == vigente) _estado.value = nuevo
+                if (id == vigente) {
+                    _estado.value = nuevo
+                    if (nuevo is EstadoNavegacion.Llegada) borrarPendiente()
+                }
             }
+        }
+
+        private fun borrarPendiente() {
+            cola.trySend { guiadoPendiente.borrar() }
         }
 
         private companion object {

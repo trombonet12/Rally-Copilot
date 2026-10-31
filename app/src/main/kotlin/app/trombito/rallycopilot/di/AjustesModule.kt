@@ -2,11 +2,14 @@ package app.trombito.rallycopilot.di
 
 import app.trombito.rallycopilot.data.ajustes.RepositorioAjustesConduccionImpl
 import app.trombito.rallycopilot.data.db.AjustesConduccionDao
+import app.trombito.rallycopilot.data.db.GuiadoPendienteDao
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.RecorridosDao
+import app.trombito.rallycopilot.data.navegacion.RepositorioGuiadoPendienteRoom
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridosRoom
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -29,6 +32,14 @@ abstract class AjustesModule {
 
         @Provides
         fun recorridosDao(base: RallyDatabase): RecorridosDao = base.recorridosDao()
+
+        @Provides
+        fun guiadoPendienteDao(base: RallyDatabase): GuiadoPendienteDao = base.guiadoPendienteDao()
+
+        @Provides
+        @Singleton
+        fun repositorioGuiadoPendiente(dao: GuiadoPendienteDao): RepositorioGuiadoPendiente =
+            RepositorioGuiadoPendienteRoom(dao, Dispatchers.IO)
 
         @Provides
         @Singleton

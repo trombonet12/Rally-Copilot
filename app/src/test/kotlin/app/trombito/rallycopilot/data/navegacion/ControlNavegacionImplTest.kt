@@ -7,12 +7,18 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.navegacion.GuiadoPendiente
+import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -35,7 +41,10 @@ class ControlNavegacionImplTest {
             override fun tienePermiso() = true
         }
 
-    private val control = ControlNavegacionImpl(app, fuente)
+    private val guiadoPendiente = GuiadoPendienteEnMemoria()
+    private val alcance = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
+
+    private val control = ControlNavegacionImpl(app, fuente, guiadoPendiente, alcance)
     private val destinoPrueba = Destino("Sóller", PuntoGeo(39.7667, 2.7154))
     private val rutaPrueba =
         Ruta(
@@ -80,7 +89,7 @@ class ControlNavegacionImplTest {
                     throw SecurityException("foreground not allowed")
             }
 
-        ControlNavegacionImpl(denegado, fuente).also { it.empezarLibre() }.let {
+        ControlNavegacionImpl(denegado, fuente, guiadoPendiente, alcance).also { it.empezarLibre() }.let {
             assertTrue(it.estado.value is EstadoNavegacion.Error)
             assertNull(it.tomarSolicitud())
         }
@@ -163,7 +172,7 @@ class ControlNavegacionImplTest {
                     return super.stopService(name)
                 }
             }
-        val control = ControlNavegacionImpl(contexto, fuente)
+        val control = ControlNavegacionImpl(contexto, fuente, guiadoPendiente, alcance)
         control.empezarLibre()
 
         control.empezar(destinoPrueba, PerfilRuta.MAS_RAPIDA, rutaPrueba)
@@ -178,5 +187,110 @@ class ControlNavegacionImplTest {
 
         assertEquals(SolicitudNavegacion.Libre, checkNotNull(control.tomarSolicitud()).solicitud)
         assertNull(control.tomarSolicitud())
+    }
+
+    @Test
+    fun `empezar un guiado guarda el destino y el modo libre no guarda nada`() {
+        control.empezarLibre()
+        assertNull(guiadoPendiente.valor.value)
+
+        control.empezar(destinoPrueba, PerfilRuta.SINUOSA, rutaPrueba)
+
+        assertEquals(destinoPrueba to PerfilRuta.SINUOSA, guiadoPendiente.valor.value)
+    }
+
+    @Test
+    fun `terminar borra el guiado pendiente`() {
+        control.empezar(destinoPrueba, PerfilRuta.MAS_RAPIDA, rutaPrueba)
+
+        control.terminar()
+
+        assertNull(guiadoPendiente.valor.value)
+    }
+
+    @Test
+    fun `llegar al destino borra el guiado pendiente`() {
+        control.empezar(destinoPrueba, PerfilRuta.MAS_RAPIDA, rutaPrueba)
+        val id = checkNotNull(control.tomarSolicitud()).id
+
+        control.publicar(id, EstadoNavegacion.Llegada(destinoPrueba))
+
+        assertNull(guiadoPendiente.valor.value)
+    }
+
+    @Test
+    fun `pasar a modo libre desde un guiado borra el guiado pendiente`() {
+        control.empezar(destinoPrueba, PerfilRuta.MAS_RAPIDA, rutaPrueba)
+
+        control.empezarLibre()
+
+        assertNull(guiadoPendiente.valor.value)
+    }
+
+    @Test
+    fun `una sesion antigua que llega tarde no borra el guiado vigente`() {
+        control.empezar(destinoPrueba, PerfilRuta.MAS_RAPIDA, rutaPrueba)
+        val guiado = checkNotNull(control.tomarSolicitud()).id
+        control.terminar()
+        control.empezar(destinoPrueba, PerfilRuta.SINUOSA, rutaPrueba)
+
+        control.publicar(guiado, EstadoNavegacion.Llegada(destinoPrueba))
+
+        assertEquals(destinoPrueba to PerfilRuta.SINUOSA, guiadoPendiente.valor.value)
+    }
+
+    @Test
+    fun `si el sistema deniega el servicio no queda guiado pendiente`() {
+        val denegado =
+            object : ContextWrapper(app) {
+                override fun startForegroundService(service: Intent?): ComponentName =
+                    throw SecurityException("foreground not allowed")
+            }
+
+        ControlNavegacionImpl(denegado, fuente, guiadoPendiente, alcance).empezar(
+            destinoPrueba,
+            PerfilRuta.MAS_RAPIDA,
+            rutaPrueba,
+        )
+
+        assertNull(guiadoPendiente.valor.value)
+    }
+
+    @Test
+    fun `si la base falla al guardar la navegacion sigue`() {
+        val roto =
+            object : RepositorioGuiadoPendiente {
+                override val pendiente: Flow<GuiadoPendiente?> = emptyFlow()
+
+                override suspend fun guardar(
+                    destino: Destino,
+                    perfil: PerfilRuta,
+                ): Unit = throw android.database.sqlite.SQLiteException("disco lleno")
+
+                override suspend fun borrar() = Unit
+            }
+        val control = ControlNavegacionImpl(app, fuente, roto, alcance)
+
+        control.empezar(destinoPrueba, PerfilRuta.MAS_RAPIDA, rutaPrueba)
+        control.terminar()
+
+        assertEquals(EstadoNavegacion.Inactiva, control.estado.value)
+    }
+}
+
+private class GuiadoPendienteEnMemoria : RepositorioGuiadoPendiente {
+    val valor = MutableStateFlow<Pair<Destino, PerfilRuta>?>(null)
+
+    override val pendiente: Flow<GuiadoPendiente?> = emptyFlow()
+
+    override suspend fun guardar(
+        destino: Destino,
+        perfil: PerfilRuta,
+    ) {
+        valor.value = destino to perfil
+    }
+
+    override suspend fun borrar() {
+        valor.value = null
     }
 }

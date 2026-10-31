@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -117,5 +118,40 @@ class RepositorioAjustesConduccionImplTest {
                 ),
             )
             assertEquals(EstiloManiobras.PLACA, repositorio.ajustes.first().estiloManiobras)
+        }
+
+    @Test
+    fun `la anticipacion normal y las notas completas son el valor por defecto`() =
+        runBlocking {
+            val ajustes = repositorio.ajustes.first()
+            assertEquals(NivelAnticipacion.NORMAL, ajustes.anticipacion)
+            assertEquals(false, ajustes.notasSimplificadas)
+        }
+
+    @Test
+    fun `la anticipacion y las notas simplificadas se guardan`() =
+        runBlocking {
+            val ajustes = AjustesConduccion(anticipacion = NivelAnticipacion.MUY_PRONTO, notasSimplificadas = true)
+            repositorio.guardar(ajustes)
+            assertEquals(ajustes, repositorio.ajustes.first())
+        }
+
+    @Test
+    fun `una anticipacion desconocida en disco lee la normal`() =
+        runBlocking {
+            base.ajustesConduccionDao().guardar(
+                AjustesConduccionEntity(
+                    nivelZoom = 0,
+                    icono = "CASCO",
+                    orientacion = "NORTE",
+                    capa = "SATELITE",
+                    relieve = false,
+                    anticipacion = "TELEPATICA",
+                    notasSimplificadas = true,
+                ),
+            )
+            val ajustes = repositorio.ajustes.first()
+            assertEquals(NivelAnticipacion.NORMAL, ajustes.anticipacion)
+            assertEquals(true, ajustes.notasSimplificadas)
         }
 }

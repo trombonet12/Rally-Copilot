@@ -17,6 +17,18 @@ interface AjustesConduccionDao {
 }
 
 @Dao
+interface GuiadoPendienteDao {
+    @Query("SELECT * FROM guiado_pendiente WHERE id = $FILA_UNICA")
+    fun observar(): Flow<GuiadoPendienteEntity?>
+
+    @Upsert
+    suspend fun guardar(guiado: GuiadoPendienteEntity)
+
+    @Query("DELETE FROM guiado_pendiente")
+    suspend fun borrar()
+}
+
+@Dao
 abstract class RecorridosDao {
     @Insert
     abstract suspend fun insertar(recorrido: RecorridoEntity): Long

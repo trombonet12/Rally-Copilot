@@ -20,9 +20,9 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * Migraciones v1 -> v2 -> v3. No hay `room-testing` (MigrationTestHelper) en el proyecto: la base antigua se crea
- * con el SQL exportado en `schemas/.../N.json` y Room la abre como v3; al abrir valida el esquema resultante contra
- * `3.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
+ * Migraciones v1 -> v2 -> v3 -> v4. No hay `room-testing` (MigrationTestHelper) en el proyecto: la base antigua se crea
+ * con el SQL exportado en `schemas/.../N.json` y Room la abre como v4; al abrir valida el esquema resultante contra
+ * `4.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
  */
 @RunWith(RobolectricTestRunner::class)
 class MigracionRoomTest {
@@ -67,21 +67,26 @@ class MigracionRoomTest {
         db.execSQL("INSERT INTO archivo_instalado VALUES ('mapa', 'mapa.pmtiles', '${"a".repeat(64)}', 123, 'v1')")
         db.execSQL("INSERT INTO ajustes_mapas VALUES (1, 0, 777)")
         db.execSQL("INSERT INTO estado_datos VALUES (1, 'v1', NULL, 'SIN_RED')")
-        if (version >= 2) db.execSQL("INSERT INTO ajustes_conduccion VALUES (1, 2, 'CASCO', 'NORTE', 'SATELITE', 1)")
+        if (version >= 2) {
+            db.execSQL(
+                "INSERT INTO ajustes_conduccion (id, nivelZoom, icono, orientacion, capa, relieve) " +
+                    "VALUES (1, 2, 'CASCO', 'NORTE', 'SATELITE', 1)",
+            )
+        }
         db.version = version
         db.close()
         return archivo
     }
 
     @Test
-    fun `de v1 a v3 conserva los datos y crea las tablas nuevas`() =
+    fun `de v1 a v4 conserva los datos y crea las tablas nuevas`() =
         runBlocking {
             crearBase(1)
 
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -101,7 +106,7 @@ class MigracionRoomTest {
             nueva.recorridosDao().anadirPuntos(id, listOf(RecorridoPuntoEntity(id, 0, 39.5, 2.9, 10, null)))
             assertEquals(1, nueva.recorridosDao().puntos(id).size)
             assertNotNull(nueva.openHelper.writableDatabase)
-            assertEquals(3, nueva.openHelper.writableDatabase.version)
+            assertEquals(4, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -112,7 +117,7 @@ class MigracionRoomTest {
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -129,7 +134,46 @@ class MigracionRoomTest {
                 ),
                 fila,
             )
-            assertEquals(3, nueva.openHelper.writableDatabase.version)
+            assertEquals(4, nueva.openHelper.writableDatabase.version)
+        }
+
+    @Test
+    fun `de v3 a v4 conserva los ajustes con anticipacion normal y crea el guiado pendiente`() =
+        runBlocking {
+            crearBase(3)
+
+            val nueva =
+                Room
+                    .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .allowMainThreadQueries()
+                    .build()
+            base = nueva
+
+            assertEquals(
+                AjustesConduccionEntity(
+                    nivelZoom = 2,
+                    icono = "CASCO",
+                    orientacion = "NORTE",
+                    capa = "SATELITE",
+                    relieve = true,
+                    estiloManiobras = "PLACA",
+                    anticipacion = "NORMAL",
+                    notasSimplificadas = false,
+                ),
+                nueva.ajustesConduccionDao().observar().first(),
+            )
+            assertEquals(null, nueva.guiadoPendienteDao().observar().first())
+            nueva.guiadoPendienteDao().guardar(GuiadoPendienteEntity(1, "Sóller", 39.77, 2.71, "SINUOSA", 5L))
+            assertEquals(
+                "Sóller",
+                nueva
+                    .guiadoPendienteDao()
+                    .observar()
+                    .first()
+                    ?.destinoNombre,
+            )
+            assertEquals(4, nueva.openHelper.writableDatabase.version)
         }
 
     private companion object {
