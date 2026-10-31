@@ -23,7 +23,6 @@
       "Edit(.claude/agents/**)",
       "Edit(.claude/skills/**)",
       "Edit(docs/MEMORIA.md)",
-      
       "Bash(*)"
     ],
     "ask": [
@@ -70,14 +69,26 @@
       {
         "matcher": "Edit|Write|MultiEdit|NotebookEdit",
         "hooks": [
-          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-secrets.sh\"", "timeout": 5 },
-          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/warn-generated.sh\"", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/protect-secrets.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/warn-generated.sh\"",
+            "timeout": 5
+          }
         ]
       },
       {
         "matcher": "Bash|PowerShell",
         "hooks": [
-          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-secret-commands.sh\"", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block-secret-commands.sh\"",
+            "timeout": 5
+          }
         ]
       }
     ],
@@ -85,7 +96,11 @@
       {
         "matcher": "Edit|Write|MultiEdit",
         "hooks": [
-          { "type": "command", "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/post-edit-lint.sh\"", "timeout": 10 }
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PROJECT_DIR}/.claude/hooks/post-edit-lint.sh\"",
+            "timeout": 10
+          }
         ]
       }
     ]

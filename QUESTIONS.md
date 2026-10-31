@@ -6,7 +6,7 @@ Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuest
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **4 abiertas** (H2) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **3 abiertas** (H2) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
 ## Abiertas en H2
 
@@ -21,6 +21,7 @@ Estado: **4 abiertas** (H2) · 22 respondidas (2026-10-28, en el chat). Las resp
 - **Recomendación:** B en H2 (sin peticiones a terceros); A más adelante si lo usas a menudo. Sigo con B.
 
 ### Colores de las placas Ma-
+- **Respondida 2026-10-31:** **A**, por número y no por tipo de vía: Ma- de 1-2 cifras naranja (también las autovías Ma-19, Ma-13…), el resto de Ma- amarillo; también en el panel bajo la velocidad.
 - **Contexto:** las fuentes se contradicen: unas dan las Ma- de dos cifras (Ma-10, Ma-13…) en naranja y las de cuatro (Ma-2141) en amarillo; algunos dibujos de Commons lo dan al revés. Ver [carteleria.md](docs/investigacion/carteleria.md).
 - **Opciones:** A) dos cifras naranja, cuatro amarillo; B) al revés; C) mándame una foto de una placa de cada.
 - **Recomendación:** A (sigo con A mientras no respondas).
