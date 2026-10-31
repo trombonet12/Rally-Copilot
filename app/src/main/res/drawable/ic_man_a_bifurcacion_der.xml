@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «bifurcacion der», variante A. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M24,46 L24,30 L12,9" android:strokeColor="#0E0F12" android:strokeWidth="6.5" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M24,46 L24,30 L35.75,9.43" android:strokeColor="#0E0F12" android:strokeWidth="9" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M38.44,20.24 L36,9 L25.08,12.6" android:strokeColor="#0E0F12" android:strokeWidth="9" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="8" />
+    <path android:pathData="M24,46 L24,30 L12,9" android:strokeColor="#8A8F98" android:strokeWidth="3" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M24,46 L24,30 L35.75,9.43" android:strokeColor="#E5AB46" android:strokeWidth="5" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M38.44,20.24 L36,9 L25.08,12.6" android:strokeColor="#E5AB46" android:strokeWidth="5" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="8" />
+</vector>

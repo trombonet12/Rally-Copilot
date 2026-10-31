@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «incorporación», variante A. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M34,46 L34,6" android:strokeColor="#0E0F12" android:strokeWidth="6.5" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M13,46 L13,33 L29.63,18.33" android:strokeColor="#0E0F12" android:strokeWidth="9" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M28.68,29.42 L30,18 L18.5,17.88" android:strokeColor="#0E0F12" android:strokeWidth="9" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="8" />
+    <path android:pathData="M34,46 L34,6" android:strokeColor="#8A8F98" android:strokeWidth="3" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M13,46 L13,33 L29.63,18.33" android:strokeColor="#E5AB46" android:strokeWidth="5" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M28.68,29.42 L30,18 L18.5,17.88" android:strokeColor="#E5AB46" android:strokeWidth="5" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="8" />
+</vector>

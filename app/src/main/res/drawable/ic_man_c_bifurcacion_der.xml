@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «bifurcacion der», variante C. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M24,46 L24,45.75 L24,45.25 L24,44.5 L24,43.5 L24,42.25 L24,40.75 L24,39 L24,37 L23.81,34.92 L23.44,32.77 L22.88,30.53 L22.12,28.22 L21.19,25.83 L20.06,23.36 L18.75,20.81 L17.25,18.19 L15.94,15.89 L14.81,13.92 L13.88,12.28 L13.12,10.97 L12.56,9.98 L12.19,9.33 L12,9" android:strokeColor="#0E0F12" android:strokeWidth="6.5" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M24,46 L24,45.75 L24,45.25 L24,44.5 L24,43.5 L24,42.25 L24,40.75 L24,39 L24,37 L23.81,34.92 L23.44,32.77 L22.88,30.53 L22.12,28.22 L21.19,25.83 L20.06,23.36 L18.75,20.81 L17.25,18.19 L15.94,15.89 L14.81,13.92 L13.88,12.28 L13.12,10.97 L12.56,9.98 L12.19,9.33 L12,9" android:strokeColor="#8A8F98" android:strokeWidth="3" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M26.2,46 L26.23,45.75 L26.29,45.25 L26.36,44.5 L26.46,43.5 L26.57,42.25 L26.7,40.75 L26.85,39 L27.01,37.14 L27.34,35.34 L27.84,33.47 L28.52,31.51 L29.37,29.47 L30.41,27.35 L31.63,25.16 L33.07,22.84 L33.62,22.04 L37.61,24.32 L36,9 L21.98,15.39 L25.98,17.67 L25.43,18.79 L24.24,21.56 L23.22,24.3 L22.38,26.96 L21.73,29.55 L21.29,32.07 L21.04,34.5 L20.99,36.86 L21.15,39 L21.3,40.75 L21.43,42.25 L21.54,43.5 L21.64,44.5 L21.71,45.25 L21.77,45.75 L21.8,46 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="2.2" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+</vector>

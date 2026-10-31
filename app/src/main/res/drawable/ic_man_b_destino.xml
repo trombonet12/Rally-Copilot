@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «destino», variante B. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M7.2,3 L47.2,3 L40.8,45 L0.8,45 Z" android:fillColor="#D8232A" android:strokeColor="#FFFFFF" android:strokeWidth="1.6" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+    <path android:pathData="M1.6,39.5 L41,39.5 L40.8,45 L0.8,45 Z" android:fillColor="#8F1218" />
+    <path android:pathData="M17.75,11.42 L38.47,11.42 L36.3,25.85 L15.58,25.85 Z" android:fillColor="#0E0F12" android:strokeColor="#FFFFFF" android:strokeWidth="1.6" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+    <path android:pathData="M17.75,11.42 L22.93,11.42 L22.21,16.23 L17.03,16.23 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M28.11,11.42 L33.29,11.42 L32.57,16.23 L27.39,16.23 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M22.21,16.23 L27.39,16.23 L26.66,21.04 L21.48,21.04 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M32.57,16.23 L37.75,16.23 L37.02,21.04 L31.84,21.04 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M16.3,21.04 L21.48,21.04 L20.76,25.85 L15.58,25.85 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M26.66,21.04 L31.84,21.04 L31.12,25.85 L25.94,25.85 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M17.86,10.68 L13.64,38.8" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+</vector>

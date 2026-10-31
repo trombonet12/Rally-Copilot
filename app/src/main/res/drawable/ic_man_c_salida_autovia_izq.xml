@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «salida autovia izq», variante C. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M33,46 L33,45.38 L33,44.12 L33,42.25 L33,39.75 L33,36.62 L33,32.88 L33,28.5 L33,23.5 L33,19.12 L33,15.38 L33,12.25 L33,9.75 L33,7.88 L33,6.62 L33,6" android:strokeColor="#0E0F12" android:strokeWidth="6.5" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M33,46 L33,45.38 L33,44.12 L33,42.25 L33,39.75 L33,36.62 L33,32.88 L33,28.5 L33,23.5 L33,19.12 L33,15.38 L33,12.25 L33,9.75 L33,7.88 L33,6.62 L33,6" android:strokeColor="#8A8F98" android:strokeWidth="3" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M35.2,46 L35.23,45.8 L35.27,45.39 L35.34,44.78 L35.42,43.97 L35.52,42.95 L35.63,41.73 L35.75,40.31 L35.88,38.42 L35.62,36.19 L35,33.94 L34.04,31.66 L32.77,29.35 L31.19,26.99 L29.31,24.56 L27.14,22.08 L25.23,20.09 L28.31,16.67 L13,15 L16.27,30.05 L19.35,26.63 L21.36,28.17 L23.57,30.03 L25.44,31.8 L26.98,33.46 L28.21,35.02 L29.13,36.46 L29.75,37.77 L30.12,38.96 L30.25,40.31 L30.37,41.73 L30.48,42.95 L30.58,43.97 L30.66,44.78 L30.73,45.39 L30.77,45.8 L30.8,46 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="2.2" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+</vector>

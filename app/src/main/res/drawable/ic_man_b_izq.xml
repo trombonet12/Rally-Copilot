@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «izq», variante B. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M7.2,3 L47.2,3 L40.8,45 L0.8,45 Z" android:fillColor="#D8232A" android:strokeColor="#FFFFFF" android:strokeWidth="1.6" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+    <path android:pathData="M1.6,39.5 L41,39.5 L40.8,45 L0.8,45 Z" android:fillColor="#8F1218" />
+    <path android:pathData="M30.03,38.06 L32.25,23.26 L16.01,23.26" android:strokeColor="#FFFFFF" android:strokeWidth="4.4" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M13.01,23.26 L23.01,16.86 L23.01,29.66 Z" android:fillColor="#FFFFFF" android:strokeColor="#FFFFFF" android:strokeWidth="0.8" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="8" />
+</vector>

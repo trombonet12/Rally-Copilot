@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «destino», variante C. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M13,7 L41,7 L41,26.5 L13,26.5 Z" android:fillColor="#0E0F12" android:strokeColor="#FFFFFF" android:strokeWidth="1.8" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M13,7 L20,7 L20,13.5 L13,13.5 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="1.6" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M27,7 L34,7 L34,13.5 L27,13.5 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="1.6" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M20,13.5 L27,13.5 L27,20 L20,20 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="1.6" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M34,13.5 L41,13.5 L41,20 L34,20 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="1.6" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M13,20 L20,20 L20,26.5 L13,26.5 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="1.6" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M27,20 L34,20 L34,26.5 L27,26.5 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="1.6" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M13,6 L13,44" android:strokeColor="#0E0F12" android:strokeWidth="8" android:strokeLineJoin="round" android:strokeLineCap="round" />
+    <path android:pathData="M13,6 L13,44" android:strokeColor="#FFFFFF" android:strokeWidth="4.4" android:strokeLineJoin="round" android:strokeLineCap="round" />
+</vector>

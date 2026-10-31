@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «ferry», variante B. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M7.2,3 L47.2,3 L40.8,45 L0.8,45 Z" android:fillColor="#D8232A" android:strokeColor="#FFFFFF" android:strokeWidth="1.6" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+    <path android:pathData="M1.6,39.5 L41,39.5 L40.8,45 L0.8,45 Z" android:fillColor="#8F1218" />
+    <path android:pathData="M9.5,26.96 L37.62,26.96 L31.33,34.36 L13.57,34.36 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M16.64,18.82 L31.44,18.82 L30.22,26.96 L15.42,26.96 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M21.34,12.16 L25.78,12.16 L24.78,18.82 L20.34,18.82 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M7.83,38.06 L12.6,35.84 L16.71,38.06 L21.48,35.84 L25.59,38.06 L30.36,35.84 L35.95,38.06" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+</vector>

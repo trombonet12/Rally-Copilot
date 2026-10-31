@@ -11,5 +11,10 @@
                 <action android:name="app.trombito.rallycopilot.dev.DEBUG_RUTA" />
             </intent-filter>
         </receiver>
+        <!-- Solo debug: galería de iconos y banners de maniobra. exported=true porque el shell de adb no puede
+             lanzar actividades no exportadas de otra app; no existe en release. -->
+        <activity
+            android:name=".debug.GaleriaManiobrasActivity"
+            android:exported="true" />
     </application>
 </manifest>

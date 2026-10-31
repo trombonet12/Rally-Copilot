@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="maniobra_salida">Salida</string>
+    <string name="maniobra_destino">Destino</string>
+    <string name="maniobra_recto">Recto</string>
+    <string name="maniobra_ligera_izquierda">Ligera a la izquierda</string>
+    <string name="maniobra_ligera_derecha">Ligera a la derecha</string>
+    <string name="maniobra_izquierda">Izquierda</string>
+    <string name="maniobra_derecha">Derecha</string>
+    <string name="maniobra_cerrada_izquierda">Cerrada a la izquierda</string>
+    <string name="maniobra_cerrada_derecha">Cerrada a la derecha</string>
+    <string name="maniobra_cambio_sentido">Cambio de sentido</string>
+    <string name="maniobra_rotonda">Rotonda</string>
+    <string name="maniobra_rotonda_salida">Rotonda, salida %1$d</string>
+    <string name="maniobra_incorporacion">Incorporación</string>
+    <string name="maniobra_salida_autovia_izquierda">Salida de autovía a la izquierda</string>
+    <string name="maniobra_salida_autovia_derecha">Salida de autovía a la derecha</string>
+    <string name="maniobra_bifurcacion_izquierda">Bifurcación a la izquierda</string>
+    <string name="maniobra_bifurcacion_derecha">Bifurcación a la derecha</string>
+    <string name="maniobra_ferry">Ferry</string>
+    <string name="maniobra_otra">Otra maniobra</string>
+    <string name="maniobra_luego">Luego</string>
+</resources>

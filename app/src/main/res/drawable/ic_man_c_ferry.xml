@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «ferry», variante C. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M5,28 L43,28 L36,38 L12,38 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="1.6" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M13,17 L33,17 L33,28 L13,28 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="1.6" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M18,8 L24,8 L24,17 L18,17 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="1.6" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M5,43 L11,40 L17,43 L23,40 L29,43 L35,40 L43,43" android:strokeColor="#0E0F12" android:strokeWidth="8" android:strokeLineJoin="round" android:strokeLineCap="round" />
+    <path android:pathData="M5,43 L11,40 L17,43 L23,40 L29,43 L35,40 L43,43" android:strokeColor="#FFFFFF" android:strokeWidth="4.4" android:strokeLineJoin="round" android:strokeLineCap="round" />
+</vector>

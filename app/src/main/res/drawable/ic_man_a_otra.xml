@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «otra», variante A. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M24,3 L45,24 L24,45 L3,24 Z" android:fillColor="#0E0F12" android:strokeColor="#0E0F12" android:strokeWidth="5.5" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+    <path android:pathData="M24,12 L24,26" android:strokeColor="#0E0F12" android:strokeWidth="9" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+    <path android:pathData="M21.5,30.5 L26.5,30.5 L26.5,35.5 L21.5,35.5 Z" android:fillColor="#0E0F12" android:strokeColor="#0E0F12" android:strokeWidth="4.5" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+    <path android:pathData="M24,3 L45,24 L24,45 L3,24 Z" android:fillColor="#0E0F12" android:strokeColor="#E5AB46" android:strokeWidth="1.8" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+    <path android:pathData="M24,12 L24,26" android:strokeColor="#E5AB46" android:strokeWidth="5" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+    <path android:pathData="M21.5,30.5 L26.5,30.5 L26.5,35.5 L21.5,35.5 Z" android:fillColor="#E5AB46" />
+</vector>

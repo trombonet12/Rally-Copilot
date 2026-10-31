@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «ligera der», variante C. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M21.2,43 L21.23,42.81 L21.28,42.44 L21.34,41.88 L21.42,41.12 L21.52,40.19 L21.64,39.06 L21.76,37.75 L21.9,36.44 L22.22,35.15 L22.72,33.68 L23.43,32.05 L24.35,30.26 L25.47,28.32 L26.81,26.24 L28.38,23.98 L29.16,22.94 L33.07,25.37 L32,10 L17.77,15.89 L21.68,18.31 L20.99,19.64 L19.72,22.36 L18.62,24.96 L17.72,27.42 L17.01,29.76 L16.49,31.97 L16.19,34.07 L16.1,36.06 L16.24,37.75 L16.36,39.06 L16.48,40.19 L16.58,41.12 L16.66,41.88 L16.72,42.44 L16.77,42.81 L16.8,43 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="2.2" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+</vector>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «recto», variante C. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M26.2,43 L26.28,42.44 L26.41,41.31 L26.58,39.62 L26.81,37.38 L27.08,34.56 L27.38,31.19 L27.73,27.25 L28.12,22.75 L28.4,19.5 L33,19.5 L24,7 L15,19.5 L19.6,19.5 L19.88,22.75 L20.27,27.25 L20.62,31.19 L20.92,34.56 L21.19,37.38 L21.42,39.62 L21.59,41.31 L21.72,42.44 L21.8,43 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="2.2" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+</vector>

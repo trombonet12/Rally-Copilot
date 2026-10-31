@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «cerrada izq», variante C. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M37.2,43 L37.24,42.55 L37.31,41.64 L37.41,40.28 L37.53,38.47 L37.67,36.2 L37.84,33.48 L38.03,30.31 L38.24,26.51 L37.97,23.12 L37.01,20.13 L34.85,17.58 L31.5,16.45 L28.25,16.96 L25.27,18.39 L22.23,20.53 L19.07,23.25 L17.99,24.18 L14.81,20.86 L12,36 L27.25,33.86 L24.07,30.54 L25.05,29.5 L27.64,26.72 L29.64,24.95 L30.97,24.07 L31.32,23.86 L30.84,23.61 L30.83,23.53 L31.31,24.6 L31.76,26.87 L31.97,30.31 L32.16,33.48 L32.33,36.2 L32.47,38.47 L32.59,40.28 L32.69,41.64 L32.76,42.55 L32.8,43 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="2.2" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+</vector>

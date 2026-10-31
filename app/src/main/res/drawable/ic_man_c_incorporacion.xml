@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono de maniobra «incorporación», variante C. Generado por script a partir de geometría poligonal. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M34,46 L34,45.38 L34,44.12 L34,42.25 L34,39.75 L34,36.62 L34,32.88 L34,28.5 L34,23.5 L34,19.12 L34,15.38 L34,12.25 L34,9.75 L34,7.88 L34,6.62 L34,6" android:strokeColor="#0E0F12" android:strokeWidth="6.5" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M34,46 L34,45.38 L34,44.12 L34,42.25 L34,39.75 L34,36.62 L34,32.88 L34,28.5 L34,23.5 L34,19.12 L34,15.38 L34,12.25 L34,9.75 L34,7.88 L34,6.62 L34,6" android:strokeColor="#8A8F98" android:strokeWidth="3" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M15.2,46 L15.23,45.8 L15.29,45.39 L15.36,44.78 L15.46,43.97 L15.57,42.95 L15.7,41.73 L15.85,40.31 L16,38.93 L16.35,37.77 L16.91,36.56 L17.7,35.29 L18.73,33.96 L20.03,32.57 L21.59,31.13 L23.5,29.56 L23.54,29.57 L26.58,33.02 L30,18 L14.67,19.52 L17.72,22.97 L17.37,23.31 L15.57,25.44 L13.94,27.62 L12.58,29.79 L11.49,31.96 L10.68,34.13 L10.18,36.3 L10,38.44 L10.15,40.31 L10.3,41.73 L10.43,42.95 L10.54,43.97 L10.64,44.78 L10.71,45.39 L10.77,45.8 L10.8,46 Z" android:fillColor="#FFFFFF" android:strokeColor="#0E0F12" android:strokeWidth="2.2" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+</vector>
