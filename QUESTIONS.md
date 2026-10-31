@@ -1,14 +1,24 @@
 # Preguntas abiertas
 
-> Propósito: dudas de producto, interfaz o alcance que decide Joan · Audiencia: Joan · Actualizado: 2026-10-28 · Relacionado: [ROADMAP.md](ROADMAP.md), [docs/DECISIONES.md](docs/DECISIONES.md)
+> Propósito: dudas de producto, interfaz o alcance que decide Joan · Audiencia: Joan · Actualizado: 2026-10-31 · Relacionado: [ROADMAP.md](ROADMAP.md), [docs/DECISIONES.md](docs/DECISIONES.md)
 
 Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuesta se sigue con lo que no depende de
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **2 abiertas** (H2) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **4 abiertas** (H2) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
 ## Abiertas en H2
+
+### Arranque del modo libre (sin destino)
+- **Contexto:** el modo libre arranca el servicio en primer plano (notificación fija) y graba el recorrido. «Conducir» abre el mapa.
+- **Opciones:** A) un botón con icono junto a la barra «¿A dónde?» lo arranca y «Terminar» lo para; B) arranca solo al abrir el mapa con permiso de ubicación y se para al salir; C) arranca solo al superar ~15 km/h.
+- **Recomendación:** A (sigo con A mientras no respondas): no deja la notificación ni graba sin que lo pidas.
+
+### Enlaces cortos de Google Maps (`maps.app.goo.gl`)
+- **Contexto:** no llevan coordenadas; hay que seguir la redirección por internet. La app es offline por defecto.
+- **Opciones:** A) con red se resuelve la redirección (una petición a Google) y sin red se avisa; B) nunca se resuelven: se pide pegar el enlace completo o las coordenadas.
+- **Recomendación:** B en H2 (sin peticiones a terceros); A más adelante si lo usas a menudo. Sigo con B.
 
 ### Colores de las placas Ma-
 - **Contexto:** las fuentes se contradicen: unas dan las Ma- de dos cifras (Ma-10, Ma-13…) en naranja y las de cuatro (Ma-2141) en amarillo; algunos dibujos de Commons lo dan al revés. Ver [carteleria.md](docs/investigacion/carteleria.md).
