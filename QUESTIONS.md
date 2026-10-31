@@ -6,7 +6,7 @@ Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuest
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **2 abiertas** (H3) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **4 abiertas** (H3) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
 ## Abiertas en H3
 
@@ -19,6 +19,16 @@ Estado: **2 abiertas** (H3) · 22 respondidas (2026-10-28, en el chat). Las resp
 - **Contexto:** la franja enseña «DERECHA 3 LARGA · 50» (50 = distancia a la siguiente nota, como la cantaría el copiloto) y resalta la nota cuando toca leerla; la distancia desde el coche hasta la nota solo la dice TalkBack.
 - **Opciones:** A) no mostrarla (como un roadbook); B) mostrarla pequeña en la primera nota («en 120 m»).
 - **Recomendación:** A, para no mezclar dos distancias en la misma tarjeta.
+
+### Vocabulario: «compresión» y grado uno simplificado
+- **Contexto:** la revisión de copiloto propone avisar de las vaguadas fuertes como «compresión» (hoy no se dicen) y, en notas simplificadas, decir «muy cerrada» para el grado uno (hoy uno y dos son «cerrada»).
+- **Opciones:** A) añadir las dos; B) solo «compresión»; C) solo «muy cerrada»; D) ninguna por ahora (se revisa con las transcripciones de H11).
+- **Recomendación:** A.
+
+### Notas en un tramo urbano
+- **Contexto:** en los primeros km de Sóller la Ma-10 cruza calles; tras filtrar, quedan cruces y stops solo cuando son de tu vía o la ruta gira. Las notas de curvas se siguen cantando a cualquier velocidad.
+- **Opciones:** A) igual en ciudad que en carretera; B) no cantar curvas con límite ≤ 30 km/h (calles), solo maniobras y avisos.
+- **Recomendación:** B, para no saturar en pueblos.
 
 ## Respondidas al empezar H3 (2026-10-31, en el chat)
 - **Notas en texto (H3):** franja bajo el banner de maniobra con las 2–3 notas siguientes en estilo roadbook WRC (la primera grande). Alternativas: nota grande en lugar del banner, columna lateral.
