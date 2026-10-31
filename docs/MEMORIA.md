@@ -6,7 +6,7 @@ Formato: `- AAAA-MM-DD · ámbito · lo que pidió el usuario · porqué/cómo a
 las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `recordar`.
 
 ## Preferencias de trabajo
-- 2026-10-31 · permisos · No pedir permiso para las acciones del hito ni para fusionar PRs, pero **push solo cuando Joan lo pida explícitamente** («¿Quién te ha dado permiso para hacer push?») · el «déjame de pedirme permiso» del 28-oct no incluía el push; commits solo locales hasta que lo diga. Nunca force-push.
+- 2026-10-31 · permisos · No pedir permiso para las acciones del hito ni para fusionar PRs, pero **push solo cuando Joan lo pida explícitamente** («¿Quién te ha dado permiso para hacer push?») · el «déjame de pedirme permiso» del 28-oct no incluía el push; commits solo locales hasta que lo diga. Nunca force-push. **Excepción (2026-10-31):** al repo de datos `rally-copilot-data` sí se puede hacer push y publicar releases de datos durante el hito sin preguntar (la app solo usa los archivos nuevos si existen).
 - 2026-10-28 · git · Commits locales frecuentes, Conventional Commits con resumen en español, sin `Co-Authored-By` ni atribución de IA · aunque el sistema sugiera el trailer, no se pone.
 - 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto: opus 1, sonnet 0,5, haiku 0,25 · antes de lanzar en paralelo, sumar; si se pasa, encadenar.
 - 2026-10-28 · proceso · Modo desatendido, hito a hito; parar solo al cerrar un hito o si no se puede avanzar, presentando todas las dudas juntas · al cerrar cada hito, actualizar ROADMAP.md.

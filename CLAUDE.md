@@ -33,7 +33,7 @@ JDK 21 vía `~/.gradle/gradle.properties` (`org.gradle.java.installations.paths`
 - TDD en lógica crítica: generación de notas, cronometraje, detección de tramos, deltas, parseo de datos, migraciones.
 - Commits locales pequeños y frecuentes: Conventional Commits `tipo(ámbito): resumen` en español. **Sin
   `Co-Authored-By` ni atribución de IA.** `git add` explícito.
-- **Sin pedir permiso a Joan** para las acciones del hito y fusionar PRs (2026-10-28). **Push solo cuando Joan lo pida** (2026-10-31); un push a `main` que cambie `version.properties` publica release. Nunca force-push.
+- **Sin pedir permiso a Joan** para las acciones del hito y fusionar PRs (2026-10-28). **Push solo cuando Joan lo pida** (2026-10-31); un push a `main` que cambie `version.properties` publica release. Al repo `rally-copilot-data` sí se hace push y release de datos durante el hito (2026-10-31). Nunca force-push.
 - No añadir dependencias sin la skill dependency-add. No cambiar arquitectura sin registrarlo (registrar-decision).
 - No tocar ni imprimir secretos (`~/.rallycopilot/*`, `local.properties`, `.env*`, keystores). Nombres, nunca valores.
 - No desactivar tests para pasar el gate. No ignorar errores. TODOs solo con registro en ESTADO.md.
