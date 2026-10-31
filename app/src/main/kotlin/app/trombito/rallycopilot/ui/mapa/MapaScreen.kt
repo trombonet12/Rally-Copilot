@@ -121,7 +121,7 @@ fun MapaScreen(
                 PanelVelocidad(
                     velocidadKmh = estado.velocidadKmh,
                     limiteKmh = estado.limiteKmh,
-                    via = estado.via?.ref ?: estado.via?.nombre,
+                    via = estado.via,
                     enColumna = true,
                     modifier =
                         Modifier
@@ -140,7 +140,7 @@ fun MapaScreen(
                 PanelVelocidad(
                     velocidadKmh = estado.velocidadKmh,
                     limiteKmh = estado.limiteKmh,
-                    via = estado.via?.ref ?: estado.via?.nombre,
+                    via = estado.via,
                     enColumna = false,
                     modifier =
                         Modifier

@@ -23,9 +23,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.domain.vias.ViaActual
+import app.trombito.rallycopilot.ui.comun.PlacaCarretera
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 
@@ -45,7 +48,7 @@ private val TextoSenal = Color.Black
 fun PanelVelocidad(
     velocidadKmh: Int?,
     limiteKmh: Int?,
-    via: String?,
+    via: ViaActual?,
     enColumna: Boolean,
     modifier: Modifier = Modifier,
 ) {
@@ -70,18 +73,86 @@ fun PanelVelocidad(
                     horizontalArrangement = Arrangement.spacedBy(Espacio.xl, Alignment.CenterHorizontally),
                 ) { contenido() }
             }
-            if (!via.isNullOrBlank()) {
-                Text(
-                    text = via,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.testTag(ETIQUETA_VIA),
-                )
+            RotuloVia(refsDePlaca(via?.ref), via?.nombre?.trim()?.takeIf { it.isNotEmpty() }, enColumna)
+        }
+    }
+}
+
+/** Los `ref` de OSM separados por «;», sin vacíos ni repetidos y como mucho [MAX_PLACAS]. */
+internal fun refsDePlaca(ref: String?): List<String> =
+    ref
+        .orEmpty()
+        .split(';')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .distinct()
+        .take(MAX_PLACAS)
+
+/**
+ * Bajo la velocidad: una placa por cada `ref` y, si hay, el nombre en texto pequeño. En vertical el nombre va junto a
+ * las placas y se recorta si no cabe; en horizontal (columna estrecha) va debajo. Sin `ref`, solo el nombre.
+ */
+@Composable
+private fun RotuloVia(
+    refs: List<String>,
+    nombre: String?,
+    enColumna: Boolean,
+) {
+    if (refs.isEmpty() && nombre == null) return
+    val textoNombre: @Composable (Modifier, Int) -> Unit = { modificador, lineas ->
+        Text(
+            text = nombre.orEmpty(),
+            style =
+                if (refs.isEmpty()) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            maxLines = lineas,
+            overflow = TextOverflow.Ellipsis,
+            modifier = modificador.testTag(ETIQUETA_VIA),
+        )
+    }
+    val placas: @Composable () -> Unit = {
+        if (enColumna) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Espacio.xs),
+            ) { refs.forEach { PlacaCarretera(it) } }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s)) { refs.forEach { PlacaCarretera(it) } }
+        }
+    }
+    when {
+        refs.isEmpty() -> {
+            textoNombre(Modifier, 2)
+        }
+
+        nombre == null -> {
+            placas()
+        }
+
+        enColumna -> {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(Espacio.xs),
+            ) {
+                placas()
+                textoNombre(Modifier, 2)
+            }
+        }
+
+        else -> {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Espacio.m),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                placas()
+                textoNombre(Modifier.weight(1f, fill = false), 1)
             }
         }
     }
 }
+
+private const val MAX_PLACAS = 2
 
 @Composable
 private fun Velocidad(velocidadKmh: Int?) {

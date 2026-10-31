@@ -2,6 +2,8 @@ package app.trombito.rallycopilot.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import app.trombito.rallycopilot.ui.comun.TipoPlaca
+import app.trombito.rallycopilot.ui.comun.colores
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -92,6 +94,18 @@ class ContrastTest {
                         val r = ratio(c, esquema.surface)
                         if (r < MIN_AA) "$nombre $k = ${"%.2f".format(r)}" else null
                     }
+            }
+        assertTrue("Contraste < $MIN_AA: $failures", failures.isEmpty())
+    }
+
+    /** Las placas de carretera llevan su texto sobre el color de la señal real: también AA. */
+    @Test
+    fun placasDeCarretera_meetAA() {
+        val failures =
+            TipoPlaca.entries.mapNotNull { tipo ->
+                val c = tipo.colores()
+                val r = ratio(c.texto, c.fondo)
+                if (r < MIN_AA) "$tipo = ${"%.2f".format(r)}" else null
             }
         assertTrue("Contraste < $MIN_AA: $failures", failures.isEmpty())
     }

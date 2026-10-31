@@ -32,6 +32,7 @@
     <string name="panel_velocidad_sin_dato">Velocidad desconocida</string>
     <string name="panel_limite_descripcion">Límite de velocidad: %1$d kilómetros por hora</string>
     <string name="panel_via_descripcion">Vía: %1$s</string>
+    <string name="placa_carretera_descripcion">carretera %1$s</string>
 
     <!-- Permiso de ubicación -->
     <string name="permiso_ubicacion_titulo">Necesito tu ubicación</string>
