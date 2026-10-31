@@ -27,6 +27,7 @@ import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.navegacion.BotonTerminar
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_CAPAS_BOTON = "mapa-capas-boton"
@@ -39,13 +40,15 @@ private val RADIO_PANEL = 28.dp
 
 /**
  * Controles redondos del mapa, solo con iconos: capas (que despliega base Mapa/Satélite e interruptor de relieve) y
- * orientación (rumbo arriba / norte arriba).
+ * orientación (rumbo arriba / norte arriba). Con una conducción en marcha, [onTerminar] añade la bandera a cuadros
+ * al final de la columna.
  */
 @Composable
 internal fun ControlesMapa(
     estado: MapaUiState,
     acciones: AccionesMapa,
     modifier: Modifier = Modifier,
+    onTerminar: (() -> Unit)? = null,
 ) {
     var capasAbiertas by rememberSaveable { mutableStateOf(false) }
     Column(
@@ -61,6 +64,7 @@ internal fun ControlesMapa(
         ) { Icon(Iconos.Capas, contentDescription = null) }
         if (capasAbiertas) PanelCapas(estado, acciones)
         BotonOrientacion(estado.orientacion, acciones.onOrientacion)
+        if (onTerminar != null) BotonTerminar(onTerminar)
     }
 }
 

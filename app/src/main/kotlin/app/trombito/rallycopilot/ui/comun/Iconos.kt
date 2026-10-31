@@ -100,4 +100,46 @@ object Iconos {
                 "5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z",
         )
     }
+
+    /** Rayo: la ruta más rápida. */
+    val Rayo: ImageVector by lazy {
+        icono("Rayo", "M13,2 L5,14 L11,14 L10,22 L19,9 L13,9Z")
+    }
+
+    /** Carretera con curvas: la ruta sinuosa. */
+    val Curvas: ImageVector by lazy {
+        icono("Curvas", "M5,22 C5,15 16,15 16,9 C16,6 8,6 8,2 L12,2 C12,6 20,6 20,9 C20,15 9,15 9,22Z")
+    }
+
+    /** Bandera a cuadros (cuadrícula 4x3 con huecos alternos): terminar el tramo. */
+    val Bandera: ImageVector by lazy {
+        icono(
+            "Bandera",
+            "M5,3 H7 V21 H5Z M7,4 H19 V13 H7Z " +
+                "M10,4 V7 H13 V4Z M16,4 V7 H19 V4Z M7,7 V10 H10 V7Z M13,7 V10 H16 V7Z " +
+                "M10,10 V13 H13 V10Z M16,10 V13 H19 V10Z",
+        )
+    }
+
+    /** Volante: conducir sin destino. */
+    val Volante: ImageVector by lazy {
+        icono(
+            "Volante",
+            "M12,2 A10,10 0 1,1 12,22 A10,10 0 1,1 12,2Z M12,4 A8,8 0 1,0 12,20 A8,8 0 1,0 12,4Z " +
+                "M3,11 H21 V13 H3Z M11,13 H13 V21 H11Z M12,9 A3,3 0 1,1 12,15 A3,3 0 1,1 12,9Z",
+        )
+    }
+
+    /** Triángulo de play: empezar la ruta. */
+    val Empezar: ImageVector by lazy {
+        icono("Empezar", "M8,5 V19 L19,12Z")
+    }
+
+    val Lugar: ImageVector by lazy {
+        icono(
+            "Lugar",
+            "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5" +
+                "-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
+        )
+    }
 }

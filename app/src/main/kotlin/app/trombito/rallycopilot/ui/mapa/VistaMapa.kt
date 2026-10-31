@@ -86,6 +86,8 @@ data class PreferenciasVistaMapa(
     val orientacion: Orientacion = Orientacion.RUMBO,
     /** Zoom automático a aplicar mientras la cámara sigue al coche; null = el del usuario. */
     val zoomObjetivo: Double? = null,
+    /** Ruta dibujada sobre las vías (vista previa o guiado); null = ninguna. */
+    val ruta: RutaEnMapa? = null,
 )
 
 /**
@@ -308,6 +310,7 @@ private class ControladorMapa(
         posicion = nueva
         val componente = mapa?.locationComponent?.takeIf { ubicacionActivada }
         if (nuevas.relieve != previas.relieve) estilo?.let { aplicarRelieve(it, nuevas.relieve) }
+        aplicarRuta(previas.ruta, nuevas.ruta)
         if (componente != null && nuevas.icono != previas.icono) {
             componente.applyStyle(opcionesUbicacion(vista.context, nuevas.icono))
         }
@@ -329,7 +332,26 @@ private class ControladorMapa(
         m.setStyle(Style.Builder().fromJson(json)) { cargado ->
             estilo = cargado
             aplicarRelieve(cargado, preferencias.relieve)
+            // Antes de activar la ubicación: la línea de la ruta queda debajo de la flecha de posición.
+            CapaRuta.instalar(cargado, preferencias.ruta)
             asegurarUbicacion()
+        }
+    }
+
+    /** Redibuja la línea si cambian los puntos y encuadra la cámara al abrir la vista previa o cambiar de ruta. */
+    private fun aplicarRuta(
+        previa: RutaEnMapa?,
+        nueva: RutaEnMapa?,
+    ) {
+        if (nueva == previa) return
+        val cambiaronPuntos = nueva?.puntos != previa?.puntos
+        if (cambiaronPuntos) estilo?.let { CapaRuta.actualizar(it, nueva?.puntos.orEmpty()) }
+        val nuevoEncuadre = cambiaronPuntos || previa?.encuadrar != true
+        if (nueva != null && nueva.encuadrar && nuevoEncuadre) {
+            val m = mapa ?: return
+            // Sin seguimiento: el componente de ubicación recolocaría la cámara con cada fijación.
+            if (ubicacionActivada) m.locationComponent.cameraMode = CameraMode.NONE
+            m.encuadrarRuta(nueva.puntos, vista.resources.displayMetrics.density, vista.height)
         }
     }
 

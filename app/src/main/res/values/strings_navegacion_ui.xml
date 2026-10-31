@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Barra de destino -->
+    <string name="navegacion_ui_donde">¿A dónde?</string>
+    <string name="navegacion_ui_limpiar">Borrar la búsqueda</string>
+    <string name="navegacion_ui_conducir_libre">Conducir sin destino</string>
+    <string name="navegacion_ui_sin_resultados">Sin resultados en Mallorca</string>
+    <string name="navegacion_ui_enlace_corto">Los enlaces cortos necesitan red; pega el enlace completo o las coordenadas</string>
+    <string name="navegacion_ui_ubicacion_pegada">Ubicación pegada</string>
+    <string name="navegacion_ui_resultado_detalle">%1$s · %2$s</string>
+    <string name="navegacion_ui_resultados">Resultados de la búsqueda</string>
+
+    <!-- Vista previa de rutas -->
+    <string name="navegacion_ui_rutas">Rutas disponibles</string>
+    <string name="navegacion_ui_ruta_rapida">Ruta más rápida</string>
+    <string name="navegacion_ui_ruta_sinuosa">Ruta sinuosa</string>
+    <string name="navegacion_ui_ruta_descripcion">%1$s: %2$s</string>
+    <string name="navegacion_ui_ruta_datos">%1$s, %2$s</string>
+    <string name="navegacion_ui_ruta_calculando">calculando</string>
+    <string name="navegacion_ui_ruta_sin_datos">Sin datos de rutas</string>
+    <string name="navegacion_ui_ruta_error">No se pudo calcular</string>
+    <string name="navegacion_ui_ruta_seleccionada">Seleccionada</string>
+    <string name="navegacion_ui_sin_posicion">Esperando tu posición GPS para calcular la ruta…</string>
+    <string name="navegacion_ui_empezar">Empezar</string>
+    <string name="navegacion_ui_cancelar">Cancelar la ruta</string>
+
+    <!-- Conducción -->
+    <string name="navegacion_ui_llegada">Has llegado a %1$s</string>
+</resources>
