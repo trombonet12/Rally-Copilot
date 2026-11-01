@@ -70,4 +70,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H3 cerrado. Al volver: si Joan aprobó, push + v0.3 (commit de versión ya preparado en local) y comprobar la release; después `hito start H4` (voz: `dependency-add` de sherpa-onnx, voces Piper davefx/sharvard, clips pregenerados en Actions, modos, ducking, frases de maniobra y notas por voz).
+- **Agente:** H3 cerrado y v0.3.0 publicada (push aprobado por Joan el 2026-11-01). Al volver, antes de `hito start H4`: implementar las respuestas del cierre de H3 (DECISIONES 2026-11-01: barra oculta en libre con notas, «compresión», «muy cerrada», sin curvas con límite ≤ 30). Después H4 (voz: `dependency-add` de sherpa-onnx, voces Piper davefx/sharvard, clips pregenerados en Actions, modos, ducking, frases de maniobra y notas por voz). Duda abierta: distancia hasta la nota en la franja (QUESTIONS).

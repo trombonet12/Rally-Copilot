@@ -6,11 +6,12 @@ Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuest
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **4 abiertas** (H3) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **1 abierta** (H3) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
 ## Abiertas en H3
 
 ### Franja de notas en modo libre
+- **Respondida 2026-11-01:** **C**: la barra «¿A dónde?» se oculta mientras hay notas y aparece al tocar el mapa.
 - **Contexto:** en guiado la franja va bajo el banner de maniobra; en libre no hay banner y va bajo la barra «¿A dónde?» (captura `docs/capturas/h3/05-franja-notas-libre.png`).
 - **Opciones:** A) bajo la barra (como ahora); B) encima de la barra, arriba del todo; C) ocultar la barra mientras hay notas y mostrarla al tocar el mapa.
 - **Recomendación:** A; la barra es pequeña y la franja queda a la misma altura que en guiado.
@@ -21,11 +22,13 @@ Estado: **4 abiertas** (H3) · 22 respondidas (2026-10-28, en el chat). Las resp
 - **Recomendación:** A, para no mezclar dos distancias en la misma tarjeta.
 
 ### Vocabulario: «compresión» y grado uno simplificado
+- **Respondida 2026-11-01:** **A**: añadir «compresión» y «muy cerrada».
 - **Contexto:** la revisión de copiloto propone avisar de las vaguadas fuertes como «compresión» (hoy no se dicen) y, en notas simplificadas, decir «muy cerrada» para el grado uno (hoy uno y dos son «cerrada»).
 - **Opciones:** A) añadir las dos; B) solo «compresión»; C) solo «muy cerrada»; D) ninguna por ahora (se revisa con las transcripciones de H11).
 - **Recomendación:** A.
 
 ### Notas en un tramo urbano
+- **Respondida 2026-11-01:** **B**: con límite ≤ 30 km/h no se cantan curvas, solo maniobras y avisos.
 - **Contexto:** en los primeros km de Sóller la Ma-10 cruza calles; tras filtrar, quedan cruces y stops solo cuando son de tu vía o la ruta gira. Las notas de curvas se siguen cantando a cualquier velocidad.
 - **Opciones:** A) igual en ciudad que en carretera; B) no cantar curvas con límite ≤ 30 km/h (calles), solo maniobras y avisos.
 - **Recomendación:** B, para no saturar en pueblos.
