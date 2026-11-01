@@ -1,5 +1,4 @@
-• Mantén pulsado el mapa: «Ir aquí» o «Añadir parada».
-• Rutas con varias paradas: al pasar por una, sigue a la siguiente.
-• Buscador nuevo: por palabras, en castellano o catalán, con calles, monumentos, hospitales y negocios («castillo bellver», «hospital»).
-• Gira e inclina el mapa con dos dedos.
-• Panel inferior compacto mientras planificas parado.
+• Cada trayecto de más de 1 km es un tramo cronometrado; al repetirlo, la app lo detecta aunque entres a mitad.
+• HUD de retransmisión: tiempo, delta en verde o rojo, barra con sectores y parciales; meta con «nuevo mejor».
+• En modo completo el copiloto canta el delta en cada sector y en meta.
+• Guiando: «Ir aquí» y lupa para cambiar destino o añadir parada.
