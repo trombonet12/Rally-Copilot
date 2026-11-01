@@ -275,8 +275,10 @@ private class ControladorMapa(
                 isLogoEnabled = false
                 isAttributionEnabled = false
                 isCompassEnabled = false
-                isRotateGesturesEnabled = false
-                isTiltGesturesEnabled = false
+                // Girar e inclinar con dos dedos (petición de Joan, H5B): el gesto suelta el seguimiento y «recentrar»
+                // vuelve al modo elegido (rumbo arriba inclinado o norte).
+                isRotateGesturesEnabled = true
+                isTiltGesturesEnabled = true
             }
             val centro = camaraInicial?.let { LatLng(it.latitud, it.longitud) } ?: LatLng(LAT_INICIAL, LON_INICIAL)
             m.moveCamera(
