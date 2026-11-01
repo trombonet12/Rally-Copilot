@@ -418,6 +418,20 @@ class MapaViewModelTest {
         }
 
     @Test
+    fun `en libre sin rumbo del receptor el sentido de la via sale del movimiento`() =
+        runTest {
+            // Como `adb emu geo fix` o el fused: sin rumbo. Se va hacia el oeste, contra el orden de la geometría.
+            vias.via = ViaActual("Camí vell", null, null, carretera, SentidoCamino.AMBOS)
+            val vm = crear()
+            recoger(vm)
+            for ((t, lon) in listOf(1_000L to 2.906, 2_000L to 2.9058, 3_000L to 2.9056)) {
+                val f = fijacionTorcida(t, rumbo = null)
+                ubicacion.flujo.emit(f.copy(punto = f.punto.copy(lon = lon)))
+            }
+            assertEquals(270.0, vm.uiState.value.rumboMostrado, 0.5)
+        }
+
+    @Test
     fun `en guiado, fuera de la ruta pero sobre otra via, el marcador sigue la via`() =
         runTest {
             guiarPor(listOf(PuntoGeo(39.72, 2.900), PuntoGeo(39.72, 2.910)))

@@ -100,7 +100,13 @@ class MapaViewModel
                                 val velocidad = ms?.let(::kmh)
                                 // Al ajuste va la velocidad estimada (la del receptor puede faltar). El rumbo mostrado
                                 // sale del camino (ruta o vía), no del bruto; la cruda sigue en `posicion`.
-                                val conVelocidad = fijacion.copy(velocidadMs = ms ?: fijacion.velocidadMs)
+                                // Sin rumbo del receptor (emulador, fused), el del movimiento: si no, en una vía de
+                                // doble sentido el ajuste solo tendría su propio rumbo previo y se quedaba al revés.
+                                val conVelocidad =
+                                    fijacion.copy(
+                                        velocidadMs = ms ?: fijacion.velocidadMs,
+                                        rumboGrados = fijacion.rumboGrados ?: estimador.rumbo(),
+                                    )
 
                                 fun lectura(via: ViaActual?) =
                                     Lectura(fijacion, velocidad, via, sobreCamino.ajustar(conVelocidad, via))
