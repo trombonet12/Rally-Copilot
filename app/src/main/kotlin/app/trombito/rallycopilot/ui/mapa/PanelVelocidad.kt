@@ -72,7 +72,8 @@ private val TextoSenal = Color.Black
  *
  * Con [compacto] (parado planificando una ruta) el panel ocupa lo mínimo para dejar más mapa: la velocidad pequeña, el
  * límite en una señal chica y los botones en una sola fila, sin la placa de la vía ni la media del radar; el cambio de
- * tamaño es animado.
+ * tamaño es animado. [pie] es una línea opcional bajo la placa de la vía (el cronómetro pequeño de la conducción);
+ * el panel compacto no la lleva.
  */
 @Composable
 @Suppress("LongParameterList", "LongMethod") // datos de conducción, grupos de botones, alertas y las dos variantes
@@ -86,6 +87,7 @@ fun PanelVelocidad(
     botonesDerecha: List<@Composable () -> Unit> = emptyList(),
     alertas: AlertasPanel = AlertasPanel(),
     compacto: Boolean = false,
+    pie: (@Composable () -> Unit)? = null,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
@@ -113,6 +115,7 @@ fun PanelVelocidad(
                     ) {
                         contenido()
                         rotulo()
+                        pie?.invoke()
                         // Hasta cuatro botones de 48 dp en una sola fila: no se apila otra fila bajo la velocidad.
                         Row(horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
                             (botonesIzquierda + botonesDerecha).forEach { it() }
@@ -134,6 +137,7 @@ fun PanelVelocidad(
                                 horizontalArrangement = Arrangement.spacedBy(Espacio.m, Alignment.CenterHorizontally),
                             ) { contenido() }
                             rotulo()
+                            pie?.invoke()
                         }
                         ColumnaBotones(botonesDerecha, Alignment.End)
                     }

@@ -45,6 +45,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
 import app.trombito.rallycopilot.ui.alertas.TarjetaIncidencia
@@ -66,6 +67,7 @@ import app.trombito.rallycopilot.ui.navegacion.TarjetaPunto
 import app.trombito.rallycopilot.ui.navegacion.TarjetaSeguir
 import app.trombito.rallycopilot.ui.navegacion.notas.FranjaNotas
 import app.trombito.rallycopilot.ui.theme.Espacio
+import app.trombito.rallycopilot.ui.tramos.CronoSuperior
 
 const val ETIQUETA_CARGANDO = "mapa-cargando"
 const val ETIQUETA_SIN_DATOS = "mapa-sin-datos"
@@ -124,7 +126,8 @@ data class AccionesMapa(
  * pantalla sin MapLibre. [navegacion] trae la barra «¿A dónde?», la vista previa de rutas, el botón de terminar y el
  * hueco del panel de guiado (banner a todo el ancho arriba). [copiloto] trae el modo (selector en el panel) y el
  * diálogo de la voz del primer uso. [alertas] trae el banner de radar o incidencia, la velocidad en rojo, la media
- * del radar de tramo y la tarjeta de la incidencia tocada en el mapa.
+ * del radar de tramo y la tarjeta de la incidencia tocada en el mapa. [crono] trae el cronómetro: el HUD arriba si el
+ * tramo es conocido y la tarjeta de meta; con un tramo nuevo o sin tramo, un cronómetro pequeño en el panel.
  */
 @Composable
 @Suppress("LongParameterList") // estado, vista, acciones, mapa y navegación son los bloques de la pantalla
@@ -137,6 +140,7 @@ fun MapaScreen(
     navegacion: NavegacionEnMapa = NavegacionEnMapa(),
     copiloto: CopilotoEnMapa = CopilotoEnMapa(),
     alertas: AlertasUiState = AlertasUiState(),
+    crono: CronoEnCurso? = null,
 ) {
     MantenerPantallaEncendida()
     var abierto by rememberSaveable { mutableStateOf(MenuMapa.NINGUNO) }
@@ -146,25 +150,18 @@ fun MapaScreen(
     // Parado planificando (búsqueda, tarjeta de un punto o vista previa) el panel inferior se encoge para ver más mapa.
     val compacto = rememberPanelCompacto(estado.velocidadKmh, navegacion.estado.planificando)
     DialogoVozSiToca(copiloto)
+    val zona = ZonaMapaContenido(estado, vista, acciones, navegacion, menu, copiloto, alertas, crono)
     BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val horizontal = maxWidth > maxHeight
         if (horizontal) {
             Row(Modifier.fillMaxSize()) {
                 ZonaMapa(
-                    ZonaMapaContenido(
-                        estado,
-                        vista.copy(horizontal = true),
-                        acciones,
-                        navegacion,
-                        menu,
-                        copiloto,
-                        alertas,
-                    ),
+                    zona.orientada(horizontal = true),
                     mapa,
                     Modifier.weight(1f).fillMaxHeight(),
                 )
                 PanelDeVelocidad(
-                    PanelEnMapa(estado, botones, alertas, enColumna = true, compacto = compacto),
+                    PanelEnMapa(estado, botones, alertas, enColumna = true, compacto = compacto, crono = crono),
                     Modifier
                         .width(anchoPanelLateral(botones))
                         .fillMaxHeight()
@@ -174,20 +171,12 @@ fun MapaScreen(
         } else {
             Column(Modifier.fillMaxSize()) {
                 ZonaMapa(
-                    ZonaMapaContenido(
-                        estado,
-                        vista.copy(horizontal = false),
-                        acciones,
-                        navegacion,
-                        menu,
-                        copiloto,
-                        alertas,
-                    ),
+                    zona.orientada(horizontal = false),
                     mapa,
                     Modifier.weight(1f).fillMaxWidth(),
                 )
                 PanelDeVelocidad(
-                    PanelEnMapa(estado, botones, alertas, enColumna = false, compacto = compacto),
+                    PanelEnMapa(estado, botones, alertas, enColumna = false, compacto = compacto, crono = crono),
                     Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(LADOS_PANEL_INFERIOR)),
@@ -207,7 +196,21 @@ private class ZonaMapaContenido(
     val menu: MenuAbierto,
     val copiloto: CopilotoEnMapa,
     val alertas: AlertasUiState,
-)
+    val crono: CronoEnCurso?,
+) {
+    /** El mismo contenido con la zona en vertical o en apaisado. */
+    fun orientada(horizontal: Boolean) =
+        ZonaMapaContenido(
+            estado,
+            vista.copy(horizontal = horizontal),
+            acciones,
+            navegacion,
+            menu,
+            copiloto,
+            alertas,
+            crono,
+        )
+}
 
 @Composable
 private fun ZonaMapa(
@@ -239,7 +242,7 @@ private fun ZonaMapa(
         }
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(lados)).padding(Espacio.s)) {
             CabeceraMapa(
-                ContenidoCabecera(estado, acciones, navegacion, contenido.alertas),
+                ContenidoCabecera(estado, acciones, navegacion, contenido.alertas, contenido.crono),
                 barra,
                 vista.horizontal,
                 Modifier.align(Alignment.TopStart),
@@ -250,7 +253,14 @@ private fun ZonaMapa(
                     Modifier.align(Alignment.BottomStart),
                 )
                 (navegacion.estado.control as? EstadoNavegacion.Guiando)?.let {
-                    navegacion.panelGuiado(this, it, vista.horizontal, navegacion.notas, contenido.alertas)
+                    navegacion.panelGuiado(
+                        this,
+                        it,
+                        vista.horizontal,
+                        navegacion.notas,
+                        contenido.alertas,
+                        contenido.crono,
+                    )
                 }
                 // La búsqueda abierta con la lupa tapa el banner de arriba; los menús del panel siguen encima.
                 if (navegacion.estado.buscando) {
@@ -326,6 +336,7 @@ private class ContenidoCabecera(
     val acciones: AccionesMapa,
     val navegacion: NavegacionEnMapa,
     val alertas: AlertasUiState,
+    val crono: CronoEnCurso?,
 )
 
 /**
@@ -377,6 +388,7 @@ private fun CabeceraMapa(
             if (navegacion.estado.busqueda is BusquedaDestino.Inactiva && navegacion.estado.vistaPrevia == null) {
                 FranjaNotas(navegacion.notas, compacta = horizontal)
                 BannerAlerta(contenido.alertas.aviso, contenido.alertas.frescura, compacto = horizontal)
+                CronoSuperior(contenido.crono, compacto = horizontal)
             }
             navegacion.estado.seguir?.let {
                 TarjetaSeguir(it, navegacion.acciones.onSeguir, navegacion.acciones.onDescartarSeguir)

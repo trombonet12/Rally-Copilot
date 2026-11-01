@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- HUD del cronómetro de tramo. El texto visible lleva abreviaturas (S1, M2); TalkBack lee las descripciones. -->
+    <string name="crono_sector_etiqueta">S%1$d</string>
+    <string name="crono_micro_etiqueta">M%1$d</string>
+    <string name="crono_sin_delta">—</string>
+
+    <plurals name="crono_minutos">
+        <item quantity="one">%1$d minuto</item>
+        <item quantity="other">%1$d minutos</item>
+    </plurals>
+    <string name="crono_segundos">%1$s segundos</string>
+    <string name="crono_delta_mas">más %1$s</string>
+    <string name="crono_delta_menos">menos %1$s</string>
+    <string name="crono_delta_igual">igual que tu mejor tiempo</string>
+
+    <string name="crono_hud_descripcion">Cronómetro del tramo: %1$s. Respecto a tu mejor tiempo: %2$s</string>
+    <string name="crono_hud_descripcion_sin_delta">Cronómetro del tramo: %1$s</string>
+    <string name="crono_barra_descripcion">Progreso del tramo: %1$d por ciento</string>
+    <string name="crono_sector_descripcion">Sector %1$d: %2$s</string>
+    <string name="crono_micro_descripcion">Microsector %1$d: %2$s</string>
+    <string name="crono_parcial_con_tiempo">%1$s, tiempo %2$s</string>
+
+    <!-- Cronómetro pequeño (sin tramo conocido) -->
+    <string name="crono_mini_descripcion">Cronómetro de la conducción: %1$s</string>
+
+    <!-- Tarjeta de meta -->
+    <string name="crono_meta_titulo">META</string>
+    <string name="crono_meta_nuevo_mejor">NUEVO MEJOR</string>
+    <string name="crono_meta_mejor_anterior">Mejor anterior %1$s</string>
+    <string name="crono_meta_descripcion">Meta. Tiempo: %1$s.</string>
+    <string name="crono_meta_descripcion_delta">Respecto a tu mejor tiempo: %1$s.</string>
+    <string name="crono_meta_descripcion_nuevo_mejor">Nuevo mejor tiempo.</string>
+</resources>

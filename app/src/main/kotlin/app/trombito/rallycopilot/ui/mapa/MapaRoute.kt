@@ -22,6 +22,7 @@ import app.trombito.rallycopilot.ui.navegacion.NavegacionViewModel
 import app.trombito.rallycopilot.ui.navegacion.PanelGuiado
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasViewModel
 import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
+import app.trombito.rallycopilot.ui.tramos.CronoViewModel
 
 /**
  * Une los ViewModels (mapa y navegación), el permiso de ubicación y el mapa real con la pantalla sin lógica.
@@ -29,7 +30,7 @@ import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
  * maniobras de los ajustes).
  */
 @Composable
-@Suppress("LongParameterList") // un ViewModel por bloque (mapa, navegación, notas, copiloto, alertas) más los huecos
+@Suppress("LongParameterList") // un ViewModel por bloque (mapa, navegación, notas, copiloto, alertas, crono)
 fun MapaRoute(
     onAbrirMapasOffline: () -> Unit,
     modifier: Modifier = Modifier,
@@ -39,12 +40,14 @@ fun MapaRoute(
     notasViewModel: NotasViewModel = hiltViewModel(),
     copilotoViewModel: CopilotoViewModel = hiltViewModel(),
     alertasViewModel: AlertasViewModel = hiltViewModel(),
+    cronoViewModel: CronoViewModel = hiltViewModel(),
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     val navegacion by navegacionViewModel.uiState.collectAsStateWithLifecycle()
     val notas by notasViewModel.uiState.collectAsStateWithLifecycle()
     val copiloto by copilotoViewModel.uiState.collectAsStateWithLifecycle()
     val alertas by alertasViewModel.uiState.collectAsStateWithLifecycle()
+    val crono by cronoViewModel.crono.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
     LaunchedEffect(permiso.estado) {
         val concedido = permiso.estado == EstadoPermisoUbicacion.CONCEDIDO
@@ -74,6 +77,7 @@ fun MapaRoute(
         navegacion = NavegacionEnMapa(navegacion, accionesNavegacion(navegacionViewModel), panel, notas),
         copiloto = CopilotoEnMapa(copiloto, accionesCopiloto(copilotoViewModel)),
         alertas = alertas,
+        crono = crono,
     )
 }
 

@@ -79,7 +79,7 @@ abstract class NavegacionEnMapaBase {
             onDescartarSeguir = { descartadas++ },
         )
 
-    private val panelGuiado: PanelGuiado = { _, _, _, _ ->
+    private val panelGuiado: PanelGuiado = { _, _, _, _, _ ->
         panelesGuiado++
         Box(Modifier.fillMaxSize().testTag(ETIQUETA_PANEL_GUIADO)) { Text("banner") }
     }

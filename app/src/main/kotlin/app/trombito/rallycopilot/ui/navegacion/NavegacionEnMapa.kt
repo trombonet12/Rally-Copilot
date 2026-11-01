@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
+import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
@@ -46,8 +47,8 @@ data class AccionesNavegacion(
  * superposición del mapa (el `Box` a pantalla completa de la zona del mapa, ya con los insets del sistema y 8 dp de
  * margen), solo mientras el estado es [EstadoNavegacion.Guiando]; el segundo parámetro dice si la pantalla es
  * apaisada, el tercero trae las notas que van en la franja bajo el banner y el cuarto las alertas (banner de radar o
- * incidencia bajo la franja). Los botones están en el panel negro
- * inferior, así que la franja superior es toda del banner.
+ * incidencia bajo la franja) y el quinto el cronómetro (HUD del tramo conocido o tarjeta de meta, bajo todo lo
+ * anterior). Los botones están en el panel negro inferior, así que la franja superior es toda del banner.
  */
 typealias PanelGuiado =
     @Composable BoxScope.(
@@ -55,23 +56,25 @@ typealias PanelGuiado =
         horizontal: Boolean,
         notas: NotasUiState,
         alertas: AlertasUiState,
+        crono: CronoEnCurso?,
     ) -> Unit
 
 /** Hueco vacío: no pinta nada. */
-val SinPanelGuiado: PanelGuiado = { _, _, _, _ -> }
+val SinPanelGuiado: PanelGuiado = { _, _, _, _, _ -> }
 
 /**
  * El panel de guiado real: banner arriba a todo el ancho y pie abajo. [variante] es el estilo de los iconos de
  * maniobra elegido en Ajustes (por defecto, la placa inclinada).
  */
 fun panelGuiadoMapa(variante: VarianteManiobra = VarianteManiobra.PLACA_INCLINADA): PanelGuiado =
-    { guiando, _, notas, alertas ->
+    { guiando, _, notas, alertas, crono ->
         app.trombito.rallycopilot.ui.navegacion.guiado.PanelGuiado(
             estado = guiando,
             variante = variante,
             modifier = Modifier.fillMaxSize(),
             notas = notas,
             alertas = alertas,
+            crono = crono,
         )
     }
 

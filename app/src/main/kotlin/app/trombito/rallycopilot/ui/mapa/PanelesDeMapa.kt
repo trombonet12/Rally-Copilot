@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.copiloto.BotonModoCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
@@ -16,6 +17,7 @@ import app.trombito.rallycopilot.ui.copiloto.PanelModoCopiloto
 import app.trombito.rallycopilot.ui.navegacion.BotonBuscarGuiando
 import app.trombito.rallycopilot.ui.navegacion.BotonTerminar
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
+import app.trombito.rallycopilot.ui.tramos.CronoMiniEnPanel
 
 /** El diálogo para elegir la voz del copiloto en el primer uso. */
 @Composable
@@ -36,6 +38,8 @@ internal class PanelEnMapa(
     val enColumna: Boolean,
     /** Parado planificando: el panel se encoge para dejar más mapa. */
     val compacto: Boolean = false,
+    /** Cronómetro de la conducción: en el panel solo va el pequeño (sin tramo conocido). */
+    val crono: CronoEnCurso? = null,
 )
 
 @Composable
@@ -52,6 +56,7 @@ internal fun PanelDeVelocidad(
         botonesDerecha = panel.botones.derecha,
         alertas = panel.alertas.panel,
         compacto = panel.compacto,
+        pie = panel.crono?.let { crono -> { CronoMiniEnPanel(crono) } },
         modifier = modifier,
     )
 }
