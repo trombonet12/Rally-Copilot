@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.busqueda
 
 import android.database.sqlite.SQLiteDatabase
+import app.trombito.rallycopilot.motor.busqueda.ConsultaBusqueda
 import app.trombito.rallycopilot.motor.busqueda.NormalizadorNombre
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import kotlinx.coroutines.Dispatchers
@@ -51,6 +52,7 @@ class BuscadorSqliteTest {
         destino: File,
         version: Int = 2,
         lugares: List<Fila> = filas,
+        conPalabras: Boolean = false,
     ) {
         val db = SQLiteDatabase.openOrCreateDatabase(destino, null)
         db.execSQL(
@@ -74,8 +76,30 @@ class BuscadorSqliteTest {
             )
         }
         db.execSQL("CREATE INDEX lugares_nombre_norm ON lugares (nombre_norm)")
+        if (conPalabras) anadirPalabras(db)
         db.version = version
         db.close()
+    }
+
+    /** Esquema nuevo: `municipio_norm` y `palabras` (como `escribir_sqlite` de busqueda.py). */
+    private fun anadirPalabras(db: SQLiteDatabase) {
+        db.execSQL("ALTER TABLE lugares ADD COLUMN municipio_norm TEXT NOT NULL DEFAULT ''")
+        db.execSQL(
+            "CREATE TABLE palabras (palabra TEXT NOT NULL, lugar INTEGER NOT NULL, PRIMARY KEY (palabra, lugar)) " +
+                "WITHOUT ROWID",
+        )
+        val lugares = ArrayList<Pair<Long, String>>()
+        db.rawQuery("SELECT rowid, nombre_norm, municipio FROM lugares", null).use { c ->
+            while (c.moveToNext()) {
+                lugares += c.getLong(0) to (c.getString(1) + " " + NormalizadorNombre.normalizar(c.getString(2)))
+            }
+        }
+        for ((rowid, texto) in lugares) {
+            val palabras = texto.split(' ').filter { it.isNotEmpty() && it !in ConsultaBusqueda.PALABRAS_VACIAS }
+            for (palabra in palabras.distinct()) {
+                db.execSQL("INSERT INTO palabras VALUES (?, ?)", arrayOf<Any>(palabra, rowid))
+            }
+        }
     }
 
     @Before
@@ -220,5 +244,133 @@ class BuscadorSqliteTest {
         assertTrue(archivo.delete())
 
         assertTrue(buscar("soller").isEmpty())
+    }
+
+    private val lugaresPalabras =
+        listOf(
+            Fila("Hospital Universitari Son Espases", "hospital", "Palma", 39.604, 2.631, 36),
+            Fila("Hospital Son Llàtzer", "hospital", "Palma", 39.608, 2.703, 36),
+            Fila("Hospital de Manacor", "hospital", "Manacor", 39.560, 3.210, 36),
+            Fila("Hospital d'Inca", "hospital", "Inca", 39.720, 2.910, 36),
+            Fila("Carrer de l'Hospital", "calle", "Sóller", 39.766, 2.715, 15),
+            Fila("Son Espases", "barrio", "Palma", 39.600, 2.640, 50),
+            Fila("Bar Hospital Son Espases", "restaurante", "Palma", 39.604, 2.632, 30),
+            Fila("Castell de Bellver", "castillo", "Palma", 39.5636, 2.6244, 35),
+            Fila("Castillo de Alaró", "castillo", "Alaró", 39.7, 2.8, 35),
+            Fila("Carrer de Bellver", "calle", "Palma", 39.57, 2.65, 15),
+            Fila("Carrer de Colom", "calle", "Palma", 39.571, 2.652, 15),
+            Fila("Carrer de Colom", "calle", "Inca", 39.720, 2.912, 15),
+            Fila("Can Colom", "restaurante", "Palma", 39.572, 2.653, 32),
+            Fila("Bar Carrer Colom", "restaurante", "Palma", 39.573, 2.654, 30),
+            Fila("Sóller", "pueblo", "Sóller", 39.766, 2.715, 80),
+            Fila("Plaça Major", "calle", "Palma", 39.5696, 2.6502, 15),
+            Fila("Platja de Palma", "playa", "Palma", 39.52, 2.74, 40),
+        )
+
+    private fun indiceNuevo() = crearIndice(archivo, lugares = lugaresPalabras, conPalabras = true)
+
+    @Test
+    fun `hospital son espases encuentra el hospital primero`() {
+        indiceNuevo()
+
+        val nombres = buscar("hospital son espases").map { it.nombre }
+
+        assertEquals(listOf("Hospital Universitari Son Espases", "Bar Hospital Son Espases"), nombres)
+    }
+
+    @Test
+    fun `castillo bellver usa el sinonimo castell`() {
+        indiceNuevo()
+
+        assertEquals("Castell de Bellver", buscar("castillo bellver").first().nombre)
+        assertEquals("Castell de Bellver", buscar("castell de bellver").first().nombre)
+    }
+
+    @Test
+    fun `calle colom palma pone la calle antes que el negocio`() {
+        indiceNuevo()
+
+        val resultado = buscar("calle colom palma")
+
+        assertEquals(listOf("Carrer de Colom", "Bar Carrer Colom"), resultado.map { it.nombre })
+        assertEquals("Palma", resultado.first().municipio)
+    }
+
+    @Test
+    fun `sin la palabra calle manda la importancia y el municipio filtra`() {
+        indiceNuevo()
+
+        val nombres = buscar("colom palma").map { it.nombre }
+
+        assertEquals(listOf("Can Colom", "Bar Carrer Colom", "Carrer de Colom"), nombres)
+    }
+
+    @Test
+    fun `las palabras casan en cualquier orden y como prefijo`() {
+        indiceNuevo()
+
+        assertEquals(setOf("Carrer de Colom", "Bar Carrer Colom"), buscar("palma col carr").map { it.nombre }.toSet())
+        assertEquals("Platja de Palma", buscar("playa palma").single().nombre)
+        assertTrue(buscar("colom manacor").isEmpty())
+    }
+
+    @Test
+    fun `una categoria sola da los mas cercanos de ese tipo`() {
+        indiceNuevo()
+
+        val desdePalma = buscar("hospital", cerca = PuntoGeo(39.5696, 2.6502), limite = 3).map { it.nombre }
+        val desdeInca = buscar("hospital", cerca = PuntoGeo(39.72, 2.91), limite = 2).map { it.nombre }
+
+        assertEquals(
+            listOf("Hospital Universitari Son Espases", "Hospital Son Llàtzer", "Hospital d'Inca"),
+            desdePalma,
+        )
+        assertEquals("Hospital d'Inca", desdeInca.first())
+    }
+
+    @Test
+    fun `la categoria sola se completa con la busqueda por palabras sin repetir`() {
+        indiceNuevo()
+
+        val nombres = buscar("hospital", cerca = PuntoGeo(39.5696, 2.6502)).map { it.nombre }
+
+        assertEquals(
+            listOf(
+                "Hospital Universitari Son Espases",
+                "Hospital Son Llàtzer",
+                "Hospital d'Inca",
+                "Hospital de Manacor",
+            ),
+            nombres.take(4),
+        )
+        assertEquals(setOf("Carrer de l'Hospital", "Bar Hospital Son Espases"), nombres.drop(4).toSet())
+        assertEquals(6, nombres.size)
+    }
+
+    @Test
+    fun `una categoria sin cerca ordena por importancia`() {
+        indiceNuevo()
+
+        assertEquals(
+            setOf("Castell de Bellver", "Castillo de Alaró"),
+            buscar("castell", limite = 5).take(2).map { it.nombre }.toSet(),
+        )
+    }
+
+    @Test
+    fun `consultas raras no rompen`() {
+        indiceNuevo()
+
+        assertTrue(buscar("%%", cerca = PuntoGeo(39.5, 2.6)).isEmpty())
+        assertTrue(buscar("a' OR 1=1 --").isEmpty())
+        assertTrue(buscar("de la").isEmpty())
+    }
+
+    @Test
+    fun `un indice viejo sin palabras sigue funcionando`() {
+        crearIndice(archivo, lugares = lugaresPalabras)
+
+        assertEquals("Hospital Universitari Son Espases", buscar("hospital universitari").first().nombre)
+        assertEquals("Castell de Bellver", buscar("castell").first().nombre)
     }
 }
