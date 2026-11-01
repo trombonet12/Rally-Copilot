@@ -13,3 +13,6 @@
     public static int d(...);
     public static int i(...);
 }
+
+# sherpa-onnx (TTS): el JNI de libsherpa-onnx-jni.so busca clases, campos y métodos por nombre.
+-keep class com.k2fsa.sherpa.onnx.** { *; }

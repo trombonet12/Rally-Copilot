@@ -31,6 +31,9 @@ voice-lab/data/
 voice-lab/.venv/
 voice-lab/out/
 
+# Caché de descargas verificadas del build (AAR sherpa-onnx, voces, datos de mapas): app/build.gradle.kts
+.descargas/
+
 # Node / Python (solo scripts)
 node_modules/
 __pycache__/
