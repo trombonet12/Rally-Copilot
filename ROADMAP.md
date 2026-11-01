@@ -202,7 +202,7 @@ Avisar de radares e incidencias de tráfico de Mallorca con datos abiertos.
 - Robolectric: refresco con fuente falsa (éxito, error, sin red).
 
 ### Estado
-pendiente · Depende de: H1, H4 · Dudas: resueltas (2026-10-28)
+en curso (2026-11-01) · Depende de: H1, H4 · Dudas: resueltas (2026-10-28); (2026-11-01): exceso +10 %, radar según velocidad, media en tramo, incidencias a ≤ 3 km
 
 ## H6 — Tramos y cronometraje
 

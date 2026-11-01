@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H4 — Voz y modos del copiloto (cerrado, 2026-11-01) · siguiente: H5 — Alertas: radares e incidencias |
-| Estado | **H4 cerrado** (2026-11-01); v0.4 publicada al hacer push con `version.properties` |
+| Hito | H5 — Alertas: radares e incidencias (en curso, 2026-11-01) |
+| Estado | H4 cerrado y v0.4.0 publicada. H5: datos de radares en el repo de datos y parser DATEX II en el motor |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -74,4 +74,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H4 cerrado y v0.4 publicada. Siguiente: `hito start H5` (alertas: radares DGT + OSM en el repo de datos, DATEX II, refresco con caché, banner animado que entra y sale, exceso de velocidad); preguntar a Joan las dudas de producto de H5 al empezar.
+- **Agente:** H5 en curso. Lotes: (1) repo de datos: artefacto `radares` (DGT + OSM + zonas de cinemómetros); (2) motor: DATEX II en streaming, proximidad a radar, tramo, exceso +10 %, filtro de incidencias ≤ 3 km; (3) app: refresco de incidencias con caché y antigüedad, alertas por voz; (4) UI: banner animado, velocidad en rojo, media de tramo; (5) revisión de seguridad de la red [opus].

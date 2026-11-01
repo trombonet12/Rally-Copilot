@@ -158,6 +158,7 @@ considera decidido hasta que Joan responda.
 ### Incidencias y radares
 - 2026-10-28 · incidencias · **Recomendado:** XML DATEX II v3.7 del NAP de la DGT (≈200 KB con gzip, sin autenticación), descargado al abrir la app y al iniciar ruta, filtrado en el móvil por Mallorca, con parser en streaming y caché offline con antigüedad. Medido hoy: 18 situaciones en Mallorca · cobertura real verificada, sin backend. Detalle: [investigacion/incidencias-dgt.md](investigacion/incidencias-dgt.md).
 - 2026-10-28 · radares · Fijos: XML de radares de la DGT (13 en Mallorca) fusionado con OSM (79 elementos), deduplicado y empaquetado con los mapas. Móviles: tramos de cinemómetros del PDF de la DGT (24 en Mallorca) como «zona probable» (pendiente de Joan). De tramo: no hay oficiales en Mallorca hoy.
+- 2026-11-01 · alertas (arranque de H5) · Respuestas de Joan: **exceso de velocidad** con límite + 10 % (velocidad en rojo al pasar del límite; voz una vez por tramo de límite); **radares fijos** avisados según la velocidad (≈ 15 s antes, acotado 300–800 m, «radar a quinientos, ochenta»); **radares de tramo**: aviso al entrar, velocidad media del tramo en pantalla y voz si la media pasa del límite; **incidencias** de la ruta siempre y las de fuera a ≤ 3 km del coche.
 - VERIFICAR: condiciones de reutilización del NAP (la ficha dice CC BY; consultar nap@dgt.es) y si el XML de radares (fechado 2025-12-18) se sigue regenerando.
 
 ### Voz, TTS y clonado

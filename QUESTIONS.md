@@ -8,6 +8,9 @@ se marca como respondida. Ordenadas por el hito que bloquean.
 
 Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
+## Respondidas al empezar H5 (2026-11-01, en el chat)
+- **Exceso de velocidad:** límite + 10 %. **Radares fijos:** según la velocidad (≈ 15 s). **Radares de tramo:** velocidad media en pantalla. **Incidencias fuera de ruta:** a ≤ 3 km.
+
 ## Respondidas al empezar H4 (2026-11-01, en el chat)
 - **Modo inicial del copiloto:** Copiloto completo (notas, maniobras y alertas; delta y parciales cuando exista H6).
 - **Modo «Solo alertas»:** también dice las maniobras de navegación.
