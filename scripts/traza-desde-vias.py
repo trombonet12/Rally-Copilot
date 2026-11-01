@@ -34,33 +34,50 @@ def main() -> int:
         k = 1.0 if c[6] == ref else 4.0
         if c[6] == ref:
             de_ref.update(pts)
+        # Sentido único (columna oneway): en una autovía cada calzada es una vía; sin esto la traza podía ir por
+        # la calzada contraria.
+        sentido = c[5]
         for p, q in zip(pts, pts[1:]):
             w = k * distancia(p, q)
-            ady.setdefault(p, []).append((q, w))
-            ady.setdefault(q, []).append((p, w))
+            if sentido != "-1":
+                ady.setdefault(p, []).append((q, w))
+            if sentido not in ("yes", "1", "true", "-1"):
+                ady.setdefault(q, []).append((p, w))
+            elif sentido == "-1":
+                ady.setdefault(q, []).append((p, w))
     if not de_ref:
         print(f"No hay vías con ref {ref}", file=sys.stderr)
         return 1
 
-    def cerca(texto):
+    def cercanos(texto, n=12):
         lat, lon = (float(v) for v in texto.split(","))
-        return min(de_ref, key=lambda p: distancia(p, (lat * 1e6, lon * 1e6)))
+        return sorted(de_ref, key=lambda p: distancia(p, (lat * 1e6, lon * 1e6)))[:n]
 
-    a, b = cerca(ini), cerca(fin)
-    dist, prev, cola = {a: 0.0}, {}, [(0.0, a)]
-    while cola:
-        d, p = heapq.heappop(cola)
-        if p == b:
-            break
-        if d > dist[p]:
-            continue
-        for q, w in ady[p]:
-            if d + w < dist.get(q, math.inf):
-                dist[q], prev[q] = d + w, p
-                heapq.heappush(cola, (d + w, q))
-    if b not in dist:
+    def dijkstra(a):
+        dist, prev, cola = {a: 0.0}, {}, [(0.0, a)]
+        while cola:
+            d, p = heapq.heappop(cola)
+            if d > dist[p]:
+                continue
+            for q, w in ady.get(p, []):
+                if d + w < dist.get(q, math.inf):
+                    dist[q], prev[q] = d + w, p
+                    heapq.heappush(cola, (d + w, q))
+        return dist, prev
+
+    # Con sentidos únicos el nodo más cercano puede estar en la calzada contraria: se prueban varios candidatos
+    # de inicio y fin y se queda el camino más corto que exista.
+    mejor = None
+    finales = cercanos(fin)
+    for a in cercanos(ini):
+        dist, prev = dijkstra(a)
+        for b in finales:
+            if b in dist and (mejor is None or dist[b] < mejor[0]):
+                mejor = (dist[b], a, b, prev)
+    if mejor is None:
         print("No hay camino entre los dos puntos", file=sys.stderr)
         return 1
+    _, a, b, prev = mejor
     ruta = [b]
     while ruta[-1] != a:
         ruta.append(prev[ruta[-1]])
