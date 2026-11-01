@@ -39,6 +39,9 @@ class SeguidorRuta(
     private var progresoPrevio: Double? = null
     private var progresoMaximo = 0.0
 
+    /** Posición de cada maniobra de la ruta (m desde el inicio, en el mismo sistema que [EstadoRuta.progresoM]). */
+    val posicionesManiobrasM: List<Double> = ruta.maniobras.map { linea.progresoEn(it.inicioIndice) }
+
     fun actualizar(
         punto: PuntoGeo,
         ahoraMs: Long,

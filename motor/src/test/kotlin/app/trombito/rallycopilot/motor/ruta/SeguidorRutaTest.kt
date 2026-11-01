@@ -40,6 +40,12 @@ class SeguidorRutaTest {
         )
 
     @Test
+    fun `las posiciones de las maniobras son su progreso en la ruta`() {
+        val posiciones = SeguidorRuta(ruta).posicionesManiobrasM
+        assertEquals(listOf(0.0, 1000.0, 1500.0), posiciones.map { Math.round(it).toDouble() })
+    }
+
+    @Test
     fun `al inicio la maniobra actual es el primer giro, no la salida`() {
         val e = SeguidorRuta(ruta).actualizar(p(0.0, 0.0), 1_000_000)
         assertEquals(1500.0, e.distanciaRestanteM, 1.0)

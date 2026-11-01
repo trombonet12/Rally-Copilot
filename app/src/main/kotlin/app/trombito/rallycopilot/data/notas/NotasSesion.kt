@@ -91,6 +91,13 @@ class NotasSesion internal constructor(
     private var generacion: Job? = null
     private var epoca = 0
     private var ultimoIntentoMs = Long.MIN_VALUE / 2
+    private var emitida: NotasEnCurso? = null
+
+    /** Con el candado: publica las notas y las recuerda para [instantanea]. */
+    private val emitir: (NotasEnCurso?) -> Unit = {
+        emitida = it
+        salida(it)
+    }
 
     /** Conducción guiada: genera la hoja de [puntos] (la polilínea de la ruta). */
     fun iniciarGuiado(puntos: List<PuntoGeo>) {
@@ -110,7 +117,7 @@ class NotasSesion internal constructor(
             hoja = null
             ruta = null
             posicionM = 0.0
-            salida(null)
+            emitir(null)
             lanzarGuiado()
         }
     }
@@ -155,7 +162,7 @@ class NotasSesion internal constructor(
                         ReglasPrediccion.debeRegenerar(actual, proyeccion, cortadaEnCruceDudoso)
                 if (toca) intentarPrediccion(coincidencia, fijacion.tiempoMs)
             }
-            if (dentro) publicar() else salida(null)
+            if (dentro) publicar() else emitir(null)
         }
     }
 
@@ -166,7 +173,7 @@ class NotasSesion internal constructor(
             cerrada = true
             hoja = null
             ruta = null
-            salida(null)
+            emitir(null)
         }
         raiz.cancel()
     }
@@ -184,9 +191,12 @@ class NotasSesion internal constructor(
         }
     }
 
+    /** Lo último publicado (el copiloto de voz lo lee en cada fijación); null si no hay notas vigentes. */
+    val instantanea: NotasEnCurso? get() = synchronized(candado) { emitida }
+
     private fun publicar() {
         val actual = hoja ?: return
-        salida(NotasEnCurso(actual, posicionM, vMs, origen))
+        emitir(NotasEnCurso(actual, posicionM, vMs, origen))
     }
 
     /** Con el candado: genera la hoja de [puntosGuiado] cancelando la generación anterior. */

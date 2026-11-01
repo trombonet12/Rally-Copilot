@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.navegacion
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.ServiceInfo
 import android.database.sqlite.SQLiteException
 import android.os.IBinder
@@ -12,9 +13,11 @@ import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
+import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
+import app.trombito.rallycopilot.domain.voz.Locutor
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -46,6 +49,10 @@ class ServicioNavegacion : Service() {
     @Inject lateinit var recorridos: RepositorioRecorridos
 
     @Inject lateinit var fabricaNotas: FabricaNotasSesion
+
+    @Inject lateinit var locutor: Locutor
+
+    @Inject lateinit var ajustes: RepositorioAjustesConduccion
 
     private lateinit var notificacion: NotificacionNavegacion
     private lateinit var scope: CoroutineScope
@@ -209,7 +216,16 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         publicar = { control.publicar(id, it) },
         motivoSinGps = getString(R.string.navegacion_error_gps),
         fabricaNotas = fabricaNotas,
+        copiloto = CopilotoVoz(locutor, ajustes.ajustes, registroDeTiempos()),
     )
+
+/** Solo en un APK depurable: una línea por frase dicha para medir la anticipación (sin coordenadas). */
+private fun ServicioNavegacion.registroDeTiempos(): ((String) -> Unit)? =
+    if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+        { Log.d("CopilotoVoz", it) }
+    } else {
+        null
+    }
 
 private fun ServicioNavegacion.publicarFalloDeArranque(id: Long?) {
     if (id != null) control.publicar(id, EstadoNavegacion.Error(getString(R.string.navegacion_error_arranque)))

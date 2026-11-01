@@ -16,6 +16,7 @@ import app.trombito.rallycopilot.motor.ruta.EstadoRuta
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.SeguidorRuta
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -44,7 +45,8 @@ sealed interface SolicitudNavegacion {
  * detección de salida de ruta y el reintento del recálculo usan el reloj monótono de la fijación, que no salta con
  * cambios de hora. Nunca registra coordenadas en logs. Si hay [fabricaNotas], genera y publica las notas de rally
  * de la conducción (guiada: hoja de la ruta; libre: hoja de la carretera prevista); sin ella, no hay notas. Ignora las
- * fijaciones con `precisionM` > [PRECISION_MAX_M] (posición aproximada de interior): ni se graban ni cuentan.
+ * fijaciones con `precisionM` > [PRECISION_MAX_M] (posición aproximada de interior): ni se graban ni cuentan. Si hay
+ * [copiloto], en cada fijación válida le pasa las notas vigentes y el progreso de la ruta para que hable.
  */
 @Suppress("LongParameterList") // colaboradores de la sesión: fuente, enrutador, grabación, reloj, salidas y notas
 class SesionNavegacion(
@@ -55,6 +57,7 @@ class SesionNavegacion(
     private val publicar: (EstadoNavegacion) -> Unit,
     private val motivoSinGps: String,
     private val fabricaNotas: FabricaNotasSesion? = null,
+    private val copiloto: CopilotoVoz? = null,
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
     suspend fun cerrarHuerfanos() {
@@ -73,6 +76,7 @@ class SesionNavegacion(
             ejecucion.ejecutar()
         } finally {
             ejecucion.cerrarNotas()
+            copiloto?.cerrar()
             withContext(NonCancellable) {
                 ejecucion.volcar()
                 recorridos.terminar(id)
@@ -96,10 +100,13 @@ class SesionNavegacion(
         suspend fun ejecutar() =
             coroutineScope {
                 if (guia != null) notas?.iniciarGuiado(guia.ruta.puntos) else notas?.iniciarLibre()
+                val ajustesCopiloto = copiloto?.let { launch { it.seguirAjustes() } }
                 publicar(estadoActual())
                 fuente.fijaciones().takeWhile { procesar(it, this) }.collect()
                 guia?.recalculo?.cancel()
+                ajustesCopiloto?.cancel()
                 cerrarNotas()
+                copiloto?.cerrar()
                 if (llegado && guia != null) {
                     publicar(EstadoNavegacion.Llegada(guia.destino))
                     delay(ESPERA_LLEGADA_MS)
@@ -130,7 +137,10 @@ class SesionNavegacion(
             } else {
                 notas?.posicionLibre(fijacion)
             }
-            if (!llegado) publicar(estadoActual())
+            if (!llegado) {
+                copiloto?.alFijar(notas?.instantanea, guia?.rutaVoz, guia?.progreso?.progresoM, fijacion.velocidadMs)
+                publicar(estadoActual())
+            }
             return !llegado
         }
 
@@ -201,6 +211,7 @@ class SesionNavegacion(
         val perfil = solicitud.perfil
         var ruta: Ruta = solicitud.ruta
         var seguidor = SeguidorRuta(ruta)
+        var rutaVoz = rutaVoz(ruta, seguidor)
         var detector = DetectorSalidaRuta()
         var progreso: EstadoRuta? = null
         var recalculando = false
@@ -214,11 +225,17 @@ class SesionNavegacion(
         ) {
             ruta = nueva
             seguidor = SeguidorRuta(nueva)
+            rutaVoz = rutaVoz(nueva, seguidor)
             detector = DetectorSalidaRuta()
             progreso = posicion?.let { seguidor.actualizar(it, ahoraMs) }
         }
 
         fun estado() = EstadoNavegacion.Guiando(destino, perfil, ruta, progreso, recalculando)
+
+        private fun rutaVoz(
+            ruta: Ruta,
+            seguidor: SeguidorRuta,
+        ) = RutaVoz(AvisosManiobra(ruta.maniobras, seguidor.posicionesManiobrasM), seguidor.posicionesManiobrasM)
     }
 
     companion object {
