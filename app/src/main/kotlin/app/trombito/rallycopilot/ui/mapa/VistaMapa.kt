@@ -26,6 +26,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.comun.recurso
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
@@ -75,6 +76,8 @@ data class CamaraVistaMapa(
     val onSeguimientoPerdido: () -> Unit = {},
     /** El usuario cambió el zoom con un gesto: zoom final y reloj monótono (ms) para pausar el zoom automático. */
     val onZoomManual: (zoom: Double, ahoraMs: Long) -> Unit = { _, _ -> },
+    /** Toque en el mapa: el id de la incidencia tocada o null si se tocó otra cosa. */
+    val onToqueIncidencia: (id: String?) -> Unit = {},
 )
 
 /** Lo que el mapa pinta según los ajustes de conducción y el zoom automático. */
@@ -88,6 +91,8 @@ data class PreferenciasVistaMapa(
     val zoomObjetivo: Double? = null,
     /** Ruta dibujada sobre las vías (vista previa o guiado); null = ninguna. */
     val ruta: RutaEnMapa? = null,
+    /** Marcadores de incidencias de tráfico (icono por tipo); vacío = ninguno. */
+    val incidencias: List<MarcadorIncidencia> = emptyList(),
 )
 
 /**
@@ -121,6 +126,7 @@ fun VistaMapa(
                 alCambiarCamara = { actual.value.onCambio(it) },
                 alPerderSeguimiento = { actual.value.onSeguimientoPerdido() },
                 alCambiarZoomManual = { zoom, ahora -> actual.value.onZoomManual(zoom, ahora) },
+                alTocarIncidencia = { actual.value.onToqueIncidencia(it) },
             )
         }
 
@@ -239,6 +245,7 @@ private class ControladorMapa(
     private val alCambiarCamara: (CamaraMapa) -> Unit,
     private val alPerderSeguimiento: () -> Unit,
     alCambiarZoomManual: (Double, Long) -> Unit,
+    private val alTocarIncidencia: (String?) -> Unit,
 ) {
     private var mapa: MapLibreMap? = null
     private var estilo: Style? = null
@@ -282,6 +289,12 @@ private class ControladorMapa(
                 ),
             )
             zoom.escuchar(m) { activo }
+            m.addOnMapClickListener { punto ->
+                val pantalla = m.projection.toScreenLocation(punto)
+                val id = CapaIncidencias.idEn(m, pantalla.x, pantalla.y, vista.resources.displayMetrics.density)
+                alTocarIncidencia(id)
+                id != null
+            }
             m.addOnCameraIdleListener { guardarCamaraActual(m) }
             // El alto del mapa cambia al girar o al abrir un panel: el marcador debe seguir en su sitio.
             vista.addOnLayoutChangeListener { _, izq, arr, der, aba, oIzq, oArr, oDer, oAba ->
@@ -319,6 +332,9 @@ private class ControladorMapa(
         val componente = mapa?.locationComponent?.takeIf { ubicacionActivada }
         if (nuevas.relieve != previas.relieve) estilo?.let { aplicarRelieve(it, nuevas.relieve) }
         aplicarRuta(previas.ruta, nuevas.ruta)
+        if (nuevas.incidencias != previas.incidencias) {
+            estilo?.let { CapaIncidencias.actualizar(it, nuevas.incidencias) }
+        }
         if (componente != null && nuevas.icono != previas.icono) {
             componente.applyStyle(opcionesUbicacion(vista.context, nuevas.icono))
         }
@@ -342,6 +358,7 @@ private class ControladorMapa(
             aplicarRelieve(cargado, preferencias.relieve)
             // Antes de activar la ubicación: la línea de la ruta queda debajo de la flecha de posición.
             CapaRuta.instalar(cargado, preferencias.ruta)
+            CapaIncidencias.instalar(cargado, vista.context, preferencias.incidencias)
             asegurarUbicacion()
         }
     }

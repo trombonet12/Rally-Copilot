@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Retención (fila de coches). Icono monocromo de los avisos de alerta: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M3,34 V26 L7,16 H17 L21,26 V34 Z M27,34 V26 L31,16 H41 L45,26 V34 Z M3,34 H21 M27,34 H45" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="4" />
+</vector>

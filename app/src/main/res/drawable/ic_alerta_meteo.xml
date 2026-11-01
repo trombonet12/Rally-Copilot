@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Peligro por el tiempo (nube con lluvia). Icono monocromo de los avisos de alerta: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M13,30 C6,30 5,21 11,19 C11,11 22,8 27,14 C34,12 41,19 37,26 C37,29 35,30 32,30 Z" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="4" />
+    <path android:pathData="M16,36 L13,43 M26,36 L23,43 M36,36 L33,43" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="4" />
+</vector>

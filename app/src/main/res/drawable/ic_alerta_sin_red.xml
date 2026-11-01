@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sin conexión (nube tachada). Icono monocromo de los avisos de alerta: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M13,36 C6,36 5,26 11,24 C11,15 22,12 27,18 C34,16 41,23 37,31 C37,34 35,36 32,36 Z" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="4" />
+    <path android:pathData="M7,6 L41,42" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="4" />
+</vector>

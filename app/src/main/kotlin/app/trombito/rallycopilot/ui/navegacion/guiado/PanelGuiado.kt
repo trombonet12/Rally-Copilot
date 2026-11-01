@@ -19,6 +19,8 @@ import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.motor.ruta.FrasesManiobra
 import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
+import app.trombito.rallycopilot.ui.alertas.AlertasUiState
+import app.trombito.rallycopilot.ui.alertas.BannerAlerta
 import app.trombito.rallycopilot.ui.maniobras.BannerManiobra
 import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
 import app.trombito.rallycopilot.ui.maniobras.formatearDistanciaManiobra
@@ -90,16 +92,19 @@ internal fun datosBanner(estado: EstadoNavegacion.Guiando): DatosBanner? {
  * Capa de guiado sobre el mapa (ocupa todo el espacio que se le da y no tapa el centro): arriba el banner de la
  * maniobra actual y la siguiente, a todo el ancho (los botones están en el panel inferior), con el aviso de
  * recálculo debajo, y abajo el pie con llegada, tiempo y km. Entre el banner y el aviso va la franja de notas (a todo
- * el ancho; no pinta nada si no hay notas). El pie va centrado en vertical y a la izquierda en horizontal. Sin
+ * el ancho; no pinta nada si no hay notas) y, bajo ella, el banner de alerta de radar o incidencia (entra deslizando
+ * y sale al pasar; no pinta nada sin alerta). El pie va centrado en vertical y a la izquierda en horizontal. Sin
  * progreso todavía no hay pie.
  */
 @Composable
+@Suppress("LongParameterList") // estado, estilo, notas y alertas son los bloques de la capa de guiado
 fun PanelGuiado(
     estado: EstadoNavegacion.Guiando,
     variante: VarianteManiobra,
     modifier: Modifier = Modifier,
     zona: ZoneId = ZoneId.systemDefault(),
     notas: NotasUiState = NotasUiState(),
+    alertas: AlertasUiState = AlertasUiState(),
 ) {
     BoxWithConstraints(modifier = modifier.testTag(ETIQUETA_PANEL_GUIADO)) {
         val horizontal = maxWidth > maxHeight
@@ -110,6 +115,7 @@ fun PanelGuiado(
         ) {
             datosBanner(estado)?.let { Banner(it, variante, compacto = horizontal) }
             FranjaNotas(notas, compacta = horizontal)
+            BannerAlerta(alertas.aviso, alertas.frescura, compacto = horizontal)
             AvisoRecalculo(estado.recalculando)
         }
         estado.progreso?.let {

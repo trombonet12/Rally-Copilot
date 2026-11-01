@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Radar fijo (cámara). Icono monocromo de los avisos de alerta: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M6,14 H31 V34 H6 Z" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="4" />
+    <path android:pathData="M31,21 L42,14 V34 L31,27" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeLineCap="round" android:strokeLineJoin="round" android:strokeWidth="4" />
+    <path android:pathData="M18.5,24 m-4.5,0 a4.5,4.5 0 1 0 9,0 a4.5,4.5 0 1 0 -9,0" android:fillColor="#FFFFFF" />
+</vector>

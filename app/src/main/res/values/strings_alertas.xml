@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Banner de alerta: el texto visible va en mayúsculas (como el roadbook); TalkBack lee la descripción. -->
+    <string name="alerta_radar_fijo">Radar fijo</string>
+    <string name="alerta_radar_movil">Radar móvil</string>
+    <string name="alerta_radar_tramo">Radar de tramo</string>
+    <string name="alerta_radar_movil_probable">Zona probable</string>
+    <string name="alerta_incidencia_obras">Obras</string>
+    <string name="alerta_incidencia_accidente">Accidente</string>
+    <string name="alerta_incidencia_retencion">Retención</string>
+    <string name="alerta_incidencia_corte">Carretera cortada</string>
+    <string name="alerta_incidencia_meteo">Peligro por el tiempo</string>
+    <string name="alerta_incidencia_otra">Incidencia</string>
+    <string name="alerta_descripcion_a_distancia">%1$s, a %2$s</string>
+    <string name="alerta_descripcion_aqui">%1$s, en este punto</string>
+    <string name="alerta_descripcion_en_carretera">%1$s en %2$s</string>
+
+    <!-- Antigüedad de los datos de incidencias (solo si pasan de 30 minutos o el último refresco falló) -->
+    <string name="alerta_hace_minutos">hace %1$d min</string>
+    <string name="alerta_hace_horas">hace %1$d h</string>
+    <string name="alerta_hace_dias">hace %1$d d</string>
+    <string name="alerta_datos_antiguos">Datos de incidencias de %1$s</string>
+    <string name="alerta_datos_sin_conexion">Sin conexión, datos de incidencias de %1$s</string>
+
+    <!-- Tarjeta de una incidencia del mapa -->
+    <string name="alerta_tarjeta_cerrar">Cerrar incidencia</string>
+    <string name="alerta_marcador_descripcion">Incidencias de tráfico en el mapa</string>
+
+    <!-- Panel de velocidad: exceso y media de tramo -->
+    <string name="panel_exceso_descripcion">Por encima del límite de velocidad</string>
+    <string name="panel_media_etiqueta">MEDIA</string>
+    <string name="panel_media_final_etiqueta">FINAL</string>
+    <string name="panel_media_vacia">—</string>
+    <string name="panel_media_descripcion">Velocidad media del tramo: %1$d kilómetros por hora</string>
+    <string name="panel_media_final_descripcion">Velocidad media final del tramo: %1$d kilómetros por hora</string>
+    <string name="panel_media_sin_dato">Calculando la velocidad media del tramo</string>
+    <string name="panel_media_supera">%1$s, por encima del límite</string>
+</resources>
