@@ -196,7 +196,7 @@ class NotasSesion internal constructor(
 
     private fun publicar() {
         val actual = hoja ?: return
-        emitir(NotasEnCurso(actual, posicionM, vMs, origen))
+        emitir(NotasEnCurso(actual, posicionM, vMs, origen, ruta?.let { it::puntoEn }))
     }
 
     /** Con el candado: genera la hoja de [puntosGuiado] cancelando la generación anterior. */

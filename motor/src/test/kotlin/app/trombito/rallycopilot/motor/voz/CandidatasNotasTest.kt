@@ -43,4 +43,13 @@ class CandidatasNotasTest {
         val segunda = CandidatasNotas.de(listOf(NotaVisible(curva, 40.0, activa = true)), simplificada = false)
         assertEquals(primera.single().id, segunda.single().id)
     }
+
+    @Test
+    fun `la id puede venir de fuera`() {
+        val frase =
+            CandidatasNotas
+                .de(listOf(NotaVisible(curva, 80.0, activa = true)), simplificada = false) { "estable-1" }
+                .single()
+        assertEquals("estable-1", frase.id)
+    }
 }

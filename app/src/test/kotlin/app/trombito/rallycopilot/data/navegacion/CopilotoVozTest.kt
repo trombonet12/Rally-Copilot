@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.HojaNotas
@@ -198,6 +199,77 @@ class CopilotoVozTest {
         assertEquals(listOf("cruce, izquierda", "cruce, izquierda"), locutor.dichas)
     }
 
+    /** Hoja con una derecha (m en su propio origen), cuyo origen está [origenM] al este del de la primera hoja. */
+    private fun hojaRegenerada(
+        derecha: Double,
+        origenM: Double,
+        izquierda: Double? = null,
+        posicionM: Double,
+    ): NotasEnCurso {
+        val elementos =
+            listOfNotNull(
+                ElementoHoja.DeNota(Nota(derecha, derecha + 30.0, Direccion.DERECHA, grado = 3)),
+                izquierda?.let { ElementoHoja.DeNota(Nota(it, it + 30.0, Direccion.IZQUIERDA, grado = 3)) },
+            )
+        return NotasEnCurso(HojaNotas(elementos), posicionM, 20.0, OrigenNotas.LIBRE) {
+            PuntoGeo(39.7, 2.9 + (it + origenM) / METROS_POR_GRADO_LON)
+        }
+    }
+
+    private fun CopilotoVoz.fijarLibre(notas: NotasEnCurso) = alFijar(notas, null, null, 20.0)
+
+    @Test
+    fun `una hoja regenerada con otro origen no repite la misma curva y si canta la siguiente`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.NOTAS))
+
+        // Primera hoja: derecha a 960 m e izquierda a 1100 m.
+        copiloto.fijarLibre(hojaRegenerada(960.0, 0.0, 1100.0, posicionM = 920.0))
+        copiloto.fijarLibre(hojaRegenerada(960.0, 0.0, 1100.0, posicionM = 921.0))
+        assertEquals(listOf("derecha tres"), locutor.dichas)
+
+        // Regenerada 500 m más adelante: la misma curva ahora está a 460 m, la izquierda a 600 m.
+        copiloto.fijarLibre(hojaRegenerada(460.0, 500.0, 600.0, posicionM = 425.0))
+        copiloto.fijarLibre(hojaRegenerada(460.0, 500.0, 600.0, posicionM = 426.0))
+        assertEquals(listOf("derecha tres"), locutor.dichas)
+
+        copiloto.fijarLibre(hojaRegenerada(460.0, 500.0, 600.0, posicionM = 570.0))
+        copiloto.fijarLibre(hojaRegenerada(460.0, 500.0, 600.0, posicionM = 571.0))
+        assertEquals(listOf("derecha tres", "izquierda tres"), locutor.dichas)
+    }
+
+    @Test
+    fun `curvas distintas en hojas con otro origen suenan las dos`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.NOTAS))
+
+        copiloto.fijarLibre(hojaRegenerada(960.0, 0.0, posicionM = 920.0))
+        copiloto.fijarLibre(hojaRegenerada(960.0, 0.0, posicionM = 921.0))
+        // La hoja nueva tiene una derecha a 1020 m absolutos (60 m más allá): otra curva.
+        copiloto.fijarLibre(hojaRegenerada(520.0, 500.0, posicionM = 480.0))
+        copiloto.fijarLibre(hojaRegenerada(520.0, 500.0, posicionM = 481.0))
+
+        assertEquals(listOf("derecha tres", "derecha tres"), locutor.dichas)
+    }
+
+    @Test
+    fun `tras recalcular la ruta guiada no repite la nota ya dicha`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.NOTAS))
+        val guiada = { n: NotasEnCurso -> n.copy(origen = OrigenNotas.GUIADO) }
+
+        val primera = ruta()
+        copiloto.alFijar(guiada(hojaRegenerada(960.0, 0.0, posicionM = 920.0)), primera, 920.0, 20.0)
+        copiloto.alFijar(guiada(hojaRegenerada(960.0, 0.0, posicionM = 921.0)), primera, 921.0, 20.0)
+        assertEquals(1, locutor.dichas.count { it == "derecha tres" })
+
+        // Recálculo: ruta nueva, hoja nueva con otro origen; la curva sigue 38 m por delante.
+        val nueva = ruta()
+        copiloto.alFijar(guiada(hojaRegenerada(40.0, 922.0, posicionM = 2.0)), nueva, 2.0, 20.0)
+        copiloto.alFijar(guiada(hojaRegenerada(40.0, 922.0, posicionM = 3.0)), nueva, 3.0, 20.0)
+        assertEquals(1, locutor.dichas.count { it == "derecha tres" })
+    }
+
     @Test
     fun `registra id metros y velocidad de la frase dicha, sin coordenadas`() {
         val locutor = LocutorFalso()
@@ -218,5 +290,9 @@ class CopilotoVozTest {
         copiloto.cerrar()
 
         assertEquals(emptyList<String>(), locutor.preparadas.last())
+    }
+
+    private companion object {
+        const val METROS_POR_GRADO_LON = 85_500.0
     }
 }

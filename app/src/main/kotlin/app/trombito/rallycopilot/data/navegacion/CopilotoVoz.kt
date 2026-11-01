@@ -4,11 +4,13 @@ import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.NotaVisible
 import app.trombito.rallycopilot.motor.notas.SelectorNotas
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import app.trombito.rallycopilot.motor.voz.CandidatasNotas
 import app.trombito.rallycopilot.motor.voz.Frase
+import app.trombito.rallycopilot.motor.voz.IdsEstablesNotas
 import app.trombito.rallycopilot.motor.voz.PlanificadorFrases
 import kotlinx.coroutines.flow.Flow
 import kotlin.math.roundToInt
@@ -39,6 +41,7 @@ class CopilotoVoz(
 ) {
     private val selector = SelectorNotas()
     private val planificador = PlanificadorFrases(locutor::duracionEstimadaS)
+    private val ids = IdsEstablesNotas()
 
     @Volatile private var actuales = AjustesConduccion()
     private var vozEnLocutor: VozCopiloto? = null
@@ -77,9 +80,10 @@ class CopilotoVoz(
         val v = vMs ?: 0.0
         val visibles = visibles(notas, a, v)
         val maniobras = maniobras(ruta, posicionM, v)
-        val activas = CandidatasNotas.de(visibles, a.notasSimplificadas) + maniobras
+        val idDe = idsDe(notas)
+        val activas = CandidatasNotas.de(visibles, a.notasSimplificadas, idDe) + maniobras
         val previstas =
-            CandidatasNotas.de(visibles.map { it.copy(activa = true) }, a.notasSimplificadas) +
+            CandidatasNotas.de(visibles.map { it.copy(activa = true) }, a.notasSimplificadas, idDe) +
                 maniobras + inminentesPrevistos(ruta, posicionM)
         if (!locutor.hablando.value) {
             planificador.siguiente(activas, posicionM, vMs, a.modoCopiloto)?.let { decir(it, posicionM, vMs) }
@@ -99,6 +103,15 @@ class CopilotoVoz(
         vMs: Double,
     ): List<NotaVisible> =
         notas?.let { selector.siguientes(it.hoja, it.posicionM, vMs, a.anticipacion, NOTAS_CONSIDERADAS) }.orEmpty()
+
+    /**
+     * Id de cada elemento de la hoja, independiente del origen de la hoja: si se conoce la traza, la misma curva en una
+     * hoja regenerada (modo libre cada ~500 m, o tras un recálculo) conserva su id y no se canta dos veces.
+     */
+    private fun idsDe(notas: NotasEnCurso?): (ElementoHoja) -> String {
+        val puntoEn = notas?.puntoEn ?: return { "nota-${it.posicionM}" }
+        return { ids.id(it, puntoEn(it.posicionM)) }
+    }
 
     /** Frases de maniobra vigentes ahora; el id lleva la generación de la ruta para que un recálculo no las calle. */
     private fun maniobras(
