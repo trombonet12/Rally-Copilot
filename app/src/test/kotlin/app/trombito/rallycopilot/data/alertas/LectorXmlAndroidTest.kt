@@ -1,10 +1,12 @@
 package app.trombito.rallycopilot.data.alertas
 
+import app.trombito.rallycopilot.motor.alertas.EventoXml
 import app.trombito.rallycopilot.motor.alertas.GravedadIncidencia
 import app.trombito.rallycopilot.motor.alertas.LectorDatex
 import app.trombito.rallycopilot.motor.alertas.MotivoErrorDatex
 import app.trombito.rallycopilot.motor.alertas.ResultadoDatex
 import app.trombito.rallycopilot.motor.alertas.TipoIncidencia
+import app.trombito.rallycopilot.motor.alertas.XmlMalFormadoException
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -113,5 +115,53 @@ class LectorXmlAndroidTest {
             <com:publicationTime>&e;</com:publicationTime></d2:payload>"""
         val r = leer(xxe)
         assertTrue(r is ResultadoDatex.Error || (r as ResultadoDatex.Ok).incidencias.isEmpty())
+    }
+
+    /** Un «billion laughs» pequeño (10^4 caracteres): en grande agota la memoria del móvil. */
+    private val billionLaughs =
+        """<?xml version="1.0"?><!DOCTYPE d [
+        <!ENTITY a "0123456789">
+        <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">
+        <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">
+        <!ENTITY d "&c;&c;&c;&c;&c;&c;&c;&c;&c;&c;">]>
+        <d2:payload xmlns:d2="http://levelC/schema/3/d2Payload" xmlns:com="http://levelC/schema/3/common">
+        <com:publicationTime>&d;</com:publicationTime></d2:payload>"""
+
+    @Test
+    fun `un DOCTYPE con entidades internas se rechaza sin expandirlas`() {
+        val r = leer(billionLaughs)
+        assertEquals(MotivoErrorDatex.XML_MAL_FORMADO, (r as ResultadoDatex.Error).motivo)
+    }
+
+    @Test
+    fun `el lector no entrega texto expandido de una entidad definida en el DOCTYPE`() {
+        val lector = LectorXmlAndroid(ByteArrayInputStream(billionLaughs.toByteArray()))
+        var texto = 0
+        val fallo =
+            runCatching {
+                while (true) {
+                    when (lector.siguiente()) {
+                        EventoXml.TEXTO -> texto += lector.texto.length
+                        EventoXml.FIN_DOCUMENTO -> break
+                        else -> Unit
+                    }
+                }
+            }.exceptionOrNull()
+        assertTrue(fallo is XmlMalFormadoException)
+        assertEquals(0, texto)
+    }
+
+    @Test
+    fun `las entidades predefinidas y las referencias numericas siguen funcionando`() {
+        val lector = LectorXmlAndroid(ByteArrayInputStream("<d>a&amp;b&#65;&lt;c&quot;</d>".toByteArray()))
+        val texto = StringBuilder()
+        while (true) {
+            when (lector.siguiente()) {
+                EventoXml.TEXTO -> texto.append(lector.texto)
+                EventoXml.FIN_DOCUMENTO -> break
+                else -> Unit
+            }
+        }
+        assertEquals("a&bA<c\"", texto.toString())
     }
 }

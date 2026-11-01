@@ -11,7 +11,10 @@ class ZipInseguroException(
     mensaje: String,
 ) : Exception(mensaje)
 
-/** Descomprime un zip rechazando rutas absolutas, `..` (zip-slip), la carpeta `.nuevo` y tamaños desorbitados. */
+/**
+ * Descomprime un zip rechazando rutas absolutas, segmentos que empiecen por `.` (`..`, `.nuevo`, ocultos) y tamaños
+ * desorbitados.
+ */
 object ExtractorZip {
     private const val TAMANO_BUFFER = 64 * 1024
     private const val MAX_DESCOMPRIMIDO = 512L * 1024 * 1024
@@ -64,7 +67,8 @@ object ExtractorZip {
         val absoluta = nombre.startsWith("/") || nombre.startsWith("\\")
         if (nombre.isBlank() || absoluta || ':' in nombre) return false
         val segmentos = nombre.split('/', '\\')
-        return ".." !in segmentos && segmentos.first() != ConfigDatosMapa.NOMBRE_NUEVO
+        // Ningún segmento oculto: cubre `..`, la carpeta `.nuevo` y cualquier otro `.algo`.
+        return segmentos.none { it.startsWith(".") }
     }
 
     private fun copiar(

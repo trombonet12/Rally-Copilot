@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.alertas
 
 import app.trombito.rallycopilot.data.datosmapa.ClienteHttp
+import app.trombito.rallycopilot.data.datosmapa.ConfigDatosMapa
 import app.trombito.rallycopilot.data.datosmapa.EntornoDatosMapa
 import app.trombito.rallycopilot.data.datosmapa.ServidorFalso
 import app.trombito.rallycopilot.domain.alertas.ErrorIncidencias
@@ -91,15 +92,17 @@ class RepositorioIncidenciasDgtTest {
     @After
     fun cerrar() = entorno.close()
 
-    private fun repositorio(topeBytes: Long = RepositorioIncidenciasDgt.TOPE_BYTES) =
-        RepositorioIncidenciasDgt(
-            ClienteHttp.paraDgt(entorno.config),
-            URL_DATEX_DGT,
-            directorio,
-            { ahoraMs },
-            UnconfinedTestDispatcher(),
-            topeBytes,
-        )
+    private fun repositorio(
+        topeBytes: Long = RepositorioIncidenciasDgt.TOPE_BYTES,
+        config: ConfigDatosMapa = entorno.config,
+    ) = RepositorioIncidenciasDgt(
+        ClienteHttp.paraDgt(config),
+        URL_DATEX_DGT,
+        directorio,
+        { ahoraMs },
+        UnconfinedTestDispatcher(),
+        topeBytes,
+    )
 
     private fun servir(
         xml: String,
@@ -271,6 +274,39 @@ class RepositorioIncidenciasDgtTest {
             ahoraMs += 1_000
             repo.refrescar()
             assertEquals(4, peticiones())
+        }
+
+    @Test
+    fun `un OutOfMemoryError durante la descarga no tumba la app y conserva la copia`() =
+        runTest {
+            servir(datex("1" to null))
+            val repo = repositorio()
+            repo.refrescar()
+            ahoraMs += CINCO_MIN_MS
+            val sinMemoria = entorno.config.copy(abrirConexion = { throw OutOfMemoryError("prueba") })
+
+            val otro = repositorio(config = sinMemoria)
+            otro.refrescar()
+
+            assertEquals(ErrorIncidencias.DEMASIADO_GRANDE, otro.incidencias.value.errorUltimo)
+            assertEquals(listOf("1"), ids(otro))
+            assertFalse(File(directorio, "incidencias-dgt.xml.gz.tmp").exists())
+        }
+
+    @Test
+    fun `un feed con DOCTYPE y entidades se rechaza como datos no validos`() =
+        runTest {
+            servir(
+                """<?xml version="1.0"?><!DOCTYPE d [<!ENTITY a "0123456789"><!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;">]>
+                <d2:payload xmlns:d2="http://levelC/schema/3/d2Payload" xmlns:com="http://levelC/schema/3/common">
+                <com:publicationTime>&b;</com:publicationTime></d2:payload>""",
+            )
+            val repo = repositorio()
+
+            repo.refrescar()
+
+            assertEquals(ErrorIncidencias.DATOS, repo.incidencias.value.errorUltimo)
+            assertTrue(ids(repo).isEmpty())
         }
 
     @Test

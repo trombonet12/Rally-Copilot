@@ -94,6 +94,9 @@ class RepositorioIncidenciasDgt internal constructor(
                 } catch (e: IOException) {
                     Log.w(ETIQUETA, "Copia de incidencias ilegible: ${e.javaClass.simpleName}")
                     null
+                } catch (e: OutOfMemoryError) {
+                    Log.w(ETIQUETA, "Copia de incidencias: sin memoria al leerla", e)
+                    null
                 }
             }
         val vigentes =
@@ -140,6 +143,10 @@ class RepositorioIncidenciasDgt internal constructor(
             } catch (e: IOException) {
                 Log.w(ETIQUETA, "No se pudieron descargar las incidencias: ${e.javaClass.simpleName}")
                 ErrorIncidencias.SIN_RED
+            } catch (e: OutOfMemoryError) {
+                // Un Error no capturado cierra la app; un feed hostil o enorme es un fallo de descarga más.
+                Log.w(ETIQUETA, "Incidencias: sin memoria al leer el feed", e)
+                ErrorIncidencias.DEMASIADO_GRANDE
             } finally {
                 temporal.delete()
             }

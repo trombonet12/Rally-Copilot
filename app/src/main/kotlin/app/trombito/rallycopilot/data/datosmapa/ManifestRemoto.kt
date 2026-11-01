@@ -20,7 +20,8 @@ internal class ManifestRemoto(
 
 /**
  * Descarga el manifest principal (un fallo se propaga: [IOException] o [ManifestInvalido]) y el extra (un fallo se
- * ignora). Del extra solo se aceptan ids de satélite, y nunca uno que ya esté en el principal ni con su mismo nombre.
+ * ignora). Del extra solo se aceptan ids de satélite con nombre `pnoa-mallorca*.pmtiles`, y nunca uno que ya esté en
+ * el principal ni con su mismo nombre.
  */
 internal fun ClienteHttp.leerManifestRemoto(config: ConfigDatosMapa): ManifestRemoto {
     val principal = LectorManifest.leer(texto(config.urlManifest))
@@ -37,8 +38,15 @@ internal fun ClienteHttp.leerManifestRemoto(config: ConfigDatosMapa): ManifestRe
     val ids = principal.archivos.map { it.id }.toSet()
     val nombres = principal.archivos.map { it.nombre }.toSet()
     val nuevos =
-        extra.archivos.filter { it.id.startsWith(PREFIJO_SATELITE) && it.id !in ids && it.nombre !in nombres }
+        extra.archivos.filter {
+            it.id.startsWith(PREFIJO_SATELITE) &&
+                esNombreDeSatelite(it.nombre) &&
+                it.id !in ids &&
+                it.nombre !in nombres
+        }
     return ManifestRemoto(principal.copy(archivos = principal.archivos + nuevos), extraDisponible = true)
 }
+
+private fun esNombreDeSatelite(nombre: String) = nombre.startsWith("pnoa-mallorca") && nombre.endsWith(".pmtiles")
 
 private const val ETIQUETA_LOG = "ManifestRemoto"

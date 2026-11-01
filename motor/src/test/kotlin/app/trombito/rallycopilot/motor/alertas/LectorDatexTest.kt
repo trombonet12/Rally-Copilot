@@ -363,6 +363,46 @@ class LectorDatexTest {
     }
 
     @Test
+    fun `el texto de despues de un hijo no se pega al valor del padre`() {
+        val estado =
+            situacion("1", registro()).replace(
+                "<com:informationStatus>real</com:informationStatus>",
+                "<com:informationStatus><com:x>test</com:x></com:informationStatus>",
+            )
+        // El padre no tiene texto propio: no es una situación de prueba.
+        assertEquals(listOf("1"), ok(leer(documento(estado))).incidencias.map { it.id })
+    }
+
+    @Test
+    fun `un texto de mas de 64 KB da error de XML mal formado`() {
+        val enorme = "x".repeat(LectorDatex.TOPE_TEXTO + 1)
+        val r = leer(documento("").replace("</d2:payload>", "<com:basura>$enorme</com:basura></d2:payload>"))
+        assertEquals(MotivoErrorDatex.XML_MAL_FORMADO, (r as ResultadoDatex.Error).motivo)
+    }
+
+    @Test
+    fun `un texto justo en el tope se admite`() {
+        val justo = "x".repeat(LectorDatex.TOPE_TEXTO)
+        val r = leer(documento("").replace("</d2:payload>", "<com:basura>$justo</com:basura></d2:payload>"))
+        assertTrue(r is ResultadoDatex.Ok)
+    }
+
+    @Test
+    fun `mas de 64 niveles de anidamiento da error de XML mal formado`() {
+        val n = LectorDatex.TOPE_PROFUNDIDAD + 1
+        val hondo = "<a>".repeat(n) + "</a>".repeat(n)
+        val r = leer(documento(hondo))
+        assertEquals(MotivoErrorDatex.XML_MAL_FORMADO, (r as ResultadoDatex.Error).motivo)
+    }
+
+    @Test
+    fun `una profundidad razonable se admite`() {
+        val n = 20
+        val r = leer(documento("<a>".repeat(n) + "</a>".repeat(n)))
+        assertTrue(r is ResultadoDatex.Ok)
+    }
+
+    @Test
     fun `una incidencia caduca cuando llega su fin`() {
         val obras = incidencia("23596720")
         assertFalse(obras.caducadaEn(Instant.parse("2026-11-06T22:58:59Z")))

@@ -14,11 +14,19 @@ import java.io.IOException
  * - Se quedan las situaciones con algún punto en [MALLORCA]; se descartan las de prueba (`informationStatus = test`),
  *   los registros `suspended` y los puntos con coordenadas ilegibles.
  * - Los elementos desconocidos se ignoran. Los datos malos nunca lanzan: devuelve [ResultadoDatex.Error] y quien llama
- *   conserva la caché anterior. Los adaptadores de [LectorXml] no resuelven DTD ni entidades externas.
+ *   conserva la caché anterior. Los adaptadores de [LectorXml] no resuelven entidades externas. Rechaza (como XML mal
+ *   formado) los elementos con más de [TOPE_TEXTO] caracteres de texto y los documentos con más de
+ *   [TOPE_PROFUNDIDAD] niveles.
  */
 object LectorDatex {
     /** Recuadro de Mallorca (lon 2,30–3,50; lat 39,26–39,97): deja fuera Menorca, Ibiza y Cabrera. */
     val MALLORCA = CajaGeo(latMin = 39.26, lonMin = 2.30, latMax = 39.97, lonMax = 3.50)
+
+    /** Máximo de caracteres de texto acumulado en un elemento; más allá el documento se rechaza. */
+    const val TOPE_TEXTO = 64 * 1024
+
+    /** Máximo de elementos anidados; más allá el documento se rechaza. */
+    const val TOPE_PROFUNDIDAD = 64
 
     /** Lee el documento que entrega [xml] y lo cierra. Los fallos de lectura salen como [ResultadoDatex.Error]. */
     fun leer(xml: LectorXml): ResultadoDatex =
@@ -47,15 +55,35 @@ object LectorDatex {
         private var lat: Double? = null
         private var lon: Double? = null
         private val texto = StringBuilder()
+        private var profundidad = 0
 
         fun ejecutar(): ResultadoDatex {
             while (true) {
                 when (xml.siguiente()) {
-                    EventoXml.INICIO -> abrir(xml.nombre)
-                    EventoXml.TEXTO -> texto.append(xml.texto)
-                    EventoXml.FIN -> cerrar(xml.nombre, texto.toString().trim())
-                    EventoXml.FIN_DOCUMENTO -> break
-                    EventoXml.OTRO -> Unit
+                    EventoXml.INICIO -> {
+                        if (++profundidad > TOPE_PROFUNDIDAD) throw XmlMalFormadoException("Demasiado anidado")
+                        abrir(xml.nombre)
+                    }
+
+                    EventoXml.TEXTO -> {
+                        texto.append(xml.texto)
+                        if (texto.length > TOPE_TEXTO) throw XmlMalFormadoException("Texto demasiado largo")
+                    }
+
+                    EventoXml.FIN -> {
+                        profundidad--
+                        cerrar(xml.nombre, texto.toString().trim())
+                        // El texto es de la hoja que se cierra: no debe pegarse al del padre ni crecer sin fin.
+                        texto.setLength(0)
+                    }
+
+                    EventoXml.FIN_DOCUMENTO -> {
+                        break
+                    }
+
+                    EventoXml.OTRO -> {
+                        Unit
+                    }
                 }
             }
             return if (esDatex) {

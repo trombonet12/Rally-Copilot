@@ -16,6 +16,7 @@ class ClienteHttp(
     private val config: ConfigDatosMapa,
     private val hostPermitido: (String) -> Boolean = ::esHostDeGithub,
     private val aceptarGzip: Boolean = false,
+    private val plazoFlujoMs: Long = PLAZO_FLUJO_MS,
 ) {
     /**
      * Abre [url] (con `Range: bytes=desde-` si [desde] > 0) siguiendo redirecciones https a https dentro de GitHub.
@@ -80,19 +81,22 @@ class ClienteHttp(
 
     /**
      * Abre [url] y entrega el cuerpo ya descomprimido (si el servidor lo envía en gzip), limitado a [maxBytes] bytes
-     * leídos: al pasarse falla con [TopeExcedidoException] (cubre también una bomba de descompresión). Cerrar el
-     * flujo cierra la conexión. Falla con [IOException] si la respuesta no es 200.
+     * leídos: al pasarse falla con [TopeExcedidoException] (cubre también una bomba de descompresión). Además, la
+     * lectura entera tiene un plazo total de [plazoMs] desde esta llamada: pasado ese tiempo la siguiente lectura falla
+     * con [IOException] (el `readTimeout` solo cubre pausas, no un servidor que gotea bytes). Cerrar el flujo cierra
+     * la conexión. Falla con [IOException] si la respuesta no es 200.
      */
     fun flujo(
         url: String,
         maxBytes: Long,
+        plazoMs: Long = plazoFlujoMs,
     ): InputStream {
         val con = abrir(url)
         try {
             comprobarRespuesta(con, maxBytes)
             val crudo = con.inputStream
             val entrada = if (con.contentEncoding.equals("gzip", ignoreCase = true)) GZIPInputStream(crudo) else crudo
-            return FlujoConTope(entrada, maxBytes, con)
+            return FlujoConTope(entrada, maxBytes, con, plazoMs)
         } catch (e: IOException) {
             con.disconnect()
             throw e
@@ -138,6 +142,9 @@ class ClienteHttp(
 
     companion object {
         const val HTTP_OK = 200
+
+        /** Plazo total por defecto de [flujo] (2 min): un servidor que gotea bytes no puede retener la descarga. */
+        const val PLAZO_FLUJO_MS = 120_000L
         const val HTTP_PARCIAL = 206
         const val HTTP_RANGO_NO_SATISFACIBLE = 416
         private const val TIMEOUT_MS = 30_000
@@ -146,8 +153,9 @@ class ClienteHttp(
         private const val TAMANO_BUFFER = 8192
         private val REDIRECCIONES = setOf(301, 302, 303, 307, 308)
 
-        /** Cliente para el feed de la DGT: solo `nap.dgt.es` y con gzip. */
-        fun paraDgt(config: ConfigDatosMapa) = ClienteHttp(config, ::esHostDeDgt, aceptarGzip = true)
+        /** Cliente para el feed de la DGT: solo `nap.dgt.es`, con gzip y con [PLAZO_FLUJO_MS] de plazo total. */
+        fun paraDgt(config: ConfigDatosMapa) =
+            ClienteHttp(config, ::esHostDeDgt, aceptarGzip = true, plazoFlujoMs = PLAZO_FLUJO_MS)
     }
 }
 
@@ -161,15 +169,25 @@ class TopeExcedidoException(
     maxBytes: Long,
 ) : IOException("La respuesta pasa de $maxBytes bytes")
 
-/** Entrada que falla al leer más de [maxBytes] bytes y que al cerrarse cierra también la conexión. */
+/**
+ * Entrada que falla al leer más de [maxBytes] bytes o pasados [plazoMs] ms desde su creación, y que al cerrarse
+ * cierra también la conexión.
+ */
 private class FlujoConTope(
     private val origen: InputStream,
     private val maxBytes: Long,
     private val conexion: HttpURLConnection,
+    plazoMs: Long,
 ) : InputStream() {
     private var leidos = 0L
+    private val limiteNs = System.nanoTime() + plazoMs.coerceIn(0, MAX_PLAZO_MS) * NS_POR_MS
+
+    private fun comprobarPlazo() {
+        if (System.nanoTime() - limiteNs > 0) throw IOException("La descarga pasa del plazo total")
+    }
 
     override fun read(): Int {
+        comprobarPlazo()
         val b = origen.read()
         if (b >= 0) sumar(1)
         return b
@@ -180,6 +198,7 @@ private class FlujoConTope(
         desde: Int,
         largo: Int,
     ): Int {
+        comprobarPlazo()
         val n = origen.read(buffer, desde, largo)
         if (n > 0) sumar(n)
         return n
@@ -198,6 +217,9 @@ private class FlujoConTope(
         }
     }
 }
+
+private const val NS_POR_MS = 1_000_000L
+private const val MAX_PLAZO_MS = 100L * 365 * 24 * 3_600_000
 
 private const val HOST_GITHUB = "github.com"
 private const val SUFIJO_CDN = ".githubusercontent.com"
