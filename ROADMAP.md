@@ -194,15 +194,23 @@ Avisar de radares e incidencias de tráfico de Mallorca con datos abiertos.
 - Fuera: Waze y Google (sin API pública).
 
 ### Criterios de aceptación
-- [ ] Un radar fijo de la Ma-13 avisa a la distancia configurada en una reproducción `gps-replay`.
-- [ ] Sin red, la app usa la última copia de incidencias e indica su antigüedad.
+- [x] Un radar fijo de la Ma-13 avisa a la distancia configurada en una reproducción `gps-replay`: `ma-13-santa-maria-palma.gpx` en libre, radar `dgt-120643` a 381 m yendo a 100 km/h (ventana 400 m) y a 586 m a 140 km/h (ventana 600 m); exceso dicho una sola vez.
+- [x] Sin red, la app usa la última copia de incidencias e indica su antigüedad: `RepositorioIncidenciasDgtTest` (copia y antigüedad sin red, caducadas fuera) y UI con «hace 2 h» (`MapaScreenAlertasTest`); sin probar con el feed real en el móvil.
 
 ### Tests
 - Motor: parseo de DATEX II (fixtures reales anonimizadas), proximidad a radar en la ruta y en sentido de la marcha.
 - Robolectric: refresco con fuente falsa (éxito, error, sin red).
 
 ### Estado
-en curso (2026-11-01) · Depende de: H1, H4 · Dudas: resueltas (2026-10-28); (2026-11-01): exceso +10 %, radar según velocidad, media en tramo, incidencias a ≤ 3 km
+completado (2026-11-01) · Depende de: H1, H4 · Dudas: resueltas (2026-10-28); (2026-11-01): exceso +10 %, radar según velocidad, media en tramo, incidencias a ≤ 3 km
+<!-- Hecho: artefacto `radares` (27 fijos, 5 tramos OSM, 9 zonas de radar móvil; datos-2026.11.01-9, dentro del APK); motor con
+DATEX II en streaming (interfaz pull propia: StAX solo en tests, XmlPullParser en Android), AlertasRadar, media de tramo,
+exceso +10 % y filtro de incidencias; incidencias de la DGT al abrir y al empezar ruta con caché y antigüedad; alertas por voz
+(modo Solo alertas en adelante) en guiado y en libre sobre la carretera predicha; banner animado de radar/incidencia, exceso
+como pastilla roja, media de tramo, incidencias en el mapa. Revisión de seguridad [opus]: 0 BLOCKER/HIGH, 2 MEDIUM y 3 LOW
+arreglados. Traza Ma-13 nueva (el script de trazas respeta los sentidos únicos).
+Pendiente: media de tramo solo en guiado; incidencias reales de la DGT y zonas móviles por PK sin probar en el móvil;
+VERIFICAR condiciones de reutilización del NAP con nap@dgt.es. -->
 
 ## H6 — Tramos y cronometraje
 

@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H5 — Alertas: radares e incidencias (en curso, 2026-11-01) |
-| Estado | H4 cerrado y v0.4.0 publicada. H5: datos de radares en el repo de datos y parser DATEX II en el motor |
+| Hito | H5 — Alertas: radares e incidencias (cerrado, 2026-11-01) · siguiente: H6 — Tramos y cronometraje |
+| Estado | **H5 cerrado** (2026-11-01); v0.5 publicada al hacer push con `version.properties` |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -20,6 +20,7 @@
 - 2026-10-28 · `scripts/gps-replay.mjs` + traza real de la Ma-2141 ([rutas/](rutas/)), verificado en el emulador; `voice-lab/README.md` con dónde dejar el material de voz.
 - 2026-10-28 · **H1**: PRs #1 y #2 de Dependabot fusionados (con permiso). Repo público [`trombonet12/rally-copilot-data`](https://github.com/trombonet12/rally-copilot-data) con workflow mensual (decidir → build sin token → publicar) y release `datos-2026.10.28-2`. Motor: manifest, plan de descarga, vías/límites, velocidad. App: MapLibre 13.6.1, Room, WorkManager, descarga reanudable verificada, GPS sin GMS, mapa vectorial/satélite, velocidad y límite, Mapas offline, Ajustes/Acerca de. Revisión de seguridad aplicada. Capturas en [capturas/h1/](capturas/h1/).
 
+- 2026-11-01 · **H5**: radares DGT + OSM (fijos, tramo, zonas móviles) dentro del APK, incidencias DATEX II de la DGT con caché y antigüedad, alertas por voz y banner animado, exceso +10 % como pastilla roja, media de tramo, incidencias en el mapa; revisión de seguridad aplicada. Capturas en [capturas/h5/](capturas/h5/).
 - 2026-11-01 · **H4**: el copiloto habla (sherpa-onnx 1.13.8, voces Piper int8 davefx/sharvard, frases sintetizadas por adelantado y cacheadas, ducking), cuatro modos, voz elegida en el primer uso, Room v5. Peticiones de Joan: ubicación bajo techo, todo menos el satélite dentro del APK (siembra), satélite z17 (`datos-2026.11.01-8`), flecha y rumbo pegados a la carretera. Capturas en [capturas/h4/](capturas/h4/).
 - 2026-10-31 · **H3**: motor de notas completo y calibrado con `copiloto-reviewer`, `vias-notas` (datos-2026.10.31-6), notas en vivo en guiado y libre, franja de notas, ajustes de anticipación y simplificadas (Room v4), «Seguir a», pantalla de conducción rediseñada (mapa inclinado, botones abajo, horizontal compacto). Capturas en [capturas/h3/](capturas/h3/).
 - 2026-10-31 · **H2**: navegación offline completa (Valhalla en el dispositivo, búsqueda, coordenadas y enlaces —los cortos con red—, Más rápida/Sinuosa, banner WRC con 3 variantes elegibles —B por defecto—, pie con llegada/tiempo/km, recálculo y sentido contrario, modo libre automático que graba el recorrido, servicio en primer plano) y mapa a gusto de Joan (menú de capas con iconos, relieve y curvas MDT05, zoom por velocidad, brújula, 4 iconos de posición, placas por matrícula en mapa y panel, pantalla encendida). Icono de la app centrado. Room v3. Revisión opus aplicada. Datos `datos-2026.10.31-5`. Capturas en [capturas/h2/](capturas/h2/).
@@ -74,4 +75,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H5 en curso. Lotes: (1) repo de datos: artefacto `radares` (DGT + OSM + zonas de cinemómetros); (2) motor: DATEX II en streaming, proximidad a radar, tramo, exceso +10 %, filtro de incidencias ≤ 3 km; (3) app: refresco de incidencias con caché y antigüedad, alertas por voz; (4) UI: banner animado, velocidad en rojo, media de tramo; (5) revisión de seguridad de la red [opus].
+- **Agente:** H5 cerrado y v0.5 publicada. Siguiente: `hito start H6` (tramos y cronometraje): preguntar a Joan las dudas de producto al empezar. En H10: Ajustes con vista previa en vivo y controles rápidos en el mapa (anticipación, simplificadas, volumen de voz).
