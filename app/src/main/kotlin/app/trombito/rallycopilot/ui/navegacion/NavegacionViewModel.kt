@@ -75,11 +75,20 @@ class NavegacionViewModel
         private val seguirYPunto: Flow<Pair<OfertaSeguir?, PuntoElegido?>> =
             combine(ofertaSeguir, puntoElegido) { oferta, punto -> oferta to punto }
 
+        /** La búsqueda abierta con la lupa del panel mientras se guía. */
+        private val buscandoGuiando = MutableStateFlow(false)
+
+        private val busquedaYLupa: Flow<Pair<BusquedaDestino, Boolean>> =
+            combine(busqueda, buscandoGuiando) { b, lupa -> b to lupa }
+
         val uiState: StateFlow<NavegacionUiState> =
-            combine(texto, busqueda, vistaPrevia, control.estado, seguirYPunto) { t, b, v, c, (oferta, punto) ->
-                // Guiando (o con su aviso final) no hay búsqueda ni vista previa; en modo libre sí.
+            combine(texto, busquedaYLupa, vistaPrevia, control.estado, seguirYPunto) { t, busc, v, c, extra ->
+                val (b, lupa) = busc
+                val (oferta, punto) = extra
+                // Guiando (o con su aviso final) no hay vista previa; la búsqueda solo si se abrió con la lupa.
                 val reposo = c is EstadoNavegacion.Inactiva || c is EstadoNavegacion.Libre
-                val busquedaVisible = if (reposo) b else BusquedaDestino.Inactiva
+                val buscando = lupa && c is EstadoNavegacion.Guiando
+                val busquedaVisible = if (reposo || buscando) b else BusquedaDestino.Inactiva
                 val previaVisible = if (reposo) v else null
                 val hayBusqueda = busquedaVisible != BusquedaDestino.Inactiva
                 NavegacionUiState(
@@ -87,6 +96,7 @@ class NavegacionViewModel
                     busqueda = busquedaVisible,
                     vistaPrevia = previaVisible,
                     control = c,
+                    buscando = buscando,
                     seguir = oferta.takeIf { reposo && previaVisible == null && !hayBusqueda },
                     // La tarjeta del punto se ve en reposo y guiando; el aviso de llegada o de error la cierra.
                     puntoElegido = punto.takeIf { reposo || c is EstadoNavegacion.Guiando },
@@ -126,7 +136,31 @@ class NavegacionViewModel
             // La vista previa se conserva al buscar: así un resultado puede añadirse como parada de esa ruta.
         }
 
+        /** La lupa del panel (solo guiando): abre la búsqueda encima del mapa. */
+        fun abrirBusquedaGuiando() {
+            if (guiando()) buscandoGuiando.value = true
+        }
+
+        /** Cierra la búsqueda abierta con la lupa y borra su texto. */
+        fun cerrarBusquedaGuiando() {
+            buscandoGuiando.value = false
+            resolucion?.cancel()
+            texto.value = ""
+            consulta.value = ""
+            busqueda.value = BusquedaDestino.Inactiva
+        }
+
+        /**
+         * Elige [destino]: en reposo abre la vista previa (conservando sus paradas); guiando cambia el destino final,
+         * conserva las paradas pendientes y el control recalcula desde la posición actual sin dejar de guiar.
+         */
         fun elegirDestino(destino: Destino) {
+            if (guiando()) {
+                puntoElegido.value = null
+                cerrarBusquedaGuiando()
+                control.cambiarDestino(destino)
+                return
+            }
             resolucion?.cancel()
             puntoElegido.value = null
             texto.value = destino.nombre
@@ -168,6 +202,7 @@ class NavegacionViewModel
             val previa = vistaPrevia.value
             when {
                 guiando() -> {
+                    cerrarBusquedaGuiando()
                     control.anadirParada(parada)
                 }
 
@@ -280,6 +315,7 @@ class NavegacionViewModel
          */
         fun terminar() {
             puntoElegido.value = null
+            buscandoGuiando.value = false
             if (permiso == true) control.empezarLibre() else control.terminar()
         }
 
@@ -294,6 +330,7 @@ class NavegacionViewModel
             resolucion?.cancel()
             vistaPrevia.value = null
             puntoElegido.value = null
+            buscandoGuiando.value = false
             texto.value = ""
             consulta.value = ""
             busqueda.value = BusquedaDestino.Inactiva

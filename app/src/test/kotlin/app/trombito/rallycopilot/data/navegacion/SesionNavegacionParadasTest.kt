@@ -374,6 +374,52 @@ class SesionNavegacionParadasTest {
         }
 
     @Test
+    fun `cambiar el destino recalcula conservando las paradas pendientes y publica el destino nuevo`() =
+        runTest {
+            val otro = Destino("Otro", p(1500.0, 300.0))
+            val puntos = listOf(enRuta(300.0), parada1.punto, parada2.punto, otro.punto)
+            val nueva = Ruta(puntos, rutaConDosParadas().maniobras, 2000.0, 200.0, listOf(1, 2))
+            val e = escenario(List(30) { enRuta(300.0) }, listOf(ResultadoRuta.Ok(nueva, 50)))
+            val trabajo = lanzar(e)
+
+            advanceTimeBy(1_500)
+            e.ordenes.trySend(OrdenParadas.CambiarDestino(otro))
+            runCurrent()
+            assertEquals(otro, e.guiando.destino)
+            assertEquals(listOf(parada1, parada2), e.guiando.paradas)
+            assertTrue(e.guiando.recalculando)
+
+            advanceTimeBy(1_000)
+            val peticion = e.enrutador.peticiones.single()
+            assertEquals(listOf(parada1.punto, parada2.punto), peticion.paradas)
+            assertEquals(otro.punto, peticion.destino)
+            assertEquals(enRuta(300.0).lat, peticion.origen.lat, 1e-6)
+            assertFalse(e.guiando.recalculando)
+            assertEquals(otro, e.guiando.destino)
+            assertEquals(listOf(parada1, parada2), e.guiando.paradas)
+            trabajo.cancel()
+        }
+
+    @Test
+    fun `si falla el recalculo del nuevo destino se vuelve al destino de la ruta vigente`() =
+        runTest {
+            val otro = Destino("Otro", p(1500.0, 300.0))
+            val e = escenario(List(30) { enRuta(300.0) }, listOf(ResultadoRuta.Error("sin ruta")))
+            val trabajo = lanzar(e)
+
+            advanceTimeBy(1_500)
+            e.ordenes.trySend(OrdenParadas.CambiarDestino(otro))
+            runCurrent()
+            assertEquals(otro, e.guiando.destino)
+
+            advanceTimeBy(1_000)
+            assertEquals(final, e.guiando.destino)
+            assertEquals(listOf(parada1, parada2), e.guiando.paradas)
+            assertFalse(e.guiando.recalculando)
+            trabajo.cancel()
+        }
+
+    @Test
     fun `dos ediciones seguidas dejan una sola ruta nueva con la lista final`() =
         runTest {
             val extra = Destino("Extra", p(1500.0, 300.0))

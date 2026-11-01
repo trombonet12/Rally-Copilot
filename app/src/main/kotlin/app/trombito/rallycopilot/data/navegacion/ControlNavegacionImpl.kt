@@ -88,6 +88,9 @@ class ControlNavegacionImpl
 
         /** Paradas pendientes que hay en el guiado pendiente guardado. Solo se toca con el [cerrojo] o al empezar. */
         private var paradasGuardadas: List<Destino> = emptyList()
+
+        /** Destino del guiado pendiente guardado (cambia si el usuario elige otro destino guiando). */
+        private var destinoGuardado: Destino? = null
         private val huerfanosReclamados = AtomicBoolean(false)
 
         override fun empezarLibre() {
@@ -115,7 +118,10 @@ class ControlNavegacionImpl
             )
             if (!yaGuiando && _estado.value is EstadoNavegacion.Guiando) {
                 val pendientes = paradas.take(ruta.indicesParadas.size)
-                synchronized(cerrojo) { paradasGuardadas = pendientes }
+                synchronized(cerrojo) {
+                    paradasGuardadas = pendientes
+                    destinoGuardado = destino
+                }
                 cola.trySend { guiadoPendiente.guardar(destino, perfil, pendientes) }
             }
         }
@@ -209,8 +215,9 @@ class ControlNavegacionImpl
 
         /** Mantiene el guiado pendiente al día con las paradas que faltan. Llamar con el [cerrojo] tomado. */
         private fun guardarParadasSiCambian(guiando: EstadoNavegacion.Guiando) {
-            if (guiando.paradas == paradasGuardadas) return
+            if (guiando.paradas == paradasGuardadas && guiando.destino == destinoGuardado) return
             paradasGuardadas = guiando.paradas
+            destinoGuardado = guiando.destino
             val destino = guiando.destino
             val perfil = guiando.perfil
             val paradas = guiando.paradas

@@ -47,12 +47,18 @@ sealed interface OrdenParadas {
         val desde: Int,
         val hasta: Int,
     ) : OrdenParadas
+
+    /** Cambia el destino final conservando las paradas pendientes; la sesión recalcula desde la posición actual. */
+    data class CambiarDestino(
+        val destino: Destino,
+    ) : OrdenParadas
 }
 
-/** Aplica la orden a la lista de paradas pendientes. */
+/** Aplica la orden a la lista de paradas pendientes ([OrdenParadas.CambiarDestino] no las toca). */
 fun OrdenParadas.aplicar(paradas: List<Destino>): List<Destino> =
     when (this) {
         is OrdenParadas.Anadir -> EdicionParadas.anadir(paradas, parada)
         is OrdenParadas.Quitar -> EdicionParadas.quitar(paradas, indice)
         is OrdenParadas.Mover -> EdicionParadas.mover(paradas, desde, hasta)
+        is OrdenParadas.CambiarDestino -> paradas
     }

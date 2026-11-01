@@ -26,10 +26,24 @@ import app.trombito.rallycopilot.ui.comun.Iconos
 const val ETIQUETA_EMPEZAR = "nav-empezar"
 const val ETIQUETA_CANCELAR = "nav-cancelar"
 const val ETIQUETA_TERMINAR = "nav-terminar"
+const val ETIQUETA_BUSCAR_GUIANDO = "nav-buscar-guiando"
 
 private val LADO_ACCION = 56.dp
 private val ANCHO_EMPEZAR = 88.dp
 private const val OPACIDAD_DESHABILITADO = 0.38f
+
+/** Lupa del panel mientras se guía: abre la búsqueda para añadir una parada o cambiar de destino. */
+@Composable
+fun BotonBuscarGuiando(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    BotonIcono(
+        descripcion = stringResource(R.string.navegacion_ui_buscar_guiando),
+        onClick = onClick,
+        modifier = modifier.testTag(ETIQUETA_BUSCAR_GUIANDO),
+    ) { Icon(Iconos.Lupa, contentDescription = null) }
+}
 
 /** Cancela la vista previa de rutas. */
 @Composable

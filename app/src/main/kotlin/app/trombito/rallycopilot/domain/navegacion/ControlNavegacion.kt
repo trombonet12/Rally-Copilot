@@ -100,6 +100,9 @@ interface ControlNavegacion {
 
     fun quitarParada(indice: Int) = editarParadas(OrdenParadas.Quitar(indice))
 
+    /** Cambia el destino final del guiado conservando las paradas pendientes; recalcula como las ediciones. */
+    fun cambiarDestino(destino: Destino) = editarParadas(OrdenParadas.CambiarDestino(destino))
+
     /** Mueve la parada pendiente [desde] a la posición [hasta]. */
     fun moverParada(
         desde: Int,

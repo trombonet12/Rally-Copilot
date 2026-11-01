@@ -334,6 +334,42 @@ class ControlNavegacionImplTest {
     }
 
     @Test
+    fun `cambiar destino solo llega a la sesion con un guiado en curso`() {
+        val otro = Destino("Pollença", PuntoGeo(39.9, 3.0))
+        control.cambiarDestino(otro)
+        assertTrue(control.ordenes.tryReceive().isFailure)
+
+        control.empezar(destinoPrueba, PerfilRuta.SINUOSA, rutaPrueba)
+        control.cambiarDestino(otro)
+
+        assertEquals(OrdenParadas.CambiarDestino(otro), control.ordenes.tryReceive().getOrNull())
+    }
+
+    @Test
+    fun `cuando la sesion publica otro destino se actualiza el guiado pendiente conservando las paradas`() {
+        val parada = Destino("A", PuntoGeo(39.6, 2.7))
+        val otro = Destino("Pollença", PuntoGeo(39.9, 3.0))
+        val conParada = rutaPrueba.copy(indicesParadas = listOf(0))
+        control.empezar(destinoPrueba, PerfilRuta.SINUOSA, conParada, listOf(parada))
+        val id = checkNotNull(control.tomarSolicitud()).id
+
+        control.publicar(
+            id,
+            EstadoNavegacion.Guiando(
+                otro,
+                PerfilRuta.SINUOSA,
+                conParada,
+                progreso = null,
+                recalculando = false,
+                paradas = listOf(parada),
+            ),
+        )
+
+        assertEquals(otro, guiadoPendiente.valor.value?.first)
+        assertEquals(listOf(parada), guiadoPendiente.paradas)
+    }
+
+    @Test
     fun `una sesion nueva descarta las ordenes de la anterior`() {
         control.empezar(destinoPrueba, PerfilRuta.SINUOSA, rutaPrueba)
         control.quitarParada(0)

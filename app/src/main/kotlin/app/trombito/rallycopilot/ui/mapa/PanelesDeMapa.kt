@@ -7,9 +7,15 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
+import app.trombito.rallycopilot.ui.copiloto.BotonModoCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.DialogoVozCopiloto
+import app.trombito.rallycopilot.ui.copiloto.PanelModoCopiloto
+import app.trombito.rallycopilot.ui.navegacion.BotonBuscarGuiando
+import app.trombito.rallycopilot.ui.navegacion.BotonTerminar
+import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 
 /** El diálogo para elegir la voz del copiloto en el primer uso. */
 @Composable
@@ -81,4 +87,95 @@ internal fun rememberPanelCompacto(
     val nuevo = panelCompacto(compacto, velocidadKmh, planificando)
     LaunchedEffect(nuevo) { compacto = nuevo }
     return compacto
+}
+
+private val ANCHO_PANEL_LATERAL = 250.dp
+
+// Con cinco botones (la lupa del guiado) la fila de abajo necesita 5 x 48 dp + huecos + márgenes.
+private val ANCHO_PANEL_LATERAL_AMPLIO = 280.dp
+private const val BOTONES_EN_FILA_ESTRECHA = 4
+
+/** Los botones de icono del panel inferior: a la izquierda de la velocidad y a la derecha. */
+internal class BotonesPanel(
+    val izquierda: List<@Composable () -> Unit> = emptyList(),
+    val derecha: List<@Composable () -> Unit> = emptyList(),
+)
+
+internal fun anchoPanelLateral(botones: BotonesPanel) =
+    if (botones.izquierda.size + botones.derecha.size > BOTONES_EN_FILA_ESTRECHA) {
+        ANCHO_PANEL_LATERAL_AMPLIO
+    } else {
+        ANCHO_PANEL_LATERAL
+    }
+
+/** Menú desplegado sobre el mapa desde el panel inferior: solo uno a la vez. */
+internal enum class MenuMapa { NINGUNO, CAPAS, MODO }
+
+internal class MenuAbierto(
+    val actual: MenuMapa,
+    val cambiar: (MenuMapa) -> Unit,
+) {
+    /** Abre [menu], o lo cierra si ya estaba abierto. */
+    fun alternar(menu: MenuMapa) = cambiar(if (actual == menu) MenuMapa.NINGUNO else menu)
+}
+
+/**
+ * Izquierda: capas, modo del copiloto y, mientras se guía, la lupa que abre la búsqueda. Derecha: rumbo/norte y,
+ * mientras se guía, la bandera de terminar. Con cuatro botones la velocidad no se tapa: dos a cada lado en vertical y
+ * una sola fila en horizontal; con la lupa, tres a la izquierda y el panel lateral se ensancha para la fila de cinco.
+ */
+internal fun botonesDelPanel(
+    estado: MapaUiState,
+    acciones: AccionesMapa,
+    navegacion: NavegacionEnMapa,
+    copiloto: CopilotoEnMapa,
+    menu: MenuAbierto,
+): BotonesPanel {
+    val terminar = navegacion.acciones.onTerminar.takeIf { navegacion.estado.conduciendo }
+    val buscar = navegacion.acciones.onAbrirBusqueda.takeIf { navegacion.estado.conduciendo }
+    return BotonesPanel(
+        izquierda =
+            listOfNotNull(
+                { BotonCapas(menu.actual == MenuMapa.CAPAS, { menu.alternar(MenuMapa.CAPAS) }) },
+                {
+                    val abierto = menu.actual == MenuMapa.MODO
+                    BotonModoCopiloto(copiloto.estado.modo, abierto, { menu.alternar(MenuMapa.MODO) })
+                },
+                buscar?.let { alBuscar -> { BotonBuscarGuiando(alBuscar) } },
+            ),
+        derecha =
+            listOfNotNull(
+                { BotonOrientacion(estado.orientacion, acciones.onOrientacion) },
+                terminar?.let { alTerminar -> { BotonTerminar(alTerminar) } },
+            ),
+    )
+}
+
+/** El menú abierto desde el panel inferior (capas o modo del copiloto), pegado a su botón. */
+@Composable
+internal fun MenuSobreMapa(
+    estado: MapaUiState,
+    acciones: AccionesMapa,
+    copiloto: CopilotoEnMapa,
+    menu: MenuAbierto,
+    modifier: Modifier,
+) {
+    when (menu.actual) {
+        MenuMapa.CAPAS -> {
+            PanelCapas(estado, acciones, modifier)
+        }
+
+        MenuMapa.MODO -> {
+            PanelModoCopiloto(
+                modo = copiloto.estado.modo,
+                onModo = {
+                    copiloto.acciones.onModo(it)
+                    menu.cambiar(MenuMapa.NINGUNO)
+                },
+                modifier = modifier,
+            )
+        }
+
+        MenuMapa.NINGUNO -> {}
+    }
 }

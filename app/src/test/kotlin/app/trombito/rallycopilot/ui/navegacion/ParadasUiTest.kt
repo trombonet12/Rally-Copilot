@@ -148,10 +148,12 @@ class ParadasUiTest {
     }
 
     @Test
-    fun `guiando la tarjeta solo ofrece anadir parada`() {
+    fun `guiando la tarjeta ofrece ir aqui y anadir parada`() {
         ponerMapa(guiandoConParadas(0, punto = PuntoElegido(SOLLER, "Sóller")))
-        assertFalse(banco.hay(ETIQUETA_PUNTO_IR))
+        assertTrue(banco.hay(ETIQUETA_PUNTO_IR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_PUNTO_IR))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_PUNTO_PARADA))
+        assertEquals(1, irAqui)
         assertEquals(1, anadirDelPunto)
     }
 

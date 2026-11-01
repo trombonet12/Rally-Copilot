@@ -40,8 +40,6 @@ private val TAMANO_ICONO_BOTON = 20.dp
 
 /** Lo que la tarjeta del punto puede hacer, según haya ruta o no. */
 data class OpcionesPunto(
-    /** «Ir aquí» abre la vista previa; no se ofrece mientras se guía (no hay vista previa que abrir). */
-    val puedeIr: Boolean = true,
     /** Se puede añadir otra parada (hay sitio en la lista). */
     val puedeAnadir: Boolean = true,
 )
@@ -124,16 +122,15 @@ private fun BotonesPunto(
         modifier = Modifier.fillMaxWidth().padding(end = Espacio.s),
         horizontalArrangement = Arrangement.spacedBy(Espacio.s),
     ) {
-        if (opciones.puedeIr) {
-            BotonPunto(
-                etiqueta = ETIQUETA_PUNTO_IR,
-                texto = stringResource(R.string.navegacion_ui_punto_ir),
-                descripcion = stringResource(R.string.navegacion_ui_punto_ir_descripcion, titulo),
-                onClick = acciones.onIrAqui,
-                principal = true,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        // Con ruta en vista previa abre las rutas; guiando cambia el destino y conserva las paradas pendientes.
+        BotonPunto(
+            etiqueta = ETIQUETA_PUNTO_IR,
+            texto = stringResource(R.string.navegacion_ui_punto_ir),
+            descripcion = stringResource(R.string.navegacion_ui_punto_ir_descripcion, titulo),
+            onClick = acciones.onIrAqui,
+            principal = true,
+            modifier = Modifier.weight(1f),
+        )
         BotonPunto(
             etiqueta = ETIQUETA_PUNTO_PARADA,
             texto = stringResource(R.string.navegacion_ui_punto_parada),

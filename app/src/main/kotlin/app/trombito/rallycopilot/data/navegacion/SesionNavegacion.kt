@@ -230,33 +230,38 @@ class SesionNavegacion(
             guia.recalculando = true
             publicar(estadoActual())
             val paradas = guia.paradas
-            val resultado =
-                enrutador.rutaConParadas(origen, paradas.map { it.punto }, guia.destino.punto, guia.perfil)
+            val destino = guia.destino
+            val resultado = enrutador.rutaConParadas(origen, paradas.map { it.punto }, destino.punto, guia.perfil)
             if (resultado is ResultadoRuta.Ok && resultado.ruta.puntos.size >= 2) {
                 // Se proyecta ya la última posición: sin progreso el banner enseñaría la salida de la ruta nueva (0 m).
-                guia.usar(resultado.ruta, paradas, ultimaPosicion, reloj())
+                guia.usar(resultado.ruta, paradas, destino, ultimaPosicion, reloj())
                 notas?.nuevaRuta(resultado.ruta.puntos)
                 alertas?.nuevaRuta(resultado.ruta.puntos)
             } else {
                 guia.reintentoMs = ultimaFijacionMs + REINTENTO_MS
-                // La ruta vigente sigue sin las paradas pedidas: las pendientes vuelven a ser las de esa ruta.
+                // La ruta vigente sigue sin las paradas ni el destino pedidos: vuelven a ser los de esa ruta.
                 guia.paradas = guia.paradasEnRuta
+                guia.destino = guia.destinoEnRuta
             }
             guia.recalculando = false
             guia.progreso?.let { paradasAlcanzadas(guia, it, null) }
             publicar(estadoActual())
         }
 
-        /** Aplica una orden de la UI sobre las paradas pendientes y recalcula la ruta desde la posición actual. */
+        /** Aplica una orden de la UI sobre las paradas o el destino y recalcula desde la posición actual. */
         private fun editar(
             guia: Guia,
             orden: OrdenParadas,
             alcance: CoroutineScope,
         ) {
-            val nuevas = orden.aplicar(guia.paradas)
-            if (nuevas == guia.paradas) return
-            guia.paradas = nuevas
-            relanzarRecalculo(guia, alcance)
+            val cambio =
+                if (orden is OrdenParadas.CambiarDestino) {
+                    (orden.destino != guia.destino).also { if (it) guia.destino = orden.destino }
+                } else {
+                    val nuevas = orden.aplicar(guia.paradas)
+                    (nuevas != guia.paradas).also { if (it) guia.paradas = nuevas }
+                }
+            if (cambio) relanzarRecalculo(guia, alcance)
         }
 
         private fun relanzarRecalculo(
@@ -320,7 +325,11 @@ class SesionNavegacion(
     private class Guia(
         solicitud: SolicitudNavegacion.Guiada,
     ) {
-        val destino = solicitud.destino
+        /** Destino final que se quiere; con un cambio en marcha difiere del de la ruta hasta que se recalcula. */
+        var destino = solicitud.destino
+
+        /** Destino final al que lleva [ruta]. */
+        var destinoEnRuta = solicitud.destino
         val perfil = solicitud.perfil
         var ruta: Ruta = solicitud.ruta
 
@@ -351,10 +360,12 @@ class SesionNavegacion(
         fun usar(
             nueva: Ruta,
             pendientes: List<Destino>,
+            destinoNuevo: Destino,
             posicion: PuntoGeo?,
             ahoraMs: Long,
         ) {
             paradasEnRuta = pendientes.take(nueva.indicesParadas.size)
+            destinoEnRuta = destinoNuevo
             alcanzadasEnRuta = 0
             ruta = nueva
             seguidor = SeguidorRuta(nueva)

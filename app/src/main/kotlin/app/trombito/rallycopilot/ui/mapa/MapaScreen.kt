@@ -50,14 +50,12 @@ import app.trombito.rallycopilot.ui.alertas.BannerAlerta
 import app.trombito.rallycopilot.ui.alertas.TarjetaIncidencia
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.MantenerPantallaEncendida
-import app.trombito.rallycopilot.ui.copiloto.BotonModoCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.DialogoVozCopiloto
-import app.trombito.rallycopilot.ui.copiloto.PanelModoCopiloto
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.BannerParada
-import app.trombito.rallycopilot.ui.navegacion.BotonTerminar
 import app.trombito.rallycopilot.ui.navegacion.BusquedaDestino
+import app.trombito.rallycopilot.ui.navegacion.BusquedaGuiando
 import app.trombito.rallycopilot.ui.navegacion.CabeceraBusqueda
 import app.trombito.rallycopilot.ui.navegacion.ListaDestinos
 import app.trombito.rallycopilot.ui.navegacion.ListaParadas
@@ -84,7 +82,6 @@ const val ETIQUETA_PERMISO_PEDIR = "mapa-permiso-pedir"
 const val ETIQUETA_PERMISO_AJUSTES = "mapa-permiso-ajustes"
 
 private const val OPACIDAD_SUPERFICIE_SOBRE_MAPA = 0.88f
-private val ANCHO_PANEL_LATERAL = 250.dp
 private val ALTO_MINIMO_TACTIL = 48.dp
 private val ANCHO_BANNER_PARADA = 520.dp
 
@@ -169,7 +166,7 @@ fun MapaScreen(
                 PanelDeVelocidad(
                     PanelEnMapa(estado, botones, alertas, enColumna = true, compacto = compacto),
                     Modifier
-                        .width(ANCHO_PANEL_LATERAL)
+                        .width(anchoPanelLateral(botones))
                         .fillMaxHeight()
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(LADOS_PANEL_LATERAL)),
                 )
@@ -198,52 +195,6 @@ fun MapaScreen(
             }
         }
     }
-}
-
-/** Los botones de icono del panel inferior: a la izquierda de la velocidad y a la derecha. */
-internal class BotonesPanel(
-    val izquierda: List<@Composable () -> Unit> = emptyList(),
-    val derecha: List<@Composable () -> Unit> = emptyList(),
-)
-
-/** Menú desplegado sobre el mapa desde el panel inferior: solo uno a la vez. */
-private enum class MenuMapa { NINGUNO, CAPAS, MODO }
-
-private class MenuAbierto(
-    val actual: MenuMapa,
-    val cambiar: (MenuMapa) -> Unit,
-) {
-    /** Abre [menu], o lo cierra si ya estaba abierto. */
-    fun alternar(menu: MenuMapa) = cambiar(if (actual == menu) MenuMapa.NINGUNO else menu)
-}
-
-/**
- * Izquierda: capas y modo del copiloto. Derecha: rumbo/norte y, mientras se guía, la bandera de terminar. Con cuatro
- * botones la velocidad no se tapa: dos a cada lado en vertical y una sola fila en horizontal.
- */
-private fun botonesDelPanel(
-    estado: MapaUiState,
-    acciones: AccionesMapa,
-    navegacion: NavegacionEnMapa,
-    copiloto: CopilotoEnMapa,
-    menu: MenuAbierto,
-): BotonesPanel {
-    val terminar = navegacion.acciones.onTerminar.takeIf { navegacion.estado.conduciendo }
-    return BotonesPanel(
-        izquierda =
-            listOf(
-                { BotonCapas(menu.actual == MenuMapa.CAPAS, { menu.alternar(MenuMapa.CAPAS) }) },
-                {
-                    val abierto = menu.actual == MenuMapa.MODO
-                    BotonModoCopiloto(copiloto.estado.modo, abierto, { menu.alternar(MenuMapa.MODO) })
-                },
-            ),
-        derecha =
-            listOfNotNull(
-                { BotonOrientacion(estado.orientacion, acciones.onOrientacion) },
-                terminar?.let { alTerminar -> { BotonTerminar(alTerminar) } },
-            ),
-    )
 }
 
 /** Lo que pinta la zona del mapa, agrupado. */
@@ -301,26 +252,18 @@ private fun ZonaMapa(
                 (navegacion.estado.control as? EstadoNavegacion.Guiando)?.let {
                     navegacion.panelGuiado(this, it, vista.horizontal, navegacion.notas, contenido.alertas)
                 }
+                // La búsqueda abierta con la lupa tapa el banner de arriba; los menús del panel siguen encima.
+                if (navegacion.estado.buscando) {
+                    BusquedaGuiando(
+                        navegacion.estado,
+                        navegacion.acciones,
+                        vista.horizontal,
+                        Modifier.align(Alignment.TopStart),
+                    )
+                }
                 // Encima de todo y pegado al panel inferior, junto al botón que lo abre.
                 val pegado = Modifier.align(if (vista.horizontal) Alignment.BottomEnd else Alignment.BottomStart)
-                when (contenido.menu.actual) {
-                    MenuMapa.CAPAS -> {
-                        PanelCapas(estado, acciones, pegado)
-                    }
-
-                    MenuMapa.MODO -> {
-                        PanelModoCopiloto(
-                            modo = contenido.copiloto.estado.modo,
-                            onModo = {
-                                contenido.copiloto.acciones.onModo(it)
-                                contenido.menu.cambiar(MenuMapa.NINGUNO)
-                            },
-                            modifier = pegado,
-                        )
-                    }
-
-                    MenuMapa.NINGUNO -> {}
-                }
+                MenuSobreMapa(estado, acciones, contenido.copiloto, contenido.menu, pegado)
             }
         }
     }
@@ -525,7 +468,7 @@ private fun PieMapa(
             }
         }
         nav.puntoElegido?.let {
-            val opciones = OpcionesPunto(puedeIr = guiando == null, puedeAnadir = !nav.paradasLlenas)
+            val opciones = OpcionesPunto(puedeAnadir = !nav.paradasLlenas)
             TarjetaPunto(it, opciones, navegacion.acciones)
         }
         if (guiando != null && guiando.paradas.isNotEmpty()) {

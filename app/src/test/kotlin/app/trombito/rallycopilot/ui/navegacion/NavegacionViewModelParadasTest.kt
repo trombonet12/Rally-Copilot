@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.navegacion
 
+import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EdicionParadas
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
@@ -12,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -220,6 +222,112 @@ class NavegacionViewModelParadasTest {
                 control.ordenes,
             )
             assertNull(vm.uiState.value.puntoElegido)
+        }
+
+    private fun guiandoConParadas() =
+        control.publicar(
+            EstadoNavegacion.Guiando(
+                destino,
+                PerfilRuta.MAS_RAPIDA,
+                rutaDePrueba(),
+                null,
+                false,
+                paradas = listOf(valldemossa),
+            ),
+        )
+
+    @Test
+    fun `guiando ir aqui cambia el destino en el control, conserva las paradas y cierra la tarjeta`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            guiandoConParadas()
+            vm.onMantenerPulsado(PALMA, "Palma")
+            vm.irAqui()
+            assertEquals(listOf<OrdenParadas>(OrdenParadas.CambiarDestino(Destino("Palma", PALMA))), control.ordenes)
+            assertNull(vm.uiState.value.puntoElegido)
+            assertNull(vm.uiState.value.vistaPrevia)
+            assertTrue(control.estado.value is EstadoNavegacion.Guiando)
+            assertEquals(listOf(valldemossa), vm.uiState.value.paradas)
+        }
+
+    @Test
+    fun `la lupa abre la busqueda guiando, busca y un resultado se anade como parada o cambia el destino`() =
+        runTest {
+            buscador.resultados = listOf(ResultadoBusqueda("Inca", "ciudad", "Inca", inca.punto))
+            val vm = crear()
+            recoger(vm)
+            vm.abrirBusquedaGuiando()
+            assertFalse("Sin guiar la lupa no hace nada", vm.uiState.value.buscando)
+
+            guiandoConParadas()
+            vm.abrirBusquedaGuiando()
+            assertTrue(vm.uiState.value.buscando)
+            vm.onTexto("Inca")
+            advanceTimeBy(300)
+            assertEquals(listOf("Inca"), buscador.consultas.map { it.first })
+            assertTrue(vm.uiState.value.busqueda is BusquedaDestino.Resultados)
+
+            vm.anadirParada(inca)
+            assertEquals(listOf<OrdenParadas>(OrdenParadas.Anadir(inca)), control.ordenes)
+            assertFalse(vm.uiState.value.buscando)
+            assertEquals(BusquedaDestino.Inactiva, vm.uiState.value.busqueda)
+
+            vm.abrirBusquedaGuiando()
+            vm.onTexto("Inca")
+            advanceTimeBy(300)
+            vm.elegirDestino(inca)
+            assertEquals(OrdenParadas.CambiarDestino(inca), control.ordenes.last())
+            assertFalse(vm.uiState.value.buscando)
+            assertEquals("", vm.uiState.value.texto)
+        }
+
+    @Test
+    fun `cerrar la busqueda guiando la esconde y borra el texto sin tocar el guiado`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            guiandoConParadas()
+            vm.abrirBusquedaGuiando()
+            vm.onTexto("Inca")
+            advanceTimeBy(300)
+            vm.cerrarBusquedaGuiando()
+            val estado = vm.uiState.value
+            assertFalse(estado.buscando)
+            assertEquals("", estado.texto)
+            assertEquals(BusquedaDestino.Inactiva, estado.busqueda)
+            assertTrue(control.ordenes.isEmpty())
+            assertTrue(control.estado.value is EstadoNavegacion.Guiando)
+        }
+
+    @Test
+    fun `terminar el guiado cierra la busqueda abierta con la lupa`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            guiandoConParadas()
+            vm.abrirBusquedaGuiando()
+            vm.terminar()
+            guiandoConParadas()
+            assertFalse(vm.uiState.value.buscando)
+        }
+
+    @Test
+    fun `en la vista previa elegir otro destino conserva las paradas`() =
+        runTest {
+            rutasOk()
+            val vm = crear()
+            recoger(vm)
+            vm.onPosicion(PALMA)
+            vm.elegirDestino(destino)
+            vm.anadirParada(valldemossa)
+            vm.anadirParada(inca)
+            vm.elegirDestino(Destino("Pollença", PuntoGeo(39.8769, 3.0161)))
+            val previa = vm.uiState.value.vistaPrevia!!
+            assertEquals("Pollença", previa.destino.nombre)
+            assertEquals(listOf(valldemossa, inca), previa.paradas)
+            assertEquals(listOf(valldemossa.punto, inca.punto), enrutador.peticionesConParadas.last())
+            assertTrue(previa.puedeEmpezar)
         }
 
     @Test

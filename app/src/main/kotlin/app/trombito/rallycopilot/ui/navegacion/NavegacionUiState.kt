@@ -138,6 +138,8 @@ data class NavegacionUiState(
     val vistaPrevia: VistaPrevia? = null,
     /** El estado de la conducción, tal cual lo publica el servicio. */
     val control: EstadoNavegacion = EstadoNavegacion.Inactiva,
+    /** Guiando, la lupa del panel abrió la búsqueda encima del mapa (con [texto] y [busqueda]). */
+    val buscando: Boolean = false,
     /** «Seguir a <destino>»: solo en reposo, sin búsqueda ni vista previa abiertas. */
     val seguir: OfertaSeguir? = null,
     /** El punto elegido manteniendo pulsado el mapa (tarjeta «Ir aquí» / «Añadir parada»). */
