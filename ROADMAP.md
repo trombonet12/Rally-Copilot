@@ -270,15 +270,20 @@ Convertir cada trayecto en un tramo cronometrado con sectores, detección de tra
 - Fuera: análisis post-tramo (H7), edición de sectores arrastrando sobre el mapa (H8).
 
 ### Criterios de aceptación
-- [ ] Repetir la misma traza a dos velocidades da delta negativo en la rápida, sector a sector.
-- [ ] Una traza que entra a mitad de un tramo guardado y lo recorre entero se detecta y se compara.
+- [x] Repetir la misma traza a dos velocidades da delta negativo en la rápida, sector a sector: `TramosCriteriosTest` (Ma-2141) y `SesionCronoTest`; en el emulador, 3 km de la Ma-2141 a 50 y a 70 km/h (S1 −31,0 · S2 −13,5 · S3 −16,0, meta −1:16,9, [capturas](docs/capturas/h6/)).
+- [x] Una traza que entra a mitad de un tramo guardado y lo recorre entero se detecta y se compara: `TramosCriteriosTest` (empieza 2 km antes del tramo).
 
 ### Tests
 - Motor (TDD): cronometraje con reloj inyectado, cortes de sector, delta interpolado por distancia, detección de tramo (inicio, fin, desvío).
 - Room: migraciones con tests.
 
 ### Estado
-en curso (retomado 2026-11-01 tras H5B) · Depende de: H2 · Dudas: resueltas (2026-10-28); (2026-11-01): todo trayecto ≥ 1 km es tramo, delta por voz en sectores y meta, micro por km, HUD con tramo conocido
+completado (2026-11-01) · Depende de: H2 · Dudas: resueltas (2026-10-28); (2026-11-01): todo trayecto ≥ 1 km es tramo, delta por voz en sectores y meta, micro por km, HUD con tramo conocido
+<!-- Hecho: motor tramos/ (Cronometro con cortes interpolados, Delta, DetectorTramo, TramoDesdeRecorrido, meta 10 m antes del
+final); Room v7 (tramo, pasada); cada conducción ≥ 1 km crea tramo salvo que repita uno completado; delta por voz en modo
+Completo; HUD de retransmisión con delta y parciales solo con tramo conocido, cronómetro pequeño en uno nuevo, tarjeta de meta.
+Pendiente: grabación automática activable en Ajustes (hoy siempre activa; va a H10 con Ajustes rehechos); nombrar tramos y
+configurar sectores (H7/H8); probar en el coche. -->
 
 ## H7 — Análisis post-tramo y perfil del piloto
 

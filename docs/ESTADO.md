@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H6 — Tramos y cronometraje (en curso, retomado 2026-11-01) |
-| Estado | **H5B cerrado**; v0.6 publicada al hacer push con `version.properties`. H6 sin código aún (el lote del motor no llegó a escribir nada) |
+| Hito | H6 cerrado (2026-11-01) · siguiente: H7 — Análisis post-tramo y perfil del piloto |
+| Estado | **H6 cerrado**; v0.7 publicada al hacer push con `version.properties` |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -20,6 +20,7 @@
 - 2026-10-28 · `scripts/gps-replay.mjs` + traza real de la Ma-2141 ([rutas/](rutas/)), verificado en el emulador; `voice-lab/README.md` con dónde dejar el material de voz.
 - 2026-10-28 · **H1**: PRs #1 y #2 de Dependabot fusionados (con permiso). Repo público [`trombonet12/rally-copilot-data`](https://github.com/trombonet12/rally-copilot-data) con workflow mensual (decidir → build sin token → publicar) y release `datos-2026.10.28-2`. Motor: manifest, plan de descarga, vías/límites, velocidad. App: MapLibre 13.6.1, Room, WorkManager, descarga reanudable verificada, GPS sin GMS, mapa vectorial/satélite, velocidad y límite, Mapas offline, Ajustes/Acerca de. Revisión de seguridad aplicada. Capturas en [capturas/h1/](capturas/h1/).
 
+- 2026-11-01 · **H6**: tramos y cronometraje (motor tramos/, Room v7, delta por voz en Completo, HUD de retransmisión, tarjeta de meta); «Ir aquí» y búsqueda durante el guiado. Capturas en [capturas/h6/](capturas/h6/).
 - 2026-11-01 · **H5B**: gestos de girar/inclinar, buscador por palabras (índice `datos-2026.11.01-10`), mantener pulsado con Ir aquí / Añadir parada, rutas con paradas (Room v6), panel compacto parado. Capturas en [capturas/h5b/](capturas/h5b/).
 - 2026-11-01 · **H5**: radares DGT + OSM (fijos, tramo, zonas móviles) dentro del APK, incidencias DATEX II de la DGT con caché y antigüedad, alertas por voz y banner animado, exceso +10 % como pastilla roja, media de tramo, incidencias en el mapa; revisión de seguridad aplicada. Capturas en [capturas/h5/](capturas/h5/).
 - 2026-11-01 · **H4**: el copiloto habla (sherpa-onnx 1.13.8, voces Piper int8 davefx/sharvard, frases sintetizadas por adelantado y cacheadas, ducking), cuatro modos, voz elegida en el primer uso, Room v5. Peticiones de Joan: ubicación bajo techo, todo menos el satélite dentro del APK (siembra), satélite z17 (`datos-2026.11.01-8`), flecha y rumbo pegados a la carretera. Capturas en [capturas/h4/](capturas/h4/).
@@ -76,4 +77,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H6: motor de cronometraje (lote en curso). En paralelo, añadidos de H5B respondidos al cierre: «Ir aquí» guiando y lupa en el panel durante el guiado.
+- **Agente:** H6 cerrado y v0.7 publicada. Siguiente: `hito start H7` (análisis post-tramo y perfil del piloto): preguntar a Joan las dudas de producto al empezar.
