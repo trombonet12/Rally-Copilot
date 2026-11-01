@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -16,7 +17,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -26,12 +26,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -57,7 +53,7 @@ const val ETIQUETA_VELOCIDAD = "panel-velocidad"
 const val ETIQUETA_LIMITE = "panel-limite"
 const val ETIQUETA_VIA = "panel-via"
 
-/** Icono de «por encima del límite» junto a la velocidad (existe solo mientras la velocidad va en rojo). */
+/** Nodo de accesibilidad de «por encima del límite» sobre la velocidad (existe solo mientras va en rojo). */
 const val ETIQUETA_EXCESO = "panel-exceso"
 
 /** Media del radar de tramo junto a la señal del límite. */
@@ -70,8 +66,8 @@ private val TextoSenal = Color.Black
  * Velocidad actual (siempre visible; «—» sin dato), señal de límite (solo si [limiteKmh] no es null) y la placa de la
  * vía. En vertical va en una fila bajo el mapa, con [botonesIzquierda] y [botonesDerecha] (columnas de botones de
  * icono) a los lados de la velocidad; en horizontal ([enColumna]) en una columna al lado, con todos los botones en
- * una fila al pie. [alertas] pone la velocidad en rojo si pasa del límite (con un marco que parpadea si pasa del
- * límite más un 10 %) y la media del radar de tramo junto a la señal del límite.
+ * una fila al pie. [alertas] pone la velocidad en rojo si pasa del límite (si pasa del límite más un 10 %, la cifra va
+ * en blanco sobre una pastilla roja que late) y la media del radar de tramo junto a la señal del límite.
  */
 @Composable
 @Suppress("LongParameterList") // datos de conducción + los dos grupos de botones del panel + las alertas
@@ -237,18 +233,32 @@ private fun Velocidad(
 ) {
     val colores = LocalColoresRally.current
     val rojo = alertas.rojo && velocidadKmh != null
+    val exceso = rojo && alertas.exceso
     val descripcion =
         if (velocidadKmh == null) {
             stringResource(R.string.panel_velocidad_sin_dato)
         } else {
             stringResource(R.string.panel_velocidad_descripcion, velocidadKmh)
         }
-    Box(if (rojo && alertas.exceso) Modifier.bordeParpadeante(colores.deltaPeor) else Modifier) {
+    // Sin exceso la cifra solo se tiñe de rojo; con exceso va en blanco sobre una pastilla roja sólida que late.
+    val cifra =
+        if (exceso) {
+            TextoExceso
+        } else {
+            colorVelocidad(
+                rojo,
+                MaterialTheme.colorScheme.onSurface,
+                colores.deltaPeor,
+            )
+        }
+    val unidad =
+        if (exceso) TextoExceso else colorVelocidad(rojo, MaterialTheme.colorScheme.onSurfaceVariant, colores.deltaPeor)
+    Box(if (exceso) Modifier.pastillaLatiente(FondoExceso) else Modifier) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier =
                 Modifier
-                    .padding(horizontal = Espacio.xs)
+                    .padding(horizontal = Espacio.xs, vertical = Espacio.xs)
                     .testTag(ETIQUETA_VELOCIDAD)
                     .semantics(mergeDescendants = true) { contentDescription = descripcion },
         ) {
@@ -256,60 +266,52 @@ private fun Velocidad(
                 text = velocidadKmh?.toString() ?: stringResource(R.string.panel_velocidad_vacia),
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 88.sp, lineHeight = 92.sp),
                 fontWeight = FontWeight.Black,
-                color = colorVelocidad(rojo, MaterialTheme.colorScheme.onSurface, colores.deltaPeor),
+                color = cifra,
             )
             Text(
                 text = stringResource(R.string.panel_unidad),
                 style = MaterialTheme.typography.titleMedium,
-                color = colorVelocidad(rojo, MaterialTheme.colorScheme.onSurfaceVariant, colores.deltaPeor),
+                color = unidad,
             )
         }
-        // Fuera del nodo fusionado de la velocidad: su región viva se anuncia al aparecer, no con cada cifra.
+        // Nodo propio sobre la velocidad: su región viva se anuncia al aparecer el rojo, no con cada cifra.
         if (rojo) {
-            Icon(
-                painter = painterResource(R.drawable.ic_alerta_exceso),
-                contentDescription = stringResource(R.string.panel_exceso_descripcion),
-                tint = colores.deltaPeor,
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomEnd)
-                        .size(TAMANO_ICONO_EXCESO)
-                        .testTag(ETIQUETA_EXCESO)
-                        .semantics { liveRegion = LiveRegionMode.Polite },
+            val aviso = stringResource(R.string.panel_exceso_descripcion)
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .testTag(ETIQUETA_EXCESO)
+                    .semantics {
+                        contentDescription = aviso
+                        liveRegion = LiveRegionMode.Polite
+                    },
             )
         }
     }
 }
 
-/** Marco rojo que respira alrededor de la velocidad cuando pasa del límite más un 10 %. */
+/** Pastilla redondeada de color sólido cuya opacidad late suave (el texto encima no cambia). */
 @Composable
-private fun Modifier.bordeParpadeante(color: Color): Modifier {
+private fun Modifier.pastillaLatiente(color: Color): Modifier {
     val alfa by
         rememberInfiniteTransition(label = "exceso").animateFloat(
             initialValue = 1f,
-            targetValue = ALFA_MINIMO_PARPADEO,
-            animationSpec = infiniteRepeatable(tween(MS_PARPADEO), RepeatMode.Reverse),
+            targetValue = ALFA_MINIMO_LATIDO,
+            animationSpec = infiniteRepeatable(tween(MS_LATIDO, easing = FastOutSlowInEasing), RepeatMode.Reverse),
             label = "alfa",
         )
     return drawBehind {
-        val grosor = GROSOR_BORDE_EXCESO.toPx()
-        val radio = RADIO_BORDE_EXCESO.toPx()
-        drawRoundRect(
-            color = color,
-            topLeft = Offset(grosor / 2, grosor / 2),
-            size = Size(size.width - grosor, size.height - grosor),
-            cornerRadius = CornerRadius(radio, radio),
-            alpha = alfa,
-            style = Stroke(grosor),
-        )
+        val radio = RADIO_PASTILLA_EXCESO.toPx()
+        drawRoundRect(color = color, cornerRadius = CornerRadius(radio, radio), alpha = alfa)
     }
 }
 
-private const val ALFA_MINIMO_PARPADEO = 0.3f
-private const val MS_PARPADEO = 600
-private val GROSOR_BORDE_EXCESO = 3.dp
-private val RADIO_BORDE_EXCESO = 14.dp
-private val TAMANO_ICONO_EXCESO = 24.dp
+/** Rojo sólido de la pastilla de exceso (fijo en ambos temas: el blanco encima da más de 5:1). */
+private val FondoExceso = Color(0xFFC8171E)
+private val TextoExceso = Color.White
+private const val ALFA_MINIMO_LATIDO = 0.7f
+private const val MS_LATIDO = 700
+private val RADIO_PASTILLA_EXCESO = 16.dp
 private val LADO_SENAL = 92.dp
 private val LADO_SENAL_CON_MEDIA = 76.dp
 

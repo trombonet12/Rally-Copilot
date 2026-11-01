@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.mapa
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.testTag
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
@@ -92,6 +93,24 @@ abstract class MapaScreenAlertasBase {
     }
 
     protected fun banner() = banco.conEtiqueta(ETIQUETA_ALERTA_BANNER).boundsInRoot
+
+    /** Con exceso, la pastilla roja y los botones del panel caben en el panel y no se pisan entre si. */
+    protected fun comprobarPastillaDeExcesoEnElPanel() {
+        poner(guiando(), AlertasUiState(panel = AlertasPanel(rojo = true, exceso = true)), velocidad = 148)
+        val panel = banco.conEtiqueta("panel").boundsInRoot
+        val pastilla = banco.conEtiqueta(ETIQUETA_EXCESO).boundsInRoot
+        val velocidad = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
+        assertTrue("pastilla dentro del panel: $pastilla vs $panel", pastilla.dentroDe(panel))
+        assertTrue("velocidad dentro de la pastilla: $velocidad vs $pastilla", velocidad.dentroDe(pastilla))
+        listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION).forEach {
+            val boton = banco.conEtiqueta(it).boundsInRoot
+            assertTrue("$it dentro del panel: $boton", boton.dentroDe(panel))
+            assertFalse("$it no pisa la pastilla", boton.overlaps(pastilla))
+        }
+    }
+
+    private fun Rect.dentroDe(otro: Rect) =
+        left >= otro.left && right <= otro.right && top >= otro.top && bottom <= otro.bottom
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -141,6 +160,10 @@ class MapaScreenAlertasVerticalTest : MapaScreenAlertasBase() {
     }
 
     @Test
+    fun `en vertical la pastilla de exceso cabe en el panel junto a los botones`() =
+        comprobarPastillaDeExcesoEnElPanel()
+
+    @Test
     fun `la incidencia tocada abre su tarjeta y se cierra desde la X`() {
         val marcador =
             MarcadorIncidencia("a", TipoIncidencia.OBRAS, 39.7, 2.9, "Obras en Ma-10", "Ma-10", enRuta = false)
@@ -168,6 +191,9 @@ class MapaScreenAlertasHorizontalTest : MapaScreenAlertasBase() {
         assertTrue("no pasa al panel lateral: $b vs $panel", b.right <= panel.left)
         assertTrue("es bajo: $b", b.height < 411 * 3 * 0.25f)
     }
+
+    @Test
+    fun `en horizontal la pastilla de exceso cabe en el panel lateral`() = comprobarPastillaDeExcesoEnElPanel()
 
     @Test
     fun `guiando en horizontal el banner sale bajo la franja`() {

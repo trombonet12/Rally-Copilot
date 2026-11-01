@@ -46,7 +46,7 @@ class PanelVelocidadAlertasTest {
     }
 
     @Test
-    fun `sin alertas no hay icono de exceso ni media`() {
+    fun `sin alertas no hay nodo de exceso ni media`() {
         poner()
         assertFalse(banco.hay(ETIQUETA_EXCESO))
         assertFalse(banco.hay(ETIQUETA_MEDIA))
@@ -63,11 +63,11 @@ class PanelVelocidadAlertasTest {
     }
 
     @Test
-    fun `en rojo aparece el icono de exceso como region viva y TalkBack lo anuncia`() {
+    fun `en rojo aparece el aviso de exceso como region viva y TalkBack lo anuncia`() {
         poner(alertas = AlertasPanel(rojo = true))
-        val icono = banco.conEtiqueta(ETIQUETA_EXCESO)
-        assertEquals("Por encima del límite de velocidad", banco.descripcion(icono))
-        assertEquals(LiveRegionMode.Polite, icono.config.getOrNull(SemanticsProperties.LiveRegion))
+        val aviso = banco.conEtiqueta(ETIQUETA_EXCESO)
+        assertEquals("Por encima del límite de velocidad", banco.descripcion(aviso))
+        assertEquals(LiveRegionMode.Polite, aviso.config.getOrNull(SemanticsProperties.LiveRegion))
         // La cifra sigue siendo la velocidad: la descripción de la velocidad no se anuncia en cada cambio.
         val velocidad = banco.conEtiqueta(ETIQUETA_VELOCIDAD)
         assertEquals("Velocidad: 63 kilómetros por hora", banco.descripcion(velocidad))
@@ -75,12 +75,39 @@ class PanelVelocidadAlertasTest {
     }
 
     @Test
-    fun `con exceso del diez por ciento sigue en rojo con el marco parpadeante`() {
+    fun `con exceso del diez por ciento late la pastilla y la cifra sigue siendo la velocidad`() {
         poner(alertas = AlertasPanel(rojo = true, exceso = true))
         assertTrue(banco.hay(ETIQUETA_EXCESO))
         banco.esperar(2_000)
         assertTrue(banco.hay(ETIQUETA_EXCESO))
         assertTrue("63" in banco.textos(banco.conEtiqueta(ETIQUETA_VELOCIDAD)))
+        assertEquals("Velocidad: 63 kilómetros por hora", banco.descripcion(banco.conEtiqueta(ETIQUETA_VELOCIDAD)))
+    }
+
+    @Test
+    fun `la pastilla de exceso envuelve la velocidad y cabe en el panel sin pisar la senal`() {
+        poner(velocidad = 148, limite = 120, alertas = AlertasPanel(rojo = true, exceso = true))
+        val panel = banco.conEtiqueta("panel").boundsInRoot
+        val pastilla = banco.conEtiqueta(ETIQUETA_EXCESO).boundsInRoot
+        val velocidad = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
+        val senal = banco.conEtiqueta(ETIQUETA_LIMITE).boundsInRoot
+        assertTrue(
+            "dentro del panel: $pastilla vs $panel",
+            pastilla.left >= panel.left && pastilla.right <= panel.right,
+        )
+        assertTrue(
+            "dentro del panel: $pastilla vs $panel",
+            pastilla.top >= panel.top && pastilla.bottom <= panel.bottom,
+        )
+        assertTrue(
+            "la velocidad no se sale: $velocidad vs $pastilla",
+            velocidad.left >= pastilla.left && velocidad.right <= pastilla.right,
+        )
+        assertTrue(
+            "la velocidad no se sale: $velocidad vs $pastilla",
+            velocidad.top >= pastilla.top && velocidad.bottom <= pastilla.bottom,
+        )
+        assertFalse("sin pisar la senal: $pastilla vs $senal", pastilla.overlaps(senal))
     }
 
     @Test
