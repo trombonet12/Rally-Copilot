@@ -2,8 +2,10 @@ package app.trombito.rallycopilot.ui.mapa
 
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.lang.IllegalStateException
 
 class CamaraSeguimientoTest {
     @Test
@@ -30,6 +32,28 @@ class CamaraSeguimientoTest {
     @Test
     fun `sin alto medido no hay relleno`() {
         assertEquals(0, rellenoSuperiorSeguimiento(anchoPx = 0, altoPx = 0))
+    }
+
+    @Test
+    fun `el descarte del seguimiento mientras la app mueve la cámara no es del usuario`() {
+        val guarda = DescarteSeguimiento()
+        assertTrue(guarda.esDelUsuario())
+        guarda.aplicando {
+            // MapLibre avisa del descarte al cambiar de modo (p. ej. norte arriba a rumbo arriba): lo provoca la app.
+            assertFalse(guarda.esDelUsuario())
+        }
+        assertTrue(guarda.esDelUsuario())
+    }
+
+    @Test
+    fun `si aplicar la cámara falla el descarte vuelve a ser del usuario`() {
+        val guarda = DescarteSeguimiento()
+        try {
+            guarda.aplicando { throw IllegalStateException("fallo del mapa") }
+        } catch (_: IllegalStateException) {
+            // esperado: lo que se comprueba es que el estado se restablece
+        }
+        assertTrue(guarda.esDelUsuario())
     }
 
     /** Fracción del alto a la que cae el centro de la zona visible (donde la cámara pone el marcador). */

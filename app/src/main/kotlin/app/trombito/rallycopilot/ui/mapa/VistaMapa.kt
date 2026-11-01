@@ -248,6 +248,7 @@ private class ControladorMapa(
     private var preferencias = PreferenciasVistaMapa()
     private var ubicacionActivada = false
     private var oyenteRegistrado = false
+    private val descarte = DescarteSeguimiento()
     private val zoom = ZoomSeguimiento(camaraInicial?.zoom, alCambiarZoomManual)
 
     /** Entre onStart y onStop: fuera de ahí el mapa se está desmontando y no se deben guardar cambios de cámara. */
@@ -399,7 +400,7 @@ private class ControladorMapa(
             componente.addOnCameraTrackingChangedListener(
                 object : OnCameraTrackingChangedListener {
                     override fun onCameraTrackingDismissed() {
-                        if (activo) alPerderSeguimiento()
+                        if (activo && descarte.esDelUsuario()) alPerderSeguimiento()
                     }
 
                     override fun onCameraTrackingChanged(currentMode: Int) = Unit
@@ -411,31 +412,37 @@ private class ControladorMapa(
     }
 
     private fun fijarCamara(componente: LocationComponent) {
-        if (preferencias.siguiendo) {
-            // El zoom va dentro de la transición al modo de seguimiento: `zoomWhileTracking` suelto lo cancela cada
-            // fijación nueva (1 Hz) y la cámara se quedaba al zoom inicial. Rumbo arriba: el mapa gira con el GPS;
-            // norte arriba: solo sigue la posición y la transición lleva el rumbo a 0.
-            val norte = preferencias.orientacion == Orientacion.NORTE
-            val destino = preferencias.zoomObjetivo ?: zoomParaSeguir(zoom.vigente)
-            // El marcador queda abajo (relleno fijo del mapa) y el mapa se inclina con el rumbo arriba; la inclinación
-            // va dentro de la transición, igual que el zoom, para que las fijaciones de 1 Hz no la cancelen.
-            // El relleno se fija en la cámara ANTES de pedir el modo (después cancelaría la transición) y el
-            // componente lo anota después: así sabe en qué valor está si la vista previa lo puso a 0.
-            val arriba = rellenoSuperiorSeguimiento(vista.width, vista.height).toDouble()
-            mapa?.moveCamera(CameraUpdateFactory.paddingTo(0.0, arriba, 0.0, 0.0))
-            componente.setCameraMode(
-                if (norte) CameraMode.TRACKING else CameraMode.TRACKING_GPS,
-                DURACION_TRANSICION_MS,
-                destino,
-                if (norte) BEARING_NORTE else null,
-                inclinacionSeguimiento(preferencias.orientacion),
-                null,
-            )
-            componente.rellenarSeguimiento(vista.width, vista.height, 0L)
-            zoom.yaAplicado(destino)
-        } else {
-            // Al dejar de seguir no se fuerza nada: el relleno y la inclinación se quedan como estaban.
-            componente.cameraMode = CameraMode.NONE
+        descarte.aplicando {
+            if (preferencias.siguiendo) {
+                // El zoom va dentro de la transición al modo de seguimiento: `zoomWhileTracking` suelto lo cancela cada
+                // fijación nueva (1 Hz) y la cámara se quedaba al zoom inicial. Rumbo arriba: el mapa gira con el GPS;
+                // norte arriba: solo sigue la posición y la transición lleva el rumbo a 0.
+                val norte = preferencias.orientacion == Orientacion.NORTE
+                val destino = preferencias.zoomObjetivo ?: zoomParaSeguir(zoom.vigente)
+                // El marcador queda abajo (relleno fijo del mapa) y el mapa se inclina con el rumbo arriba; la
+                // inclinación va dentro de la transición, igual que el zoom, para que las fijaciones de 1 Hz no la
+                // cancelen. El relleno se fija en la cámara ANTES de pedir el modo (después cancelaría la transición)
+                // y el componente lo anota después: así sabe en qué valor está si la vista previa lo puso a 0.
+                // Se pasa antes por NONE: pedir TRACKING_GPS desde TRACKING (o al revés) no aplica la inclinación ni
+                // el rumbo de la transición y el mapa se quedaba plano; desde NONE (recentrar, primera fijación) sí.
+                // El descarte que avisa MapLibre al pasar por NONE lo provoca la app (ver [DescarteSeguimiento]).
+                val arriba = rellenoSuperiorSeguimiento(vista.width, vista.height).toDouble()
+                componente.cameraMode = CameraMode.NONE
+                mapa?.moveCamera(CameraUpdateFactory.paddingTo(0.0, arriba, 0.0, 0.0))
+                componente.setCameraMode(
+                    if (norte) CameraMode.TRACKING else CameraMode.TRACKING_GPS,
+                    DURACION_TRANSICION_MS,
+                    destino,
+                    if (norte) BEARING_NORTE else null,
+                    inclinacionSeguimiento(preferencias.orientacion),
+                    null,
+                )
+                componente.rellenarSeguimiento(vista.width, vista.height, 0L)
+                zoom.yaAplicado(destino)
+            } else {
+                // Al dejar de seguir no se fuerza nada: el relleno y la inclinación se quedan como estaban.
+                componente.cameraMode = CameraMode.NONE
+            }
         }
     }
 }

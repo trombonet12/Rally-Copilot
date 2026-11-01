@@ -32,3 +32,27 @@ internal fun rellenoSuperiorSeguimiento(
     val marcador = if (anchoPx > altoPx) MARCADOR_HORIZONTAL else MARCADOR_VERTICAL
     return ((2 * marcador - 1) * altoPx).toInt()
 }
+
+/**
+ * Distingue quién descarta el seguimiento. Al cambiar de modo con el componente de ubicación ya siguiendo (norte arriba
+ * a rumbo arriba, o al reponer el relleno) MapLibre avisa de que el seguimiento se descartó, igual que cuando el
+ * usuario mueve el mapa: sin distinguirlos, el propio cambio de orientación dejaba la cámara sin seguir, sin inclinar
+ * y con el botón de recentrar. El aviso llega durante la llamada, de ahí que baste una marca síncrona.
+ */
+internal class DescarteSeguimiento {
+    private var aplicandoApp = false
+
+    /** El descarte que se acaba de avisar lo hizo el usuario (y no la app al aplicar el modo de cámara). */
+    fun esDelUsuario(): Boolean = !aplicandoApp
+
+    /** Ejecuta [accion] (modo, relleno e inclinación de la cámara) marcando que los descartes son de la app. */
+    fun <T> aplicando(accion: () -> T): T {
+        val previo = aplicandoApp
+        aplicandoApp = true
+        try {
+            return accion()
+        } finally {
+            aplicandoApp = previo
+        }
+    }
+}
