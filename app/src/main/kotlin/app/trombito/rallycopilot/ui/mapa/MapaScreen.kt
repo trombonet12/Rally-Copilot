@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -53,12 +54,17 @@ import app.trombito.rallycopilot.ui.copiloto.BotonModoCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.DialogoVozCopiloto
 import app.trombito.rallycopilot.ui.copiloto.PanelModoCopiloto
+import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
+import app.trombito.rallycopilot.ui.navegacion.BannerParada
 import app.trombito.rallycopilot.ui.navegacion.BotonTerminar
 import app.trombito.rallycopilot.ui.navegacion.BusquedaDestino
 import app.trombito.rallycopilot.ui.navegacion.CabeceraBusqueda
 import app.trombito.rallycopilot.ui.navegacion.ListaDestinos
+import app.trombito.rallycopilot.ui.navegacion.ListaParadas
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
+import app.trombito.rallycopilot.ui.navegacion.OpcionesPunto
 import app.trombito.rallycopilot.ui.navegacion.PanelInferiorNavegacion
+import app.trombito.rallycopilot.ui.navegacion.TarjetaPunto
 import app.trombito.rallycopilot.ui.navegacion.TarjetaSeguir
 import app.trombito.rallycopilot.ui.navegacion.notas.FranjaNotas
 import app.trombito.rallycopilot.ui.theme.Espacio
@@ -80,6 +86,11 @@ const val ETIQUETA_PERMISO_AJUSTES = "mapa-permiso-ajustes"
 private const val OPACIDAD_SUPERFICIE_SOBRE_MAPA = 0.88f
 private val ANCHO_PANEL_LATERAL = 250.dp
 private val ALTO_MINIMO_TACTIL = 48.dp
+private val ANCHO_BANNER_PARADA = 520.dp
+
+// Altura del pie del guiado (una fila; con paradas, dos) más su margen: lo que queda por encima es de la tarjeta.
+private val RESERVA_PIE_GUIADO = 72.dp
+private val RESERVA_PIE_GUIADO_PARADAS = 104.dp
 
 // Lados de los insets del sistema que respeta cada zona.
 private val LADOS_PANEL_LATERAL = WindowInsetsSides.End + WindowInsetsSides.Vertical
@@ -135,6 +146,8 @@ fun MapaScreen(
     val menu = MenuAbierto(abierto) { abierto = it }
     val botones =
         if (estado.hayDatos) botonesDelPanel(estado, acciones, navegacion, copiloto, menu) else BotonesPanel()
+    // Parado planificando (búsqueda, tarjeta de un punto o vista previa) el panel inferior se encoge para ver más mapa.
+    val compacto = rememberPanelCompacto(estado.velocidadKmh, navegacion.estado.planificando)
     DialogoVozSiToca(copiloto)
     BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val horizontal = maxWidth > maxHeight
@@ -154,7 +167,7 @@ fun MapaScreen(
                     Modifier.weight(1f).fillMaxHeight(),
                 )
                 PanelDeVelocidad(
-                    PanelEnMapa(estado, botones, alertas, enColumna = true),
+                    PanelEnMapa(estado, botones, alertas, enColumna = true, compacto = compacto),
                     Modifier
                         .width(ANCHO_PANEL_LATERAL)
                         .fillMaxHeight()
@@ -177,7 +190,7 @@ fun MapaScreen(
                     Modifier.weight(1f).fillMaxWidth(),
                 )
                 PanelDeVelocidad(
-                    PanelEnMapa(estado, botones, alertas, enColumna = false),
+                    PanelEnMapa(estado, botones, alertas, enColumna = false, compacto = compacto),
                     Modifier
                         .fillMaxWidth()
                         .windowInsetsPadding(WindowInsets.safeDrawing.only(LADOS_PANEL_INFERIOR)),
@@ -412,6 +425,10 @@ private fun CabeceraMapa(
                 busqueda = navegacion.estado.busqueda,
                 onElegir = navegacion.acciones.onElegirDestino,
                 horizontal = horizontal,
+                anadirParada =
+                    navegacion.acciones.onAnadirParada.takeIf {
+                        navegacion.estado.puedeAnadirParada && !navegacion.estado.paradasLlenas
+                    },
             )
             // Sin búsqueda ni vista previa abiertas: lo que importa de la carretera y, si toca, retomar el guiado.
             if (navegacion.estado.busqueda is BusquedaDestino.Inactiva && navegacion.estado.vistaPrevia == null) {
@@ -479,7 +496,20 @@ private fun PieMapa(
     val vista = contenido.vista
     val acciones = contenido.acciones
     val navegacion = contenido.navegacion
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+    val nav = navegacion.estado
+    val guiando = nav.control as? EstadoNavegacion.Guiando
+    var paradasAbiertas by rememberSaveable { mutableStateOf(false) }
+    // En el guiado el pie con llegada y tiempo ocupa el borde de abajo: lo de este bloque queda encima.
+    val reserva =
+        when {
+            guiando?.progreso == null || (nav.puntoElegido == null && nav.paradas.isEmpty()) -> 0.dp
+            nav.paradas.isEmpty() -> RESERVA_PIE_GUIADO
+            else -> RESERVA_PIE_GUIADO_PARADAS
+        }
+    Column(
+        modifier = modifier.fillMaxWidth().padding(bottom = reserva),
+        verticalArrangement = Arrangement.spacedBy(Espacio.s),
+    ) {
         contenido.alertas.seleccionada?.let {
             TarjetaIncidencia(it, contenido.alertas.frescura, acciones.onCerrarIncidencia)
         }
@@ -494,8 +524,47 @@ private fun PieMapa(
                 Icon(Iconos.MiUbicacion, contentDescription = stringResource(R.string.mapa_recentrar))
             }
         }
+        nav.puntoElegido?.let {
+            val opciones = OpcionesPunto(puedeIr = guiando == null, puedeAnadir = !nav.paradasLlenas)
+            TarjetaPunto(it, opciones, navegacion.acciones)
+        }
+        if (guiando != null && guiando.paradas.isNotEmpty()) {
+            ParadasDelGuiado(guiando, navegacion.acciones, paradasAbiertas, vista.horizontal) {
+                paradasAbiertas = !paradasAbiertas
+            }
+        }
         PanelInferiorNavegacion(navegacion.estado, navegacion.acciones, vista.horizontal)
     }
+}
+
+/** Banner «Parada 1 de 3» del guiado y, si se toca, la lista para quitar o reordenar las que faltan. */
+@Composable
+private fun ParadasDelGuiado(
+    guiando: EstadoNavegacion.Guiando,
+    acciones: AccionesNavegacion,
+    abierta: Boolean,
+    horizontal: Boolean,
+    onAlternar: () -> Unit,
+) {
+    val siguiente = guiando.paradasHechas + 1
+    val total = guiando.paradasHechas + guiando.paradas.size
+    if (abierta) {
+        ListaParadas(
+            paradas = guiando.paradas,
+            destino = guiando.destino,
+            acciones = acciones,
+            primerNumero = siguiente,
+            horizontal = horizontal,
+        )
+    }
+    BannerParada(
+        numero = siguiente,
+        total = total,
+        nombre = guiando.paradas.first().nombre,
+        abierta = abierta,
+        onAlternar = onAlternar,
+        modifier = Modifier.widthIn(max = ANCHO_BANNER_PARADA),
+    )
 }
 
 @Composable

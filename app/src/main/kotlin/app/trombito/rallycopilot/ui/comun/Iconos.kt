@@ -133,4 +133,37 @@ object Iconos {
                 "-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
         )
     }
+
+    val FlechaArriba: ImageVector by lazy {
+        icono("FlechaArriba", "M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z")
+    }
+
+    val FlechaAbajo: ImageVector by lazy {
+        icono("FlechaAbajo", "M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z")
+    }
+
+    /** Señal de dirección en rombo con flecha: «Ir aquí». */
+    val Direcciones: ImageVector by lazy {
+        icono(
+            "Direcciones",
+            "M21.71 11.29l-9-9c-.39-.39-1.02-.39-1.41 0l-9 9c-.39.39-.39 1.02 0 1.41l9 9c.39.39 1.02.39 1.41 0l9-9" +
+                "c.39-.38.39-1.01 0-1.41zM14 14.5V12h-4v3H8v-4c0-.55.45-1 1-1h5V7.5l3.5 3.5-3.5 3.5z",
+        )
+    }
+
+    /** Pin con un más: «Añadir parada». */
+    val AnadirLugar: ImageVector by lazy {
+        icono(
+            "AnadirLugar",
+            "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm4 8h-3v3h-2v-3H8V8h3V5h2v3h3v2z",
+        )
+    }
+
+    val ExpandirMenos: ImageVector by lazy {
+        icono("ExpandirMenos", "M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z")
+    }
+
+    val ExpandirMas: ImageVector by lazy {
+        icono("ExpandirMas", "M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z")
+    }
 }

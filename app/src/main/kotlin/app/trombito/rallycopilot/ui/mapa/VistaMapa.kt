@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.comun.recurso
@@ -78,6 +79,8 @@ data class CamaraVistaMapa(
     val onZoomManual: (zoom: Double, ahoraMs: Long) -> Unit = { _, _ -> },
     /** Toque en el mapa: el id de la incidencia tocada o null si se tocó otra cosa. */
     val onToqueIncidencia: (id: String?) -> Unit = {},
+    /** Mantener pulsado el mapa: el punto y el nombre del lugar o la calle bajo el dedo (null si no hay). */
+    val onMantenerPulsado: (punto: PuntoGeo, nombre: String?) -> Unit = { _, _ -> },
 )
 
 /** Lo que el mapa pinta según los ajustes de conducción y el zoom automático. */
@@ -127,6 +130,7 @@ fun VistaMapa(
                 alPerderSeguimiento = { actual.value.onSeguimientoPerdido() },
                 alCambiarZoomManual = { zoom, ahora -> actual.value.onZoomManual(zoom, ahora) },
                 alTocarIncidencia = { actual.value.onToqueIncidencia(it) },
+                alMantenerPulsado = { punto, nombre -> actual.value.onMantenerPulsado(punto, nombre) },
             )
         }
 
@@ -239,6 +243,7 @@ private class PuenteCicloVida(
 }
 
 /** Estado imperativo del mapa: estilo, componente de ubicación (sin motor propio) y cámara. */
+@Suppress("LongParameterList") // un callback por gesto del mapa que la pantalla escucha
 private class ControladorMapa(
     private val vista: MapView,
     private val camaraInicial: CamaraMapa?,
@@ -246,6 +251,7 @@ private class ControladorMapa(
     private val alPerderSeguimiento: () -> Unit,
     alCambiarZoomManual: (Double, Long) -> Unit,
     private val alTocarIncidencia: (String?) -> Unit,
+    private val alMantenerPulsado: (PuntoGeo, String?) -> Unit,
 ) {
     private var mapa: MapLibreMap? = null
     private var estilo: Style? = null
@@ -296,6 +302,12 @@ private class ControladorMapa(
                 val id = CapaIncidencias.idEn(m, pantalla.x, pantalla.y, vista.resources.displayMetrics.density)
                 alTocarIncidencia(id)
                 id != null
+            }
+            m.addOnMapLongClickListener { punto ->
+                val pantalla = m.projection.toScreenLocation(punto)
+                val nombre = NombreDelPunto.en(m, pantalla.x, pantalla.y, vista.resources.displayMetrics.density)
+                alMantenerPulsado(PuntoGeo(punto.latitude, punto.longitude), nombre)
+                true
             }
             m.addOnCameraIdleListener { guardarCamaraActual(m) }
             // El alto del mapa cambia al girar o al abrir un panel: el marcador debe seguir en su sitio.
@@ -359,7 +371,7 @@ private class ControladorMapa(
             estilo = cargado
             aplicarRelieve(cargado, preferencias.relieve)
             // Antes de activar la ubicación: la línea de la ruta queda debajo de la flecha de posición.
-            CapaRuta.instalar(cargado, preferencias.ruta)
+            CapaRuta.instalar(cargado, vista.context, preferencias.ruta)
             CapaIncidencias.instalar(cargado, vista.context, preferencias.incidencias)
             asegurarUbicacion()
         }
@@ -372,7 +384,8 @@ private class ControladorMapa(
     ) {
         if (nueva == previa) return
         val cambiaronPuntos = nueva?.puntos != previa?.puntos
-        if (cambiaronPuntos || nueva?.destino != previa?.destino) estilo?.let { CapaRuta.actualizar(it, nueva) }
+        // Puntos, destino, paradas o punto elegido: la fuente es barata de actualizar.
+        estilo?.let { CapaRuta.actualizar(it, nueva) }
         val nuevoEncuadre = cambiaronPuntos || previa?.encuadrar != true
         if (nueva != null && nueva.encuadrar && nuevoEncuadre) {
             val m = mapa ?: return
@@ -380,7 +393,7 @@ private class ControladorMapa(
             if (ubicacionActivada) m.locationComponent.cameraMode = CameraMode.NONE
             // La vista previa encuadra la ruta entera: sin el relleno del seguimiento (vuelve al recentrar).
             m.moveCamera(CameraUpdateFactory.paddingTo(0.0, 0.0, 0.0, 0.0))
-            m.encuadrarRuta(nueva.puntos, vista.resources.displayMetrics.density, vista.height)
+            m.encuadrarRuta(nueva.puntos, vista.resources.displayMetrics.density, vista.height, nueva.paradas.size)
         }
     }
 

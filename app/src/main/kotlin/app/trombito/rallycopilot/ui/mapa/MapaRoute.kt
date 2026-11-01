@@ -65,7 +65,7 @@ fun MapaRoute(
             VistaMapa(
                 estiloJson = estiloJson,
                 posicion = estado.posicionMostrada,
-                camara = camaraVistaMapa(viewModel, alertasViewModel),
+                camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel),
                 preferencias = preferenciasVista(estado, ruta, alertas.marcadores),
                 modifier = modificador,
             )
@@ -105,12 +105,18 @@ private fun accionesMapa(
 private fun camaraVistaMapa(
     viewModel: MapaViewModel,
     alertas: AlertasViewModel,
+    navegacion: NavegacionViewModel,
 ) = CamaraVistaMapa(
     inicial = viewModel.camaraGuardada,
     onCambio = viewModel::onCamara,
     onSeguimientoPerdido = viewModel::onSeguimientoPerdido,
     onZoomManual = viewModel::onZoomManual,
-    onToqueIncidencia = alertas::onSeleccionar,
+    // Tocar el mapa fuera de una incidencia cierra también la tarjeta del punto elegido.
+    onToqueIncidencia = { id ->
+        alertas.onSeleccionar(id)
+        if (id == null) navegacion.cerrarPunto()
+    },
+    onMantenerPulsado = navegacion::onMantenerPulsado,
 )
 
 private fun preferenciasVista(
@@ -137,6 +143,12 @@ private fun accionesNavegacion(vm: NavegacionViewModel) =
         onTerminar = vm::terminar,
         onSeguir = vm::seguirPendiente,
         onDescartarSeguir = vm::descartarSeguir,
+        onIrAqui = vm::irAqui,
+        onAnadirParadaDelPunto = vm::anadirParadaDelPunto,
+        onCerrarPunto = vm::cerrarPunto,
+        onAnadirParada = vm::anadirParada,
+        onQuitarParada = vm::quitarParada,
+        onMoverParada = vm::moverParada,
     )
 
 /** La ruta del guiado o de la vista previa lista para pintar; conserva la instancia mientras no cambien los puntos. */
@@ -145,8 +157,11 @@ private fun rutaParaMapa(navegacion: NavegacionUiState): RutaEnMapa? {
     val ruta = navegacion.rutaEnMapa
     val destino = navegacion.destinoEnMapa
     val encuadrar = navegacion.encuadrar
-    return remember(ruta, destino, encuadrar) {
-        if (ruta == null && destino == null) null else RutaEnMapa(ruta?.puntos.orEmpty(), encuadrar, destino)
+    val paradas = navegacion.marcadoresParada
+    val elegido = navegacion.puntoElegido?.punto
+    val vacia = listOf(ruta, destino, elegido).all { it == null } && paradas.isEmpty()
+    return remember(ruta, destino, encuadrar, paradas, elegido) {
+        if (vacia) null else RutaEnMapa(ruta?.puntos.orEmpty(), encuadrar, destino, paradas, elegido)
     }
 }
 

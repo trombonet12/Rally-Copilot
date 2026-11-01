@@ -86,6 +86,19 @@ class FalsoEnrutador : Enrutador {
         esperas[perfil]?.await()
         return respuestas[perfil] ?: ResultadoRuta.SinDatos
     }
+
+    /** Peticiones con paradas: origen, paradas, destino y perfil. */
+    val peticionesConParadas = mutableListOf<List<PuntoGeo>>()
+
+    override suspend fun rutaConParadas(
+        origen: PuntoGeo,
+        paradas: List<PuntoGeo>,
+        destino: PuntoGeo,
+        perfil: PerfilRuta,
+    ): ResultadoRuta {
+        if (paradas.isNotEmpty()) peticionesConParadas += paradas
+        return ruta(origen, destino, perfil)
+    }
 }
 
 class FalsoControlNavegacion : ControlNavegacion {
@@ -93,6 +106,7 @@ class FalsoControlNavegacion : ControlNavegacion {
     override val estado: StateFlow<EstadoNavegacion> = mutable
 
     val empezadas = mutableListOf<Triple<Destino, PerfilRuta, Ruta>>()
+    val paradasAlEmpezar = mutableListOf<List<Destino>>()
     val ordenes = mutableListOf<OrdenParadas>()
     var libres = 0
     var terminadas = 0
@@ -113,6 +127,7 @@ class FalsoControlNavegacion : ControlNavegacion {
         paradas: List<Destino>,
     ) {
         empezadas += Triple(destino, perfil, ruta)
+        paradasAlEmpezar += paradas
         mutable.value =
             EstadoNavegacion.Guiando(destino, perfil, ruta, progreso = null, recalculando = false, paradas = paradas)
     }

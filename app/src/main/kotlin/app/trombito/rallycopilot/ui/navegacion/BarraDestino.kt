@@ -52,6 +52,7 @@ const val ETIQUETA_RESULTADOS = "nav-resultados"
 const val ETIQUETA_RESULTADO = "nav-resultado-"
 const val ETIQUETA_ENLACE_CORTO = "nav-enlace-corto"
 const val ETIQUETA_SIN_RESULTADOS = "nav-sin-resultados"
+const val ETIQUETA_RESULTADO_PARADA = "nav-resultado-parada-"
 
 private const val OPACIDAD_SOBRE_MAPA = 0.92f
 private val RADIO_BARRA = 28.dp
@@ -129,13 +130,17 @@ fun BarraDestino(
     }
 }
 
-/** Lista bajo la barra: resultados del índice, la ubicación de un enlace o el aviso de enlace corto. */
+/**
+ * Lista bajo la barra: resultados del índice, la ubicación de un enlace o el aviso de enlace corto. Con una ruta en
+ * vista previa ([anadirParada] no es null) cada resultado lleva además un botón «Añadir como parada».
+ */
 @Composable
 fun ListaDestinos(
     busqueda: BusquedaDestino,
     onElegir: (Destino) -> Unit,
     horizontal: Boolean,
     modifier: Modifier = Modifier,
+    anadirParada: ((Destino) -> Unit)? = null,
 ) {
     if (busqueda is BusquedaDestino.Inactiva) return
     val cerrarTeclado = cerrarTeclado()
@@ -144,6 +149,13 @@ fun ListaDestinos(
         onElegir(it)
     }
     val descripcion = stringResource(R.string.navegacion_ui_resultados)
+    val anadir: ((Destino) -> Unit)? =
+        anadirParada?.let { alAnadir ->
+            { destino ->
+                cerrarTeclado()
+                alAnadir(destino)
+            }
+        }
     Surface(
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(OPACIDAD_SOBRE_MAPA),
@@ -152,7 +164,7 @@ fun ListaDestinos(
         val alto: Dp = if (horizontal) ALTO_LISTA_HORIZONTAL else ALTO_LISTA_VERTICAL
         when (busqueda) {
             is BusquedaDestino.Resultados -> {
-                FilasResultados(busqueda.items, elegir, Modifier.heightIn(max = alto))
+                FilasResultados(busqueda.items, elegir, anadir, Modifier.heightIn(max = alto))
             }
 
             is BusquedaDestino.Ubicacion -> {
@@ -160,7 +172,14 @@ fun ListaDestinos(
                 val pegada = stringResource(R.string.navegacion_ui_ubicacion_pegada)
                 val titulo = if (busqueda.sinNombre) pegada else d.nombre
                 val detalle = if (busqueda.sinNombre) d.nombre else null
-                FilaDestino(titulo, detalle, { elegir(d) }, Modifier.testTag(ETIQUETA_RESULTADO + "0"))
+                FilaDestino(
+                    titulo = titulo,
+                    detalle = detalle,
+                    onClick = { elegir(d) },
+                    modifier = Modifier.testTag(ETIQUETA_RESULTADO + "0"),
+                    alAnadirParada = anadir?.let { alAnadir -> { alAnadir(d) } },
+                    etiquetaParada = ETIQUETA_RESULTADO_PARADA + "0",
+                )
             }
 
             BusquedaDestino.Resolviendo -> {
@@ -184,6 +203,7 @@ fun ListaDestinos(
 private fun FilasResultados(
     items: List<ResultadoBusqueda>,
     onElegir: (Destino) -> Unit,
+    anadirParada: ((Destino) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     if (items.isEmpty()) {
@@ -198,6 +218,9 @@ private fun FilasResultados(
                 detalle = detalle,
                 onClick = { onElegir(Destino(item.nombre, item.punto)) },
                 modifier = Modifier.testTag(ETIQUETA_RESULTADO + indice),
+                alAnadirParada = anadirParada?.let { alAnadir -> { alAnadir(Destino(item.nombre, item.punto)) } },
+                etiquetaParada = ETIQUETA_RESULTADO_PARADA + indice,
+                nombreParada = item.nombre,
             )
         }
     }
@@ -210,11 +233,15 @@ private fun detalleResultado(item: ResultadoBusqueda): String =
         ?: item.categoria
 
 @Composable
+@Suppress("LongParameterList") // fila con su acción opcional de añadir parada
 private fun FilaDestino(
     titulo: String,
     detalle: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    alAnadirParada: (() -> Unit)? = null,
+    etiquetaParada: String = "",
+    nombreParada: String = titulo,
 ) {
     Row(
         modifier =
@@ -222,7 +249,19 @@ private fun FilaDestino(
                 .fillMaxWidth()
                 .heightIn(min = ALTO_FILA)
                 .clickable(role = Role.Button, onClick = onClick)
-                .padding(horizontal = Espacio.m, vertical = Espacio.s),
+                .padding(
+                    start = Espacio.m,
+                    top = Espacio.s,
+                    bottom = Espacio.s,
+                    end =
+                        if (alAnadirParada ==
+                            null
+                        ) {
+                            Espacio.m
+                        } else {
+                            Espacio.xs
+                        },
+                ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Espacio.m),
     ) {
@@ -240,6 +279,15 @@ private fun FilaDestino(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
+                )
+            }
+        }
+        if (alAnadirParada != null) {
+            IconButton(onClick = alAnadirParada, modifier = Modifier.size(LADO_TACTIL).testTag(etiquetaParada)) {
+                Icon(
+                    imageVector = Iconos.AnadirLugar,
+                    contentDescription = stringResource(R.string.navegacion_ui_parada_anadir_resultado, nombreParada),
+                    tint = MaterialTheme.colorScheme.primary,
                 )
             }
         }

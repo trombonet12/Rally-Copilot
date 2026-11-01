@@ -68,17 +68,20 @@ fun PanelVistaPrevia(
                 .semantics { contentDescription = descripcion },
     ) {
         if (horizontal) {
-            Row(
-                modifier = Modifier.padding(Espacio.s),
-                horizontalArrangement = Arrangement.spacedBy(Espacio.s),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                BotonCancelarRuta(acciones.onCancelar)
-                Opciones(vista, acciones.onPerfil, Modifier.weight(1f))
-                BotonEmpezar(acciones.onEmpezar, habilitado = vista.puedeEmpezar)
+            Column(Modifier.padding(Espacio.s), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+                ParadasDeLaVistaPrevia(vista, acciones, horizontal = true)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Espacio.s),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BotonCancelarRuta(acciones.onCancelar)
+                    Opciones(vista, acciones.onPerfil, Modifier.weight(1f))
+                    BotonEmpezar(acciones.onEmpezar, habilitado = vista.puedeEmpezar)
+                }
             }
         } else {
             Column(Modifier.padding(Espacio.s), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+                ParadasDeLaVistaPrevia(vista, acciones, horizontal = false)
                 Opciones(vista, acciones.onPerfil, Modifier.fillMaxWidth())
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -91,6 +94,17 @@ fun PanelVistaPrevia(
             }
         }
     }
+}
+
+/** Las paradas de la ruta, numeradas y con el final (nada si no hay ninguna). */
+@Composable
+private fun ParadasDeLaVistaPrevia(
+    vista: VistaPrevia,
+    acciones: AccionesNavegacion,
+    horizontal: Boolean,
+) {
+    if (vista.paradas.isEmpty()) return
+    ListaParadas(vista.paradas, vista.destino, acciones, horizontal = horizontal, sobreMapa = false)
 }
 
 @Composable

@@ -16,6 +16,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.motor.ruta.EstadoRuta
 import app.trombito.rallycopilot.motor.ruta.FrasesManiobra
 import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
@@ -127,10 +128,33 @@ fun PanelGuiado(
                             if (horizontal) Alignment.BottomStart else Alignment.BottomCenter,
                         ).padding(MARGEN),
                 zona = zona,
+                proxima = proximaParada(estado, it),
             )
         }
     }
 }
+
+/**
+ * Los datos de la próxima parada para el pie: su hora de llegada sale de «ahora» (llegada al final menos lo que falta)
+ * más el tiempo hasta ella. Null sin paradas pendientes o mientras se recalcula (no hay distancia fiable).
+ */
+internal fun proximaParada(
+    estado: EstadoNavegacion.Guiando,
+    progreso: EstadoRuta,
+): ProximaParada? {
+    val distanciaM = estado.distanciaAProximaM
+    val tiempoS = estado.tiempoAProximaS
+    if (distanciaM == null || tiempoS == null) return null
+    val ahoraMs = progreso.llegadaMs - (progreso.tiempoRestanteS * MS_POR_S).toLong()
+    return ProximaParada(
+        numero = estado.paradasHechas + 1,
+        llegadaMs = ahoraMs + (tiempoS * MS_POR_S).toLong(),
+        tiempoS = tiempoS,
+        distanciaM = distanciaM,
+    )
+}
+
+private const val MS_POR_S = 1_000.0
 
 @Composable
 private fun Banner(

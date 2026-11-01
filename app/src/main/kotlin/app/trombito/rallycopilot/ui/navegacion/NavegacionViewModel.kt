@@ -7,6 +7,7 @@ import app.trombito.rallycopilot.domain.enlaces.ResolvedorEnlaces
 import app.trombito.rallycopilot.domain.enlaces.ResultadoResolucion
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
+import app.trombito.rallycopilot.domain.navegacion.EdicionParadas
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.Enrutador
@@ -58,6 +59,7 @@ class NavegacionViewModel
         private val consulta = MutableStateFlow("")
         private val busqueda = MutableStateFlow<BusquedaDestino>(BusquedaDestino.Inactiva)
         private val vistaPrevia = MutableStateFlow<VistaPrevia?>(null)
+        private val puntoElegido = MutableStateFlow<PuntoElegido?>(null)
         private var posicion: PuntoGeo? = null
         private var permiso: Boolean? = null
         private var calculo: Job? = null
@@ -70,8 +72,11 @@ class NavegacionViewModel
                 pendiente?.let { OfertaSeguir(it.destino, fase) }
             }
 
+        private val seguirYPunto: Flow<Pair<OfertaSeguir?, PuntoElegido?>> =
+            combine(ofertaSeguir, puntoElegido) { oferta, punto -> oferta to punto }
+
         val uiState: StateFlow<NavegacionUiState> =
-            combine(texto, busqueda, vistaPrevia, control.estado, ofertaSeguir) { t, b, v, c, oferta ->
+            combine(texto, busqueda, vistaPrevia, control.estado, seguirYPunto) { t, b, v, c, (oferta, punto) ->
                 // Guiando (o con su aviso final) no hay búsqueda ni vista previa; en modo libre sí.
                 val reposo = c is EstadoNavegacion.Inactiva || c is EstadoNavegacion.Libre
                 val busquedaVisible = if (reposo) b else BusquedaDestino.Inactiva
@@ -83,6 +88,8 @@ class NavegacionViewModel
                     vistaPrevia = previaVisible,
                     control = c,
                     seguir = oferta.takeIf { reposo && previaVisible == null && !hayBusqueda },
+                    // La tarjeta del punto se ve en reposo y guiando; el aviso de llegada o de error la cierra.
+                    puntoElegido = punto.takeIf { reposo || c is EstadoNavegacion.Guiando },
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), NavegacionUiState())
 
@@ -107,7 +114,7 @@ class NavegacionViewModel
             if (punto == null) return
             posicion = punto
             val previa = vistaPrevia.value
-            if (previa != null && previa.sinPosicion) calcular(previa.destino)
+            if (previa != null && previa.sinPosicion) calcular(previa.destino, previa.paradas, previa.perfil)
             if (faseSeguir.value == FaseSeguir.SIN_POSICION) seguirPendiente()
         }
 
@@ -116,19 +123,93 @@ class NavegacionViewModel
             texto.value = nuevo
             consulta.value = nuevo
             if (nuevo.trim().length < LONGITUD_MINIMA_BUSQUEDA) busqueda.value = BusquedaDestino.Inactiva
-            // Editar el texto abandona la vista previa y vuelve a la búsqueda.
-            if (vistaPrevia.value != null) {
-                calculo?.cancel()
-                vistaPrevia.value = null
-            }
+            // La vista previa se conserva al buscar: así un resultado puede añadirse como parada de esa ruta.
         }
 
         fun elegirDestino(destino: Destino) {
             resolucion?.cancel()
+            puntoElegido.value = null
             texto.value = destino.nombre
             consulta.value = ""
             busqueda.value = BusquedaDestino.Inactiva
-            calcular(destino)
+            // Cambiar de destino mantiene las paradas ya puestas; para empezar de cero se cancela la ruta.
+            calcular(destino, vistaPrevia.value?.paradas.orEmpty())
+        }
+
+        /** Mantener pulsado el mapa en [punto]: abre la tarjeta con [nombre] (el del lugar o la calle, si lo hay). */
+        fun onMantenerPulsado(
+            punto: PuntoGeo,
+            nombre: String?,
+        ) {
+            puntoElegido.value = PuntoElegido(punto, nombre?.trim()?.takeIf { it.isNotEmpty() })
+        }
+
+        /** Cierra la tarjeta del punto (X o toque fuera). */
+        fun cerrarPunto() {
+            puntoElegido.value = null
+        }
+
+        /** «Ir aquí»: el punto de la tarjeta es el destino y se abre la vista previa de rutas. */
+        fun irAqui() {
+            puntoElegido.value?.let { elegirDestino(it.destino) }
+        }
+
+        /** «Añadir parada» de la tarjeta del punto. */
+        fun anadirParadaDelPunto() {
+            puntoElegido.value?.let { anadirParada(it.destino) }
+        }
+
+        /**
+         * Añade [parada] al final de las intermedias: en un guiado, con recálculo desde la posición actual; en la
+         * vista previa, recalculando sus rutas. Sin ruta que editar, se comporta como [elegirDestino].
+         */
+        fun anadirParada(parada: Destino) {
+            puntoElegido.value = null
+            val previa = vistaPrevia.value
+            when {
+                guiando() -> {
+                    control.anadirParada(parada)
+                }
+
+                previa != null -> {
+                    resolucion?.cancel()
+                    texto.value = previa.destino.nombre
+                    consulta.value = ""
+                    busqueda.value = BusquedaDestino.Inactiva
+                    editarPrevia { EdicionParadas.anadir(it, parada) }
+                }
+
+                else -> {
+                    elegirDestino(parada)
+                }
+            }
+        }
+
+        fun quitarParada(indice: Int) {
+            if (guiando()) control.quitarParada(indice) else editarPrevia { EdicionParadas.quitar(it, indice) }
+        }
+
+        fun moverParada(
+            desde: Int,
+            hasta: Int,
+        ) {
+            if (guiando()) {
+                control.moverParada(
+                    desde,
+                    hasta,
+                )
+            } else {
+                editarPrevia { EdicionParadas.mover(it, desde, hasta) }
+            }
+        }
+
+        private fun guiando(): Boolean = control.estado.value is EstadoNavegacion.Guiando
+
+        /** Cambia las paradas de la vista previa y recalcula las rutas; sin cambios no hace nada. */
+        private fun editarPrevia(cambio: (List<Destino>) -> List<Destino>) {
+            val previa = vistaPrevia.value ?: return
+            val nuevas = cambio(previa.paradas)
+            if (nuevas != previa.paradas) calcular(previa.destino, nuevas, previa.perfil)
         }
 
         fun elegirPerfil(perfil: PerfilRuta) {
@@ -139,7 +220,7 @@ class NavegacionViewModel
             val previa = vistaPrevia.value ?: return
             val ruta = previa.rutaElegida ?: return
             cancelar()
-            control.empezar(previa.destino, previa.perfil, ruta)
+            control.empezar(previa.destino, previa.perfil, ruta, previa.paradas)
         }
 
         /**
@@ -158,13 +239,16 @@ class NavegacionViewModel
                         return@launch
                     }
                     faseSeguir.value = FaseSeguir.CALCULANDO
-                    val ruta = (enrutador.ruta(origen, pendiente.destino.punto, pendiente.perfil) as? ResultadoRuta.Ok)
+                    val paradas = pendiente.paradas.map { it.punto }
+                    val ruta =
+                        enrutador.rutaConParadas(origen, paradas, pendiente.destino.punto, pendiente.perfil) as?
+                            ResultadoRuta.Ok
                     if (ruta == null) {
                         faseSeguir.value = FaseSeguir.ERROR
                     } else {
                         faseSeguir.value = FaseSeguir.LISTA
                         cancelar()
-                        control.empezar(pendiente.destino, pendiente.perfil, ruta.ruta)
+                        control.empezar(pendiente.destino, pendiente.perfil, ruta.ruta, pendiente.paradas)
                     }
                 }
         }
@@ -195,6 +279,7 @@ class NavegacionViewModel
          * para todo. El servicio no se para entre medias: el modo libre sustituye a la sesión.
          */
         fun terminar() {
+            puntoElegido.value = null
             if (permiso == true) control.empezarLibre() else control.terminar()
         }
 
@@ -208,22 +293,31 @@ class NavegacionViewModel
             calculo?.cancel()
             resolucion?.cancel()
             vistaPrevia.value = null
+            puntoElegido.value = null
             texto.value = ""
             consulta.value = ""
             busqueda.value = BusquedaDestino.Inactiva
         }
 
-        private fun calcular(destino: Destino) {
+        /** Calcula las dos rutas hacia [destino] pasando por [paradas] (en ese orden) desde la última fijación. */
+        private fun calcular(
+            destino: Destino,
+            paradas: List<Destino> = emptyList(),
+            perfil: PerfilRuta = PerfilRuta.MAS_RAPIDA,
+        ) {
             calculo?.cancel()
             val origen = posicion
-            vistaPrevia.value = VistaPrevia(destino, sinPosicion = origen == null)
+            vistaPrevia.value = VistaPrevia(destino, perfil, sinPosicion = origen == null, paradas = paradas)
             if (origen == null) return
+            val puntos = paradas.map { it.punto }
             calculo =
                 viewModelScope.launch {
-                    PerfilRuta.entries.forEach { perfil ->
+                    PerfilRuta.entries.forEach { p ->
                         launch {
-                            val opcion = enrutador.ruta(origen, destino.punto, perfil).aOpcion()
-                            vistaPrevia.update { if (it?.destino == destino) it.conOpcion(perfil, opcion) else it }
+                            val opcion = enrutador.rutaConParadas(origen, puntos, destino.punto, p).aOpcion()
+                            vistaPrevia.update {
+                                if (it?.destino == destino && it.paradas == paradas) it.conOpcion(p, opcion) else it
+                            }
                         }
                     }
                 }

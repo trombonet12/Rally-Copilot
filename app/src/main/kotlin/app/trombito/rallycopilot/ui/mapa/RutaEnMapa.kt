@@ -1,8 +1,14 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import androidx.compose.ui.graphics.toArgb
+import app.trombito.rallycopilot.domain.navegacion.EdicionParadas
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.ui.navegacion.MarcadorParada
 import app.trombito.rallycopilot.ui.theme.DarkColors
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLngBounds
@@ -26,6 +32,10 @@ data class RutaEnMapa(
     val encuadrar: Boolean = false,
     /** Marcador del destino (círculo rojo de la marca con borde); null = sin marcador. */
     val destino: PuntoGeo? = null,
+    /** Paradas intermedias con su número (círculo carbón con borde y cifra latón); vacío = ninguna. */
+    val paradas: List<MarcadorParada> = emptyList(),
+    /** Punto elegido manteniendo pulsado el mapa (tarjeta abierta); null = ninguno. */
+    val elegido: PuntoGeo? = null,
 )
 
 private const val ID_FUENTE = "ruta-fuente"
@@ -34,6 +44,18 @@ private const val ID_LINEA = "ruta-linea"
 private const val ID_FUENTE_DESTINO = "ruta-destino-fuente"
 private const val ID_DESTINO_HALO = "ruta-destino-halo"
 private const val ID_DESTINO = "ruta-destino"
+private const val ID_FUENTE_PARADAS = "ruta-paradas-fuente"
+private const val ID_PARADAS = "ruta-paradas"
+private const val ID_FUENTE_ELEGIDO = "punto-elegido-fuente"
+private const val ID_ELEGIDO_HALO = "punto-elegido-halo"
+private const val ID_ELEGIDO = "punto-elegido"
+private const val PREFIJO_IMAGEN_PARADA = "parada-"
+private const val PROPIEDAD_IMAGEN = "icono"
+private const val RADIO_ELEGIDO = 9f
+private const val RADIO_HALO_ELEGIDO = 15f
+private const val LADO_PARADA_DP = 32f
+private const val BORDE_PARADA_DP = 3f
+private const val TEXTO_PARADA_DP = 16f
 private const val RADIO_HALO = 13f
 private const val RADIO_DESTINO = 8f
 private const val GROSOR_HALO = 3f
@@ -53,6 +75,9 @@ private const val ENCUADRE_ABAJO_DP = 220f
 private const val ENCUADRE_LATERAL_DP = 40f
 private const val ENCUADRE_MAXIMO_ARRIBA = 0.25f
 private const val ENCUADRE_MAXIMO_ABAJO = 0.4f
+private const val ENCUADRE_MAXIMO_ABAJO_PARADAS = 0.55f
+private const val ENCUADRE_FILA_PARADA_DP = 48f
+private const val ENCUADRE_FILAS_MAXIMAS = 3
 
 /**
  * Línea de la ruta: un `GeoJsonSource` con dos `LineLayer` (borde oscuro debajo, color de marca encima). Se coloca
@@ -63,10 +88,19 @@ private const val ENCUADRE_MAXIMO_ABAJO = 0.4f
 internal object CapaRuta {
     fun instalar(
         estilo: Style,
+        contexto: Context,
         ruta: RutaEnMapa?,
     ) {
         estilo.addSource(GeoJsonSource(ID_FUENTE, lineaGeoJson(ruta?.puntos.orEmpty())))
         estilo.addSource(GeoJsonSource(ID_FUENTE_DESTINO, puntoGeoJson(ruta?.destino)))
+        estilo.addSource(GeoJsonSource(ID_FUENTE_PARADAS, paradasGeoJson(ruta?.paradas.orEmpty())))
+        estilo.addSource(GeoJsonSource(ID_FUENTE_ELEGIDO, puntoGeoJson(ruta?.elegido)))
+        for (numero in 1..EdicionParadas.MAX_PARADAS) {
+            estilo.addImage(
+                imagenParada(numero),
+                insigniaParada(contexto, numero),
+            )
+        }
         val borde = capa(ID_BORDE, DarkColors.surfaceContainerLowest.toArgb(), EXTRA_BORDE)
         val linea = capa(ID_LINEA, DarkColors.primary.toArgb(), 0f)
         val etiquetas = estilo.layers.firstOrNull { it is SymbolLayer }?.id
@@ -75,7 +109,30 @@ internal object CapaRuta {
         listOf(borde, linea, halo, punto).forEach { capa ->
             if (etiquetas != null) estilo.addLayerBelow(capa, etiquetas) else estilo.addLayer(capa)
         }
+        // Paradas numeradas y punto elegido: encima de las etiquetas, debajo de las incidencias y de la posición.
+        estilo.addLayer(
+            SymbolLayer(ID_PARADAS, ID_FUENTE_PARADAS).withProperties(
+                PropertyFactory.iconImage(Expression.get(PROPIEDAD_IMAGEN)),
+                PropertyFactory.iconAllowOverlap(true),
+                PropertyFactory.iconIgnorePlacement(true),
+            ),
+        )
+        estilo.addLayer(capaElegido(ID_ELEGIDO_HALO, Color.WHITE, RADIO_HALO_ELEGIDO, 0f))
+        estilo.addLayer(capaElegido(ID_ELEGIDO, DarkColors.primary.toArgb(), RADIO_ELEGIDO, GROSOR_HALO))
     }
+
+    private fun capaElegido(
+        id: String,
+        color: Int,
+        radio: Float,
+        grosorBorde: Float,
+    ): CircleLayer =
+        CircleLayer(id, ID_FUENTE_ELEGIDO).withProperties(
+            PropertyFactory.circleColor(color),
+            PropertyFactory.circleRadius(radio),
+            PropertyFactory.circleStrokeColor(DarkColors.surfaceContainerLowest.toArgb()),
+            PropertyFactory.circleStrokeWidth(grosorBorde),
+        )
 
     private fun capaDestino(
         id: String,
@@ -95,6 +152,8 @@ internal object CapaRuta {
     ) {
         estilo.getSourceAs<GeoJsonSource>(ID_FUENTE)?.setGeoJson(lineaGeoJson(ruta?.puntos.orEmpty()))
         estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_DESTINO)?.setGeoJson(puntoGeoJson(ruta?.destino))
+        estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_PARADAS)?.setGeoJson(paradasGeoJson(ruta?.paradas.orEmpty()))
+        estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_ELEGIDO)?.setGeoJson(puntoGeoJson(ruta?.elegido))
     }
 
     private fun capa(
@@ -136,6 +195,48 @@ internal fun puntoGeoJson(punto: PuntoGeo?): FeatureCollection =
         FeatureCollection.fromFeature(Feature.fromGeometry(Point.fromLngLat(punto.lon, punto.lat)))
     }
 
+private fun imagenParada(numero: Int): String = PREFIJO_IMAGEN_PARADA + numero
+
+/** Un punto por parada con el nombre de la imagen de su número: lo que se pinta en el mapa. */
+internal fun paradasGeoJson(paradas: List<MarcadorParada>): FeatureCollection =
+    FeatureCollection.fromFeatures(
+        paradas.map { p ->
+            Feature.fromGeometry(Point.fromLngLat(p.punto.lon, p.punto.lat)).also {
+                it.addStringProperty(PROPIEDAD_IMAGEN, imagenParada(p.numero.coerceIn(1, EdicionParadas.MAX_PARADAS)))
+            }
+        },
+    )
+
+/** Insignia redonda de parada: fondo carbón, borde latón y el número en latón. */
+private fun insigniaParada(
+    contexto: Context,
+    numero: Int,
+): Bitmap {
+    val densidad = contexto.resources.displayMetrics.density
+    val lado = (LADO_PARADA_DP * densidad).toInt()
+    val borde = BORDE_PARADA_DP * densidad
+    val bitmap = Bitmap.createBitmap(lado, lado, Bitmap.Config.ARGB_8888)
+    val lienzo = Canvas(bitmap)
+    val radio = lado / 2f
+    val pincel = Paint(Paint.ANTI_ALIAS_FLAG)
+    pincel.color = FONDO_PARADA
+    lienzo.drawCircle(radio, radio, radio - borde / 2, pincel)
+    pincel.style = Paint.Style.STROKE
+    pincel.strokeWidth = borde
+    pincel.color = LATON_PARADA
+    lienzo.drawCircle(radio, radio, radio - borde / 2, pincel)
+    pincel.style = Paint.Style.FILL
+    pincel.textAlign = Paint.Align.CENTER
+    pincel.isFakeBoldText = true
+    pincel.textSize = TEXTO_PARADA_DP * densidad
+    val centroVertical = radio - (pincel.descent() + pincel.ascent()) / 2
+    lienzo.drawText(numero.toString(), radio, centroVertical, pincel)
+    return bitmap
+}
+
+private const val FONDO_PARADA = 0xF00E0F12.toInt()
+private const val LATON_PARADA = 0xFFE5AB46.toInt()
+
 /** Rectángulo que abarca todos los puntos; null con menos de dos. */
 internal fun limitesDe(puntos: List<PuntoGeo>): LatLngBounds? {
     if (puntos.size < 2) return null
@@ -152,11 +253,15 @@ internal fun MapLibreMap.encuadrarRuta(
     puntos: List<PuntoGeo>,
     densidad: Float,
     altoPx: Int,
+    paradas: Int = 0,
 ) {
     val limites = limitesDe(puntos) ?: return
     val alto = altoPx.toFloat()
     val arriba = minOf(ENCUADRE_ARRIBA_DP * densidad, alto * ENCUADRE_MAXIMO_ARRIBA).toInt()
-    val abajo = minOf(ENCUADRE_ABAJO_DP * densidad, alto * ENCUADRE_MAXIMO_ABAJO).toInt()
+    // Cada parada (hasta tres filas visibles) añade su fila a la lista del panel de la vista previa.
+    val dpAbajo = ENCUADRE_ABAJO_DP + ENCUADRE_FILA_PARADA_DP * minOf(paradas, ENCUADRE_FILAS_MAXIMAS)
+    val tope = if (paradas == 0) ENCUADRE_MAXIMO_ABAJO else ENCUADRE_MAXIMO_ABAJO_PARADAS
+    val abajo = minOf(dpAbajo * densidad, alto * tope).toInt()
     val lado = (ENCUADRE_LATERAL_DP * densidad).toInt()
     easeCamera(CameraUpdateFactory.newLatLngBounds(limites, 0.0, 0.0, lado, arriba, lado, abajo), DURACION_ENCUADRE_MS)
 }

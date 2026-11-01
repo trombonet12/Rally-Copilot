@@ -24,4 +24,26 @@
     <string name="navegacion_ui_sin_posicion">Esperando tu posición GPS para calcular la ruta…</string>
     <string name="navegacion_ui_empezar">Empezar</string>
     <string name="navegacion_ui_cancelar">Cancelar la ruta</string>
+
+    <!-- Tarjeta del punto (mantener pulsado en el mapa) -->
+    <string name="navegacion_ui_punto_sin_nombre">Punto del mapa</string>
+    <string name="navegacion_ui_punto_tarjeta">Punto elegido en el mapa</string>
+    <string name="navegacion_ui_punto_ir">Ir aquí</string>
+    <string name="navegacion_ui_punto_ir_descripcion">Ir a %1$s</string>
+    <string name="navegacion_ui_punto_parada">Añadir parada</string>
+    <string name="navegacion_ui_punto_parada_descripcion">Añadir %1$s como parada</string>
+    <string name="navegacion_ui_punto_cerrar">Cerrar la tarjeta del punto</string>
+
+    <!-- Paradas -->
+    <string name="navegacion_ui_paradas">Paradas de la ruta</string>
+    <string name="navegacion_ui_parada_numero">Parada %1$d: %2$s</string>
+    <string name="navegacion_ui_parada_final">Final: %1$s</string>
+    <string name="navegacion_ui_parada_subir">Subir la parada %1$d</string>
+    <string name="navegacion_ui_parada_bajar">Bajar la parada %1$d</string>
+    <string name="navegacion_ui_parada_quitar">Quitar la parada %1$d</string>
+    <string name="navegacion_ui_parada_anadir_resultado">Añadir %1$s como parada</string>
+    <string name="navegacion_ui_paradas_llenas">Máximo de paradas alcanzado</string>
+    <string name="navegacion_ui_paradas_banner">Parada %1$d de %2$d</string>
+    <string name="navegacion_ui_paradas_banner_descripcion">Parada %1$d de %2$d: %3$s. Toca para editar las paradas</string>
+    <string name="navegacion_ui_paradas_cerrar">Cerrar la lista de paradas</string>
 </resources>

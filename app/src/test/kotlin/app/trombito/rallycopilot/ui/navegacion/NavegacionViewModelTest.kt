@@ -375,7 +375,7 @@ class NavegacionViewModelTest {
         }
 
     @Test
-    fun `editar el texto durante la vista previa vuelve a la busqueda`() =
+    fun `editar el texto durante la vista previa busca sin perder la ruta`() =
         runTest {
             rutasOk()
             val vm = crear()
@@ -383,7 +383,7 @@ class NavegacionViewModelTest {
             vm.onPosicion(PALMA)
             vm.elegirDestino(destino)
             vm.onTexto("Valldemossa")
-            assertNull(vm.uiState.value.vistaPrevia)
+            assertNotNull(vm.uiState.value.vistaPrevia)
             advanceTimeBy(300)
             assertEquals(listOf("Valldemossa"), buscador.consultas.map { it.first })
         }

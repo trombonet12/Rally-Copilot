@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -68,9 +69,13 @@ private val TextoSenal = Color.Black
  * icono) a los lados de la velocidad; en horizontal ([enColumna]) en una columna al lado, con todos los botones en
  * una fila al pie. [alertas] pone la velocidad en rojo si pasa del límite (si pasa del límite más un 10 %, la cifra va
  * en blanco sobre una pastilla roja que late) y la media del radar de tramo junto a la señal del límite.
+ *
+ * Con [compacto] (parado planificando una ruta) el panel ocupa lo mínimo para dejar más mapa: la velocidad pequeña, el
+ * límite en una señal chica y los botones en una sola fila, sin la placa de la vía ni la media del radar; el cambio de
+ * tamaño es animado.
  */
 @Composable
-@Suppress("LongParameterList") // datos de conducción + los dos grupos de botones del panel + las alertas
+@Suppress("LongParameterList", "LongMethod") // datos de conducción, grupos de botones, alertas y las dos variantes
 fun PanelVelocidad(
     velocidadKmh: Int?,
     limiteKmh: Int?,
@@ -80,49 +85,59 @@ fun PanelVelocidad(
     botonesIzquierda: List<@Composable () -> Unit> = emptyList(),
     botonesDerecha: List<@Composable () -> Unit> = emptyList(),
     alertas: AlertasPanel = AlertasPanel(),
+    compacto: Boolean = false,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerLowest,
         modifier = modifier.testTag("panel"),
     ) {
-        val contenido: @Composable () -> Unit = {
-            Velocidad(velocidadKmh, alertas)
-            BloqueLimite(limiteKmh, alertas.tramo, enFila = enColumna)
-        }
-        val rotulo: @Composable () -> Unit = {
-            RotuloVia(refsDePlaca(via?.ref), via?.nombre?.trim()?.takeIf { it.isNotEmpty() }, enColumna)
-        }
-        if (enColumna) {
-            Column(
-                modifier = Modifier.padding(horizontal = Espacio.s, vertical = Espacio.m),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterVertically),
-            ) {
-                contenido()
-                rotulo()
-                // Hasta cuatro botones de 48 dp en una sola fila: no se apila otra fila bajo la velocidad.
-                Row(horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-                    (botonesIzquierda + botonesDerecha).forEach { it() }
+        Box(Modifier.animateContentSize()) {
+            if (compacto) {
+                ContenidoCompacto(
+                    DatosCompactos(velocidadKmh, limiteKmh, alertas, botonesIzquierda, botonesDerecha),
+                    enColumna,
+                )
+            } else {
+                val contenido: @Composable () -> Unit = {
+                    Velocidad(velocidadKmh, alertas)
+                    BloqueLimite(limiteKmh, alertas.tramo, enFila = enColumna)
                 }
-            }
-        } else {
-            Row(
-                modifier = Modifier.padding(horizontal = Espacio.m, vertical = Espacio.m),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                ColumnaBotones(botonesIzquierda, Alignment.Start)
-                Column(
-                    modifier = Modifier.weight(1f),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterVertically),
-                ) {
+                val rotulo: @Composable () -> Unit = {
+                    RotuloVia(refsDePlaca(via?.ref), via?.nombre?.trim()?.takeIf { it.isNotEmpty() }, enColumna)
+                }
+                if (enColumna) {
+                    Column(
+                        modifier = Modifier.padding(horizontal = Espacio.s, vertical = Espacio.m),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterVertically),
+                    ) {
+                        contenido()
+                        rotulo()
+                        // Hasta cuatro botones de 48 dp en una sola fila: no se apila otra fila bajo la velocidad.
+                        Row(horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+                            (botonesIzquierda + botonesDerecha).forEach { it() }
+                        }
+                    }
+                } else {
                     Row(
+                        modifier = Modifier.padding(horizontal = Espacio.m, vertical = Espacio.m),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Espacio.m, Alignment.CenterHorizontally),
-                    ) { contenido() }
-                    rotulo()
+                    ) {
+                        ColumnaBotones(botonesIzquierda, Alignment.Start)
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterVertically),
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Espacio.m, Alignment.CenterHorizontally),
+                            ) { contenido() }
+                            rotulo()
+                        }
+                        ColumnaBotones(botonesDerecha, Alignment.End)
+                    }
                 }
-                ColumnaBotones(botonesDerecha, Alignment.End)
             }
         }
     }
@@ -227,9 +242,10 @@ internal fun colorVelocidad(
 ): Color = if (rojo) aviso else normal
 
 @Composable
-private fun Velocidad(
+internal fun Velocidad(
     velocidadKmh: Int?,
     alertas: AlertasPanel,
+    compacto: Boolean = false,
 ) {
     val colores = LocalColoresRally.current
     val rojo = alertas.rojo && velocidadKmh != null
@@ -254,26 +270,13 @@ private fun Velocidad(
     val unidad =
         if (exceso) TextoExceso else colorVelocidad(rojo, MaterialTheme.colorScheme.onSurfaceVariant, colores.deltaPeor)
     Box(if (exceso) Modifier.pastillaLatiente(FondoExceso) else Modifier) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier =
-                Modifier
-                    .padding(horizontal = Espacio.xs, vertical = Espacio.xs)
-                    .testTag(ETIQUETA_VELOCIDAD)
-                    .semantics(mergeDescendants = true) { contentDescription = descripcion },
-        ) {
-            Text(
-                text = velocidadKmh?.toString() ?: stringResource(R.string.panel_velocidad_vacia),
-                style = MaterialTheme.typography.displayLarge.copy(fontSize = 88.sp, lineHeight = 92.sp),
-                fontWeight = FontWeight.Black,
-                color = cifra,
-            )
-            Text(
-                text = stringResource(R.string.panel_unidad),
-                style = MaterialTheme.typography.titleMedium,
-                color = unidad,
-            )
-        }
+        val modificador =
+            Modifier
+                .padding(horizontal = Espacio.xs, vertical = Espacio.xs)
+                .testTag(ETIQUETA_VELOCIDAD)
+                .semantics(mergeDescendants = true) { contentDescription = descripcion }
+        val texto = velocidadKmh?.toString() ?: stringResource(R.string.panel_velocidad_vacia)
+        TextoVelocidad(texto, cifra, unidad, compacto, modificador)
         // Nodo propio sobre la velocidad: su región viva se anuncia al aparecer el rojo, no con cada cifra.
         if (rojo) {
             val aviso = stringResource(R.string.panel_exceso_descripcion)
@@ -313,7 +316,7 @@ private const val ALFA_MINIMO_LATIDO = 0.7f
 private const val MS_LATIDO = 700
 private val RADIO_PASTILLA_EXCESO = 16.dp
 private val LADO_SENAL = 92.dp
-private val LADO_SENAL_CON_MEDIA = 76.dp
+internal val LADO_SENAL_CON_MEDIA = 76.dp
 
 /** Señal del límite y, si hay un radar de tramo en curso, su media justo debajo (o al lado en la columna lateral). */
 @Composable
@@ -392,7 +395,7 @@ private val MEDIA_BORDE = 3.dp
 
 /** Señal circular de límite: aro rojo, fondo blanco y cifra negra (colores de la señal real, no del tema). */
 @Composable
-private fun SenalLimite(
+internal fun SenalLimite(
     limiteKmh: Int,
     lado: Dp,
 ) {
@@ -409,7 +412,14 @@ private fun SenalLimite(
     ) {
         Text(
             text = limiteKmh.toString(),
-            style = MaterialTheme.typography.headlineLarge,
+            style =
+                if (lado <
+                    LADO_SENAL_CON_MEDIA
+                ) {
+                    MaterialTheme.typography.titleMedium
+                } else {
+                    MaterialTheme.typography.headlineLarge
+                },
             fontWeight = FontWeight.Black,
             color = TextoSenal,
             textAlign = TextAlign.Center,

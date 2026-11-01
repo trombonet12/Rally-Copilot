@@ -24,6 +24,17 @@ data class AccionesNavegacion(
     val onSeguir: () -> Unit = {},
     /** Descarta «Seguir a <destino>» (borra el guiado pendiente). */
     val onDescartarSeguir: () -> Unit = {},
+    /** «Ir aquí» de la tarjeta del punto: abre la vista previa de rutas hasta él. */
+    val onIrAqui: () -> Unit = {},
+    /** «Añadir parada» de la tarjeta del punto. */
+    val onAnadirParadaDelPunto: () -> Unit = {},
+    /** Cierra la tarjeta del punto (X o toque fuera). */
+    val onCerrarPunto: () -> Unit = {},
+    /** «Añadir como parada» en un resultado de la búsqueda. */
+    val onAnadirParada: (Destino) -> Unit = {},
+    val onQuitarParada: (Int) -> Unit = {},
+    /** Mueve la parada de la posición `desde` a la posición `hasta`. */
+    val onMoverParada: (Int, Int) -> Unit = { _, _ -> },
 )
 
 /**
