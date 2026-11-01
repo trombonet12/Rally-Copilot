@@ -303,6 +303,8 @@ Pulir toda la app con estética de videojuego WRC y retransmisión de rally.
 - Pantalla de conducción con el mapa como protagonista y modo alternativo centrado en notas grandes.
 - Iconos de notas tipo roadbook, banners animados, HUD.
 - Ajustes completos: voz, modo del copiloto, anticipación, notas simplificadas, grabación automática, mapas, tema (oscuro por defecto, claro opcional).
+- Ajustes rehechos (Joan, 2026-11-01: «tétrica y poco intuitiva»): cada sección con una **vista previa en vivo** arriba que cambia al tocar la opción (p. ej. la tarjeta de nota, «te la canta 5 s antes», ▶ escuchar ejemplo).
+- Ajustes rápidos en el mapa, además de capas, orientación y modo: **anticipación de las notas, notas simplificadas y volumen de la voz** (volumen propio del copiloto, aparte del del móvil).
 - Fuera: Android Auto.
 
 ### Criterios de aceptación

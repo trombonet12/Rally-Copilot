@@ -32,5 +32,7 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · marca · El primer casco (blanco tipo capucha con visera negra) le pareció «muy muy feo»; el aceptado es un jet rojo con franja blanca, ribetes latón, brillo y micrófono · en diseños gráficos, comparar variantes renderizadas y elegir la que se lea mejor a tamaño de icono antes de enseñarla.
 - 2026-10-28 · marca · El casco jet le gusta pero lo quería «un poquito más cuadradito», no alargado en vertical · cúpula más baja y ancha (variante S2); no volver a la forma de huevo.
 
+- 2026-11-01 · interfaz · Los ajustes tienen que ser claros y enseñar en vivo cómo cambia cada cosa (vista previa al tocar), y lo que se toca conduciendo debe poder cambiarse desde el mapa · la pantalla de Ajustes de H4 le pareció «tétrica y poco intuitiva»; aplicarlo a cualquier ajuste nuevo.
+
 ## Correcciones
 - 2026-10-28 · git · «El push no es que esté prohibido» · no bloquear el push con deny ni hooks; se hace cuando Joan lo pide.
