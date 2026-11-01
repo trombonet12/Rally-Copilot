@@ -8,6 +8,9 @@ se marca como respondida. Ordenadas por el hito que bloquean.
 
 Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
+## Respondidas al empezar H7 (2026-11-01, en el chat)
+- **Abrir análisis:** Mis tramos + botón en la meta. **Comparar:** la mejor, eligiendo otra. **Nombres:** automáticos y editables. **Lista:** todos, con filtros Repetidos y Favoritos.
+
 ## Respondidas al cerrar H5B (2026-11-01, en el chat): A, A y A
 
 ### Cambiar de destino durante el guiado

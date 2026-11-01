@@ -305,7 +305,7 @@ Analizar cada tramo y mostrar la evolución del piloto.
 - Robolectric: pantallas con datos falsos (BancoCompose).
 
 ### Estado
-pendiente · Depende de: H6
+en curso (2026-11-01) · Depende de: H6 · Dudas: resueltas (2026-11-01): análisis desde Mis tramos y la meta, comparar con la mejor o elegir, nombres automáticos editables, lista con filtros
 
 ## H8 — Edición de notas y reconocimiento
 

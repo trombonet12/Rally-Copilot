@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H6 cerrado (2026-11-01) · siguiente: H7 — Análisis post-tramo y perfil del piloto |
-| Estado | **H6 cerrado**; v0.7 publicada al hacer push con `version.properties` |
+| Hito | H7 — Análisis post-tramo y perfil del piloto (en curso, 2026-11-01) |
+| Estado | H6 cerrado y v0.7.0 publicada. H7: motor de análisis y datos (Room v8) |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -45,6 +45,7 @@
 - H1 (2026-10-28): gate verde con 174 tests JVM de app y 82 del motor; `rally-copilot-data`: 5 tests de scripts + actionlint. Emulador `trombito-36` y `rally-sin-gms-36`: descarga real, corte de WiFi y reanudación, modo avión, Ma-2141 a 50 km/h con límite 90/30/sin dato, satélite, horizontal y spike `mbtiles://`.
 
 ## Problemas conocidos
+- `scripts/test-hooks.sh` falló una vez (87/88) y pasó al repetir: intermitente, probablemente por lentitud; vigilar.
 - El icono adaptativo debe quedarse en `mipmap-anydpi-v26`: con `mipmap-anydpi` el release no enlaza (`@mipmap/ic_launcher` not found).
 - `gradlew` debe estar en git como ejecutable (`git update-index --chmod=+x gradlew`); si no, el CI falla con «Permission denied».
 - Overpass API da 502/504 a menudo: reintentar con `--max-time` o usar otro espejo.
@@ -77,4 +78,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H6 cerrado y v0.7 publicada. Siguiente: `hito start H7` (análisis post-tramo y perfil del piloto): preguntar a Joan las dudas de producto al empezar.
+- **Agente:** H7: (1) motor análisis/perfil, (2) datos Room v8 (nombre, favorito, último uso, pasada↔recorrido), (3) UI Mis tramos + Perfil, (4) UI Análisis (tabla, gráfico, mapa coloreado, repetición) y botón en la meta.
