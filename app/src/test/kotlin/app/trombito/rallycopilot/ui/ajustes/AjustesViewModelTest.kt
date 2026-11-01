@@ -5,7 +5,10 @@ import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import app.trombito.rallycopilot.ui.comun.FalsoLocutor
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,6 +21,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -25,6 +29,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class AjustesViewModelTest {
     private val repositorio = FalsoRepositorioAjustesConduccion()
+    private val locutor = FalsoLocutor()
 
     @Before
     fun preparar() {
@@ -37,7 +42,7 @@ class AjustesViewModelTest {
     }
 
     private fun TestScope.crear(): AjustesViewModel {
-        val vm = AjustesViewModel(repositorio)
+        val vm = AjustesViewModel(repositorio, locutor)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -103,5 +108,31 @@ class AjustesViewModelTest {
             assertTrue(repositorio.mutable.value.notasSimplificadas)
             // Lo demás no se toca.
             assertEquals(AjustesConduccion().nivelZoom, repositorio.mutable.value.nivelZoom)
+        }
+
+    @Test
+    fun `el modo y la voz del copiloto se guardan sin tocar el resto`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(nivelZoom = 1)
+            val vm = crear()
+            assertEquals(ModoCopiloto.COMPLETO, vm.uiState.value.modoCopiloto)
+            assertNull(vm.uiState.value.voz)
+            vm.onModoCopiloto(ModoCopiloto.SOLO_ALERTAS)
+            vm.onVozCopiloto(VozCopiloto.SHARVARD)
+            val guardado = repositorio.mutable.value
+            assertEquals(ModoCopiloto.SOLO_ALERTAS, guardado.modoCopiloto)
+            assertEquals(VozCopiloto.SHARVARD, guardado.voz)
+            assertEquals(1, guardado.nivelZoom)
+        }
+
+    @Test
+    fun `probar una voz llama al locutor y no cambia la elegida`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(voz = VozCopiloto.DAVEFX)
+            val vm = crear()
+            vm.onProbarVoz(VozCopiloto.SHARVARD)
+            assertEquals(listOf(VozCopiloto.SHARVARD), locutor.probadas)
+            assertEquals(VozCopiloto.DAVEFX, repositorio.mutable.value.voz)
+            assertTrue(repositorio.guardados.isEmpty())
         }
 }

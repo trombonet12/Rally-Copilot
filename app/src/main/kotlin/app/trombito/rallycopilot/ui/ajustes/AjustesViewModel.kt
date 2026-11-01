@@ -7,7 +7,10 @@ import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,13 +21,14 @@ import javax.inject.Inject
 
 /**
  * Ajustes de conducción: zoom del mapa, icono de posición, orientación, estilo de las maniobras, anticipación de las
- * notas y notas simplificadas, persistidos en el repositorio.
+ * notas, notas simplificadas, modo y voz del copiloto, persistidos en el repositorio; la voz se puede probar.
  */
 @HiltViewModel
 class AjustesViewModel
     @Inject
     constructor(
         private val repositorio: RepositorioAjustesConduccion,
+        private val locutor: Locutor,
     ) : ViewModel() {
         val uiState: StateFlow<AjustesConduccion> =
             repositorio.ajustes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), AjustesConduccion())
@@ -52,6 +56,19 @@ class AjustesViewModel
 
         fun onNotasSimplificadas(simplificadas: Boolean) {
             guardar { it.copy(notasSimplificadas = simplificadas) }
+        }
+
+        fun onModoCopiloto(modo: ModoCopiloto) {
+            viewModelScope.launch { repositorio.elegirModoCopiloto(modo) }
+        }
+
+        fun onVozCopiloto(voz: VozCopiloto) {
+            viewModelScope.launch { repositorio.elegirVoz(voz) }
+        }
+
+        /** Dice la frase de muestra con [voz] sin cambiar la elegida. */
+        fun onProbarVoz(voz: VozCopiloto) {
+            locutor.probar(voz)
         }
 
         private fun guardar(cambio: (AjustesConduccion) -> AjustesConduccion) {

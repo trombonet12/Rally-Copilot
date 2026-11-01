@@ -7,9 +7,13 @@ import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
+import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_VOZ_OPCION_PREFIJO
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_VOZ_PROBAR_PREFIJO
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -128,6 +132,65 @@ class AjustesConduccionScreenTest {
         assertTrue("Notas simplificadas" in banco.textos(fila))
         banco.pulsar(fila.children.first { banco.esPulsable(it) })
         assertEquals(listOf(true), cambios)
+    }
+
+    @Test
+    fun `el copiloto ofrece cuatro modos con icono y texto y marca el elegido`() {
+        poner(AjustesConduccion(modoCopiloto = ModoCopiloto.NOTAS))
+        val etiquetas = banco.etiquetas(ETIQUETA_AJUSTES_MODO_PREFIJO)
+        assertEquals(ModoCopiloto.entries.size, etiquetas.size)
+        val textos = banco.textos(banco.raiz())
+        listOf("Silencio", "Solo alertas", "Notas", "Completo").forEach { assertTrue("Falta $it", it in textos) }
+        etiquetas.forEach { assertTrue("$it >= 48 dp", banco.conEtiqueta(it).size.height >= 48 * 3) }
+        val elegido = banco.conEtiqueta(ETIQUETA_AJUSTES_MODO_PREFIJO + "notas")
+        assertEquals(true, elegido.config.getOrNull(SemanticsProperties.Selected))
+        val otro = banco.conEtiqueta(ETIQUETA_AJUSTES_MODO_PREFIJO + "completo")
+        assertEquals(false, otro.config.getOrNull(SemanticsProperties.Selected))
+    }
+
+    @Test
+    fun `elegir un modo en ajustes lo pide`() {
+        val pedidos = mutableListOf<ModoCopiloto>()
+        poner(acciones = AccionesAjustes(onModoCopiloto = { pedidos += it }))
+        ModoCopiloto.entries.forEach {
+            banco.pulsar(banco.conEtiqueta(ETIQUETA_AJUSTES_MODO_PREFIJO + it.name.lowercase()))
+        }
+        assertEquals(ModoCopiloto.entries.toList(), pedidos)
+    }
+
+    @Test
+    fun `la voz ofrece dos opciones con probar y avisa si no hay ninguna elegida`() {
+        poner(AjustesConduccion(voz = null))
+        assertEquals(VozCopiloto.entries.size, banco.etiquetas(ETIQUETA_VOZ_OPCION_PREFIJO).size)
+        assertTrue(banco.hay(ETIQUETA_AJUSTES_VOZ_SIN_ELEGIR))
+        val textos = banco.textos(banco.raiz())
+        assertTrue("Voz 1" in textos && "Voz 2" in textos)
+        VozCopiloto.entries.forEach {
+            val probar = banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + it.name.lowercase())
+            assertTrue(banco.textos(probar).isEmpty())
+            assertTrue(probar.size.width >= 48 * 3 && probar.size.height >= 48 * 3)
+        }
+    }
+
+    @Test
+    fun `con voz elegida no sale el aviso y se marca la elegida`() {
+        poner(AjustesConduccion(voz = VozCopiloto.SHARVARD))
+        assertFalse(banco.hay(ETIQUETA_AJUSTES_VOZ_SIN_ELEGIR))
+        val elegida = banco.conEtiqueta(ETIQUETA_VOZ_OPCION_PREFIJO + "sharvard")
+        assertEquals(true, elegida.config.getOrNull(SemanticsProperties.Selected))
+        val otra = banco.conEtiqueta(ETIQUETA_VOZ_OPCION_PREFIJO + "davefx")
+        assertEquals(false, otra.config.getOrNull(SemanticsProperties.Selected))
+    }
+
+    @Test
+    fun `elegir y probar una voz en ajustes llaman a sus acciones`() {
+        val elegidas = mutableListOf<VozCopiloto>()
+        val probadas = mutableListOf<VozCopiloto>()
+        poner(acciones = AccionesAjustes(onVozCopiloto = { elegidas += it }, onProbarVoz = { probadas += it }))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_OPCION_PREFIJO + "sharvard"))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + "davefx"))
+        assertEquals(listOf(VozCopiloto.SHARVARD), elegidas)
+        assertEquals(listOf(VozCopiloto.DAVEFX), probadas)
     }
 
     @Test

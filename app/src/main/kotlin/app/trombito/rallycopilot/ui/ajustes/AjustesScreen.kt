@@ -32,8 +32,10 @@ import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
+import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
@@ -70,6 +72,9 @@ data class AccionesAjustes(
     val onEstiloManiobras: (EstiloManiobras) -> Unit = {},
     val onAnticipacion: (NivelAnticipacion) -> Unit = {},
     val onNotasSimplificadas: (Boolean) -> Unit = {},
+    val onModoCopiloto: (ModoCopiloto) -> Unit = {},
+    val onVozCopiloto: (VozCopiloto) -> Unit = {},
+    val onProbarVoz: (VozCopiloto) -> Unit = {},
 )
 
 @StringRes
@@ -84,7 +89,7 @@ private fun textoNivelZoom(nivel: Int): Int =
 
 /**
  * Ajustes: Mapas offline, Acerca de y las preferencias de conducción (zoom, icono de posición, estilo de maniobras,
- * orientación, anticipación de las notas y notas simplificadas).
+ * orientación, anticipación de las notas, notas simplificadas) y el copiloto (modo y voz).
  */
 @Composable
 fun AjustesScreen(
@@ -111,6 +116,7 @@ fun AjustesScreen(
             SeccionManiobras(ajustes.estiloManiobras, acciones.onEstiloManiobras)
             SeccionOrientacion(ajustes.orientacion, acciones.onOrientacion)
             SeccionNotas(ajustes, acciones)
+            SeccionCopiloto(ajustes, acciones)
         }
     }
 }

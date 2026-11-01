@@ -29,6 +29,9 @@ fun AjustesRoute(
                 onEstiloManiobras = viewModel::onEstiloManiobras,
                 onAnticipacion = viewModel::onAnticipacion,
                 onNotasSimplificadas = viewModel::onNotasSimplificadas,
+                onModoCopiloto = viewModel::onModoCopiloto,
+                onVozCopiloto = viewModel::onVozCopiloto,
+                onProbarVoz = viewModel::onProbarVoz,
             ),
         modifier = modifier,
     )

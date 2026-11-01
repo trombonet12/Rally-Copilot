@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Modo Completo: casco de rally con micrófono. Icono monocromo del selector de modo del copiloto: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M7,31 V25 A17,17 0 0 1 24,8 A17,17 0 0 1 41,25 V31 Q41,35 37,35 H11 Q7,35 7,31 Z" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M20,19 H38 Q40,19 40,21 V27 H20 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M13,35 V40 Q13,43 17,43 H24" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="3.5" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M24,43 A3,3 0 1 1 30,43 A3,3 0 1 1 24,43 Z" android:fillColor="#FFFFFF" />
+</vector>

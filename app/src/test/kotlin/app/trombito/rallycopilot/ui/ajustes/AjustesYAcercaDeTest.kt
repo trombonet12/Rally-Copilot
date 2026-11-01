@@ -71,8 +71,15 @@ class AjustesYAcercaDeTest {
                 "OFL",
                 "MapLibre Native",
                 "BSD-2",
+                "sherpa-onnx",
+                "Apache-2.0",
+                "espeak-ng",
+                "GPL-3.0",
+                "Sharvard corpus",
+                "University of Edinburgh",
+                "CC BY 3.0",
             )
         claves.forEach { clave -> assertTrue("Falta $clave en $atribuciones", atribuciones.any { clave in it }) }
-        assertEquals(5, atribuciones.size)
+        assertEquals(8, atribuciones.size)
     }
 }

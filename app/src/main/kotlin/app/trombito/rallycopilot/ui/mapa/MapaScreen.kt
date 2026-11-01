@@ -46,6 +46,10 @@ import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.MantenerPantallaEncendida
+import app.trombito.rallycopilot.ui.copiloto.BotonModoCopiloto
+import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
+import app.trombito.rallycopilot.ui.copiloto.DialogoVozCopiloto
+import app.trombito.rallycopilot.ui.copiloto.PanelModoCopiloto
 import app.trombito.rallycopilot.ui.navegacion.BotonTerminar
 import app.trombito.rallycopilot.ui.navegacion.BusquedaDestino
 import app.trombito.rallycopilot.ui.navegacion.CabeceraBusqueda
@@ -71,7 +75,7 @@ const val ETIQUETA_PERMISO_PEDIR = "mapa-permiso-pedir"
 const val ETIQUETA_PERMISO_AJUSTES = "mapa-permiso-ajustes"
 
 private const val OPACIDAD_SUPERFICIE_SOBRE_MAPA = 0.88f
-private val ANCHO_PANEL_LATERAL = 230.dp
+private val ANCHO_PANEL_LATERAL = 250.dp
 private val ALTO_MINIMO_TACTIL = 48.dp
 
 // Lados de los insets del sistema que respeta cada zona.
@@ -102,10 +106,11 @@ data class AccionesMapa(
 
 /**
  * Mapa a pantalla completa con el panel negro de velocidad: abajo en vertical, a la derecha en horizontal. Los botones
- * (capas, rumbo/norte y terminar) van en ese panel, a los lados de la velocidad; no hay flecha de volver (se usa el
- * atrás del sistema). El mapa en sí lo pone [mapa] (en producción [VistaMapa]) para poder probar la pantalla sin
- * MapLibre. [navegacion] trae la barra «¿A dónde?», la vista previa de rutas, el botón de terminar y el hueco del
- * panel de guiado (banner a todo el ancho arriba).
+ * (capas, modo del copiloto, rumbo/norte y terminar) van en ese panel, a los lados de la velocidad; no hay flecha de
+ * volver (se usa el atrás del sistema). El mapa en sí lo pone [mapa] (en producción [VistaMapa]) para poder probar la
+ * pantalla sin MapLibre. [navegacion] trae la barra «¿A dónde?», la vista previa de rutas, el botón de terminar y el
+ * hueco del panel de guiado (banner a todo el ancho arriba). [copiloto] trae el modo (selector en el panel) y el
+ * diálogo de la voz del primer uso.
  */
 @Composable
 @Suppress("LongParameterList") // estado, vista, acciones, mapa y navegación son los bloques de la pantalla
@@ -116,21 +121,26 @@ fun MapaScreen(
     mapa: @Composable (estiloJson: String, modifier: Modifier) -> Unit,
     modifier: Modifier = Modifier,
     navegacion: NavegacionEnMapa = NavegacionEnMapa(),
+    copiloto: CopilotoEnMapa = CopilotoEnMapa(),
 ) {
     MantenerPantallaEncendida()
-    var capasAbiertas by rememberSaveable { mutableStateOf(false) }
+    var abierto by rememberSaveable { mutableStateOf(MenuMapa.NINGUNO) }
+    val menu = MenuAbierto(abierto) { abierto = it }
     val botones =
-        if (estado.hayDatos) {
-            botonesDelPanel(estado, acciones, capasAbiertas, navegacion) { capasAbiertas = !capasAbiertas }
-        } else {
-            BotonesPanel()
-        }
+        if (estado.hayDatos) botonesDelPanel(estado, acciones, navegacion, copiloto, menu) else BotonesPanel()
+    if (copiloto.estado.pedirVoz) {
+        DialogoVozCopiloto(
+            onElegir = copiloto.acciones.onElegirVoz,
+            onProbar = copiloto.acciones.onProbarVoz,
+            onPosponer = copiloto.acciones.onPosponerVoz,
+        )
+    }
     BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         val horizontal = maxWidth > maxHeight
         if (horizontal) {
             Row(Modifier.fillMaxSize()) {
                 ZonaMapa(
-                    ZonaMapaContenido(estado, vista.copy(horizontal = true), acciones, navegacion, capasAbiertas),
+                    ZonaMapaContenido(estado, vista.copy(horizontal = true), acciones, navegacion, menu, copiloto),
                     mapa,
                     Modifier.weight(1f).fillMaxHeight(),
                 )
@@ -151,7 +161,7 @@ fun MapaScreen(
         } else {
             Column(Modifier.fillMaxSize()) {
                 ZonaMapa(
-                    ZonaMapaContenido(estado, vista.copy(horizontal = false), acciones, navegacion, capasAbiertas),
+                    ZonaMapaContenido(estado, vista.copy(horizontal = false), acciones, navegacion, menu, copiloto),
                     mapa,
                     Modifier.weight(1f).fillMaxWidth(),
                 )
@@ -178,17 +188,38 @@ private class BotonesPanel(
     val derecha: List<@Composable () -> Unit> = emptyList(),
 )
 
-/** Izquierda: capas. Derecha: rumbo/norte y, mientras se guía, la bandera de terminar. */
+/** Menú desplegado sobre el mapa desde el panel inferior: solo uno a la vez. */
+private enum class MenuMapa { NINGUNO, CAPAS, MODO }
+
+private class MenuAbierto(
+    val actual: MenuMapa,
+    val cambiar: (MenuMapa) -> Unit,
+) {
+    /** Abre [menu], o lo cierra si ya estaba abierto. */
+    fun alternar(menu: MenuMapa) = cambiar(if (actual == menu) MenuMapa.NINGUNO else menu)
+}
+
+/**
+ * Izquierda: capas y modo del copiloto. Derecha: rumbo/norte y, mientras se guía, la bandera de terminar. Con cuatro
+ * botones la velocidad no se tapa: dos a cada lado en vertical y una sola fila en horizontal.
+ */
 private fun botonesDelPanel(
     estado: MapaUiState,
     acciones: AccionesMapa,
-    capasAbiertas: Boolean,
     navegacion: NavegacionEnMapa,
-    onCapas: () -> Unit,
+    copiloto: CopilotoEnMapa,
+    menu: MenuAbierto,
 ): BotonesPanel {
     val terminar = navegacion.acciones.onTerminar.takeIf { navegacion.estado.conduciendo }
     return BotonesPanel(
-        izquierda = listOf({ BotonCapas(capasAbiertas, onCapas) }),
+        izquierda =
+            listOf(
+                { BotonCapas(menu.actual == MenuMapa.CAPAS, { menu.alternar(MenuMapa.CAPAS) }) },
+                {
+                    val abierto = menu.actual == MenuMapa.MODO
+                    BotonModoCopiloto(copiloto.estado.modo, abierto, { menu.alternar(MenuMapa.MODO) })
+                },
+            ),
         derecha =
             listOfNotNull(
                 { BotonOrientacion(estado.orientacion, acciones.onOrientacion) },
@@ -203,7 +234,8 @@ private class ZonaMapaContenido(
     val vista: EstadoVistaMapa,
     val acciones: AccionesMapa,
     val navegacion: NavegacionEnMapa,
-    val capasAbiertas: Boolean,
+    val menu: MenuAbierto,
+    val copiloto: CopilotoEnMapa,
 )
 
 @Composable
@@ -241,13 +273,25 @@ private fun ZonaMapa(
                 (navegacion.estado.control as? EstadoNavegacion.Guiando)?.let {
                     navegacion.panelGuiado(this, it, vista.horizontal, navegacion.notas)
                 }
-                // Encima de todo y pegado al panel inferior, junto al botón de capas que lo abre.
-                if (contenido.capasAbiertas) {
-                    PanelCapas(
-                        estado,
-                        acciones,
-                        Modifier.align(if (vista.horizontal) Alignment.BottomEnd else Alignment.BottomStart),
-                    )
+                // Encima de todo y pegado al panel inferior, junto al botón que lo abre.
+                val pegado = Modifier.align(if (vista.horizontal) Alignment.BottomEnd else Alignment.BottomStart)
+                when (contenido.menu.actual) {
+                    MenuMapa.CAPAS -> {
+                        PanelCapas(estado, acciones, pegado)
+                    }
+
+                    MenuMapa.MODO -> {
+                        PanelModoCopiloto(
+                            modo = contenido.copiloto.estado.modo,
+                            onModo = {
+                                contenido.copiloto.acciones.onModo(it)
+                                contenido.menu.cambiar(MenuMapa.NINGUNO)
+                            },
+                            modifier = pegado,
+                        )
+                    }
+
+                    MenuMapa.NINGUNO -> {}
                 }
             }
         }

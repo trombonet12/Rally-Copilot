@@ -9,6 +9,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
+import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
+import app.trombito.rallycopilot.ui.copiloto.CopilotoViewModel
 import app.trombito.rallycopilot.ui.maniobras.variante
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
@@ -24,7 +27,7 @@ import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
  * maniobras de los ajustes).
  */
 @Composable
-@Suppress("LongParameterList") // un ViewModel por bloque (mapa, navegación, notas) más los huecos de prueba
+@Suppress("LongParameterList") // un ViewModel por bloque (mapa, navegación, notas, copiloto) más los huecos de prueba
 fun MapaRoute(
     onAbrirMapasOffline: () -> Unit,
     modifier: Modifier = Modifier,
@@ -32,10 +35,12 @@ fun MapaRoute(
     viewModel: MapaViewModel = hiltViewModel(),
     navegacionViewModel: NavegacionViewModel = hiltViewModel(),
     notasViewModel: NotasViewModel = hiltViewModel(),
+    copilotoViewModel: CopilotoViewModel = hiltViewModel(),
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     val navegacion by navegacionViewModel.uiState.collectAsStateWithLifecycle()
     val notas by notasViewModel.uiState.collectAsStateWithLifecycle()
+    val copiloto by copilotoViewModel.uiState.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
     LaunchedEffect(permiso.estado) {
         val concedido = permiso.estado == EstadoPermisoUbicacion.CONCEDIDO
@@ -63,8 +68,17 @@ fun MapaRoute(
         },
         modifier = modifier,
         navegacion = NavegacionEnMapa(navegacion, accionesNavegacion(navegacionViewModel), panel, notas),
+        copiloto = CopilotoEnMapa(copiloto, accionesCopiloto(copilotoViewModel)),
     )
 }
+
+private fun accionesCopiloto(vm: CopilotoViewModel) =
+    AccionesCopiloto(
+        onModo = vm::onModo,
+        onElegirVoz = vm::onElegirVoz,
+        onProbarVoz = vm::onProbarVoz,
+        onPosponerVoz = vm::onPosponerVoz,
+    )
 
 private fun accionesMapa(
     viewModel: MapaViewModel,

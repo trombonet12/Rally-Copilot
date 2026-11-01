@@ -71,13 +71,14 @@ fun PanelVelocidad(
         }
         if (enColumna) {
             Column(
-                modifier = Modifier.padding(horizontal = Espacio.l, vertical = Espacio.m),
+                modifier = Modifier.padding(horizontal = Espacio.s, vertical = Espacio.m),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterVertically),
             ) {
                 contenido()
                 rotulo()
-                Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
+                // Hasta cuatro botones de 48 dp en una sola fila: no se apila otra fila bajo la velocidad.
+                Row(horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
                     (botonesIzquierda + botonesDerecha).forEach { it() }
                 }
             }

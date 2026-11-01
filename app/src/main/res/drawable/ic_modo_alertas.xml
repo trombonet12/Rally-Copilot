@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Modo Solo alertas: triángulo de alerta. Icono monocromo del selector de modo del copiloto: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M24,6 L43,41 H5 Z" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M22,18 H26 V30 H22 Z M22,33 H26 V37 H22 Z" android:fillColor="#FFFFFF" />
+</vector>

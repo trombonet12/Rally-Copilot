@@ -9,11 +9,14 @@ import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.vias.ViaActual
+import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 class FalsoRepositorioDatosMapa(
     estadoInicial: EstadoDatosMapa = EstadoDatosMapa(),
@@ -79,6 +82,26 @@ class FalsoRepositorioAjustesConduccion(
         guardados += ajustes
         mutable.value = ajustes
     }
+}
+
+/** Locutor de pruebas: no suena, solo anota qué voces se han probado. */
+class FalsoLocutor : Locutor {
+    override val hablando: StateFlow<Boolean> = MutableStateFlow(false)
+    val probadas = mutableListOf<VozCopiloto>()
+
+    override fun usarVoz(v: VozCopiloto) = Unit
+
+    override fun preparar(textos: List<String>) = Unit
+
+    override fun decir(texto: String) = Unit
+
+    override fun duracionEstimadaS(texto: String): Double = 0.0
+
+    override fun probar(v: VozCopiloto) {
+        probadas += v
+    }
+
+    override fun cerrar() = Unit
 }
 
 class FalsaFuenteUbicacion(
