@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H6 — Tramos y cronometraje (en curso, 2026-11-01) |
-| Estado | H5 cerrado y v0.5.0 publicada. H6: motor de cronometraje |
+| Hito | H5B — Navegación: buscador, paradas y gestos (en curso, 2026-11-01) · H6 pausado |
+| Estado | H5B antes de H6 (petición de Joan). El lote del motor de H6 (tramos/) quedó a medias por el límite de uso: retomarlo con su agente o desde lo que haya en el árbol |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -75,4 +75,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H6 en curso. Lotes: (1) motor: cronometraje con reloj inyectado, sectores 4 + micro por km, delta interpolado, detección de tramo conocido; (2) app: Room v6 (tramos y pasadas), sesión de crono, delta por voz en modo Completo; (3) UI: HUD con tramo conocido y cronómetro pequeño; (4) emulador: dos velocidades y entrada a mitad.
+- **Agente:** H5B: gestos (ya), buscador por palabras (app + repo de datos: relaciones), mantener pulsado con tarjeta, rutas con paradas, panel compacto. Después retomar H6 (motor de cronometraje a medias en `motor/.../tramos/`).

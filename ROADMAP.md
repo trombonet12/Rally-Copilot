@@ -212,6 +212,44 @@ arreglados. Traza Ma-13 nueva (el script de trazas respeta los sentidos únicos)
 Pendiente: media de tramo solo en guiado; incidencias reales de la DGT y zonas móviles por PK sin probar en el móvil;
 VERIFICAR condiciones de reutilización del NAP con nap@dgt.es. -->
 
+## H5B — Navegación: buscador, paradas y gestos
+
+### Objetivo
+Arreglar lo que Joan echa en falta al usar la app a diario (2026-11-01): mapa que se puede girar e inclinar, buscador que
+encuentra calles, monumentos y negocios, ir a un punto manteniéndolo pulsado, rutas con varias paradas y un panel
+inferior que no estorba mientras se planifica.
+
+### Alcance
+- Gestos: girar e inclinar el mapa con dos dedos (hoy desactivados); al hacerlo se deja de seguir al coche y el botón de
+  recentrar vuelve al modo elegido (rumbo arriba e inclinado, o norte).
+- Buscador por palabras: todas las palabras de la consulta, en cualquier orden y como prefijo de alguna palabra del
+  nombre o del municipio («colom palma»); sinónimos castellano → catalán (calle/carrer, plaza/plaça, castillo/castell,
+  playa/platja, iglesia/església…); palabras vacías fuera (de, del, la, el, d'); una categoría sola («hospital»,
+  «gasolinera», «farmacia») da los más cercanos de ese tipo; orden por coincidencia, importancia y cercanía. En el repo
+  de datos: también POIs dibujados como multipolígono (relaciones) y negocios con nombre.
+- Mantener pulsado en el mapa: marcador y tarjeta con el nombre o la calle del punto y «Ir aquí» / «Añadir parada».
+- Rutas con paradas: en el orden en que se añaden, reordenables arrastrando; al llegar o pasar por una se activa la
+  siguiente; banner y pie (llegada, tiempo, km) hasta la próxima parada y hasta el final.
+- Panel inferior compacto mientras se está parado planificando (búsqueda, tarjeta o vista previa de ruta, v < 5 km/h);
+  se amplía al empezar a moverse (> 10 km/h) o al empezar la ruta.
+- Fuera: optimizar el orden de las paradas.
+
+### Criterios de aceptación
+- [ ] En el emulador el mapa gira e inclina con dos dedos y «recentrar» vuelve al seguimiento.
+- [ ] «hospital son espases», «castillo bellver», «calle colom palma» y «hospital» (desde Palma) encuentran lo esperado en
+  los primeros resultados (tests con el índice real).
+- [ ] Mantener pulsado → Ir aquí calcula la ruta; con dos paradas añadidas, `gps-replay` pasa por la primera y el guiado
+  sigue a la segunda.
+- [ ] Parado en la vista previa el panel es compacto y se amplía al moverse (capturas).
+
+### Tests
+- Motor: lógica de paradas (llegada/paso, siguiente), normalización y sinónimos de la consulta.
+- App: buscador con base SQLite de prueba e índice real; Robolectric de la tarjeta y del panel compacto.
+
+### Estado
+en curso (2026-11-01) · Depende de: H2, H5 · Va antes de terminar H6 (petición de Joan) · Dudas: resueltas
+(2026-11-01): tarjeta Ir aquí / Añadir parada, paradas en el orden añadido, buscar todo por palabras
+
 ## H6 — Tramos y cronometraje
 
 ### Objetivo
@@ -234,7 +272,7 @@ Convertir cada trayecto en un tramo cronometrado con sectores, detección de tra
 - Room: migraciones con tests.
 
 ### Estado
-en curso (2026-11-01) · Depende de: H2 · Dudas: resueltas (2026-10-28); (2026-11-01): todo trayecto ≥ 1 km es tramo, delta por voz en sectores y meta, micro por km, HUD con tramo conocido
+pausado (2026-11-01, se hace antes H5B; el lote del motor quedó a medias por el límite de uso) · Depende de: H2 · Dudas: resueltas (2026-10-28); (2026-11-01): todo trayecto ≥ 1 km es tramo, delta por voz en sectores y meta, micro por km, HUD con tramo conocido
 
 ## H7 — Análisis post-tramo y perfil del piloto
 
