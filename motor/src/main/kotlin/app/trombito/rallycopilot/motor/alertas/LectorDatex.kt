@@ -3,61 +3,39 @@ package app.trombito.rallycopilot.motor.alertas
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import java.io.CharConversionException
 import java.io.IOException
-import java.io.InputStream
-import javax.xml.stream.XMLInputFactory
-import javax.xml.stream.XMLStreamConstants
-import javax.xml.stream.XMLStreamException
-import javax.xml.stream.XMLStreamReader
 
 /**
- * Lee en streaming el XML DATEX II v3.7 de incidencias de la DGT (NAP) y devuelve las de Mallorca. Recibe el flujo ya
- * descomprimido; no toca disco ni red y no carga el documento entero en memoria (≈ 6 MB sin comprimir).
+ * Lee en streaming el XML DATEX II v3.7 de incidencias de la DGT (NAP) y devuelve las de Mallorca. Recibe un
+ * [LectorXml] sobre el flujo ya descomprimido; no toca disco ni red y no carga el documento entero en memoria
+ * (≈ 6 MB sin comprimir).
  *
  * - Una [Incidencia] por `situation`; sus registros se fusionan: el tipo es el más grave, los puntos son la unión
  *   (desde, puntuales, hasta), la gravedad la mayor y el fin solo existe si todos los registros lo traen.
  * - Se quedan las situaciones con algún punto en [MALLORCA]; se descartan las de prueba (`informationStatus = test`),
  *   los registros `suspended` y los puntos con coordenadas ilegibles.
  * - Los elementos desconocidos se ignoran. Los datos malos nunca lanzan: devuelve [ResultadoDatex.Error] y quien llama
- *   conserva la caché anterior. El lector no resuelve DTD ni entidades externas.
+ *   conserva la caché anterior. Los adaptadores de [LectorXml] no resuelven DTD ni entidades externas.
  */
 object LectorDatex {
     /** Recuadro de Mallorca (lon 2,30–3,50; lat 39,26–39,97): deja fuera Menorca, Ibiza y Cabrera. */
     val MALLORCA = CajaGeo(latMin = 39.26, lonMin = 2.30, latMax = 39.97, lonMax = 3.50)
 
-    fun leer(entrada: InputStream): ResultadoDatex =
+    /** Lee el documento que entrega [xml] y lo cierra. Los fallos de lectura salen como [ResultadoDatex.Error]. */
+    fun leer(xml: LectorXml): ResultadoDatex =
         try {
-            val xml = fabrica().createXMLStreamReader(entrada)
-            try {
-                Lectura(xml).ejecutar()
-            } finally {
-                xml.close()
-            }
-        } catch (e: XMLStreamException) {
-            val causa = e.nestedException ?: e.cause
-            // StAX envuelve los fallos del flujo; una codificación rota (CharConversionException) sí es XML malo.
-            val motivo =
-                if (causa is IOException && causa !is CharConversionException) {
-                    MotivoErrorDatex.ENTRADA_ILEGIBLE
-                } else {
-                    MotivoErrorDatex.XML_MAL_FORMADO
-                }
-            ResultadoDatex.Error(motivo, e.message)
+            xml.use { Lectura(it).ejecutar() }
+        } catch (e: XmlMalFormadoException) {
+            ResultadoDatex.Error(MotivoErrorDatex.XML_MAL_FORMADO, e.message)
+        } catch (e: CharConversionException) {
+            // Una codificación rota es XML malo, no un fallo del flujo.
+            ResultadoDatex.Error(MotivoErrorDatex.XML_MAL_FORMADO, e.message)
         } catch (e: IOException) {
             ResultadoDatex.Error(MotivoErrorDatex.ENTRADA_ILEGIBLE, e.message)
         }
 
-    private fun fabrica(): XMLInputFactory =
-        XMLInputFactory.newFactory().apply {
-            setProperty(XMLInputFactory.SUPPORT_DTD, false)
-            setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false)
-            setProperty(XMLInputFactory.IS_COALESCING, true)
-        }
-
-    private const val XSI = "http://www.w3.org/2001/XMLSchema-instance"
-
-    /** Máquina de estados sobre los eventos StAX; cada hoja se procesa al cerrar su elemento. */
+    /** Máquina de estados sobre los eventos del lector; cada hoja se procesa al cerrar su elemento. */
     private class Lectura(
-        private val xml: XMLStreamReader,
+        private val xml: LectorXml,
     ) {
         private val incidencias = ArrayList<Incidencia>()
         private var leidas = 0
@@ -71,11 +49,13 @@ object LectorDatex {
         private val texto = StringBuilder()
 
         fun ejecutar(): ResultadoDatex {
-            while (xml.hasNext()) {
-                when (xml.next()) {
-                    XMLStreamConstants.START_ELEMENT -> abrir(xml.localName)
-                    XMLStreamConstants.CHARACTERS, XMLStreamConstants.CDATA -> texto.append(xml.text)
-                    XMLStreamConstants.END_ELEMENT -> cerrar(xml.localName, texto.toString().trim())
+            while (true) {
+                when (xml.siguiente()) {
+                    EventoXml.INICIO -> abrir(xml.nombre)
+                    EventoXml.TEXTO -> texto.append(xml.texto)
+                    EventoXml.FIN -> cerrar(xml.nombre, texto.toString().trim())
+                    EventoXml.FIN_DOCUMENTO -> break
+                    EventoXml.OTRO -> Unit
                 }
             }
             return if (esDatex) {
@@ -91,11 +71,11 @@ object LectorDatex {
                 "situation" -> {
                     esDatex = true
                     leidas++
-                    situacion = SituacionDatex(xml.getAttributeValue(null, "id"))
+                    situacion = SituacionDatex(xml.atributo("id"))
                 }
 
                 "situationRecord" -> {
-                    val tipo = xml.getAttributeValue(XSI, "type")?.substringAfter(':')
+                    val tipo = xml.atributo("type")?.substringAfter(':')
                     if (situacion != null) registro = RegistroDatex(tipo)
                 }
 

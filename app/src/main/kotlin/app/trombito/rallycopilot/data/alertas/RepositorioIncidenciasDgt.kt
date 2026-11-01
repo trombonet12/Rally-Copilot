@@ -90,7 +90,7 @@ class RepositorioIncidenciasDgt internal constructor(
                 null
             } else {
                 try {
-                    abrirCopia(copia).use { LectorDatex.leer(it) }
+                    abrirCopia(copia).use { LectorDatex.leer(LectorXmlAndroid(it)) }
                 } catch (e: IOException) {
                     Log.w(ETIQUETA, "Copia de incidencias ilegible: ${e.javaClass.simpleName}")
                     null
@@ -155,7 +155,7 @@ class RepositorioIncidenciasDgt internal constructor(
         http.flujo(url, topeBytes).use { entrada ->
             GZIPOutputStream(temporal.outputStream().buffered()).use { entrada.copyTo(it) }
         }
-        val resultado = abrirCopia(temporal).use { LectorDatex.leer(it) }
+        val resultado = abrirCopia(temporal).use { LectorDatex.leer(LectorXmlAndroid(it)) }
         if (resultado !is ResultadoDatex.Ok) {
             Log.w(ETIQUETA, "Incidencias no válidas: ${(resultado as ResultadoDatex.Error).motivo}")
             return false

@@ -15,9 +15,11 @@ import java.time.Instant
 class LectorDatexTest {
     private fun real(): InputStream = checkNotNull(javaClass.getResourceAsStream("/alertas/datex-mallorca.xml"))
 
+    private fun leerStax(entrada: InputStream): ResultadoDatex = LectorDatex.leer(LectorXmlStax(entrada))
+
     private fun ok(resultado: ResultadoDatex) = resultado as ResultadoDatex.Ok
 
-    private val delFixture by lazy { ok(LectorDatex.leer(real())) }
+    private val delFixture by lazy { ok(leerStax(real())) }
 
     private fun incidencia(id: String) = delFixture.incidencias.single { it.id == id }
 
@@ -152,7 +154,7 @@ class LectorDatexTest {
           $extra
         </sit:situationRecord>"""
 
-    private fun leer(texto: String): ResultadoDatex = LectorDatex.leer(ByteArrayInputStream(texto.toByteArray()))
+    private fun leer(texto: String): ResultadoDatex = leerStax(ByteArrayInputStream(texto.toByteArray()))
 
     private fun unica(texto: String): Incidencia = ok(leer(texto)).incidencias.single()
 
@@ -320,7 +322,7 @@ class LectorDatexTest {
     @Test
     fun `un XML truncado da error de XML mal formado y no una excepcion`() {
         val bytes = real().readBytes()
-        val r = LectorDatex.leer(ByteArrayInputStream(bytes.copyOf(bytes.size / 2)))
+        val r = leerStax(ByteArrayInputStream(bytes.copyOf(bytes.size / 2)))
         assertEquals(MotivoErrorDatex.XML_MAL_FORMADO, (r as ResultadoDatex.Error).motivo)
         assertNotNull(r.detalle)
     }
@@ -345,7 +347,7 @@ class LectorDatexTest {
             object : InputStream() {
                 override fun read(): Int = throw IOException("sin red")
             }
-        val r = LectorDatex.leer(roto)
+        val r = leerStax(roto)
         assertEquals(MotivoErrorDatex.ENTRADA_ILEGIBLE, (r as ResultadoDatex.Error).motivo)
     }
 
