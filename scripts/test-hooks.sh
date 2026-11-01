@@ -57,7 +57,7 @@ for c in 'cat .env' 'cat app/.env.local' 'head -5 .env.production' 'grep KEY .en
   'git push origin --delete main' 'git push --mirror' 'git add -f .env' 'git add --force x'; do
   expect block-secret-commands.sh 2 command "$c" Bash
 done
-# El push normal no lo bloquea el hook: lo frena la regla «ask» de settings.json (pide permiso).
+# El push normal no lo bloquea el hook: desde 2026-11-01 se permite con todo en verde (MEMORIA).
 for c in 'cat .env.example' './gradlew testDebugUnitTest' 'git status' 'git push' 'git push origin main' 'env | grep -c PATH' 'echo hello' \
   'ls environment/' 'node scripts/check-claude-assets.mjs' 'echo $HOME' 'cat README.md' \
   'env | wc -l' 'set -euo pipefail' 'git add docs/a.md' 'git commit -m "x"' 'git log --oneline -3' 'cat .gitignore' \
@@ -70,12 +70,12 @@ for f in 'no/existe.ts' 'README.md' "$ROOT/CLAUDE.md"; do
   expect post-edit-lint.sh 0 file_path "$f"
 done
 
-# settings.json: el push pide permiso (ask) y no está permitido sin preguntar (allow)
+# settings.json: el push normal está permitido (Joan, 2026-11-01); el force-push sigue bloqueado por el hook
 if node -e '
   const s = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).permissions;
-  const ok = s.ask.some((r) => r.startsWith("Bash(git push")) && !s.allow.some((r) => r.includes("git push"));
+  const ok = s.allow.some((r) => r.startsWith("Bash(git push"));
   process.exit(ok ? 0 : 1);
-' "$ROOT/.claude/settings.json"; then PASS=$((PASS + 1)); else FAIL=$((FAIL + 1)); echo "FALLO: settings.json no pide permiso para git push"; fi
+' "$ROOT/.claude/settings.json"; then PASS=$((PASS + 1)); else FAIL=$((FAIL + 1)); echo "FALLO: settings.json no permite git push"; fi
 
 echo "test-hooks: $PASS OK, $FAIL fallos"
 [ "$FAIL" -eq 0 ]

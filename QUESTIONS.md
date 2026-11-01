@@ -13,6 +13,8 @@ Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y
 - **Modo «Solo alertas»:** también dice las maniobras de navegación.
 - **Voz por defecto:** la elige Joan en el primer uso (diálogo davefx / sharvard con «Probar»); luego se cambia en Ajustes.
 - **Distancia hasta la nota:** sí, en la tarjeta grande de la franja (ver abajo).
+- **Datos dentro del APK** (petición de Joan): todo menos el satélite; en Mapas offline solo se descarga el satélite.
+- **Satélite más nítido:** z17 en toda Mallorca (≈1,3 GB el paquete).
 
 ## Abiertas en H3 (todas respondidas)
 
