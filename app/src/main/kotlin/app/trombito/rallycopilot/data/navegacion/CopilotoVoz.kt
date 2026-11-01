@@ -57,14 +57,18 @@ class CopilotoVoz(
     /**
      * Una fijación: [notas] es lo último publicado por la sesión de notas (null si no hay hoja vigente), [ruta] las
      * maniobras del guiado (null en modo libre), [progresoM] el progreso sobre la ruta guiada y [vMs] la velocidad.
+     * [alertas] son las candidatas ALERTA de la fijación (radares, tramos, incidencias, exceso), en el mismo eje que
+     * `progresoM` o, en libre, que la posición de las notas (o 0 si no hay notas): se suman a las activas, no se
+     * sintetizan por adelantado (su texto depende de la distancia) y los modos las filtran como al resto.
      */
     fun alFijar(
         notas: NotasEnCurso?,
         ruta: RutaVoz?,
         progresoM: Double?,
         vMs: Double?,
+        alertas: List<Frase> = emptyList(),
     ) {
-        val posicionM = progresoM ?: notas?.posicionM
+        val posicionM = progresoM ?: notas?.posicionM ?: if (alertas.isEmpty()) null else 0.0
         val a = actuales
         val voz = a.voz
         if (voz == null || posicionM == null) return
@@ -81,7 +85,7 @@ class CopilotoVoz(
         val visibles = visibles(notas, a, v)
         val maniobras = maniobras(ruta, posicionM, v)
         val idDe = idsDe(notas)
-        val activas = CandidatasNotas.de(visibles, a.notasSimplificadas, idDe) + maniobras
+        val activas = CandidatasNotas.de(visibles, a.notasSimplificadas, idDe) + maniobras + alertas
         val previstas =
             CandidatasNotas.de(visibles.map { it.copy(activa = true) }, a.notasSimplificadas, idDe) +
                 maniobras + inminentesPrevistos(ruta, posicionM)

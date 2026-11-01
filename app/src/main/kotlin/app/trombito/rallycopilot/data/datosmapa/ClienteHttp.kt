@@ -5,10 +5,17 @@ import java.io.IOException
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.zip.GZIPInputStream
 
-/** Cliente HTTP mínimo sobre `HttpURLConnection`: User-Agent propio, timeouts y solo https hacia GitHub. */
+/**
+ * Cliente HTTP mínimo sobre `HttpURLConnection`: User-Agent propio, timeouts y solo https hacia los hosts que admita
+ * [hostPermitido] (por defecto GitHub y su CDN). Con [aceptarGzip] pide `Accept-Encoding: gzip` (para [flujo]); sin él
+ * pide `identity`, que es lo que necesitan las descargas con `Range`.
+ */
 class ClienteHttp(
     private val config: ConfigDatosMapa,
+    private val hostPermitido: (String) -> Boolean = ::esHostDeGithub,
+    private val aceptarGzip: Boolean = false,
 ) {
     /**
      * Abre [url] (con `Range: bytes=desde-` si [desde] > 0) siguiendo redirecciones https a https dentro de GitHub.
@@ -37,8 +44,8 @@ class ClienteHttp(
             con.connectTimeout = TIMEOUT_MS
             con.readTimeout = TIMEOUT_MS
             con.setRequestProperty("User-Agent", config.userAgent)
-            // Sin gzip transparente: con Range y Content-Length los bytes tienen que ser los del archivo.
-            con.setRequestProperty("Accept-Encoding", "identity")
+            // Sin gzip salvo que se pida: con Range y Content-Length los bytes tienen que ser los del archivo.
+            con.setRequestProperty("Accept-Encoding", if (aceptarGzip) "gzip" else "identity")
             if (desde > 0) con.setRequestProperty("Range", "bytes=$desde-")
             con.responseCode
         } catch (e: IOException) {
@@ -63,11 +70,41 @@ class ClienteHttp(
         return siguiente
     }
 
-    /** Solo https y solo GitHub (y su CDN `*.githubusercontent.com`), tanto en la URL inicial como en redirecciones. */
+    /** Solo https y solo los hosts permitidos, tanto en la URL inicial como en redirecciones. */
     private fun exigirHostPermitido(url: URL) {
         val host = url.host.lowercase()
-        val permitido = host == HOST_GITHUB || host.endsWith(SUFIJO_CDN)
-        if (url.protocol != "https" || !permitido) throw IOException("Destino no permitido: ${url.protocol}://$host")
+        if (url.protocol != "https" || !hostPermitido(host)) {
+            throw IOException("Destino no permitido: ${url.protocol}://$host")
+        }
+    }
+
+    /**
+     * Abre [url] y entrega el cuerpo ya descomprimido (si el servidor lo envía en gzip), limitado a [maxBytes] bytes
+     * leídos: al pasarse falla con [TopeExcedidoException] (cubre también una bomba de descompresión). Cerrar el
+     * flujo cierra la conexión. Falla con [IOException] si la respuesta no es 200.
+     */
+    fun flujo(
+        url: String,
+        maxBytes: Long,
+    ): InputStream {
+        val con = abrir(url)
+        try {
+            comprobarRespuesta(con, maxBytes)
+            val crudo = con.inputStream
+            val entrada = if (con.contentEncoding.equals("gzip", ignoreCase = true)) GZIPInputStream(crudo) else crudo
+            return FlujoConTope(entrada, maxBytes, con)
+        } catch (e: IOException) {
+            con.disconnect()
+            throw e
+        }
+    }
+
+    private fun comprobarRespuesta(
+        con: HttpURLConnection,
+        maxBytes: Long,
+    ) {
+        if (con.responseCode != HTTP_OK) throw RespuestaHttpException(con.responseCode)
+        if (con.contentLengthLong > maxBytes) throw TopeExcedidoException(maxBytes)
     }
 
     /** Descarga un texto pequeño (el manifest) o falla con [IOException]. */
@@ -103,12 +140,71 @@ class ClienteHttp(
         const val HTTP_OK = 200
         const val HTTP_PARCIAL = 206
         const val HTTP_RANGO_NO_SATISFACIBLE = 416
-        private const val HOST_GITHUB = "github.com"
-        private const val SUFIJO_CDN = ".githubusercontent.com"
         private const val TIMEOUT_MS = 30_000
         private const val MAX_REDIRECCIONES = 5
         private const val MAX_TEXTO = 1_048_576
         private const val TAMANO_BUFFER = 8192
         private val REDIRECCIONES = setOf(301, 302, 303, 307, 308)
+
+        /** Cliente para el feed de la DGT: solo `nap.dgt.es` y con gzip. */
+        fun paraDgt(config: ConfigDatosMapa) = ClienteHttp(config, ::esHostDeDgt, aceptarGzip = true)
     }
 }
+
+/** La respuesta HTTP no fue 200. */
+class RespuestaHttpException(
+    val codigo: Int,
+) : IOException("HTTP $codigo")
+
+/** La respuesta pasa del tope de bytes que se admite. */
+class TopeExcedidoException(
+    maxBytes: Long,
+) : IOException("La respuesta pasa de $maxBytes bytes")
+
+/** Entrada que falla al leer más de [maxBytes] bytes y que al cerrarse cierra también la conexión. */
+private class FlujoConTope(
+    private val origen: InputStream,
+    private val maxBytes: Long,
+    private val conexion: HttpURLConnection,
+) : InputStream() {
+    private var leidos = 0L
+
+    override fun read(): Int {
+        val b = origen.read()
+        if (b >= 0) sumar(1)
+        return b
+    }
+
+    override fun read(
+        buffer: ByteArray,
+        desde: Int,
+        largo: Int,
+    ): Int {
+        val n = origen.read(buffer, desde, largo)
+        if (n > 0) sumar(n)
+        return n
+    }
+
+    private fun sumar(n: Int) {
+        leidos += n
+        if (leidos > maxBytes) throw TopeExcedidoException(maxBytes)
+    }
+
+    override fun close() {
+        try {
+            origen.close()
+        } finally {
+            conexion.disconnect()
+        }
+    }
+}
+
+private const val HOST_GITHUB = "github.com"
+private const val SUFIJO_CDN = ".githubusercontent.com"
+private const val HOST_DGT = "nap.dgt.es"
+
+/** GitHub y su CDN `*.githubusercontent.com`. */
+private fun esHostDeGithub(host: String): Boolean = host == HOST_GITHUB || host.endsWith(SUFIJO_CDN)
+
+/** Solo el NAP de la DGT (incidencias DATEX II). */
+private fun esHostDeDgt(host: String): Boolean = host == HOST_DGT

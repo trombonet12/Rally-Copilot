@@ -11,6 +11,7 @@ import android.util.Log
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.data.alertas.FabricaAlertasSesion
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
@@ -49,6 +50,8 @@ class ServicioNavegacion : Service() {
     @Inject lateinit var recorridos: RepositorioRecorridos
 
     @Inject lateinit var fabricaNotas: FabricaNotasSesion
+
+    @Inject lateinit var fabricaAlertas: FabricaAlertasSesion
 
     @Inject lateinit var locutor: Locutor
 
@@ -217,6 +220,7 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         motivoSinGps = getString(R.string.navegacion_error_gps),
         fabricaNotas = fabricaNotas,
         copiloto = CopilotoVoz(locutor, ajustes.ajustes, registroDeTiempos()),
+        alertas = fabricaAlertas.crear(),
     )
 
 /** Solo en un APK depurable: una línea por frase dicha para medir la anticipación (sin coordenadas). */

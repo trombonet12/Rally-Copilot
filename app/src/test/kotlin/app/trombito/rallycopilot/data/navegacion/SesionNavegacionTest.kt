@@ -1,28 +1,43 @@
 package app.trombito.rallycopilot.data.navegacion
 
+import app.trombito.rallycopilot.data.alertas.IncidenciasFalso
+import app.trombito.rallycopilot.data.alertas.RadaresFalso
+import app.trombito.rallycopilot.data.alertas.SesionAlertas
+import app.trombito.rallycopilot.data.alertas.ViaFalsa
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.Recorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
+import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.alertas.AlertasEnCurso
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
+import app.trombito.rallycopilot.domain.vias.ViaActual
+import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.alertas.Radar
+import app.trombito.rallycopilot.motor.alertas.TipoRadar
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.geo.distanciaRecorrido
 import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -31,6 +46,8 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.cos
@@ -147,6 +164,25 @@ private class RecorridosFalso(
     }
 }
 
+private class LocutorDeSesion : Locutor {
+    override val hablando: StateFlow<Boolean> = MutableStateFlow(false)
+    val dichas = mutableListOf<String>()
+
+    override fun usarVoz(v: VozCopiloto) = Unit
+
+    override fun preparar(textos: List<String>) = Unit
+
+    override fun decir(texto: String) {
+        dichas += texto
+    }
+
+    override fun duracionEstimadaS(texto: String) = 1.0
+
+    override fun probar(v: VozCopiloto) = Unit
+
+    override fun cerrar() = Unit
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class SesionNavegacionTest {
     // L: 1000 m al este y 500 m al norte; giro a la izquierda en el vértice.
@@ -175,11 +211,14 @@ class SesionNavegacionTest {
         val sesion: SesionNavegacion,
     )
 
+    @Suppress("LongParameterList") // cada prueba fija solo lo que le importa; el resto va por defecto
     private fun TestScope.escenario(
         fuente: FuenteUbicacion,
         respuestas: List<ResultadoRuta> = emptyList(),
         enCurso: List<Long> = emptyList(),
         horaDePared: () -> Long = { testScheduler.currentTime },
+        alertas: SesionAlertas? = null,
+        copiloto: CopilotoVoz? = null,
     ): Escenario {
         val estados = mutableListOf<EstadoNavegacion>()
         val recorridos = RecorridosFalso(enCurso)
@@ -192,6 +231,8 @@ class SesionNavegacionTest {
                 reloj = horaDePared,
                 publicar = { estados += it },
                 motivoSinGps = "sin GPS",
+                copiloto = copiloto,
+                alertas = alertas,
             )
         return Escenario(estados, recorridos, enrutador, sesion)
     }
@@ -482,6 +523,101 @@ class SesionNavegacionTest {
             assertEquals(EstadoNavegacion.Error("sin GPS"), e.estados.last())
             assertTrue(trabajo.isCompleted)
             assertEquals(listOf(RecorridosFalso.ID), e.recorridos.terminados)
+        }
+
+    private fun copilotoCon(
+        locutor: Locutor,
+        modo: ModoCopiloto,
+    ) = CopilotoVoz(locutor, flowOf(AjustesConduccion(modoCopiloto = modo, voz = VozCopiloto.DAVEFX)))
+
+    private fun sesionAlertas(
+        publicadas: MutableList<AlertasEnCurso?>,
+        radares: List<Radar> = emptyList(),
+        via: ViaActual? = null,
+    ) = SesionAlertas(RadaresFalso(radares), IncidenciasFalso(), ViaFalsa(via), { publicadas += it }, { 0L })
+
+    @Test
+    fun `guiando las alertas de radar se publican y suenan en solo alertas, y al terminar se publican vacias`() =
+        runTest {
+            val radar = Radar("f1", TipoRadar.FIJO, p(600.0, 0.0), null, 80, null, "test")
+            val publicadas = mutableListOf<AlertasEnCurso?>()
+            val locutor = LocutorDeSesion()
+            val e =
+                escenario(
+                    FuenteFalsa(List(10) { p(it * 100.0, 0.0) }),
+                    alertas = sesionAlertas(publicadas, listOf(radar)),
+                    copiloto = copilotoCon(locutor, ModoCopiloto.SOLO_ALERTAS),
+                )
+            val trabajo = lanzar(e, guiada())
+            advanceTimeBy(5_500)
+            runCurrent()
+
+            assertEquals(1, locutor.dichas.count { it.startsWith("radar a ") && it.endsWith("ochenta") })
+            assertTrue(publicadas.any { it?.radarProximo != null })
+            trabajo.cancel()
+            runCurrent()
+            assertNull(publicadas.last())
+        }
+
+    @Test
+    fun `el exceso de velocidad suena una vez en solo alertas y en silencio solo se publica`() =
+        runTest {
+            val via = ViaActual("Ma-1", "Ma-1", 30)
+            for (modo in listOf(ModoCopiloto.SOLO_ALERTAS, ModoCopiloto.SILENCIO)) {
+                val publicadas = mutableListOf<AlertasEnCurso?>()
+                val locutor = LocutorDeSesion()
+                val e =
+                    escenario(
+                        FuenteFalsa(List(8) { p(0.0, it * 10.0) }),
+                        alertas = sesionAlertas(publicadas, via = via),
+                        copiloto = copilotoCon(locutor, modo),
+                    )
+                val trabajo = lanzar(e, SolicitudNavegacion.Libre)
+                advanceTimeBy(7_500)
+                runCurrent()
+
+                val esperadas = if (modo == ModoCopiloto.SILENCIO) 0 else 1
+                assertEquals(modo.name, esperadas, locutor.dichas.count { it.startsWith("exceso de velocidad") })
+                assertTrue(
+                    modo.name,
+                    publicadas
+                        .filterNotNull()
+                        .last()
+                        .exceso.exceso,
+                )
+                trabajo.cancel()
+                runCurrent()
+            }
+        }
+
+    @Test
+    fun `un recalculo rehace los avisos sobre la ruta nueva`() =
+        runTest {
+            // La ruta nueva pasa por un radar que la original no tocaba.
+            val radar = Radar("f1", TipoRadar.FIJO, p(1000.0, -100.0), null, 80, null, "test")
+            val publicadas = mutableListOf<AlertasEnCurso?>()
+            val locutor = LocutorDeSesion()
+            val fuera = p(300.0, -200.0)
+            val nueva = rutaL(origen = fuera, esquina = p(1000.0, -200.0), fin = p(1000.0, 500.0))
+            val e =
+                escenario(
+                    FuenteFalsa(listOf(p(0.0, 0.0), p(100.0, 0.0), p(200.0, 0.0)) + List(30) { fuera }),
+                    respuestas = listOf(ResultadoRuta.Ok(nueva, 50)),
+                    alertas = sesionAlertas(publicadas, listOf(radar)),
+                    copiloto = copilotoCon(locutor, ModoCopiloto.SOLO_ALERTAS),
+                )
+            val trabajo = lanzar(e, guiada())
+            advanceTimeBy(10_000)
+            runCurrent()
+
+            assertNotNull(
+                e.estados
+                    .filterIsInstance<EstadoNavegacion.Guiando>()
+                    .last()
+                    .progreso,
+            )
+            assertEquals(1, e.enrutador.llamadas.size)
+            trabajo.cancel()
         }
 
     @Test

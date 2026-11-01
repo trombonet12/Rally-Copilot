@@ -13,7 +13,9 @@ import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
+import app.trombito.rallycopilot.motor.voz.Frase
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import app.trombito.rallycopilot.motor.voz.TipoFrase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -290,6 +292,88 @@ class CopilotoVozTest {
         copiloto.cerrar()
 
         assertEquals(emptyList<String>(), locutor.preparadas.last())
+    }
+
+    private fun radar(puntoM: Double? = 1000.0) =
+        Frase("radar-f1", "radar a quinientos, ochenta", TipoFrase.ALERTA, puntoM)
+
+    private val exceso = Frase("exceso-1", "exceso de velocidad, límite ochenta", TipoFrase.ALERTA, null)
+
+    @Test
+    fun `en solo alertas dice las alertas aunque callen las notas`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+
+        copiloto.alFijar(notas(920.0), null, null, 20.0, listOf(radar()))
+
+        assertEquals(listOf("radar a quinientos, ochenta"), locutor.dichas)
+    }
+
+    @Test
+    fun `en silencio no dice las alertas ni las prepara`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SILENCIO))
+
+        repeat(3) { copiloto.alFijar(notas(920.0), ruta(), 920.0, 20.0, listOf(radar(), exceso)) }
+
+        assertEquals(emptyList<String>(), locutor.dichas)
+        assertTrue(locutor.preparadas.all { it.isEmpty() })
+    }
+
+    @Test
+    fun `una alerta manda sobre la maniobra y la nota cuando coinciden`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.NOTAS))
+
+        val ruta = ruta()
+
+        repeat(4) { copiloto.alFijar(notas(920.0), ruta, 920.0, 20.0, listOf(radar(puntoM = 1000.0))) }
+
+        assertEquals(listOf("radar a quinientos, ochenta", "cruce, izquierda", "derecha tres"), locutor.dichas)
+    }
+
+    @Test
+    fun `el exceso de velocidad se dice una vez aunque llegue en cada fijacion`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+
+        repeat(5) { copiloto.alFijar(null, null, 500.0 + it, 25.0, listOf(exceso)) }
+
+        assertEquals(listOf("exceso de velocidad, límite ochenta"), locutor.dichas)
+    }
+
+    @Test
+    fun `una alerta ya dicha no se repite y una nueva sin notas en libre suena igual`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+
+        // Libre sin notas ni ruta: el eje arranca en 0 y el radar queda a 300 m.
+        copiloto.alFijar(null, null, null, 20.0, listOf(radar(puntoM = 300.0)))
+        copiloto.alFijar(null, null, null, 20.0, listOf(radar(puntoM = 280.0)))
+
+        assertEquals(listOf("radar a quinientos, ochenta"), locutor.dichas)
+    }
+
+    @Test
+    fun `una alerta que ya no llega a tiempo se descarta`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+
+        // A 20 m/s quedan 10 m (0,5 s) y la frase dura 1 s: llegaría tarde.
+        copiloto.alFijar(null, null, 990.0, 20.0, listOf(radar(puntoM = 1000.0)))
+
+        assertEquals(emptyList<String>(), locutor.dichas)
+    }
+
+    @Test
+    fun `sin alertas ni posicion no hace nada`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.COMPLETO))
+
+        copiloto.alFijar(null, null, null, 20.0)
+
+        assertEquals(emptyList<String>(), locutor.dichas)
+        assertEquals(emptyList<VozCopiloto>(), locutor.vocesUsadas)
     }
 
     private companion object {

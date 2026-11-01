@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.navegacion
 
+import app.trombito.rallycopilot.data.alertas.SesionAlertas
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
@@ -47,7 +48,9 @@ sealed interface SolicitudNavegacion {
  * cambios de hora. Nunca registra coordenadas en logs. Si hay [fabricaNotas], genera y publica las notas de rally
  * de la conducción (guiada: hoja de la ruta; libre: hoja de la carretera prevista); sin ella, no hay notas. Ignora las
  * fijaciones con `precisionM` > [PRECISION_MAX_M] (posición aproximada de interior): ni se graban ni cuentan. Si hay
- * [copiloto], en cada fijación válida le pasa las notas vigentes y el progreso de la ruta para que hable.
+ * [copiloto], en cada fijación válida le pasa las notas vigentes y el progreso de la ruta para que hable. Si hay
+ * [alertas] (radares, tramos, exceso de velocidad, incidencias), en cada fijación válida calcula las suyas, las publica
+ * y se las suma al copiloto como candidatas.
  */
 @Suppress("LongParameterList") // colaboradores de la sesión: fuente, enrutador, grabación, reloj, salidas y notas
 class SesionNavegacion(
@@ -59,6 +62,7 @@ class SesionNavegacion(
     private val motivoSinGps: String,
     private val fabricaNotas: FabricaNotasSesion? = null,
     private val copiloto: CopilotoVoz? = null,
+    private val alertas: SesionAlertas? = null,
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
     suspend fun cerrarHuerfanos() {
@@ -78,6 +82,7 @@ class SesionNavegacion(
         } finally {
             ejecucion.cerrarNotas()
             copiloto?.cerrar()
+            alertas?.cerrar()
             withContext(NonCancellable) {
                 ejecucion.volcar()
                 recorridos.terminar(id)
@@ -105,12 +110,15 @@ class SesionNavegacion(
             coroutineScope {
                 if (guia != null) notas?.iniciarGuiado(guia.ruta.puntos) else notas?.iniciarLibre()
                 val ajustesCopiloto = copiloto?.let { launch { it.seguirAjustes() } }
+                val datosAlertas = alertas?.arrancar(this, guia?.ruta?.puntos)
                 publicar(estadoActual())
                 fuente.fijaciones().takeWhile { procesar(it, this) }.collect()
                 guia?.recalculo?.cancel()
                 ajustesCopiloto?.cancel()
+                datosAlertas?.cancel()
                 cerrarNotas()
                 copiloto?.cerrar()
+                alertas?.cerrar()
                 if (llegado && guia != null) {
                     publicar(EstadoNavegacion.Llegada(guia.destino))
                     delay(ESPERA_LLEGADA_MS)
@@ -127,7 +135,7 @@ class SesionNavegacion(
             // Posición aproximada (fused/red bajo techo): sirve para pintar, no para grabar, sumar ni seguir la ruta.
             if ((cruda.precisionM ?: 0.0) > PRECISION_MAX_M) return true
             // Sin rumbo fiable, el del movimiento (lo usan la predicción en libre y el sentido contrario).
-            movimiento.actualizar(cruda)
+            val velocidadEstimada = movimiento.actualizar(cruda)
             val fijacion = if (cruda.rumboGrados != null) cruda else cruda.copy(rumboGrados = movimiento.rumbo())
             val ahora = reloj()
             ultimaFijacionMs = fijacion.tiempoMs
@@ -145,10 +153,24 @@ class SesionNavegacion(
                 notas?.posicionLibre(fijacion)
             }
             if (!llegado) {
-                copiloto?.alFijar(notas?.instantanea, guia?.rutaVoz, guia?.progreso?.progresoM, fijacion.velocidadMs)
+                hablar(fijacion, velocidadEstimada)
                 publicar(estadoActual())
             }
             return !llegado
+        }
+
+        /** Calcula las alertas de la fijación y le pasa al copiloto, con ellas, lo que toca decir. */
+        private suspend fun hablar(
+            fijacion: Fijacion,
+            velocidadEstimada: Double?,
+        ) {
+            val vigentes = notas?.instantanea
+            val progresoM = guia?.progreso?.progresoM
+            val frases =
+                alertas
+                    ?.alFijar(fijacion, velocidadEstimada ?: fijacion.velocidadMs, progresoM, vigentes?.posicionM)
+                    .orEmpty()
+            copiloto?.alFijar(vigentes, guia?.rutaVoz, progresoM, fijacion.velocidadMs, frases)
         }
 
         private fun vigilarSalida(
@@ -179,6 +201,7 @@ class SesionNavegacion(
                 // Se proyecta ya la última posición: sin progreso el banner enseñaría la salida de la ruta nueva (0 m).
                 guia.usar(resultado.ruta, ultimaPosicion, reloj())
                 notas?.nuevaRuta(resultado.ruta.puntos)
+                alertas?.nuevaRuta(resultado.ruta.puntos)
             } else {
                 guia.reintentoMs = ultimaFijacionMs + REINTENTO_MS
             }

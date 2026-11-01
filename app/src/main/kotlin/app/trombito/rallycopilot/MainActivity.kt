@@ -9,20 +9,28 @@ import androidx.activity.viewModels
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.DisposableEffect
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
 import app.trombito.rallycopilot.domain.ajustes.Tema
+import app.trombito.rallycopilot.domain.alertas.RepositorioIncidencias
 import app.trombito.rallycopilot.ui.ActualizacionDatosViewModel
 import app.trombito.rallycopilot.ui.AppNavHost
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     private val actualizacion: ActualizacionDatosViewModel by viewModels()
 
+    @Inject lateinit var incidencias: RepositorioIncidencias
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         actualizacion.comprobarActualizacion()
+        // Incidencias de la DGT al abrir la app (a lo sumo cada 5 min); sin red se queda con la copia.
+        lifecycleScope.launch { incidencias.refrescar() }
         setContent {
             // Hasta que Ajustes guarde el tema (H10) se usa el predeterminado: oscuro.
             val oscuro = Tema.PREDETERMINADO.oscuro
