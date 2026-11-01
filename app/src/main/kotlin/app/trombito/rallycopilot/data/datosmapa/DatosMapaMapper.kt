@@ -9,25 +9,39 @@ import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
+import app.trombito.rallycopilot.motor.datos.LectorManifest
 
-private const val ID_SATELITE = "satelite"
+private const val UN_GB = 1024L * 1024 * 1024
 
-fun AjustesMapasEntity.aDominio() = AjustesMapas(soloWifi = soloWifi, limiteBytes = limiteBytes)
+/** Los ids del paquete que vienen en el APK (los obligatorios del manifest salvo el satélite). */
+internal val IDS_SEMBRADOS: List<String> =
+    LectorManifest.IDS_OBLIGATORIOS.filterNot { it.startsWith(PREFIJO_SATELITE) }
+
+/**
+ * Una fila guardada con 1 GB (la opción más pequeña de antes) se lee como 2 GB: el paquete sembrado ya ocupa más de
+ * 1 GB y el límite mínimo que se ofrece ahora es 2 GB.
+ */
+fun AjustesMapasEntity.aDominio() =
+    AjustesMapas(soloWifi = soloWifi, limiteBytes = if (limiteBytes == UN_GB) 2 * UN_GB else limiteBytes)
 
 fun AjustesMapas.aEntidad() = AjustesMapasEntity(soloWifi = soloWifi, limiteBytes = limiteBytes)
 
-/** Combina lo guardado en Room con el estado del trabajo de descarga (si lo hay) en el estado que ve la UI. */
+/**
+ * Combina lo guardado en Room con el estado del trabajo de descarga (si lo hay) en el estado que ve la UI.
+ * Hay datos instalados cuando están todos los sembrados (vectorial, estilo, vías); el satélite es opcional y se
+ * detecta por cualquier id que empiece por `satelite`.
+ */
 fun construirEstado(
     archivos: List<ArchivoInstaladoEntity>,
     estado: EstadoDatosEntity?,
     trabajo: WorkInfo?,
 ): EstadoDatosMapa {
     val instalados =
-        archivos.takeIf { it.isNotEmpty() }?.let {
+        archivos.takeIf { lista -> IDS_SEMBRADOS.all { id -> lista.any { it.id == id } } }?.let {
             DatosInstalados(
                 version = estado?.versionInstalada.orEmpty(),
                 bytes = it.sumOf { a -> a.bytes },
-                conSatelite = it.any { a -> a.id == ID_SATELITE },
+                conSatelite = it.any { a -> a.id.startsWith(PREFIJO_SATELITE) },
             )
         }
     return EstadoDatosMapa(

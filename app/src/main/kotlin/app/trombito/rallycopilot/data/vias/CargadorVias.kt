@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.vias
 
 import android.content.Context
 import android.util.Log
+import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.motor.vias.IndiceVias
 import app.trombito.rallycopilot.motor.vias.LectorVias
 import app.trombito.rallycopilot.motor.vias.Via
@@ -32,17 +33,19 @@ interface FuenteVias {
  * Única lectura en memoria de `filesDir/mapa/vias-mallorca.tsv.gz`, compartida por el seguimiento de la vía actual y
  * la generación de notas. Carga perezosa en [dispatcher] la primera vez que se pide y de nuevo si el archivo cambia
  * (fecha o tamaño), p. ej. tras actualizar los datos. Si falta o es ilegible devuelve null y no se reintenta hasta
- * que el archivo cambie.
+ * que el archivo cambie. Antes de mirar el archivo espera a que termine la siembra de los datos del APK.
  */
 @Singleton
 class CargadorVias internal constructor(
     private val archivo: File,
     private val dispatcher: CoroutineDispatcher,
+    private val siembra: EsperaDatosSembrados = EsperaDatosSembrados.Ninguna,
 ) : FuenteVias {
     @Inject
     constructor(
         @ApplicationContext contexto: Context,
-    ) : this(File(contexto.filesDir, RUTA_RELATIVA), Dispatchers.IO)
+        siembra: EsperaDatosSembrados,
+    ) : this(File(contexto.filesDir, RUTA_RELATIVA), Dispatchers.IO, siembra)
 
     private class Cargado(
         val modificado: Long,
@@ -57,7 +60,12 @@ class CargadorVias internal constructor(
     internal var lecturas: Int = 0
         private set
 
-    override suspend fun datos(): DatosVias? =
+    override suspend fun datos(): DatosVias? {
+        siembra.esperar()
+        return leerDatos()
+    }
+
+    private suspend fun leerDatos(): DatosVias? =
         mutex.withLock {
             withContext(dispatcher) {
                 if (!archivo.isFile) {

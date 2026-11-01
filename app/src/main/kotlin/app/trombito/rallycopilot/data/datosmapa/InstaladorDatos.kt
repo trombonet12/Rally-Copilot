@@ -12,9 +12,11 @@ import java.util.zip.ZipFile
  */
 class InstaladorDatos(
     private val config: ConfigDatosMapa,
+    /** Carpeta de trabajo dentro de `mapa/`; la siembra usa otra para no pisar una descarga en curso. */
+    private val carpetaNueva: String = ConfigDatosMapa.NOMBRE_NUEVO,
 ) {
     private val mapa: File get() = config.directorioMapa
-    private val nuevo: File get() = config.directorioNuevo
+    private val nuevo: File get() = File(mapa, carpetaNueva)
     private val extraido: File get() = File(nuevo, "extraido")
 
     fun parcial(archivo: ArchivoDatos): File = File(nuevo, "${archivo.nombre}.part")
@@ -68,9 +70,17 @@ class InstaladorDatos(
         nuevo.deleteRecursively()
     }
 
-    /** Borra todo `mapa/` (instalado y en curso). */
-    fun borrarTodo() {
-        mapa.deleteRecursively()
+    /**
+     * Borra el satélite: los archivos de [nombres] (los registrados con id `satelite*`), cualquier
+     * `pnoa-mallorca*.pmtiles` y la zona de descarga `.nuevo/` (el llamante ya canceló la descarga). Lo sembrado y
+     * el resto de `mapa/` no se tocan.
+     */
+    fun borrarSatelite(nombres: Collection<String>) {
+        nombres.filter(::nombreSeguro).forEach { File(mapa, it).delete() }
+        mapa
+            .listFiles { f -> f.isFile && f.name.startsWith(PREFIJO_TESELAS_SATELITE) && f.name.endsWith(".pmtiles") }
+            ?.forEach { it.delete() }
+        nuevo.deleteRecursively()
     }
 
     private fun nombreSeguro(nombre: String) =

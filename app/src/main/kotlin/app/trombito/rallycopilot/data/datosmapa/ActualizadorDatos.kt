@@ -35,6 +35,8 @@ class ActualizadorDatos
         private val dao: DatosMapaDao,
         private val ajustes: AjustesMapasDao,
         private val config: ConfigDatosMapa,
+        /** La siembra de los datos del APK termina antes de comparar con el manifest remoto. */
+        private val siembra: EsperaDatosSembrados = EsperaDatosSembrados.Ninguna,
     ) {
         private val http = ClienteHttp(config)
         private val descargador = DescargadorArchivo(http)
@@ -77,9 +79,21 @@ class ActualizadorDatos
             automatico: Boolean,
             alProgreso: suspend (Long, Long) -> Unit,
         ): ResultadoActualizacion {
-            val remoto = LectorManifest.leer(http.texto(config.urlManifest))
+            siembra.esperar()
+            val completo = LectorManifest.leer(http.texto(config.urlManifest))
             val instalados = dao.archivos()
-            val limite = ajustes.ajustes()?.limiteBytes ?: AjustesMapas().limiteBytes
+            // El satélite (1 GB+) solo lo baja el usuario cuando ya tiene lo sembrado: ni una actualización automática
+            // ni «Descargar mapas» tras una siembra fallida (faltan los datos base) lo incluyen.
+            val faltaBase = IDS_SEMBRADOS.any { id -> instalados.none { it.id == id } }
+            val sinSatelite = instalados.none { it.id.startsWith(PREFIJO_SATELITE) }
+            val soloBase = faltaBase || (automatico && instalados.isNotEmpty())
+            val remoto =
+                if (sinSatelite && soloBase) {
+                    completo.copy(archivos = completo.archivos.filterNot { it.id.startsWith(PREFIJO_SATELITE) })
+                } else {
+                    completo
+                }
+            val limite = (ajustes.ajustes()?.aDominio() ?: AjustesMapas()).limiteBytes
             val locales = instalados.map { ArchivoLocal(it.id, it.sha256, it.bytes) }
             // Lo ya bajado en .nuevo/ (de un intento anterior) ya ocupa disco: no cuenta contra el espacio libre.
             val libres = config.bytesLibres() + instalador.bytesEnCurso(remoto.archivos)
@@ -130,6 +144,12 @@ class ActualizadorDatos
     }
 
 private const val ETIQUETA_LOG = "ActualizadorDatos"
+
+/** Los ids de los archivos de satélite empiezan así (`satelite`, y los que añada el z17). */
+internal const val PREFIJO_SATELITE = "satelite"
+
+/** Las teselas del satélite instaladas son `pnoa-mallorca*.pmtiles` (z16 o z17: el nombre cambia con el paquete). */
+internal const val PREFIJO_TESELAS_SATELITE = "pnoa-mallorca"
 
 internal fun ArchivoDatos.aEntidad() =
     ArchivoInstaladoEntity(id = id, nombre = nombre, sha256 = sha256, bytes = bytes, version = version)

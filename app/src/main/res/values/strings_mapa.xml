@@ -45,13 +45,16 @@
     <!-- Mapas offline -->
     <string name="mapas_titulo">Mapas offline</string>
     <string name="mapas_cargando">Cargando…</string>
+    <string name="mapas_preparando">Preparando mapas…</string>
     <string name="mapas_instalados_titulo">Mapas instalados</string>
     <string name="mapas_version">Versión %1$s</string>
     <string name="mapas_tamano">Ocupan %1$s</string>
     <string name="mapas_con_satelite">Incluye satélite</string>
-    <string name="mapas_sin_satelite">Sin satélite</string>
+    <string name="mapas_sin_satelite">Sin satélite (se descarga aparte)</string>
     <string name="mapas_no_instalados">Todavía no hay mapas de Mallorca en este móvil.</string>
     <string name="mapas_descargar">Descargar mapas de Mallorca</string>
+    <string name="mapas_descargar_satelite">Descargar satélite</string>
+    <string name="mapas_descargar_satelite_tamano">Descargar satélite (%1$s)</string>
     <string name="mapas_reintentar">Reintentar</string>
     <string name="mapas_cancelar">Cancelar descarga</string>
     <string name="mapas_descargando">Descargando…</string>
@@ -70,9 +73,9 @@
     <string name="mapas_datos_texto_sin_tamano">La descarga puede gastar muchos datos móviles.</string>
     <string name="mapas_datos_confirmar">Usar datos móviles</string>
     <string name="mapas_datos_cancelar">Solo con WiFi</string>
-    <string name="mapas_borrar">Borrar mapas</string>
-    <string name="mapas_borrar_titulo">¿Borrar los mapas?</string>
-    <string name="mapas_borrar_texto">Se eliminarán los mapas de Mallorca de este móvil. Podrás volver a descargarlos.</string>
+    <string name="mapas_borrar">Borrar satélite</string>
+    <string name="mapas_borrar_titulo">¿Borrar el satélite?</string>
+    <string name="mapas_borrar_texto">Se eliminarán las imágenes de satélite de este móvil. Los mapas de Mallorca se quedan y podrás volver a descargar el satélite.</string>
     <string name="mapas_borrar_confirmar">Borrar</string>
     <string name="mapas_borrar_cancelar">No borrar</string>
     <string name="mapas_error_sin_red">No hay conexión. Inténtalo de nuevo cuando tengas red.</string>

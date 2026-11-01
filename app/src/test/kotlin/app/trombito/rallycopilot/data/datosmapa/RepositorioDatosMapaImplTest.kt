@@ -9,6 +9,7 @@ import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.testing.SynchronousExecutor
 import androidx.work.testing.WorkManagerTestInitHelper
+import app.trombito.rallycopilot.data.db.AjustesMapasEntity
 import app.trombito.rallycopilot.data.db.ArchivoInstaladoEntity
 import app.trombito.rallycopilot.data.db.DatosMapaDao
 import app.trombito.rallycopilot.data.db.RallyDatabase
@@ -18,6 +19,7 @@ import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -79,10 +81,18 @@ class RepositorioDatosMapaImplTest {
     private fun esperarEstado(condicion: (EstadoDatosMapa) -> Boolean): EstadoDatosMapa =
         runBlocking { withTimeout(ESPERA_MS) { repositorio.estado.first(condicion) } }
 
-    private fun instalarArchivo() =
+    /** Registra lo sembrado desde el APK (300 bytes) y, si [conSatelite], el satélite (500 bytes). */
+    private fun instalarArchivo(conSatelite: Boolean = true) =
         runBlocking {
+            val sembrados =
+                listOf(
+                    ArchivoInstaladoEntity("vectorial", "mallorca.pmtiles", "b".repeat(64), 100, "v1"),
+                    ArchivoInstaladoEntity("estilo", "estilo-mapa.zip", "c".repeat(64), 100, "v1"),
+                    ArchivoInstaladoEntity("vias", "vias-mallorca.bin", "d".repeat(64), 100, "v1"),
+                )
+            val satelite = ArchivoInstaladoEntity("satelite", "pnoa-mallorca-z16.pmtiles", "a".repeat(64), 500, "v1")
             dao.registrarInstalacion(
-                archivos = listOf(ArchivoInstaladoEntity("satelite", "pnoa.bin", "a".repeat(64), 500, "v1")),
+                archivos = if (conSatelite) sembrados + satelite else sembrados,
                 idsBorrados = emptyList(),
                 version = "v1",
                 avisar = false,
@@ -202,7 +212,7 @@ class RepositorioDatosMapaImplTest {
 
         val estado = esperarEstado { it.descarga != null }
 
-        assertEquals(500L, estado.instalados?.bytes)
+        assertEquals(800L, estado.instalados?.bytes)
         assertEquals("v1", estado.instalados?.version)
         assertTrue(estado.instalados?.conSatelite == true)
         assertTrue(estado.descarga?.esperandoRed == true)
@@ -224,16 +234,122 @@ class RepositorioDatosMapaImplTest {
     }
 
     @Test
-    fun `borrar elimina la carpeta de datos y lo registrado`() {
+    fun `mientras la siembra no termina el estado esta preparando y despues ya no`() {
+        val lista = MutableStateFlow(false)
+        val siembra =
+            object : EsperaDatosSembrados {
+                override suspend fun esperar() = Unit
+
+                override val listo = lista
+            }
+        val conSiembra =
+            RepositorioDatosMapaImpl(
+                dao,
+                base.ajustesMapasDao(),
+                workManager,
+                entorno.config,
+                Dispatchers.IO,
+                siembra,
+            )
+
+        assertTrue(runBlocking { withTimeout(ESPERA_MS) { conSiembra.estado.first { it.preparando } } }.preparando)
+        lista.value = true
+        assertFalse(runBlocking { withTimeout(ESPERA_MS) { conSiembra.estado.first { !it.preparando } } }.preparando)
+        assertFalse("Sin siembra configurada nunca está preparando", esperarEstado { true }.preparando)
+    }
+
+    @Test
+    fun `sembrado sin satelite el estado esta instalado y sin satelite`() {
+        instalarArchivo(conSatelite = false)
+
+        val instalados = requireNotNull(esperarEstado { true }.instalados)
+
+        assertEquals(300L, instalados.bytes)
+        assertFalse(instalados.conSatelite)
+    }
+
+    @Test
+    fun `sin lo sembrado completo no hay datos instalados aunque haya algun registro`() {
+        runBlocking {
+            dao.registrarInstalacion(
+                archivos = listOf(ArchivoInstaladoEntity("vias", "vias-mallorca.bin", "d".repeat(64), 100, "v1")),
+                idsBorrados = emptyList(),
+                version = "v1",
+                avisar = false,
+            )
+        }
+
+        assertNull(esperarEstado { true }.instalados)
+    }
+
+    @Test
+    fun `borrar quita solo el satelite y respeta lo sembrado y los ajustes`() {
         escribirEstilos(conSatelite = true)
+        File(entorno.mapa, "mallorca.pmtiles").writeText("sembrado")
+        File(entorno.mapa, "pnoa-mallorca-z17.pmtiles").writeText("z17")
+        File(entorno.config.directorioNuevo, "pnoa-mallorca-z16.pmtiles.part").also {
+            it.parentFile?.mkdirs()
+            it.writeText("parcial")
+        }
         instalarArchivo()
         runBlocking { repositorio.guardarAjustes(AjustesMapas(soloWifi = false)) }
 
         runBlocking { repositorio.borrar() }
 
-        assertFalse(entorno.mapa.exists())
-        assertNull(esperarEstado { true }.instalados)
+        assertFalse(File(entorno.mapa, "pnoa-mallorca-z16.pmtiles").exists())
+        assertFalse(File(entorno.mapa, "pnoa-mallorca-z17.pmtiles").exists())
+        assertFalse(entorno.config.directorioNuevo.exists())
+        assertEquals("mallorca.pmtiles sigue", "sembrado", File(entorno.mapa, "mallorca.pmtiles").readText())
+        assertTrue(File(entorno.mapa, "vectorial.json").isFile)
+        assertEquals(listOf("estilo", "vectorial", "vias"), runBlocking { dao.archivos() }.map { it.id })
+        val instalados = requireNotNull(esperarEstado { true }.instalados)
+        assertFalse(instalados.conSatelite)
+        assertEquals("v1", instalados.version)
+        assertNull(runBlocking { repositorio.estilos() }?.satelite)
         assertFalse("Los ajustes se conservan", runBlocking { repositorio.ajustes.first() }.soloWifi)
+    }
+
+    @Test
+    fun `el tamano del satelite es la suma de sus entradas en el manifest remoto`() {
+        val publicados = entorno.publicar("datos-2026.11.01-1")
+
+        val esperado = publicados.filter { it.id.startsWith("satelite") }.sumOf { it.bytes }
+
+        assertTrue(esperado > 0)
+        assertEquals(esperado, runBlocking { repositorio.tamanoSatelite() })
+    }
+
+    @Test
+    fun `el tamano del satelite suma varias entradas satelite y no cuenta lo demas`() {
+        val v = "datos-2026.11.01-1"
+        val contenidos = PaqueteDePrueba.contenidos(v)
+        val extra = entorno.archivo("satelite-z17", PaqueteDePrueba.aleatorio(8, 7_000), v)
+        val principal = entorno.archivo("satelite", contenidos.getValue("satelite"), v)
+        val resto = listOf("vectorial", "estilo", "vias").map { entorno.archivo(it, contenidos.getValue(it), v) }
+        val json =
+            (resto + principal + extra).joinToString(
+                prefix = """{"esquema":1,"version":"$v","generado":"2026-11-01T00:00:00Z","archivos":[""",
+                postfix = "]}",
+            ) { a ->
+                """{"id":"${a.id}","nombre":"${a.nombre}","url":"${a.url}","bytes":${a.bytes},""" +
+                    """"sha256":"${a.sha256}","version":"${a.version}","atribucion":"x","licencia":"y"}"""
+            }
+        entorno.publicarManifestCrudo(json)
+
+        assertEquals(principal.bytes + extra.bytes, runBlocking { repositorio.tamanoSatelite() })
+    }
+
+    @Test
+    fun `una fila de ajustes guardada con 1 GB se lee como 2 GB`() {
+        val unGb = 1024L * 1024 * 1024
+        runBlocking { base.ajustesMapasDao().guardarAjustes(AjustesMapasEntity(soloWifi = true, limiteBytes = unGb)) }
+
+        assertEquals(2 * unGb, runBlocking { repositorio.ajustes.first() }.limiteBytes)
+    }
+
+    @Test
+    fun `sin manifest remoto el tamano del satelite es null`() {
+        assertNull(runBlocking { repositorio.tamanoSatelite() })
     }
 
     @Test

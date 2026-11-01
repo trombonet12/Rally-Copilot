@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.di
 
 import android.content.Context
 import app.trombito.rallycopilot.data.busqueda.BuscadorSqlite
+import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.domain.busqueda.Buscador
 import dagger.Module
 import dagger.Provides
@@ -19,5 +20,6 @@ object BusquedaModule {
     @Singleton
     fun buscador(
         @ApplicationContext contexto: Context,
-    ): Buscador = BuscadorSqlite(File(contexto.filesDir, "mapa/busqueda-mallorca.sqlite"), Dispatchers.IO)
+        siembra: EsperaDatosSembrados,
+    ): Buscador = BuscadorSqlite(File(contexto.filesDir, "mapa/busqueda-mallorca.sqlite"), Dispatchers.IO, siembra)
 }

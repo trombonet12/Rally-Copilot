@@ -4,6 +4,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import android.util.Log
+import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.domain.busqueda.Buscador
 import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
 import app.trombito.rallycopilot.motor.busqueda.NormalizadorNombre
@@ -18,7 +19,8 @@ import kotlin.math.cos
 /**
  * Búsqueda offline sobre `busqueda-mallorca.sqlite` (tabla `lugares`, `user_version` 2; esquema en `busqueda.py` del
  * repo de datos). Abre el archivo de solo lectura, lo reabre si cambia su `lastModified` (datos nuevos) y devuelve
- * vacío si falta, no abre o tiene otro `user_version`.
+ * vacío si falta, no abre o tiene otro `user_version`. Antes de abrirlo espera a que termine la siembra de los datos
+ * del APK.
  *
  * Consulta: primero el prefijo del nombre (usa el índice `nombre_norm`) y después las demás palabras que empiecen
  * así. En cada paso, por importancia y, con `cerca`, por cercanía. El municipio no se busca: su columna no está
@@ -27,6 +29,7 @@ import kotlin.math.cos
 class BuscadorSqlite(
     private val archivo: File,
     private val dispatcher: CoroutineDispatcher,
+    private val siembra: EsperaDatosSembrados = EsperaDatosSembrados.Ninguna,
 ) : Buscador {
     private val cerrojo = Mutex()
     private var base: SQLiteDatabase? = null
@@ -39,6 +42,7 @@ class BuscadorSqlite(
     ): List<ResultadoBusqueda> {
         val consulta = NormalizadorNombre.normalizar(texto)
         if (consulta.length < LETRAS_MINIMAS || limite <= 0) return emptyList()
+        siembra.esperar()
         return withContext(dispatcher) {
             cerrojo.withLock {
                 val db = abierta() ?: return@withLock emptyList()

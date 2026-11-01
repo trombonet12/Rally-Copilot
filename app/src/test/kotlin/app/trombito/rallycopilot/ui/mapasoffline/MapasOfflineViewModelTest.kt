@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.ui.mapasoffline
 
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
+import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
@@ -15,6 +16,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -55,6 +57,17 @@ class MapasOfflineViewModelTest {
             repositorio.estadoMutable.value = EstadoDatosMapa(error = MotivoError.SIN_ESPACIO)
             assertEquals(FaseMapas.SIN_DATOS, vm.uiState.value.fase)
             assertEquals(MotivoError.SIN_ESPACIO, vm.uiState.value.datos.error)
+        }
+
+    @Test
+    fun `mientras se prepara la siembra la fase es preparando y despues sigue al repositorio`() =
+        runTest {
+            repositorio.estadoMutable.value = EstadoDatosMapa(preparando = true)
+            val vm = MapasOfflineViewModel(repositorio)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+            assertEquals(FaseMapas.PREPARANDO, vm.uiState.value.fase)
+            repositorio.estadoMutable.value = EstadoDatosMapa(error = MotivoError.SIN_ESPACIO)
+            assertEquals(FaseMapas.SIN_DATOS, vm.uiState.value.fase)
         }
 
     @Test
@@ -101,7 +114,65 @@ class MapasOfflineViewModelTest {
         }
 
     @Test
-    fun `el limite por defecto es una de las opciones`() {
+    fun `el limite por defecto son 4 GB y las opciones son 2 4 y 8`() {
+        assertEquals(4 * BYTES_POR_GB, LIMITE_POR_DEFECTO)
+        assertEquals(listOf(2, 4, 8), LIMITES_GB)
         assertTrue((LIMITE_POR_DEFECTO / BYTES_POR_GB).toInt() in LIMITES_GB)
     }
+
+    private val sembradoSinSatelite = EstadoDatosMapa(instalados = DatosInstalados("datos-2026.11.01-1", 900, false))
+
+    @Test
+    fun `con lo sembrado y sin satelite ofrece el satelite con su tamano real`() =
+        runTest {
+            val repo = FalsoRepositorioDatosMapa(sembradoSinSatelite, bytesSatelite = 1_300_000_000)
+            val vm = MapasOfflineViewModel(repo)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+
+            val estado = vm.uiState.value
+            assertEquals(FaseMapas.INSTALADO, estado.fase)
+            assertTrue(estado.ofreceSatelite)
+            assertEquals(1_300_000_000L, estado.bytesSatelite)
+            assertEquals("el aviso de datos moviles habla del satelite", 1_300_000_000L, estado.bytesPendientes)
+        }
+
+    @Test
+    fun `sin red no hay tamano pero se sigue ofreciendo el satelite`() =
+        runTest {
+            val repo = FalsoRepositorioDatosMapa(sembradoSinSatelite, bytesSatelite = null)
+            val vm = MapasOfflineViewModel(repo)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+
+            assertTrue(vm.uiState.value.ofreceSatelite)
+            assertEquals(null, vm.uiState.value.bytesSatelite)
+            assertEquals(null, vm.uiState.value.bytesPendientes)
+        }
+
+    @Test
+    fun `con el satelite instalado o sin lo sembrado no se ofrece`() =
+        runTest {
+            val repo = FalsoRepositorioDatosMapa(sembradoSinSatelite, bytesSatelite = 5)
+            val vm = MapasOfflineViewModel(repo)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+
+            repo.estadoMutable.value = EstadoDatosMapa(instalados = DatosInstalados("v", 900, true))
+            assertEquals(FaseMapas.INSTALADO, vm.uiState.value.fase)
+            assertFalse(vm.uiState.value.ofreceSatelite)
+
+            repo.estadoMutable.value = EstadoDatosMapa()
+            assertEquals(FaseMapas.SIN_DATOS, vm.uiState.value.fase)
+            assertFalse(vm.uiState.value.ofreceSatelite)
+        }
+
+    @Test
+    fun `borrar desde la pantalla llega al repositorio y repite la consulta del tamano`() =
+        runTest {
+            val repo = FalsoRepositorioDatosMapa(sembradoSinSatelite, bytesSatelite = null)
+            val vm = MapasOfflineViewModel(repo)
+            assertEquals(1, repo.consultasTamanoSatelite)
+            repo.bytesSatelite = 700
+            vm.onBorrar()
+            assertEquals(1, repo.borrados)
+            assertEquals("tras borrar vuelve a pedir el tamano si no lo tenia", 2, repo.consultasTamanoSatelite)
+        }
 }

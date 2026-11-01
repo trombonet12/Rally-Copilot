@@ -81,7 +81,7 @@ class TrabajoDatosMapaTest {
 
         assertTrue(File(entorno.mapa, "mallorca.pmtiles").isFile)
         assertTrue(File(entorno.mapa, "vectorial.json").isFile)
-        runBlocking { assertEquals(4, dao.archivos().size) }
+        runBlocking { assertEquals("Sin datos base no se baja el satélite", 3, dao.archivos().size) }
     }
 
     @Test

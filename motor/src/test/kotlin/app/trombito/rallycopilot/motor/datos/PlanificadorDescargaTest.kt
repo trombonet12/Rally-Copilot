@@ -21,8 +21,8 @@ class PlanificadorDescargaTest {
     private val igualQueRemoto = remoto.archivos.map { ArchivoLocal(it.id, it.sha256, it.bytes) }
 
     @Test
-    fun `el limite por defecto son 2 GB`() {
-        assertEquals(2_147_483_648L, LIMITE_POR_DEFECTO)
+    fun `el limite por defecto son 4 GB`() {
+        assertEquals(4_294_967_296L, LIMITE_POR_DEFECTO)
     }
 
     @Test

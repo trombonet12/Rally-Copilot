@@ -55,6 +55,7 @@ const val ETIQUETA_PROGRESO = "mapas-progreso"
 const val ETIQUETA_ESPERA = "mapas-espera"
 const val ETIQUETA_ERROR = "mapas-error"
 const val ETIQUETA_DESCARGAR = "mapas-descargar"
+const val ETIQUETA_DESCARGAR_SATELITE = "mapas-descargar-satelite"
 const val ETIQUETA_CANCELAR = "mapas-cancelar"
 const val ETIQUETA_BORRAR = "mapas-borrar"
 const val ETIQUETA_BORRAR_CONFIRMAR = "mapas-borrar-confirmar"
@@ -103,6 +104,8 @@ fun MapasOfflineScreen(
         ) {
             if (estado.fase == FaseMapas.CARGANDO) {
                 CircularProgressIndicator()
+            } else if (estado.fase == FaseMapas.PREPARANDO) {
+                Preparando()
             } else {
                 ContenidoMapas(estado, acciones) { confirmarBorrado = true }
             }
@@ -142,11 +145,14 @@ private fun ContenidoMapas(
         }
 
         else -> {
-            if (estado.datos.error != null) BotonDescargar(true, acciones.onDescargar)
+            when {
+                estado.datos.error != null -> BotonDescargar(true, acciones.onDescargar)
+                estado.ofreceSatelite -> BotonDescargarSatelite(estado.bytesSatelite, acciones.onDescargar)
+            }
         }
     }
     AjustesDescarga(estado, acciones)
-    if (estado.fase == FaseMapas.INSTALADO) {
+    if (estado.fase == FaseMapas.INSTALADO && estado.datos.instalados?.conSatelite == true) {
         OutlinedButton(
             onClick = onPedirBorrado,
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
@@ -164,6 +170,26 @@ private fun BotonDescargar(
         onClick = onDescargar,
         modifier = Modifier.fillMaxWidth().heightIn(min = ALTO_MINIMO_TACTIL).testTag(ETIQUETA_DESCARGAR),
     ) { Text(stringResource(if (reintento) R.string.mapas_reintentar else R.string.mapas_descargar)) }
+}
+
+@Composable
+private fun BotonDescargarSatelite(
+    bytes: Long?,
+    onDescargar: () -> Unit,
+) {
+    val contexto = LocalContext.current
+    Button(
+        onClick = onDescargar,
+        modifier = Modifier.fillMaxWidth().heightIn(min = ALTO_MINIMO_TACTIL).testTag(ETIQUETA_DESCARGAR_SATELITE),
+    ) {
+        Text(
+            if (bytes == null) {
+                stringResource(R.string.mapas_descargar_satelite)
+            } else {
+                stringResource(R.string.mapas_descargar_satelite_tamano, Formatter.formatShortFileSize(contexto, bytes))
+            },
+        )
+    }
 }
 
 @Composable

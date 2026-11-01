@@ -1,7 +1,7 @@
 package app.trombito.rallycopilot.motor.datos
 
-/** Límite de espacio por defecto para los datos descargados (decisión de Joan: 2 GB). */
-const val LIMITE_POR_DEFECTO: Long = 2L * 1024 * 1024 * 1024
+/** Límite de espacio por defecto para los datos descargados (decisión de Joan: 4 GB). */
+const val LIMITE_POR_DEFECTO: Long = 4L * 1024 * 1024 * 1024
 
 /** Archivo ya presente en el dispositivo. */
 data class ArchivoLocal(

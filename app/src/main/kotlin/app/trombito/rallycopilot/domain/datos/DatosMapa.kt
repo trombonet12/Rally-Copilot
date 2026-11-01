@@ -6,12 +6,13 @@ import kotlinx.coroutines.flow.Flow
 /** Capa base del mapa. */
 enum class CapaMapa { VECTORIAL, SATELITE }
 
-/** Ajustes de Mapas offline. Por defecto, solo WiFi y 2 GB (decisión de Joan). */
+/** Ajustes de Mapas offline. Por defecto, solo WiFi y 4 GB (decisión de Joan). */
 data class AjustesMapas(
     val soloWifi: Boolean = true,
     val limiteBytes: Long = LIMITE_POR_DEFECTO,
 )
 
+/** Datos de mapa instalados: lo que viene en el APK (ya sembrado) y, si se ha bajado, el satélite. */
 data class DatosInstalados(
     val version: String,
     val bytes: Long,
@@ -37,6 +38,8 @@ data class EstadoDatosMapa(
     val error: MotivoError? = null,
     /** Versión recién instalada por una actualización automática, hasta que el usuario cierra el aviso. */
     val avisoActualizado: String? = null,
+    /** La siembra de los datos del APK no ha terminado: aún no se sabe qué hay instalado, no se ofrece descargar. */
+    val preparando: Boolean = false,
 )
 
 /** Estilos MapLibre listos para `Style.Builder().fromJson`, con las rutas locales ya resueltas. */
@@ -56,12 +59,22 @@ interface RepositorioDatosMapa {
     /** Al abrir la app: si hay red, lee el manifest y, si hay datos nuevos, encola su descarga. */
     fun comprobarActualizacion()
 
-    /** Descarga (o reanuda) el paquete completo; la pide el usuario desde Mapas offline. */
+    /**
+     * Descarga (o reanuda) lo que falta; la pide el usuario desde Mapas offline. Con lo del APK ya sembrado, lo único
+     * que falta es el satélite.
+     */
     fun descargar()
 
     fun cancelar()
 
+    /** Borra solo el satélite (archivos y registros); lo sembrado desde el APK no se toca. */
     suspend fun borrar()
+
+    /**
+     * Tamaño del satélite según el manifest remoto (suma de sus entradas), o null si no se puede saber (sin red,
+     * manifest ilegible o sin entradas de satélite). Hace una petición de red.
+     */
+    suspend fun tamanoSatelite(): Long?
 
     suspend fun descartarAviso()
 

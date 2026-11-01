@@ -34,11 +34,12 @@ class MapasOfflineScreenTest {
         cargando: Boolean = false,
         acciones: AccionesMapasOffline = AccionesMapasOffline(),
         ultimoProgreso: ProgresoDescarga? = null,
-    ) = banco.poner {
-        RallyCopilotTheme {
-            MapasOfflineScreen(MapasOfflineUiState(cargando, datos, ajustes, ultimoProgreso), acciones)
-        }
-    }
+    ) = ponerEstado(MapasOfflineUiState(cargando, datos, ajustes, ultimoProgreso), acciones)
+
+    private fun ponerEstado(
+        estado: MapasOfflineUiState,
+        acciones: AccionesMapasOffline = AccionesMapasOffline(),
+    ) = banco.poner { RallyCopilotTheme { MapasOfflineScreen(estado, acciones) } }
 
     private fun textos() = banco.textos(banco.raiz())
 
@@ -47,6 +48,17 @@ class MapasOfflineScreenTest {
         poner(cargando = true)
         assertTrue(banco.hay("mapas-fase-cargando"))
         assertFalse(banco.hay(ETIQUETA_DESCARGAR))
+    }
+
+    @Test
+    fun `preparando muestra el indicador y no ofrece descargar ni borrar`() {
+        poner(datos = EstadoDatosMapa(preparando = true))
+        assertTrue(banco.hay("mapas-fase-preparando"))
+        assertTrue(banco.hay(ETIQUETA_PREPARANDO))
+        assertTrue("Preparando mapas…" in textos())
+        assertFalse(banco.hay(ETIQUETA_DESCARGAR))
+        assertFalse(banco.hay(ETIQUETA_DESCARGAR_SATELITE))
+        assertFalse(banco.hay(ETIQUETA_BORRAR))
     }
 
     @Test
@@ -71,6 +83,44 @@ class MapasOfflineScreenTest {
         assertFalse(banco.hay(ETIQUETA_DESCARGAR))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_BORRAR))
         assertEquals("el borrado pide confirmación antes de ejecutarse", 0, borrados)
+    }
+
+    @Test
+    fun `sembrado sin satelite ofrece descargar el satelite con su tamano y no borrar`() {
+        var descargas = 0
+        val sembrado = EstadoDatosMapa(instalados = DatosInstalados("2026.11.1", 900_000_000, conSatelite = false))
+        ponerEstado(
+            MapasOfflineUiState(cargando = false, datos = sembrado, bytesSatelite = 1_300_000_000),
+            AccionesMapasOffline(onDescargar = { descargas++ }),
+        )
+        assertTrue(banco.hay("mapas-fase-instalado"))
+        assertTrue(banco.hay(ETIQUETA_DESCARGAR_SATELITE))
+        assertFalse(banco.hay(ETIQUETA_DESCARGAR))
+        assertFalse(banco.hay(ETIQUETA_BORRAR))
+        val boton = banco.textos(banco.conEtiqueta(ETIQUETA_DESCARGAR_SATELITE)).single()
+        assertTrue(boton, boton.startsWith("Descargar satélite (") && "GB" in boton)
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_DESCARGAR_SATELITE))
+        assertEquals(1, descargas)
+    }
+
+    @Test
+    fun `sin tamano conocido el boton del satelite no da cifra`() {
+        poner(EstadoDatosMapa(instalados = instalados.copy(conSatelite = false)))
+        assertEquals(listOf("Descargar satélite"), banco.textos(banco.conEtiqueta(ETIQUETA_DESCARGAR_SATELITE)))
+    }
+
+    @Test
+    fun `con el satelite instalado no se ofrece descargarlo`() {
+        ponerEstado(
+            MapasOfflineUiState(
+                cargando = false,
+                datos = EstadoDatosMapa(instalados = instalados),
+                bytesSatelite = 1_300_000_000,
+            ),
+        )
+        assertFalse(banco.hay(ETIQUETA_DESCARGAR_SATELITE))
+        assertTrue(banco.hay(ETIQUETA_BORRAR))
+        assertTrue("Borrar satélite" in banco.textos(banco.conEtiqueta(ETIQUETA_BORRAR)))
     }
 
     @Test

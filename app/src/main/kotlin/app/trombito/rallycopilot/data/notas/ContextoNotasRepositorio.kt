@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.notas
 
 import android.content.Context
 import android.util.Log
+import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.data.vias.DatosVias
 import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.motor.notas.ContextoVias
@@ -40,19 +41,22 @@ interface FuenteContextoNotas {
  * Contexto de notas sobre las vías que da [fuente] (una única lectura compartida con el seguimiento de la vía actual)
  * y, si existe, `vias-notas-mallorca.tsv.gz`, cargado perezosamente en [dispatcher]. Si cambian las vías o el archivo
  * de notas (fecha o tamaño; p. ej. al actualizar los datos) se rehace en la siguiente petición. Un archivo de notas
- * ilegible se trata como ausente y no se reintenta hasta que cambie.
+ * ilegible se trata como ausente y no se reintenta hasta que cambie. Antes de abrir el archivo espera a que termine
+ * la siembra de los datos del APK.
  */
 @Singleton
 class ContextoNotasRepositorio internal constructor(
     private val fuente: FuenteVias,
     private val archivoNotas: File,
     private val dispatcher: CoroutineDispatcher,
+    private val siembra: EsperaDatosSembrados = EsperaDatosSembrados.Ninguna,
 ) : FuenteContextoNotas {
     @Inject
     constructor(
         fuente: FuenteVias,
         @ApplicationContext contexto: Context,
-    ) : this(fuente, File(contexto.filesDir, RUTA_VIAS_NOTAS), Dispatchers.IO)
+        siembra: EsperaDatosSembrados,
+    ) : this(fuente, File(contexto.filesDir, RUTA_VIAS_NOTAS), Dispatchers.IO, siembra)
 
     private class Cargado(
         val vias: DatosVias,
@@ -63,7 +67,13 @@ class ContextoNotasRepositorio internal constructor(
     private val mutex = Mutex()
     private var cargado: Cargado? = null
 
-    override suspend fun contexto(): ContextoNotas? =
+    override suspend fun contexto(): ContextoNotas? {
+        // La siembra puede traer el archivo de notas: se espera antes de mirarlo (suspende, no bloquea el hilo).
+        siembra.esperar()
+        return leerContexto()
+    }
+
+    private suspend fun leerContexto(): ContextoNotas? =
         mutex.withLock {
             val vias = fuente.datos()
             if (vias == null) {

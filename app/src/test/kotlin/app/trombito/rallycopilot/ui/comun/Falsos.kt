@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class FalsoRepositorioDatosMapa(
     estadoInicial: EstadoDatosMapa = EstadoDatosMapa(),
     var estilosDisponibles: EstilosMapa? = null,
+    /** Lo que responde [tamanoSatelite] (null = sin red). */
+    var bytesSatelite: Long? = null,
 ) : RepositorioDatosMapa {
     val estadoMutable = MutableStateFlow(estadoInicial)
     val ajustesMutable = MutableStateFlow(AjustesMapas())
@@ -48,6 +50,13 @@ class FalsoRepositorioDatosMapa(
 
     override suspend fun borrar() {
         borrados++
+    }
+
+    var consultasTamanoSatelite = 0
+
+    override suspend fun tamanoSatelite(): Long? {
+        consultasTamanoSatelite++
+        return bytesSatelite
     }
 
     override suspend fun descartarAviso() {

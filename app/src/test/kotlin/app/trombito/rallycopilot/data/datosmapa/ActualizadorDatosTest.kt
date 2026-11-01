@@ -58,27 +58,46 @@ class ActualizadorDatosTest {
     private fun leer(nombre: String) = File(entorno.mapa, nombre).readBytes()
 
     @Test
-    fun `la primera instalacion descarga todo, lo verifica y lo registra`() {
+    fun `sin datos instalados baja todo menos el satelite, lo verifica y lo registra`() {
         val contenidos = PaqueteDePrueba.contenidos("v1")
-        entorno.publicar("v1", contenidos)
+        val archivos = entorno.publicar("v1", contenidos)
         val progreso = mutableListOf<Pair<Long, Long>>()
 
-        val resultado = actualizar(automatico = true, progreso = progreso)
+        val resultado = actualizar(progreso = progreso)
 
         assertEquals(ResultadoActualizacion.Instalado, resultado)
         assertArrayEquals(contenidos.getValue("vectorial"), leer("mallorca.pmtiles"))
-        assertArrayEquals(contenidos.getValue("satelite"), leer("pnoa-mallorca-z16.pmtiles"))
+        assertFalse("El satélite no se baja sin lo sembrado", File(entorno.mapa, "pnoa-mallorca-z16.pmtiles").exists())
+        assertTrue(entorno.servidor.peticionesA(entorno.rutaDe(archivos.first { it.id == "satelite" })).isEmpty())
         assertTrue(File(entorno.mapa, "vectorial.json").isFile)
         runBlocking {
-            assertEquals(4, dao.archivos().size)
+            assertEquals(listOf("estilo", "vectorial", "vias"), dao.archivos().map { it.id })
             val estado = dao.estado()
             assertEquals("v1", estado?.versionInstalada)
-            assertNull("La primera instalación automática no es una actualización", estado?.avisoActualizado)
+            assertNull(estado?.avisoActualizado)
             assertNull(estado?.ultimoError)
         }
-        val total = contenidos.values.sumOf { it.size.toLong() }
+        val total = contenidos.filterKeys { it != "satelite" }.values.sumOf { it.size.toLong() }
         assertEquals(total to total, progreso.last())
         assertTrue(progreso.all { it.second == total })
+    }
+
+    @Test
+    fun `con lo sembrado instalado una descarga manual baja el satelite y una automatica no`() {
+        val contenidos = PaqueteDePrueba.contenidos("v1")
+        val archivos = entorno.publicar("v1", contenidos)
+        actualizar()
+        val rutaSatelite = entorno.rutaDe(archivos.first { it.id == "satelite" })
+
+        actualizar(automatico = true)
+        assertTrue(
+            "La actualización automática no estrena el satélite",
+            entorno.servidor.peticionesA(rutaSatelite).isEmpty(),
+        )
+
+        assertEquals(ResultadoActualizacion.Instalado, actualizar())
+        assertArrayEquals(contenidos.getValue("satelite"), leer("pnoa-mallorca-z16.pmtiles"))
+        runBlocking { assertEquals(listOf("estilo", "satelite", "vectorial", "vias"), dao.archivos().map { it.id }) }
     }
 
     @Test
@@ -86,6 +105,7 @@ class ActualizadorDatosTest {
         val v1 = PaqueteDePrueba.contenidos("v1") + ("extra" to PaqueteDePrueba.aleatorio(9, 1000))
         entorno.publicar("v1", v1)
         actualizar()
+        actualizar() // lo sembrado ya está: esta baja el satélite
         assertTrue(File(entorno.mapa, "extra.bin").isFile)
 
         val v2 = PaqueteDePrueba.contenidos("v1") + ("vectorial" to PaqueteDePrueba.aleatorio(77))
@@ -109,6 +129,7 @@ class ActualizadorDatosTest {
         val v1 = PaqueteDePrueba.contenidos("v1")
         entorno.publicar("v1", v1)
         actualizar()
+        actualizar() // lo sembrado ya está: esta baja el satélite
         val v2 = PaqueteDePrueba.contenidos("v2")
         val archivosV2 = entorno.publicar("v2", v2, corruptos = setOf("satelite"))
 

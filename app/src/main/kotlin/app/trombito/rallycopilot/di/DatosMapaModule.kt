@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.room.Room
 import androidx.work.WorkManager
 import app.trombito.rallycopilot.data.datosmapa.ConfigDatosMapa
+import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.data.datosmapa.RepositorioDatosMapaImpl
+import app.trombito.rallycopilot.data.datosmapa.SembradorDatos
 import app.trombito.rallycopilot.data.datosmapa.URL_MANIFEST
 import app.trombito.rallycopilot.data.db.AjustesMapasDao
 import app.trombito.rallycopilot.data.db.DatosMapaDao
@@ -70,5 +72,9 @@ object DatosMapaModule {
         ajustesDao: AjustesMapasDao,
         workManager: WorkManager,
         config: ConfigDatosMapa,
-    ): RepositorioDatosMapa = RepositorioDatosMapaImpl(dao, ajustesDao, workManager, config, Dispatchers.IO)
+        sembrador: SembradorDatos,
+    ): RepositorioDatosMapa = RepositorioDatosMapaImpl(dao, ajustesDao, workManager, config, Dispatchers.IO, sembrador)
+
+    @Provides
+    fun esperaDatosSembrados(sembrador: SembradorDatos): EsperaDatosSembrados = sembrador
 }

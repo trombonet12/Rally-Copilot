@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.ruta
 
 import app.trombito.rallycopilot.data.datosmapa.ConfigDatosMapa
+import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
@@ -19,7 +20,8 @@ import javax.inject.Singleton
 
 /**
  * Enrutador offline con Valhalla sobre `filesDir/mapa/valhalla-mallorca.tar`. El motor se abre en la primera petición
- * y se reabre si el tar cambia (nueva versión de los datos); las peticiones se atienden de una en una en IO.
+ * y se reabre si el tar cambia (nueva versión de los datos); las peticiones se atienden de una en una en IO. Antes de
+ * mirar el tar espera a que termine la siembra de los datos del APK.
  */
 @Singleton
 class EnrutadorValhalla internal constructor(
@@ -27,10 +29,11 @@ class EnrutadorValhalla internal constructor(
     private val fabrica: FabricaMotorRutas,
     private val dispatcher: CoroutineDispatcher,
     private val reloj: () -> Long,
+    private val siembra: EsperaDatosSembrados = EsperaDatosSembrados.Ninguna,
 ) : Enrutador {
     @Inject
-    constructor(config: ConfigDatosMapa, fabrica: FabricaMotorRutas) :
-        this(File(config.directorioMapa, NOMBRE_TAR), fabrica, Dispatchers.IO, System::nanoTime)
+    constructor(config: ConfigDatosMapa, fabrica: FabricaMotorRutas, siembra: EsperaDatosSembrados) :
+        this(File(config.directorioMapa, NOMBRE_TAR), fabrica, Dispatchers.IO, System::nanoTime, siembra)
 
     private val cerrojo = Mutex()
     private var motor: MotorRutas? = null
@@ -67,6 +70,7 @@ class EnrutadorValhalla internal constructor(
         excluirTuneles: Boolean,
     ): ResultadoRuta =
         withContext(dispatcher) {
+            siembra.esperar()
             if (!tar.isFile) return@withContext ResultadoRuta.SinDatos
             val peticion = PeticionRuta.json(origen, destino, perfil, excluirTuneles)
             cerrojo.withLock {

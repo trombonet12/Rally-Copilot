@@ -6,6 +6,7 @@ import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -23,8 +24,14 @@ class MapasOfflineViewModel
         // Solo lo toca el combine (secuencial). Se olvida al terminar la descarga.
         private var ultimoProgreso: ProgresoDescarga? = null
 
+        private val bytesSatelite = MutableStateFlow<Long?>(null)
+
+        init {
+            cargarTamanoSatelite()
+        }
+
         val uiState: StateFlow<MapasOfflineUiState> =
-            combine(repositorio.estado, repositorio.ajustes) { datos, ajustes ->
+            combine(repositorio.estado, repositorio.ajustes, bytesSatelite) { datos, ajustes, tamanoSatelite ->
                 val descarga = datos.descarga
                 ultimoProgreso =
                     when {
@@ -32,15 +39,30 @@ class MapasOfflineViewModel
                         descarga.bytesTotales > 0 -> descarga
                         else -> ultimoProgreso
                     }
-                MapasOfflineUiState(cargando = false, datos = datos, ajustes = ajustes, ultimoProgreso = ultimoProgreso)
+                MapasOfflineUiState(
+                    cargando = false,
+                    datos = datos,
+                    ajustes = ajustes,
+                    ultimoProgreso = ultimoProgreso,
+                    bytesSatelite = tamanoSatelite,
+                )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), MapasOfflineUiState())
 
         fun onDescargar() = repositorio.descargar()
 
         fun onCancelar() = repositorio.cancelar()
 
+        /** Borra solo el satélite. */
         fun onBorrar() {
-            viewModelScope.launch { repositorio.borrar() }
+            viewModelScope.launch {
+                repositorio.borrar()
+                if (bytesSatelite.value == null) cargarTamanoSatelite()
+            }
+        }
+
+        /** Pide el tamaño del satélite al manifest remoto; sin red se queda en null y la pantalla no da cifra. */
+        private fun cargarTamanoSatelite() {
+            viewModelScope.launch { bytesSatelite.value = repositorio.tamanoSatelite() }
         }
 
         fun onSoloWifi(soloWifi: Boolean) {

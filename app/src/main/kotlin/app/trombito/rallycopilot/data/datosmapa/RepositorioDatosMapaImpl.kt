@@ -18,6 +18,8 @@ import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
+import app.trombito.rallycopilot.motor.datos.LectorManifest
+import app.trombito.rallycopilot.motor.datos.ManifestInvalido
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -28,6 +30,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /** Datos de Mallorca en `filesDir/mapa/` (estado en Room, descarga en WorkManager). Ver [RepositorioDatosMapa]. */
@@ -37,6 +40,7 @@ class RepositorioDatosMapaImpl(
     private val workManager: WorkManager,
     private val config: ConfigDatosMapa,
     private val dispatcher: CoroutineDispatcher,
+    private val siembra: EsperaDatosSembrados = EsperaDatosSembrados.Ninguna,
 ) : RepositorioDatosMapa {
     private val alcance = CoroutineScope(SupervisorJob() + dispatcher)
     private val instalador = InstaladorDatos(config)
@@ -48,8 +52,9 @@ class RepositorioDatosMapaImpl(
             dao.observarArchivos(),
             dao.observarEstado(),
             workManager.getWorkInfosForUniqueWorkFlow(TrabajoDatosMapa.NOMBRE_TRABAJO),
-        ) { archivos, estado, trabajos ->
-            construirEstado(archivos, estado, trabajos.firstOrNull { !it.state.isFinished })
+            siembra.listo,
+        ) { archivos, estado, trabajos, lista ->
+            construirEstado(archivos, estado, trabajos.firstOrNull { !it.state.isFinished }).copy(preparando = !lista)
         }
 
     override suspend fun guardarAjustes(ajustes: AjustesMapas) {
@@ -60,14 +65,16 @@ class RepositorioDatosMapaImpl(
 
     override fun comprobarActualizacion() {
         alcance.launch {
-            if (dao.archivos().isNotEmpty()) encolar(automatico = true, soloWifi = soloWifiActual())
+            siembra.esperar()
+            if (dao.archivos().isNotEmpty()) encolar(automatico = true, soloWifi = ajustesDao.soloWifiActual())
         }
     }
 
     override fun descargar() {
         alcance.launch {
+            siembra.esperar()
             dao.establecerError(null)
-            encolar(automatico = false, soloWifi = soloWifiActual())
+            encolar(automatico = false, soloWifi = ajustesDao.soloWifiActual())
         }
     }
 
@@ -80,20 +87,42 @@ class RepositorioDatosMapaImpl(
     override suspend fun borrar() {
         workManager.cancelUniqueWork(TrabajoDatosMapa.NOMBRE_TRABAJO).await()
         withContext(dispatcher) {
-            instalador.borrarTodo()
-            dao.borrarInstalacion()
+            siembra.esperar()
+            val satelite = dao.archivos().filter { it.id.startsWith(PREFIJO_SATELITE) }
+            // Primero el registro: si se corta a medias, un archivo huérfano es mejor que un registro sin archivo.
+            if (satelite.isNotEmpty()) dao.borrarArchivos(satelite.map { it.id })
+            instalador.borrarSatelite(satelite.map { it.nombre })
+            dao.establecerError(null)
         }
     }
+
+    override suspend fun tamanoSatelite(): Long? =
+        withContext(dispatcher) {
+            try {
+                LectorManifest
+                    .leer(ClienteHttp(config).texto(config.urlManifest))
+                    .archivos
+                    .filter { it.id.startsWith(PREFIJO_SATELITE) }
+                    .sumOf { it.bytes }
+                    .takeIf { it > 0 }
+            } catch (e: IOException) {
+                Log.w(ETIQUETA_LOG, "Sin tamaño del satélite: ${e.javaClass.simpleName}")
+                null
+            } catch (e: ManifestInvalido) {
+                Log.w(ETIQUETA_LOG, "Manifest remoto no válido al pedir el tamaño del satélite", e)
+                null
+            }
+        }
 
     override suspend fun descartarAviso() = dao.establecerAviso(null)
 
     override suspend fun estilos(): EstilosMapa? =
         withContext(dispatcher) {
+            siembra.esperar()
             val mapa = config.directorioMapa
             val vectorial = File(mapa, "vectorial.json").takeIf { it.isFile } ?: return@withContext null
             val raizUrl = "file://" + mapa.absolutePath.replace('\\', '/')
-            val satelite =
-                File(mapa, "satelite.json").takeIf { it.isFile && File(mapa, ARCHIVO_SATELITE).isFile }
+            val satelite = File(mapa, "satelite.json").takeIf { it.isFile && hayTeselasSatelite(mapa) }
             val estilos =
                 EstilosMapa(
                     vectorial = vectorial.readText().replace(MARCADOR_DIR, raizUrl),
@@ -109,8 +138,6 @@ class RepositorioDatosMapaImpl(
                 null
             }
         }
-
-    private suspend fun soloWifiActual(): Boolean = ajustesDao.ajustes()?.soloWifi ?: AjustesMapas().soloWifi
 
     private fun encolar(
         automatico: Boolean,
@@ -144,9 +171,16 @@ class RepositorioDatosMapaImpl(
     private companion object {
         const val ETIQUETA_LOG = "RepositorioDatosMapa"
         const val MARCADOR_DIR = "{{DIR}}"
-        const val ARCHIVO_SATELITE = "pnoa-mallorca-z16.pmtiles"
         const val ETIQUETA_AUTOMATICO = "automatico"
         const val ETIQUETA_MANUAL = "manual"
         const val BACKOFF_SEGUNDOS = 30L
     }
+}
+
+/** Cualquier `pnoa-mallorca*.pmtiles` instalado vale (z16 o z17): el nombre puede cambiar con el paquete. */
+private suspend fun AjustesMapasDao.soloWifiActual(): Boolean = ajustes()?.soloWifi ?: AjustesMapas().soloWifi
+
+private fun hayTeselasSatelite(mapa: File): Boolean {
+    val archivos = mapa.listFiles() ?: return false
+    return archivos.any { it.isFile && it.name.startsWith(PREFIJO_TESELAS_SATELITE) && it.name.endsWith(".pmtiles") }
 }
