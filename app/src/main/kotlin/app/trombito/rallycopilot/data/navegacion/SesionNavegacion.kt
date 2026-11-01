@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.data.alertas.SesionAlertas
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
+import app.trombito.rallycopilot.data.tramos.SesionCrono
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.OrdenParadas
@@ -60,7 +61,8 @@ sealed interface SolicitudNavegacion {
  * fijaciones con `precisionM` > [PRECISION_MAX_M] (posición aproximada de interior): ni se graban ni cuentan. Si hay
  * [copiloto], en cada fijación válida le pasa las notas vigentes y el progreso de la ruta para que hable. Si hay
  * [alertas] (radares, tramos, exceso de velocidad, incidencias), en cada fijación válida calcula las suyas, las publica
- * y se las suma al copiloto como candidatas.
+ * y se las suma al copiloto como candidatas. Si hay [crono], cronometra la conducción: detecta los tramos guardados,
+ * publica el cronómetro, le pasa al copiloto el delta de sectores y meta y, al cerrar, guarda las pasadas y el tramo.
  *
  * Paradas: al alcanzar la próxima (a ≤ 30 m o al pasarla) la siguiente pasa a ser el objetivo y el copiloto lo dice
  * («parada alcanzada, siguiente …»); un recálculo conserva solo las paradas pendientes. Las [ordenes] de edición
@@ -78,6 +80,7 @@ class SesionNavegacion(
     private val copiloto: CopilotoVoz? = null,
     private val alertas: SesionAlertas? = null,
     private val ordenes: ReceiveChannel<OrdenParadas>? = null,
+    private val crono: SesionCrono? = null,
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
     suspend fun cerrarHuerfanos() {
@@ -100,7 +103,8 @@ class SesionNavegacion(
             alertas?.cerrar()
             withContext(NonCancellable) {
                 ejecucion.volcar()
-                recorridos.terminar(id)
+                val recorrido = recorridos.terminar(id)
+                crono?.cerrar(recorrido) { recorridos.puntos(id) }
             }
         }
     }
@@ -127,6 +131,7 @@ class SesionNavegacion(
                 if (guia != null) notas?.iniciarGuiado(guia.ruta.puntos) else notas?.iniciarLibre()
                 val ajustesCopiloto = copiloto?.let { launch { it.seguirAjustes() } }
                 val datosAlertas = alertas?.arrancar(this, guia?.ruta?.puntos)
+                val cargaTramos = crono?.arrancar(this)
                 val edicion =
                     if (guia != null && ordenes != null) {
                         launch { for (orden in ordenes) editar(guia, orden, this@coroutineScope) }
@@ -139,6 +144,7 @@ class SesionNavegacion(
                 guia?.recalculo?.cancel()
                 ajustesCopiloto?.cancel()
                 datosAlertas?.cancel()
+                cargaTramos?.cancel()
                 cerrarNotas()
                 copiloto?.cerrar()
                 alertas?.cerrar()
@@ -164,6 +170,7 @@ class SesionNavegacion(
             ultimaFijacionMs = fijacion.tiempoMs
             ultimaPosicion = fijacion.punto
             registrar(fijacion, ahora)
+            crono?.alFijar(fijacion)?.forEach { copiloto?.anunciarCrono(it) }
             if (guia != null) {
                 val progreso = guia.seguidor.actualizar(fijacion.punto, ahora)
                 guia.progreso = progreso

@@ -417,4 +417,35 @@ class CopilotoVozTest {
 
         assertTrue(locutor.dichas.isEmpty())
     }
+
+    private val delta = Frase("crono:t:1:sector:1", "menos dos décimas", TipoFrase.CRONO, null)
+
+    @Test
+    fun `el delta del cronometro solo suena en modo completo`() {
+        for (modo in ModoCopiloto.entries.filter { it != ModoCopiloto.COMPLETO }) {
+            val locutor = LocutorFalso()
+            val c = copiloto(locutor, con(modo))
+            c.anunciarCrono(delta)
+            repeat(20) { c.fijar(null, 100.0 + it) }
+            assertEquals("modo $modo", emptyList<String>(), locutor.dichas)
+        }
+
+        val locutor = LocutorFalso()
+        val c = copiloto(locutor, con(ModoCopiloto.COMPLETO))
+        c.anunciarCrono(delta)
+        repeat(3) { c.fijar(null, 100.0 + it) }
+
+        assertEquals(listOf("menos dos décimas"), locutor.dichas)
+    }
+
+    @Test
+    fun `sin notas ni ruta el delta se dice igualmente, una sola vez`() {
+        val locutor = LocutorFalso()
+        val c = copiloto(locutor, con(ModoCopiloto.COMPLETO))
+        c.anunciarCrono(delta)
+
+        repeat(3) { c.alFijar(null, null, null, 20.0) }
+
+        assertEquals(listOf("menos dos décimas"), locutor.dichas)
+    }
 }

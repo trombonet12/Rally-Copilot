@@ -13,8 +13,10 @@ import androidx.room.RoomDatabase
             RecorridoEntity::class,
             RecorridoPuntoEntity::class,
             GuiadoPendienteEntity::class,
+            TramoEntity::class,
+            PasadaEntity::class,
         ],
-    version = 6,
+    version = 7,
     exportSchema = true,
 )
 abstract class RallyDatabase : RoomDatabase() {
@@ -27,6 +29,8 @@ abstract class RallyDatabase : RoomDatabase() {
     abstract fun recorridosDao(): RecorridosDao
 
     abstract fun guiadoPendienteDao(): GuiadoPendienteDao
+
+    abstract fun tramosDao(): TramosDao
 
     companion object {
         const val NOMBRE = "rally.db"

@@ -71,3 +71,27 @@ val MIGRATION_5_6: Migration =
             db.execSQL("ALTER TABLE `guiado_pendiente` ADD COLUMN `paradas` TEXT NOT NULL DEFAULT ''")
         }
     }
+
+/**
+ * v6 -> v7: tramos cronometrables y sus pasadas. Solo tablas nuevas; no toca ningún dato. El SQL es el `createSql` de
+ * `schemas/.../7.json`.
+ */
+val MIGRATION_6_7: Migration =
+    object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `tramo` (`id` TEXT NOT NULL, `nombre` TEXT, `traza` TEXT NOT NULL, " +
+                    "`longitudM` REAL NOT NULL, `sectores` TEXT NOT NULL, `microsectores` TEXT NOT NULL, " +
+                    "`creadoEn` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+            )
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `pasada` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`tramoId` TEXT NOT NULL, `inicio` INTEGER NOT NULL, `totalMs` INTEGER NOT NULL, " +
+                    "`marcas` TEXT NOT NULL, FOREIGN KEY(`tramoId`) REFERENCES `tramo`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_pasada_tramoId_totalMs` ON `pasada` (`tramoId`, `totalMs`)",
+            )
+        }
+    }

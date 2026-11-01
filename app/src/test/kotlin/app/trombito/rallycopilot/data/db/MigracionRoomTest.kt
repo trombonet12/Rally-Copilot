@@ -20,9 +20,9 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * Migraciones v1 -> v2 -> v3 -> v4 -> v5 -> v6. No hay `room-testing` (MigrationTestHelper) en el proyecto: la base
- * antigua se crea con el SQL exportado en `schemas/.../N.json` y Room la abre como v6; al abrir valida el esquema
- * resultante contra `6.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
+ * Migraciones v1 -> v2 -> v3 -> v4 -> v5 -> v6 -> v7. No hay `room-testing` (MigrationTestHelper) en el proyecto: la
+ * base antigua se crea con el SQL exportado en `schemas/.../N.json` y Room la abre como v7; al abrir valida el esquema
+ * resultante contra `7.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
  */
 @RunWith(RobolectricTestRunner::class)
 class MigracionRoomTest {
@@ -79,14 +79,14 @@ class MigracionRoomTest {
     }
 
     @Test
-    fun `de v1 a v6 conserva los datos y crea las tablas nuevas`() =
+    fun `de v1 a v7 conserva los datos y crea las tablas nuevas`() =
         runBlocking {
             crearBase(1)
 
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -106,7 +106,7 @@ class MigracionRoomTest {
             nueva.recorridosDao().anadirPuntos(id, listOf(RecorridoPuntoEntity(id, 0, 39.5, 2.9, 10, null)))
             assertEquals(1, nueva.recorridosDao().puntos(id).size)
             assertNotNull(nueva.openHelper.writableDatabase)
-            assertEquals(6, nueva.openHelper.writableDatabase.version)
+            assertEquals(7, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -117,7 +117,7 @@ class MigracionRoomTest {
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -134,7 +134,7 @@ class MigracionRoomTest {
                 ),
                 fila,
             )
-            assertEquals(6, nueva.openHelper.writableDatabase.version)
+            assertEquals(7, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -145,7 +145,7 @@ class MigracionRoomTest {
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -173,7 +173,7 @@ class MigracionRoomTest {
                     .first()
                     ?.destinoNombre,
             )
-            assertEquals(6, nueva.openHelper.writableDatabase.version)
+            assertEquals(7, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -184,7 +184,7 @@ class MigracionRoomTest {
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -223,7 +223,7 @@ class MigracionRoomTest {
                     .first()
                     ?.voz,
             )
-            assertEquals(6, nueva.openHelper.writableDatabase.version)
+            assertEquals(7, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -237,7 +237,7 @@ class MigracionRoomTest {
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                    .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -254,10 +254,40 @@ class MigracionRoomTest {
                     .first()
                     ?.paradas,
             )
-            assertEquals(6, nueva.openHelper.writableDatabase.version)
+            assertEquals(7, nueva.openHelper.writableDatabase.version)
+        }
+
+    @Test
+    fun `de v6 a v7 conserva los datos y crea tramo y pasada con borrado en cascada`() =
+        runBlocking {
+            val archivo = crearBase(6)
+            SQLiteDatabase.openDatabase(archivo.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                db.execSQL("INSERT INTO recorrido VALUES (1, 100, 200, 1500.0, 'Sóller')")
+            }
+
+            val nueva =
+                Room
+                    .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+                    .addMigrations(*TODAS)
+                    .allowMainThreadQueries()
+                    .build()
+            base = nueva
+
+            assertEquals(1500.0, nueva.recorridosDao().recorrido(1)?.distanciaM ?: 0.0, 0.0)
+            assertEquals(emptyList<TramoEntity>(), nueva.tramosDao().tramos())
+            nueva.tramosDao().crear(
+                TramoEntity("t1", null, "_p~iF~ps|U", 1500.0, "375.0,750.0,1125.0", "1000.0", 5L),
+                PasadaEntity(tramoId = "t1", inicio = 7L, totalMs = 90_000L, marcas = "0:0;1490000:90000"),
+            )
+            assertEquals(90_000L, nueva.tramosDao().mejorPasada("t1")?.totalMs)
+            nueva.tramosDao().borrar("t1")
+            assertEquals(null, nueva.tramosDao().mejorPasada("t1"))
+            assertEquals(7, nueva.openHelper.writableDatabase.version)
         }
 
     private companion object {
         const val NOMBRE = "migracion-test.db"
+        val TODAS =
+            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
     }
 }
