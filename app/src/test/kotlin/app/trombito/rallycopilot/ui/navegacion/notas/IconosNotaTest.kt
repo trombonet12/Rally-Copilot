@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.navegacion.notas
 
+import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.TipoAviso
 import org.junit.Assert.assertEquals
@@ -18,14 +19,31 @@ class IconosNotaTest {
 
     @Test
     fun `las notas simplificadas dibujan un icono por categoria`() {
-        val cerrada = iconoCurva(nota(1), simplificada = true)
+        val muyCerrada = iconoCurva(nota(1), simplificada = true)
+        val cerrada = iconoCurva(nota(2), simplificada = true)
         val media = iconoCurva(nota(3), simplificada = true)
         val suave = iconoCurva(nota(5), simplificada = true)
-        assertEquals(3, setOf(cerrada, media, suave).size)
-        assertEquals(iconoCurva(nota(2), simplificada = true), cerrada)
+        assertEquals(4, setOf(muyCerrada, cerrada, media, suave).size)
         assertEquals(iconoCurva(nota(4), simplificada = true), media)
         assertEquals(iconoCurva(nota(6), simplificada = true), suave)
         assertNotEquals(iconoCurva(nota(null), simplificada = true), cerrada)
+    }
+
+    @Test
+    fun `la muy cerrada simplificada dibuja el icono del grado 1 y la cerrada el del 2`() {
+        assertEquals(iconoCurva(nota(1), simplificada = false), iconoCurva(nota(1), simplificada = true))
+        assertEquals(iconoCurva(nota(2), simplificada = false), iconoCurva(nota(2), simplificada = true))
+        assertEquals(
+            iconoCurva(nota(1, Direccion.IZQUIERDA), simplificada = false),
+            iconoCurva(nota(1, Direccion.IZQUIERDA), simplificada = true),
+        )
+    }
+
+    @Test
+    fun `la compresion tiene su propio icono distinto del de la rasante`() {
+        assertEquals(R.drawable.ic_nota_compresion, iconoAviso(TipoAviso.COMPRESION))
+        assertNotEquals(iconoAviso(TipoAviso.RASANTE), iconoAviso(TipoAviso.COMPRESION))
+        assertEquals("compresión", TipoAviso.COMPRESION.frase)
     }
 
     @Test

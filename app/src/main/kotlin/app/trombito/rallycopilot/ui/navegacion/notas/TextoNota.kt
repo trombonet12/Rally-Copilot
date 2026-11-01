@@ -10,11 +10,24 @@ import app.trombito.rallycopilot.motor.notas.NotaVisible
 import kotlin.math.roundToInt
 
 private const val PASO_DISTANCIA_M = 10
+private const val PASO_DISTANCIA_LEJOS_M = 50
+private const val UMBRAL_DISTANCIA_LEJOS_M = 200
+
+/**
+ * Distancia que se escribe en la tarjeta grande: de 10 en 10 metros por debajo de 200 y de 50 en 50 a partir de ahí.
+ * Nunca negativa.
+ */
+internal fun distanciaRedondeadaM(distanciaM: Double): Int {
+    val metros = distanciaM.coerceAtLeast(0.0)
+    val paso = if (metros < UMBRAL_DISTANCIA_LEJOS_M) PASO_DISTANCIA_M else PASO_DISTANCIA_LEJOS_M
+    return (metros / paso).roundToInt() * paso
+}
 
 /**
  * Texto visible en mayúsculas: solo la curva con el grado en cifra y, aparte, «· 50» («HORQUILLA DERECHA MUY LARGA ·
  * 40», «IZQUIERDA 3 CIERRA»). El cuidado, los avisos unidos y el puente de la curva van como iconos, no en el texto.
- * Un aviso suelto lleva su palabra («PUENTE», «CEDA EL PASO»). Con [abreviar] (tarjetas pequeñas): IZQ, DER y HORQ.
+ * Un aviso suelto lleva su palabra («PUENTE», «CEDA EL PASO»). Con [abreviar] (tarjetas pequeñas): IZQ, DER, HORQ
+ * y «MUY CERR.».
  */
 internal fun textoNota(
     recursos: Resources,
@@ -33,7 +46,11 @@ internal fun textoNota(
 
 /** Abreviaturas de roadbook para las tarjetas pequeñas. */
 private fun abreviaturas(frase: String): String =
-    frase.replace("IZQUIERDA", "IZQ").replace("DERECHA", "DER").replace("HORQUILLA", "HORQ")
+    frase
+        .replace("IZQUIERDA", "IZQ")
+        .replace("DERECHA", "DER")
+        .replace("HORQUILLA", "HORQ")
+        .replace("MUY CERRADA", "MUY CERR.")
 
 /** La curva sin «cuidado», avisos, puente ni distancia; un aviso suelto, su palabra. */
 private fun fraseVisible(

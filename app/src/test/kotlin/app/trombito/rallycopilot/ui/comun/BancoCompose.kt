@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.comun
 
 import android.os.Looper
 import android.os.SystemClock
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.ComponentActivity
@@ -38,6 +39,27 @@ class BancoCompose {
 
     /** Deja correr composición, medida y dibujo pendientes. */
     fun reposo() = dejarCorrer()
+
+    /** Toca (baja y sube el dedo) en un punto de la ventana, como un toque real sobre el mapa. */
+    fun tocarEn(
+        x: Float,
+        y: Float,
+    ) {
+        val vista = checkNotNull(buscarRaiz(controlador.get().window.decorView) as? View) { "No hay contenido Compose" }
+        listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_UP).forEach { accion ->
+            val ahora = SystemClock.uptimeMillis()
+            val evento = MotionEvent.obtain(ahora, ahora, accion, x, y, 0)
+            vista.dispatchTouchEvent(evento)
+            evento.recycle()
+        }
+        reposo()
+    }
+
+    /** Deja pasar [ms] milisegundos del reloj virtual (cuentas atrás, retardos) y recompone. */
+    fun esperar(ms: Long) {
+        avanzar(ms)
+        reposo()
+    }
 
     fun raiz(): SemanticsNode {
         val vista = buscarRaiz(controlador.get().window.decorView)

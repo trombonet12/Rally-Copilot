@@ -6,6 +6,7 @@
     <string name="notas_ahora">Ahora</string>
     <string name="notas_cuidado_icono">Cuidado</string>
     <string name="notas_distancia_siguiente">·&#160;%1$d</string>
+    <string name="notas_distancia_nota">%1$d&#160;m</string>
 
     <!-- Ajustes: anticipación de las notas y notas simplificadas -->
     <string name="ajustes_anticipacion_titulo">Anticipación de las notas</string>

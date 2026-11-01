@@ -31,6 +31,7 @@ private val DERECHA =
 /** Grado que dibuja cada categoría gruesa de las notas simplificadas (la más típica de su grupo). */
 private fun gradoRepresentativo(g: GradoSimplificado): Int =
     when (g) {
+        GradoSimplificado.MUY_CERRADA -> 1
         GradoSimplificado.CERRADA -> 2
         GradoSimplificado.MEDIA -> 4
         GradoSimplificado.SUAVE -> 6
@@ -66,6 +67,7 @@ private val ICONOS_AVISO: Map<TipoAviso, Int> =
         TipoAviso.RASANTE to R.drawable.ic_nota_rasante,
         TipoAviso.CAMBIO_RASANTE to R.drawable.ic_nota_rasante,
         TipoAviso.SALTO to R.drawable.ic_nota_salto,
+        TipoAviso.COMPRESION to R.drawable.ic_nota_compresion,
         TipoAviso.CUIDADO to R.drawable.ic_nota_cuidado,
     )
 

@@ -354,13 +354,88 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     private val libre = NavegacionUiState(control = EstadoNavegacion.Libre(0L, 0.0))
 
     @Test
-    fun `en modo libre la franja de notas va arriba, bajo la barra de destino`() {
+    fun `en modo libre con notas la franja ocupa el sitio de la barra de destino`() {
         poner(libre, notas)
+        val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
+        assertFalse("la barra se esconde mientras hay notas", banco.hay(ETIQUETA_BUSCADOR))
+        assertEquals(
+            listOf("DERECHA 4 LARGA · 50", "120\u00A0m"),
+            banco.textos(banco.conEtiqueta(ETIQUETA_NOTA_PREFIJO + 0)),
+        )
+        assertTrue("la franja sube al sitio de la barra: $franja", franja.top < 24 * 3f)
+        assertTrue("la franja ocupa todo el ancho: $franja", franja.width > 411 * 3 * 0.8f)
+    }
+
+    @Test
+    fun `al tocar el mapa reaparece la barra sobre la franja y a los 8 s sin toques se vuelve a esconder`() {
+        poner(libre, notas)
+        banco.tocarEn(200f, 1000f)
         val barra = banco.conEtiqueta(ETIQUETA_BUSCADOR).boundsInRoot
         val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
-        assertEquals("DERECHA 4 LARGA · 50", banco.textos(banco.conEtiqueta(ETIQUETA_NOTA_PREFIJO + 0)).single())
-        assertTrue("la franja va bajo la barra: $franja vs $barra", franja.top >= barra.bottom)
-        assertTrue("la franja ocupa todo el ancho: $franja", franja.width > 411 * 3 * 0.8f)
+        assertTrue("la franja baja bajo la barra: $franja vs $barra", franja.top >= barra.bottom)
+        banco.esperar(7_000)
+        assertTrue("a los 7 s sigue", banco.hay(ETIQUETA_BUSCADOR))
+        banco.esperar(1_500)
+        assertFalse("a los 8 s se esconde", banco.hay(ETIQUETA_BUSCADOR))
+        assertTrue(banco.hay(ETIQUETA_FRANJA_NOTAS))
+    }
+
+    @Test
+    fun `cada toque reinicia la cuenta atras de la barra`() {
+        poner(libre, notas)
+        banco.tocarEn(200f, 1000f)
+        banco.esperar(5_000)
+        banco.tocarEn(200f, 1000f)
+        banco.esperar(5_000)
+        assertTrue("10 s tras el primer toque, 5 tras el segundo: sigue", banco.hay(ETIQUETA_BUSCADOR))
+        banco.esperar(4_000)
+        assertFalse(banco.hay(ETIQUETA_BUSCADOR))
+    }
+
+    @Test
+    fun `con texto escrito la barra no se esconde aunque haya notas`() {
+        poner(libre.copy(texto = "S"), notas)
+        assertTrue(banco.hay(ETIQUETA_BUSCADOR))
+        banco.tocarEn(200f, 1000f)
+        banco.esperar(20_000)
+        assertTrue(banco.hay(ETIQUETA_BUSCADOR))
+    }
+
+    @Test
+    fun `con resultados o vista previa abiertos la barra se ve y no se esconde`() {
+        poner(libre.copy(texto = "S", busqueda = BusquedaDestino.Resultados(emptyList())), notas)
+        banco.tocarEn(200f, 1000f)
+        banco.esperar(20_000)
+        assertTrue(banco.hay(ETIQUETA_BUSCADOR))
+        assertTrue(banco.hay(ETIQUETA_RESULTADOS))
+        poner(vistaPrevia(*dosRutas).copy(control = EstadoNavegacion.Libre(0L, 0.0)), notas)
+        banco.tocarEn(200f, 1000f)
+        banco.esperar(20_000)
+        assertTrue(banco.hay(ETIQUETA_BUSCADOR))
+    }
+
+    @Test
+    fun `con el campo enfocado la barra no se esconde`() {
+        poner(libre, notas)
+        banco.tocarEn(200f, 1000f)
+        banco
+            .conEtiqueta(ETIQUETA_BUSCADOR)
+            .config
+            .getOrNull(SemanticsActions.RequestFocus)!!
+            .action!!
+            .invoke()
+        banco.reposo()
+        banco.esperar(20_000)
+        assertTrue(banco.hay(ETIQUETA_BUSCADOR))
+    }
+
+    @Test
+    fun `sin notas la barra se ve como siempre y tocar el mapa no cambia nada`() {
+        poner(libre)
+        assertTrue(banco.hay(ETIQUETA_BUSCADOR))
+        banco.tocarEn(200f, 1000f)
+        banco.esperar(10_000)
+        assertTrue(banco.hay(ETIQUETA_BUSCADOR))
     }
 
     @Test

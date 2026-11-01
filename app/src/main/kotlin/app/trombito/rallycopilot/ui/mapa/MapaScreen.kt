@@ -26,8 +26,11 @@ import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -214,7 +217,9 @@ private fun ZonaMapa(
     val acciones = contenido.acciones
     val navegacion = contenido.navegacion
     val lados = if (vista.horizontal) LADOS_MAPA_HORIZONTAL else LADOS_MAPA_VERTICAL
-    Box(modifier) {
+    val barra = remember { EstadoBarraDestino() }
+    val buscar by rememberUpdatedState(estado.hayDatos && navegacion.estado.enReposo)
+    Box(modifier.alTocar(barra) { if (buscar) barra.tocar() }) {
         val json = estado.estiloJson
         when {
             estado.cargando -> {
@@ -230,7 +235,7 @@ private fun ZonaMapa(
             }
         }
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(lados)).padding(Espacio.s)) {
-            CabeceraMapa(estado, acciones, navegacion, vista.horizontal, Modifier.align(Alignment.TopStart))
+            CabeceraMapa(estado, acciones, navegacion, barra, vista.horizontal, Modifier.align(Alignment.TopStart))
             if (estado.hayDatos) {
                 PieMapa(estado, vista, acciones, navegacion, Modifier.align(Alignment.BottomStart))
                 (navegacion.estado.control as? EstadoNavegacion.Guiando)?.let {
@@ -303,21 +308,37 @@ private fun TarjetaMapas(
 /**
  * Arriba: en reposo, la barra «¿A dónde?» a todo el ancho con su lista de resultados; debajo, la franja de notas de
  * la carretera (modo libre), «Seguir a <destino>» si hay un guiado a medias y el aviso de actualización. Mientras se
- * guía, el banner de maniobra y la franja de notas ocupan esa franja y el aviso espera a que acabe.
+ * guía, el banner de maniobra y la franja de notas ocupan esa franja y el aviso espera a que acabe. Con notas en la
+ * franja la barra se esconde (la franja sube a su sitio): reaparece al tocar el mapa y se vuelve a esconder a los 8 s
+ * sin toques, nunca con el campo enfocado, texto escrito, resultados o vista previa abiertos.
  */
 @Composable
+@Suppress("LongParameterList") // estado, acciones, navegación y barra son los bloques de la cabecera
 private fun CabeceraMapa(
     estado: MapaUiState,
     acciones: AccionesMapa,
     navegacion: NavegacionEnMapa,
+    barra: EstadoBarraDestino,
     horizontal: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val buscar = estado.hayDatos && navegacion.estado.enReposo
+    val hayNotas = navegacion.notas.visibles.isNotEmpty()
+    val retenida =
+        barraDestinoRetenida(
+            enfocada = barra.enfocada,
+            hayTexto = navegacion.estado.texto.isNotEmpty(),
+            hayBusqueda = navegacion.estado.busqueda !is BusquedaDestino.Inactiva,
+            hayVistaPrevia = navegacion.estado.vistaPrevia != null,
+        )
+    OcultarBarraTrasInactividad(barra, buscar && barraDestinoCuentaAtras(hayNotas, barra.reclamada, retenida))
+    LaunchedEffect(buscar) { if (!buscar) barra.ocultar() }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
         if (buscar) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                CabeceraBusqueda(navegacion.estado, navegacion.acciones)
+            if (barraDestinoVisible(hayNotas, barra.reclamada, retenida)) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    CabeceraBusqueda(navegacion.estado, navegacion.acciones) { barra.enfocada = it }
+                }
             }
             ListaDestinos(
                 busqueda = navegacion.estado.busqueda,

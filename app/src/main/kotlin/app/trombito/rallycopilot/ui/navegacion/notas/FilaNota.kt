@@ -45,6 +45,8 @@ import app.trombito.rallycopilot.ui.theme.RallyOscuro
 private const val OPACIDAD_FONDO = 0.94f
 private const val REDUCCION_FUENTE = 0.92f
 private const val FRACCION_TEXTO_MINIMO = 0.7f
+private const val FRACCION_TEXTO_MINIMO_CON_DISTANCIA = 0.65f
+private const val FRACCION_TEXTO_DISTANCIA = 0.6f
 private val GRIS_BORDE = Color(0xFF80858D)
 private val FONDO_ACTIVA = Color(0xFF2A2008)
 private val SESGO = 10.dp
@@ -53,7 +55,8 @@ private val FORMA_PEQUENA = RoundedCornerShape(10.dp)
 
 /**
  * Medidas de una fila: la primera nota va grande y las siguientes en pequeño. [lineas] es el máximo de líneas del
- * texto, que antes de recortarse reduce la fuente hasta el 70 %; las pequeñas [abreviar] (IZQ, DER, HORQ).
+ * texto, que antes de recortarse reduce la fuente hasta el 70 % (65 % con distancia, que le quita sitio); las
+ * pequeñas [abreviar] (IZQ, DER, HORQ). Solo la grande y la compacta (la primera nota) escriben la [distancia].
  */
 @Suppress("LongParameterList") // todas las medidas de una fila, fijas por diseño
 internal class Medidas(
@@ -64,13 +67,15 @@ internal class Medidas(
     val relleno: Dp,
     val lineas: Int,
     val abreviar: Boolean,
+    val distancia: Boolean = false,
 ) {
-    val textoMinimo: TextUnit get() = texto * FRACCION_TEXTO_MINIMO
+    val textoMinimo: TextUnit
+        get() = texto * if (distancia) FRACCION_TEXTO_MINIMO_CON_DISTANCIA else FRACCION_TEXTO_MINIMO
 }
 
-internal val MEDIDAS_GRANDE = Medidas(48.dp, 24.sp, 28.dp, ParalelogramoShape(SESGO), SESGO + 8.dp, 2, false)
+internal val MEDIDAS_GRANDE = Medidas(48.dp, 24.sp, 28.dp, ParalelogramoShape(SESGO), SESGO + 8.dp, 2, false, true)
 internal val MEDIDAS_COMPACTA =
-    Medidas(32.dp, 20.sp, 22.dp, ParalelogramoShape(SESGO_COMPACTO), SESGO_COMPACTO + 8.dp, 1, false)
+    Medidas(32.dp, 20.sp, 22.dp, ParalelogramoShape(SESGO_COMPACTO), SESGO_COMPACTO + 8.dp, 1, false, true)
 internal val MEDIDAS_PEQUENA = Medidas(28.dp, 15.sp, 20.dp, FORMA_PEQUENA, 8.dp, 2, true)
 
 @Composable
@@ -110,6 +115,14 @@ internal fun FilaNota(
             medidas = medidas,
             modifier = Modifier.weight(1f),
         )
+        if (medidas.distancia) {
+            DistanciaNota(
+                distanciaM = visible.distanciaM,
+                color = color,
+                medidas = medidas,
+                modifier = Modifier.testTag(ETIQUETA_NOTA_DISTANCIA_PREFIJO + indice),
+            )
+        }
         if (cuidado && elemento is ElementoHoja.DeNota) {
             Icono(
                 recurso = R.drawable.ic_nota_cuidado,
@@ -178,6 +191,28 @@ private fun TextoAjustado(
                 tamano = (tamano.value * REDUCCION_FUENTE).coerceAtLeast(medidas.textoMinimo.value).sp
             }
         },
+        modifier = modifier,
+    )
+}
+
+/** «120 m»: a cuánto está la nota, en una línea y más pequeña que su texto. TalkBack ya la lee en la descripción. */
+@Composable
+private fun DistanciaNota(
+    distanciaM: Double,
+    color: Color,
+    medidas: Medidas,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = stringResource(R.string.notas_distancia_nota, distanciaRedondeadaM(distanciaM)),
+        color = color,
+        style =
+            MaterialTheme.typography.titleMedium.copy(
+                fontSize = medidas.texto * FRACCION_TEXTO_DISTANCIA,
+                fontWeight = FontWeight.Bold,
+            ),
+        maxLines = 1,
+        softWrap = false,
         modifier = modifier,
     )
 }

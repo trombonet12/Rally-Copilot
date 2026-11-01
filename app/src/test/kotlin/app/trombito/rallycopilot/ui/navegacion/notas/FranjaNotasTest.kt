@@ -59,7 +59,19 @@ abstract class FranjaNotasBase {
 
     protected fun fila(indice: Int): SemanticsNode = banco.conEtiqueta(ETIQUETA_NOTA_PREFIJO + indice)
 
-    protected fun textoFila(indice: Int): String = banco.textos(fila(indice)).joinToString(" ")
+    /** Texto de la nota sin la distancia hasta ella, que va aparte («120 m»). */
+    protected fun textoFila(indice: Int): String =
+        fila(indice)
+            .children
+            .filter { it.config.getOrNull(SemanticsProperties.TestTag) != ETIQUETA_NOTA_DISTANCIA_PREFIJO + indice }
+            .flatMap { banco.textos(it) }
+            .joinToString(" ")
+
+    protected fun distanciaFila(indice: Int): String? =
+        banco
+            .etiquetas(ETIQUETA_NOTA_DISTANCIA_PREFIJO + indice)
+            .firstOrNull()
+            ?.let { banco.textos(banco.conEtiqueta(it)).single() }
 
     protected fun ahora(indice: Int): String? = fila(indice).config.getOrNull(SemanticsProperties.StateDescription)
 
@@ -186,6 +198,61 @@ class FranjaNotasTest : FranjaNotasBase() {
     }
 
     @Test
+    fun `con las notas simplificadas el grado 1 se ve muy cerrada y abreviada en las pequenas`() {
+        poner(
+            NotasUiState(
+                listOf(
+                    visible(deNota(nota(1))),
+                    visible(deNota(nota(1, Direccion.IZQUIERDA))),
+                    visible(deNota(nota(2))),
+                ),
+                simplificadas = true,
+            ),
+        )
+        assertEquals("DERECHA MUY CERRADA", textoFila(0))
+        assertEquals("IZQ MUY CERR.", textoFila(1))
+        assertEquals("DER CERRADA", textoFila(2))
+        assertTrue(banco.descripcion(fila(0))!!.startsWith("derecha muy cerrada"))
+    }
+
+    @Test
+    fun `la compresion se lee compresion en el texto, en el icono unido y en talkback`() {
+        poner(
+            NotasUiState(
+                listOf(
+                    visible(deNota(nota(3, Direccion.IZQUIERDA), TipoAviso.COMPRESION), 80.0),
+                    visible(deAviso(TipoAviso.COMPRESION)),
+                ),
+            ),
+        )
+        assertEquals("IZQUIERDA 3", textoFila(0))
+        assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-COMPRESION"))
+        assertEquals("compresión, izquierda tres, a 80 metros", banco.descripcion(fila(0)))
+        assertEquals("COMPRESIÓN", textoFila(1))
+        assertTrue(banco.descripcion(fila(1))!!.startsWith("compresión"))
+    }
+
+    @Test
+    fun `solo la tarjeta grande lleva la distancia hasta la nota, redondeada`() {
+        poner(tres)
+        assertEquals("120\u00A0m", distanciaFila(0))
+        assertNull(distanciaFila(1))
+        assertNull(distanciaFila(2))
+        poner(NotasUiState(listOf(visible(deNota(nota(4)), 123.0), visible(deAviso(TipoAviso.PUENTE), 255.0))))
+        assertEquals("120\u00A0m", distanciaFila(0))
+        poner(NotasUiState(listOf(visible(deNota(nota(4)), 262.0))))
+        assertEquals("250\u00A0m", distanciaFila(0))
+    }
+
+    @Test
+    fun `talkback lee la distancia una sola vez`() {
+        poner(tres)
+        val descripcion = banco.descripcion(fila(0))!!
+        assertEquals("derecha cuatro larga, cincuenta, a 120 metros", descripcion)
+        assertEquals(1, Regex("120").findAll(descripcion).count())
+    }
+
+    @Test
     fun `la horquilla se escribe entera con su direccion`() {
         poner(NotasUiState(listOf(visible(deNota(nota(null, Direccion.IZQUIERDA, siguienteM = 40))))))
         assertEquals("HORQUILLA IZQUIERDA · 40", textoFila(0))
@@ -255,7 +322,11 @@ class FranjaNotasTest : FranjaNotasBase() {
         val larga = nota(null, Direccion.DERECHA, setOf(Modificador.MUY_LARGA), siguienteM = 50, cuidado = true)
         poner(NotasUiState(listOf(visible(deNota(larga, TipoAviso.CAMBIO_RASANTE, TipoAviso.RASANTE)))))
         assertEquals("HORQUILLA DERECHA MUY LARGA · 50", textoFila(0))
-        val textos = banco.nodos().filter { it.config.getOrNull(SemanticsProperties.Text) != null }
+        val textos =
+            banco.nodos().filter {
+                it.config.getOrNull(SemanticsProperties.Text) != null &&
+                    it.config.getOrNull(SemanticsProperties.TestTag) != ETIQUETA_NOTA_DISTANCIA_PREFIJO + 0
+            }
         val resultados = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
         for (n in textos) {
             val accion = n.config.getOrNull(SemanticsActions.GetTextLayoutResult)?.action
@@ -299,6 +370,8 @@ class FranjaNotasHorizontalTest : FranjaNotasBase() {
         banco.poner { RallyCopilotTheme { FranjaNotas(tres, compacta = true) } }
         assertEquals("DERECHA 4 LARGA · 50", textoFila(0))
         assertEquals("IZQ 2 CIERRA · 30", textoFila(1))
+        assertEquals("120\u00A0m", distanciaFila(0))
+        assertNull(distanciaFila(1))
         assertFalse("sin tercera nota", banco.hay(ETIQUETA_NOTA_PREFIJO + 2))
         val (primera, segunda) = (0..1).map { fila(it).boundsInRoot }
         assertTrue("misma fila: $primera vs $segunda", segunda.left >= primera.right)

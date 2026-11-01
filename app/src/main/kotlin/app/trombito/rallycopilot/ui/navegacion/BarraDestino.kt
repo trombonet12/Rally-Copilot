@@ -22,9 +22,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -57,15 +59,20 @@ private val ALTO_FILA = 56.dp
 private val ALTO_LISTA_VERTICAL = 300.dp
 private val ALTO_LISTA_HORIZONTAL = 144.dp
 
-/** Campo «¿A dónde?» de esquinas muy redondeadas, con lupa y, si hay texto, un botón para borrarlo. */
+/**
+ * Campo «¿A dónde?» de esquinas muy redondeadas, con lupa y, si hay texto, un botón para borrarlo. [onFoco] avisa de si
+ * el campo tiene el foco (y de que lo pierde al salir de la composición).
+ */
 @Composable
 fun BarraDestino(
     texto: String,
     onTexto: (String) -> Unit,
     onLimpiar: () -> Unit,
     modifier: Modifier = Modifier,
+    onFoco: (Boolean) -> Unit = {},
 ) {
     val colores = MaterialTheme.colorScheme
+    DisposableEffect(Unit) { onDispose { onFoco(false) } }
     val cerrarTeclado = cerrarTeclado()
     Surface(
         shape = RoundedCornerShape(RADIO_BARRA),
@@ -92,7 +99,11 @@ fun BarraDestino(
                     cursorBrush = SolidColor(colores.primary),
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                     keyboardActions = KeyboardActions(onSearch = { cerrarTeclado() }),
-                    modifier = Modifier.fillMaxWidth().testTag(ETIQUETA_BUSCADOR),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { onFoco(it.isFocused) }
+                            .testTag(ETIQUETA_BUSCADOR),
                     decorationBox = { campo ->
                         if (texto.isEmpty()) {
                             Text(

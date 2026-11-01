@@ -36,12 +36,14 @@ private val ANCHO_MAXIMO_AVISO = 520.dp
 fun RowScope.CabeceraBusqueda(
     estado: NavegacionUiState,
     acciones: AccionesNavegacion,
+    onFoco: (Boolean) -> Unit = {},
 ) {
     BarraDestino(
         texto = estado.texto,
         onTexto = acciones.onTexto,
         onLimpiar = acciones.onCancelar,
         modifier = Modifier.weight(1f),
+        onFoco = onFoco,
     )
 }
 
