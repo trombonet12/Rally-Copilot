@@ -6,9 +6,9 @@ Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuest
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **3 abiertas** (cierre de H5B) · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
-## Abiertas al cerrar H5B
+## Respondidas al cerrar H5B (2026-11-01, en el chat): A, A y A
 
 ### Cambiar de destino durante el guiado
 - **Contexto:** guiando, al mantener pulsado un punto la tarjeta solo ofrece «Añadir parada».

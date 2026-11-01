@@ -4,7 +4,7 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H5B cerrado (2026-11-01) · siguiente: H6 — Tramos y cronometraje (retomar) |
+| Hito | H6 — Tramos y cronometraje (en curso, retomado 2026-11-01) |
 | Estado | **H5B cerrado**; v0.6 publicada al hacer push con `version.properties`. H6 sin código aún (el lote del motor no llegó a escribir nada) |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
@@ -76,4 +76,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H5B cerrado y v0.6 publicada; 3 dudas de H5B en QUESTIONS (presentadas a Joan). Siguiente: retomar H6 (motor de cronometraje desde cero, brief del 2026-11-01).
+- **Agente:** H6: motor de cronometraje (lote en curso). En paralelo, añadidos de H5B respondidos al cierre: «Ir aquí» guiando y lupa en el panel durante el guiado.

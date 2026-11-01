@@ -278,7 +278,7 @@ Convertir cada trayecto en un tramo cronometrado con sectores, detección de tra
 - Room: migraciones con tests.
 
 ### Estado
-pausado (2026-11-01, se hace antes H5B; el lote del motor quedó a medias por el límite de uso) · Depende de: H2 · Dudas: resueltas (2026-10-28); (2026-11-01): todo trayecto ≥ 1 km es tramo, delta por voz en sectores y meta, micro por km, HUD con tramo conocido
+en curso (retomado 2026-11-01 tras H5B) · Depende de: H2 · Dudas: resueltas (2026-10-28); (2026-11-01): todo trayecto ≥ 1 km es tramo, delta por voz en sectores y meta, micro por km, HUD con tramo conocido
 
 ## H7 — Análisis post-tramo y perfil del piloto
 
