@@ -170,7 +170,7 @@ El copiloto habla: voz sintética offline, cuatro modos, bajada de la música mi
 - Robolectric: gestor de foco de audio con un AudioManager falso.
 
 ### Estado
-pendiente · Depende de: H3 · Dudas: resueltas (2026-10-28): dos voces dentro, clips + TTS, app GPL-3.0
+en curso (2026-11-01) · Depende de: H3 · Dudas: resueltas (2026-10-28): dos voces dentro, clips + TTS, app GPL-3.0; (2026-11-01): modo inicial Completo, Solo alertas con maniobras, voz elegida en el primer uso
 
 ## H5 — Alertas: radares e incidencias
 

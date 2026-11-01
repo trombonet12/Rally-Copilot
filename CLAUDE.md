@@ -24,8 +24,8 @@ JDK 21 vía `~/.gradle/gradle.properties` (`org.gradle.java.installations.paths`
 ## Reglas de trabajo
 - Antes de trabajar: `docs/ESTADO.md`, el hito activo de `ROADMAP.md` y `docs/MEMORIA.md` (skill session-start).
   Al terminar: ESTADO.md (skill session-handoff). Al cerrar un hito: ROADMAP.md (estado, hecho, pendiente).
-- **Modo desatendido**: avanzar hito a hito. Parar solo al cerrar un hito o si no se puede avanzar; entonces presentar
-  todas las dudas acumuladas juntas y pedir push + versión. Desde H3, con su respuesta se arranca el siguiente hito.
+- **Modo desatendido**: hitos encadenados. Parar solo si hay dudas (al principio o al final de un hito) o si no se puede
+  avanzar, y presentarlas todas juntas. Al cerrar un hito: versión menor nueva + push, y seguir con el siguiente.
 - **No decidir producto** (funcionalidad, interfaz, alcance): apuntar en `QUESTIONS.md` con contexto, opciones y
   recomendación, y seguir con lo que no dependa. Lo técnico menor se decide y se registra en `docs/DECISIONES.md`
   (skill registrar-decision).
@@ -33,7 +33,7 @@ JDK 21 vía `~/.gradle/gradle.properties` (`org.gradle.java.installations.paths`
 - TDD en lógica crítica: generación de notas, cronometraje, detección de tramos, deltas, parseo de datos, migraciones.
 - Commits locales pequeños y frecuentes: Conventional Commits `tipo(ámbito): resumen` en español. **Sin
   `Co-Authored-By` ni atribución de IA.** `git add` explícito.
-- **Sin pedir permiso a Joan** para las acciones del hito y fusionar PRs (2026-10-28). **Push solo cuando Joan lo pida** (2026-10-31); un push a `main` que cambie `version.properties` publica release. Al repo `rally-copilot-data` sí se hace push y release de datos durante el hito (2026-10-31). Nunca force-push.
+- **Sin pedir permiso a Joan** para las acciones del hito y fusionar PRs (2026-10-28). **Push a `main` cuando el gate y los scripts estén en verde** (2026-11-01); un push que cambie `version.properties` publica release. Al repo `rally-copilot-data` también se hace push y release de datos durante el hito. Nunca force-push.
 - No añadir dependencias sin la skill dependency-add. No cambiar arquitectura sin registrarlo (registrar-decision).
 - No tocar ni imprimir secretos (`~/.rallycopilot/*`, `local.properties`, `.env*`, keystores). Nombres, nunca valores.
 - No desactivar tests para pasar el gate. No ignorar errores. TODOs solo con registro en ESTADO.md.

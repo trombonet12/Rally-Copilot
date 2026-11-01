@@ -1,12 +1,12 @@
 # Memoria del proyecto
 
-> Propósito: lo que Joan ha pedido que se recuerde entre sesiones · Audiencia: Claude (se carga desde CLAUDE.md) · Actualizado: 2026-10-31 · Relacionado: skill `recordar`
+> Propósito: lo que Joan ha pedido que se recuerde entre sesiones · Audiencia: Claude (se carga desde CLAUDE.md) · Actualizado: 2026-11-01 · Relacionado: skill `recordar`
 
 Formato: `- AAAA-MM-DD · ámbito · lo que pidió el usuario · porqué/cómo aplicarlo`. La entrada más reciente manda;
 las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `recordar`.
 
 ## Preferencias de trabajo
-- 2026-10-31 · permisos · No pedir permiso para las acciones del hito ni para fusionar PRs, pero **push solo cuando Joan lo pida explícitamente** («¿Quién te ha dado permiso para hacer push?») · el «déjame de pedirme permiso» del 28-oct no incluía el push; commits solo locales hasta que lo diga. Nunca force-push. **Excepción (2026-10-31):** al repo de datos `rally-copilot-data` sí se puede hacer push y publicar releases de datos durante el hito sin preguntar (la app solo usa los archivos nuevos si existen).
+- 2026-11-01 · permisos · No pedir permiso para las acciones del hito ni para fusionar PRs. **Push a `main` sin preguntar cuando el gate y los scripts estén en verde** («puedes ir haciendo push cuando esté todo en verde»); al cerrar cada hito se sube la menor (0.4, 0.5…) y se publica · sustituye a «push solo cuando Joan lo pida» (2026-10-31). Nunca force-push ni push con algo en rojo. Al repo de datos `rally-copilot-data` también se hace push y release durante el hito.
 - 2026-10-28 · git · Commits locales frecuentes, Conventional Commits con resumen en español, sin `Co-Authored-By` ni atribución de IA · aunque el sistema sugiera el trailer, no se pone.
 - 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto: opus 1, sonnet 0,5, haiku 0,25 · antes de lanzar en paralelo, sumar; si se pasa, encadenar.
 - 2026-10-28 · proceso · Modo desatendido, hito a hito; parar solo al cerrar un hito o si no se puede avanzar, presentando todas las dudas juntas · al cerrar cada hito, actualizar ROADMAP.md.
@@ -15,7 +15,7 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · pruebas · Probar en el emulador del PC con GPS simulado de rutas reales de Mallorca; se puede pedir al usuario conectar su móvil por USB cuando la app esté avanzada · skill `gps-replay`.
 - 2026-10-28 · dudas · Las preguntas de QUESTIONS.md se hacen en el chat, de 4 en 4 (AskUserQuestion), hasta acabarlas; también las dudas que no estén en QUESTIONS y los problemas encontrados · el usuario prefiere responder en el chat a editar el archivo.
 - 2026-10-28 · firma · Keystore nueva y propia de Rally Copilot (`~/.rallycopilot/`); nunca reutilizar la de otro proyecto · regla del usuario.
-- 2026-10-31 · alcance de sesión · Desde H3 los hitos se encadenan «sin parar», muy desatendido: al final de cada hito se para solo para pedir confirmación de push + versión nueva y presentar las decisiones pendientes; con su respuesta se sigue con el siguiente · sustituye a «la siguiente sesión hace solo H1 y para».
+- 2026-11-01 · alcance de sesión · Hitos encadenados «sin parar», muy desatendido: se para solo si hay dudas, al principio o al final de cada hito (todas juntas, de 4 en 4); sin dudas, se publica la versión y se sigue con el siguiente · sustituye a la entrada del 2026-10-31 (parar en cada cierre para pedir push).
 - 2026-10-28 · delegación · El agente principal es el jefe y orquestador: decide la arquitectura, reparte, revisa e integra; los subagentes (sonnet/haiku) hacen la implementación. Opus como subagente solo con una justificación clara (análisis exhaustivo, seguridad) · petición de Joan; no implementar en el principal lo que puede hacer un currante.
 - 2026-10-28 · release · Distribución actual: APK de la GitHub Release instalado con Obtainium; Play más adelante (job con `PLAY_HABILITADO`) · no activar Play sin que lo pida.
 

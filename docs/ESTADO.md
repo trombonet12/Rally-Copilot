@@ -1,12 +1,12 @@
 # Estado
 
-> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-10-31 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
+> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-01 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
 
 | Campo | Valor |
 |---|---|
-| Hito | H3 — Motor de notas (cerrado) · siguiente: H4 — Voz y modos del copiloto |
-| Estado | **H3 cerrado** (2026-10-31). Joan pidió parar hoy al acabar H3: H4 empieza en la próxima sesión tras su respuesta al cierre |
-| Último commit | ver `git log -1`. Push a `Rally-Copilot` solo cuando Joan lo pida (2026-10-31); al cerrar H2 pidió push + versión 0.2 |
+| Hito | H4 — Voz y modos del copiloto (en curso, 2026-11-01) |
+| Estado | Paso 1: respuestas del cierre de H3 (compresión, muy cerrada, sin curvas ≤ 30, barra oculta en libre, distancia en la franja). Después, voz |
+| Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
 - 2026-10-28 · Herencia de Sous Chef/Trombito analizada y documentada ([HERENCIA.md](HERENCIA.md)).
@@ -58,11 +58,11 @@
 - Ver [DECISIONES.md](DECISIONES.md) § Decisiones del usuario, § Base técnica e § Investigaciones previas.
 
 ## Dudas abiertas
-- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las de H2 y las del arranque de H3 respondidas el 2026-10-31.
+- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las del cierre de H3 y del arranque de H4 respondidas el 2026-11-01.
 
 ## Pendiente del usuario
 - **Copia de seguridad de `~/.rallycopilot/`** (keystore): sin ella no se pueden publicar actualizaciones.
-- Instalar la v0.2 con Obtainium y probar en el móvil con GPS real (velocidad, límite, guiado, modo libre).
+- Instalar la v0.3 con Obtainium y probar en el móvil con GPS real (velocidad, límite, guiado, modo libre).
 - Pasarme un enlace corto real de Google Maps (`maps.app.goo.gl/…`) para probar el caso de éxito.
 - Ir dejando material de voz en `voice-lab/data/raw/` (no bloquea hasta H11).
 
@@ -70,4 +70,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H3 cerrado y v0.3.0 publicada (push aprobado por Joan el 2026-11-01). Al volver, antes de `hito start H4`: implementar las respuestas del cierre de H3 (DECISIONES 2026-11-01: barra oculta en libre con notas, «compresión», «muy cerrada», sin curvas con límite ≤ 30). Después H4 (voz: `dependency-add` de sherpa-onnx, voces Piper davefx/sharvard, clips pregenerados en Actions, modos, ducking, frases de maniobra y notas por voz). Duda abierta: distancia hasta la nota en la franja (QUESTIONS).
+- **Agente:** H4 en curso. Paso 1: respuestas del cierre de H3 (motor: «compresión», «muy cerrada», sin curvas con límite ≤ 30; UI: barra «¿A dónde?» oculta en libre con notas, distancia hasta la nota en la tarjeta grande). Después, voz: investigación de sherpa-onnx + `dependency-add`, clips pregenerados en Actions, `PlanificadorFrases` en el motor, `Locutor` + foco de audio, modos (inicial Completo) y diálogo de voz en el primer uso.

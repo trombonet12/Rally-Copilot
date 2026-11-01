@@ -1,14 +1,20 @@
 # Preguntas abiertas
 
-> Propósito: dudas de producto, interfaz o alcance que decide Joan · Audiencia: Joan · Actualizado: 2026-10-31 · Relacionado: [ROADMAP.md](ROADMAP.md), [docs/DECISIONES.md](docs/DECISIONES.md)
+> Propósito: dudas de producto, interfaz o alcance que decide Joan · Audiencia: Joan · Actualizado: 2026-11-01 · Relacionado: [ROADMAP.md](ROADMAP.md), [docs/DECISIONES.md](docs/DECISIONES.md)
 
 Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuesta se sigue con lo que no depende de
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **1 abierta** (H3) · 22 respondidas (2026-10-28, en el chat). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
-## Abiertas en H3
+## Respondidas al empezar H4 (2026-11-01, en el chat)
+- **Modo inicial del copiloto:** Copiloto completo (notas, maniobras y alertas; delta y parciales cuando exista H6).
+- **Modo «Solo alertas»:** también dice las maniobras de navegación.
+- **Voz por defecto:** la elige Joan en el primer uso (diálogo davefx / sharvard con «Probar»); luego se cambia en Ajustes.
+- **Distancia hasta la nota:** sí, en la tarjeta grande de la franja (ver abajo).
+
+## Abiertas en H3 (todas respondidas)
 
 ### Franja de notas en modo libre
 - **Respondida 2026-11-01:** **C**: la barra «¿A dónde?» se oculta mientras hay notas y aparece al tocar el mapa.
@@ -17,6 +23,7 @@ Estado: **1 abierta** (H3) · 22 respondidas (2026-10-28, en el chat). Las respu
 - **Recomendación:** A; la barra es pequeña y la franja queda a la misma altura que en guiado.
 
 ### Distancia hasta la nota en la franja
+- **Respondida 2026-11-01:** **B**: la tarjeta grande muestra la distancia desde el coche hasta la nota.
 - **Contexto:** la franja enseña «DERECHA 3 LARGA · 50» (50 = distancia a la siguiente nota, como la cantaría el copiloto) y resalta la nota cuando toca leerla; la distancia desde el coche hasta la nota solo la dice TalkBack.
 - **Opciones:** A) no mostrarla (como un roadbook); B) mostrarla pequeña en la primera nota («en 120 m»).
 - **Recomendación:** A, para no mezclar dos distancias en la misma tarjeta.

@@ -23,9 +23,7 @@
       "Edit(.claude/agents/**)",
       "Edit(.claude/skills/**)",
       "Edit(docs/MEMORIA.md)",
-      "Bash(*)"
-    ],
-    "ask": [
+      "Bash(*)",
       "Bash(git push*)",
       "Bash(git -C * push*)",
       "PowerShell(git push*)",
