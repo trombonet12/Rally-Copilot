@@ -6,7 +6,24 @@ Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuest
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **3 abiertas** (cierre de H5B) · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+
+## Abiertas al cerrar H5B
+
+### Cambiar de destino durante el guiado
+- **Contexto:** guiando, al mantener pulsado un punto la tarjeta solo ofrece «Añadir parada».
+- **Opciones:** A) añadir también «Ir aquí» (sustituye el destino y conserva las paradas pendientes); B) como ahora.
+- **Recomendación:** A.
+
+### Buscar durante el guiado
+- **Contexto:** guiando no hay barra de búsqueda; las paradas solo se añaden manteniendo pulsado.
+- **Opciones:** A) icono de lupa en el panel que abre la búsqueda para añadir parada o cambiar destino; B) como ahora.
+- **Recomendación:** A.
+
+### Paradas al elegir otro destino en la vista previa
+- **Contexto:** hoy se conservan las paradas al cambiar de destino; para empezar de cero se cancela la ruta con la X.
+- **Opciones:** A) conservarlas (como ahora); B) borrarlas.
+- **Recomendación:** A.
 
 ## Respondidas al empezar H5B (2026-11-01, en el chat)
 - **Orden:** H5B antes de terminar H6. **Mantener pulsado:** tarjeta Ir aquí / Añadir parada. **Paradas:** en el orden añadido. **Buscador:** todo (con negocios), por palabras.

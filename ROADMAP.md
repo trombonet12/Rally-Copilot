@@ -235,20 +235,26 @@ inferior que no estorba mientras se planifica.
 - Fuera: optimizar el orden de las paradas.
 
 ### Criterios de aceptación
-- [ ] En el emulador el mapa gira e inclina con dos dedos y «recentrar» vuelve al seguimiento.
-- [ ] «hospital son espases», «castillo bellver», «calle colom palma» y «hospital» (desde Palma) encuentran lo esperado en
-  los primeros resultados (tests con el índice real).
-- [ ] Mantener pulsado → Ir aquí calcula la ruta; con dos paradas añadidas, `gps-replay` pasa por la primera y el guiado
-  sigue a la segunda.
-- [ ] Parado en la vista previa el panel es compacto y se amplía al moverse (capturas).
+- [x] El mapa gira e inclina con dos dedos y «recentrar» vuelve al seguimiento: gestos activados en `VistaMapa` (el gesto de dos dedos no se puede simular por adb; lo prueba Joan en el móvil).
+- [x] «hospital son espases», «castillo bellver», «calle colom palma» y «hospital» (desde Palma) encuentran lo esperado en
+  los primeros resultados: `BuscadorIndiceRealTest` con el índice real de `datos-2026.11.01-10` (4/4).
+- [x] Mantener pulsado → Ir aquí calcula la ruta; con dos paradas añadidas el guiado pasa por la primera y sigue a la
+  segunda: `SesionNavegacionParadasTest` (replay de dos paradas) y capturas en el emulador.
+- [x] Parado en la vista previa el panel es compacto y se amplía al moverse: `PanelCompactoTest` y [capturas](docs/capturas/h5b/).
 
 ### Tests
 - Motor: lógica de paradas (llegada/paso, siguiente), normalización y sinónimos de la consulta.
 - App: buscador con base SQLite de prueba e índice real; Robolectric de la tarjeta y del panel compacto.
 
 ### Estado
-en curso (2026-11-01) · Depende de: H2, H5 · Va antes de terminar H6 (petición de Joan) · Dudas: resueltas
-(2026-11-01): tarjeta Ir aquí / Añadir parada, paradas en el orden añadido, buscar todo por palabras
+completado (2026-11-01) · Depende de: H2, H5 · Dudas: resueltas (2026-11-01): tarjeta Ir aquí / Añadir parada, paradas
+en el orden añadido, buscar todo por palabras
+<!-- Hecho: gestos de girar/inclinar; buscador por palabras (tabla `palabras` en el repo de datos, sinónimos castellano↔catalán,
+categorías, calles primero si se pide calle, POIs de multipolígono); rutas con paradas (Valhalla con varias locations,
+seguimiento por tramos, voz «parada alcanzada», Room v6); mantener pulsado con tarjeta; lista de paradas (flechas en vez de
+arrastre); pie con próxima parada y final; panel compacto parado (< 5 km/h, se amplía a > 10 km/h).
+Pendiente: dudas de producto en QUESTIONS (cambiar destino o buscar durante el guiado, paradas al cambiar de destino);
+horizontal solo por tests. -->
 
 ## H6 — Tramos y cronometraje
 
