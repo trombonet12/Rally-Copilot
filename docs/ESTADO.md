@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H4 — Voz y modos del copiloto (en curso, 2026-11-01) |
-| Estado | Paso 1: respuestas del cierre de H3 (compresión, muy cerrada, sin curvas ≤ 30, barra oculta en libre, distancia en la franja). Después, voz |
+| Hito | H4 — Voz y modos del copiloto (cerrado, 2026-11-01) · siguiente: H5 — Alertas: radares e incidencias |
+| Estado | **H4 cerrado** (2026-11-01); v0.4 publicada al hacer push con `version.properties` |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -20,6 +20,7 @@
 - 2026-10-28 · `scripts/gps-replay.mjs` + traza real de la Ma-2141 ([rutas/](rutas/)), verificado en el emulador; `voice-lab/README.md` con dónde dejar el material de voz.
 - 2026-10-28 · **H1**: PRs #1 y #2 de Dependabot fusionados (con permiso). Repo público [`trombonet12/rally-copilot-data`](https://github.com/trombonet12/rally-copilot-data) con workflow mensual (decidir → build sin token → publicar) y release `datos-2026.10.28-2`. Motor: manifest, plan de descarga, vías/límites, velocidad. App: MapLibre 13.6.1, Room, WorkManager, descarga reanudable verificada, GPS sin GMS, mapa vectorial/satélite, velocidad y límite, Mapas offline, Ajustes/Acerca de. Revisión de seguridad aplicada. Capturas en [capturas/h1/](capturas/h1/).
 
+- 2026-11-01 · **H4**: el copiloto habla (sherpa-onnx 1.13.8, voces Piper int8 davefx/sharvard, frases sintetizadas por adelantado y cacheadas, ducking), cuatro modos, voz elegida en el primer uso, Room v5. Peticiones de Joan: ubicación bajo techo, todo menos el satélite dentro del APK (siembra), satélite z17 (`datos-2026.11.01-8`), flecha y rumbo pegados a la carretera. Capturas en [capturas/h4/](capturas/h4/).
 - 2026-10-31 · **H3**: motor de notas completo y calibrado con `copiloto-reviewer`, `vias-notas` (datos-2026.10.31-6), notas en vivo en guiado y libre, franja de notas, ajustes de anticipación y simplificadas (Room v4), «Seguir a», pantalla de conducción rediseñada (mapa inclinado, botones abajo, horizontal compacto). Capturas en [capturas/h3/](capturas/h3/).
 - 2026-10-31 · **H2**: navegación offline completa (Valhalla en el dispositivo, búsqueda, coordenadas y enlaces —los cortos con red—, Más rápida/Sinuosa, banner WRC con 3 variantes elegibles —B por defecto—, pie con llegada/tiempo/km, recálculo y sentido contrario, modo libre automático que graba el recorrido, servicio en primer plano) y mapa a gusto de Joan (menú de capas con iconos, relieve y curvas MDT05, zoom por velocidad, brújula, 4 iconos de posición, placas por matrícula en mapa y panel, pantalla encendida). Icono de la app centrado. Room v3. Revisión opus aplicada. Datos `datos-2026.10.31-5`. Capturas en [capturas/h2/](capturas/h2/).
 ## Entorno
@@ -35,6 +36,7 @@
 - `assembleRelease` sin firma → falla con «Release sin firma: faltan las variables RALLY_*» (esperado).
 - Scripts: `check-claude-assets`, `gen-claude-index --check`, `check-docs`, `test-hooks` (88 OK), `node --test` de `play-promocionar` (11) y `gps-replay` (8) → verde. `actionlint` sin errores.
 - Emulador: APK debug instalado; inicio, icono y splash verificados con capturas; `gps-replay` fija la posición `gps` en la Ma-2141.
+- H4 (2026-11-01): gate verde (≈ 650 tests JVM de app y > 600 del motor); emulador `trombito-36`: instalación limpia en modo avión con datos sembrados, voz real con sherpa (≈ 2,6 s la primera síntesis), Ma-2141 a 60 km/h con notas a 83–100 m, mapa girando con la carretera.
 - H3 (2026-10-31): gate verde con 519 tests JVM de app y 463 del motor; scripts y hooks (88 OK) en verde. Emulador `trombito-36` y `rally-sin-gms-36`: guiado y libre con notas, Seguir a tras `force-stop`, horizontal, ajustes.
 - H2 (2026-10-31): gate verde con 398 tests JVM de app y 233 del motor; scripts y hooks (88 OK) en verde. Emulador `trombito-36` y `rally-sin-gms-36`: rutas, búsqueda, guiado por la Ma-2141, pantalla apagada 6 min, capas, iconos, placas, galería WRC, horizontal.
 - H1 (2026-10-28): gate verde con 174 tests JVM de app y 82 del motor; `rally-copilot-data`: 5 tests de scripts + actionlint. Emulador `trombito-36` y `rally-sin-gms-36`: descarga real, corte de WiFi y reanudación, modo avión, Ma-2141 a 50 km/h con límite 90/30/sin dato, satélite, horizontal y spike `mbtiles://`.
@@ -48,7 +50,9 @@
 - `GITHUB_TOKEN` dio 403 al crear la release tras un job de más de 1 h; por eso la publicación va en un job aparte.
 - `mbtiles://` en MapLibre solo con ruta absoluta (no `file://`).
 - La etiqueta «MAR BALEAR» de Protomaps cae dentro de la isla (dato de Natural Earth); cosmético.
-- APK debug de 63 MB por las librerías nativas de MapLibre en 4 ABI; valorar splits por ABI antes de H12.
+- APK de ≈ 300 MB (datos ≈ 145 MB y voces ≈ 59 MB en `assets`, onnxruntime) con `abiFilters` arm64-v8a + x86_64. Los tests Robolectric empaquetan los assets (≈ 25 s cuando cambian).
+- Un solo Gradle a la vez en el árbol: dos agentes en paralelo rompen cachés (KSP, resultados binarios de tests).
+- El GPS del emulador da rumbo 0 con ±30°: la app lo ignora (precisión > 20°) y usa el del movimiento.
 
 - `gps-replay`: al acabar la traza el emulador sigue repitiendo la última posición con velocidad; para simular GPS perdido, `adb shell cmd location set-location-enabled false`.
 - `adb shell input text` no teclea acentos (buscar «Soller»).
@@ -62,7 +66,7 @@
 
 ## Pendiente del usuario
 - **Copia de seguridad de `~/.rallycopilot/`** (keystore): sin ella no se pueden publicar actualizaciones.
-- Instalar la v0.3 con Obtainium y probar en el móvil con GPS real (velocidad, límite, guiado, modo libre).
+- Instalar la v0.4 con Obtainium (≈ 300 MB), elegir la voz, descargar el satélite (≈ 1,5 GB, WiFi) y probar en el coche: voz, ducking con música, ubicación bajo techo, flecha sobre la carretera y probar en el móvil con GPS real (velocidad, límite, guiado, modo libre).
 - Pasarme un enlace corto real de Google Maps (`maps.app.goo.gl/…`) para probar el caso de éxito.
 - Ir dejando material de voz en `voice-lab/data/raw/` (no bloquea hasta H11).
 
@@ -70,4 +74,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H4 en curso. Paso 1: respuestas del cierre de H3 (motor: «compresión», «muy cerrada», sin curvas con límite ≤ 30; UI: barra «¿A dónde?» oculta en libre con notas, distancia hasta la nota en la tarjeta grande). Después, voz: investigación de sherpa-onnx + `dependency-add`, clips pregenerados en Actions, `PlanificadorFrases` en el motor, `Locutor` + foco de audio, modos (inicial Completo) y diálogo de voz en el primer uso.
+- **Agente:** H4 cerrado y v0.4 publicada. Siguiente: `hito start H5` (alertas: radares DGT + OSM en el repo de datos, DATEX II, refresco con caché, banner animado que entra y sale, exceso de velocidad); preguntar a Joan las dudas de producto de H5 al empezar.

@@ -161,16 +161,25 @@ El copiloto habla: voz sintética offline, cuatro modos, bajada de la música mi
 - Fuera: voz de Moya (H11).
 
 ### Criterios de aceptación
-- [ ] En modo avión, la nota suena antes de su punto con la anticipación configurada (medido con `gps-replay`).
-- [ ] Con música sonando, baja durante la voz y vuelve después.
-- [ ] Cada modo solo dice lo que le toca (tabla de casos).
+- [x] En modo avión, la nota suena antes de su punto con la anticipación configurada (medido con `gps-replay`): Ma-2141 a 60 km/h, nivel normal, se empieza a decir a 83–100 m (≈ 5–6 s); alguna a 40–65 m cuando se encadenan.
+- [x] Con música sonando, baja durante la voz y vuelve después: foco `GAIN_TRANSIENT_MAY_DUCK` con uso de guía de navegación pedido y soltado (`dumpsys audio` en el emulador + `GestorFocoAudioTest`); falta oírlo con música real en el móvil.
+- [x] Cada modo solo dice lo que le toca (tabla de casos): `ModoCopilotoTest` (4 × 4) y `CopilotoVozTest`.
 
 ### Tests
 - Motor: planificador de frases (prioridades, caducidad, modo).
 - Robolectric: gestor de foco de audio con un AudioManager falso.
 
 ### Estado
-en curso (2026-11-01) · Depende de: H3 · Dudas: resueltas (2026-10-28): dos voces dentro, clips + TTS, app GPL-3.0; (2026-11-01): modo inicial Completo, Solo alertas con maniobras, voz elegida en el primer uso
+completado (2026-11-01) · Depende de: H3 · Dudas: resueltas (2026-10-28): dos voces dentro, clips + TTS, app GPL-3.0; (2026-11-01): modo inicial Completo, Solo alertas con maniobras, voz elegida en el primer uso
+<!-- Hecho: respuestas del cierre de H3 (compresión, muy cerrada, sin curvas ≤ 30, barra oculta en libre, distancia en la franja);
+sherpa-onnx 1.13.8 + voces Piper int8 davefx/sharvard dentro del APK, frases sintetizadas por adelantado y cacheadas en el móvil
+(sustituye a los clips en Actions), PlanificadorFrases con caducidad y modos, AvisosManiobra (preaviso + inminente), Locutor con
+AudioTrack y ducking, Room v5 (modo y voz), selector de modo en el panel, voz elegida en el primer uso, sección Copiloto en Ajustes,
+ids de nota estables entre hojas. Peticiones de Joan durante el hito: ubicación bajo techo (fused/red), todo menos el satélite
+dentro del APK (siembra en el primer arranque, Mapas offline solo satélite, límite 4 GB), satélite z17 (manifest-extra),
+marcador y rumbo pegados a la ruta/vía, rumbo del receptor solo si es preciso.
+Pendiente: banner animado de radar/incidencia → H5 (aún no hay alertas); oír el ducking con música y medir el RTF en el móvil de
+Joan; revisión `copiloto-reviewer` de las frases de maniobra habladas (las de notas son las revisadas en H3). -->
 
 ## H5 — Alertas: radares e incidencias
 
@@ -180,7 +189,7 @@ Avisar de radares e incidencias de tráfico de Mallorca con datos abiertos.
 ### Alcance
 - Fuentes según [DECISIONES § Incidencias](docs/DECISIONES.md#incidencias-y-radares).
 - Radares fijos y de tramo guardados offline con los mapas; incidencias (obras, accidentes, retenciones, cortes) refrescadas al abrir la app y al iniciar una ruta.
-- Avisos por voz (modos Solo alertas en adelante) y banners; límite de velocidad excedido.
+- Avisos por voz (modos Solo alertas en adelante) y banners animados que entran y salen (pasado de H4); límite de velocidad excedido.
 - Zonas probables de radar móvil en pantalla y por voz; incidencias cercanas aunque estén fuera de la ruta. Sin botón de refresco manual.
 - Fuera: Waze y Google (sin API pública).
 
