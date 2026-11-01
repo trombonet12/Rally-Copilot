@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
+import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.vias.ViaActual
@@ -47,6 +48,7 @@ class MapaViewModel
         ubicacion: FuenteUbicacion,
         private val vias: ProveedorViaActual,
         private val ajustes: RepositorioAjustesConduccion,
+        private val navegacion: ControlNavegacion,
         private val guardado: SavedStateHandle,
     ) : ViewModel() {
         /** Reloj monótono (ms), el mismo de `Fijacion.tiempoMs`; sustituible en los tests. */
@@ -61,6 +63,8 @@ class MapaViewModel
             val posicion: Fijacion?,
             val velocidadKmh: Int?,
             val via: ViaActual?,
+            /** [posicion] ajustada al camino; es la que pinta el mapa. */
+            val ajustada: Fijacion? = posicion,
         )
 
         private val estilos =
@@ -75,6 +79,7 @@ class MapaViewModel
                     flowOf(LECTURA_VACIA)
                 } else {
                     val estimador = EstimadorVelocidad()
+                    val sobreCamino = PosicionSobreCamino(navegacion)
                     var viaPrevia: ViaActual? = null
                     var ultima = LECTURA_VACIA
                     // Sin fijaciones (túnel, GPS perdido) la velocidad caduca por el reloj, no por una fijación nueva.
@@ -93,11 +98,17 @@ class MapaViewModel
                                         estimador.vigente(fijacion.tiempoMs)
                                     }
                                 val velocidad = ms?.let(::kmh)
+                                // Al ajuste va la velocidad estimada (la del receptor puede faltar). El rumbo mostrado
+                                // sale del camino (ruta o vía), no del bruto; la cruda sigue en `posicion`.
+                                val conVelocidad = fijacion.copy(velocidadMs = ms ?: fijacion.velocidadMs)
+
+                                fun lectura(via: ViaActual?) =
+                                    Lectura(fijacion, velocidad, via, sobreCamino.ajustar(conVelocidad, via))
                                 // Primero la velocidad: la vía puede tardar (carga perezosa del archivo de vías).
-                                ultima = Lectura(fijacion, velocidad, viaPrevia)
+                                ultima = lectura(viaPrevia)
                                 send(ultima)
                                 viaPrevia = vias.viaEn(fijacion)
-                                ultima = Lectura(fijacion, velocidad, viaPrevia)
+                                ultima = lectura(viaPrevia)
                                 send(ultima)
                             }
                         }
@@ -105,7 +116,7 @@ class MapaViewModel
                             while (true) {
                                 delay(TICK_CADUCIDAD_MS)
                                 if (ultima.velocidadKmh != null && estimador.vigente(reloj()) == null) {
-                                    ultima = Lectura(ultima.posicion, null, ultima.via)
+                                    ultima = Lectura(ultima.posicion, null, ultima.via, ultima.ajustada)
                                     send(ultima)
                                 }
                             }
@@ -122,6 +133,7 @@ class MapaViewModel
                     estilos = mapas,
                     capaElegida = pref.capa,
                     posicion = lect.posicion,
+                    posicionAjustada = lect.ajustada,
                     velocidadKmh = lect.velocidadKmh,
                     via = lect.via,
                     siguiendo = sigue,

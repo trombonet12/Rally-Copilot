@@ -2,10 +2,12 @@ package app.trombito.rallycopilot.data.vias
 
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.vias.ViaActual
+import app.trombito.rallycopilot.motor.geo.SentidoCamino
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.vias.IndiceVias
 import app.trombito.rallycopilot.motor.vias.LimiteVelocidad
 import app.trombito.rallycopilot.motor.vias.SeguidorVia
+import app.trombito.rallycopilot.motor.vias.SentidoUnico
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
@@ -30,7 +32,17 @@ class ProveedorViaActualOsm
                 val seguidor = seguidorActual() ?: return@withLock null
                 val coincidencia = seguidor.actualizar(fijacion.punto, fijacion.rumboGrados) ?: return@withLock null
                 val via = coincidencia.via
-                ViaActual(via.nombre, via.ref, LimiteVelocidad.aplicable(via, coincidencia.adelante))
+                ViaActual(
+                    via.nombre,
+                    via.ref,
+                    LimiteVelocidad.aplicable(via, coincidencia.adelante),
+                    via.puntos,
+                    when (via.sentidoUnico) {
+                        SentidoUnico.NO -> SentidoCamino.AMBOS
+                        SentidoUnico.ADELANTE -> SentidoCamino.ADELANTE
+                        SentidoUnico.ATRAS -> SentidoCamino.ATRAS
+                    },
+                )
             }
 
         private suspend fun seguidorActual(): SeguidorVia? {

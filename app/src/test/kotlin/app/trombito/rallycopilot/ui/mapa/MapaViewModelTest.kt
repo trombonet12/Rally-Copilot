@@ -8,12 +8,19 @@ import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
+import app.trombito.rallycopilot.domain.navegacion.Destino
+import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.vias.ViaActual
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.SentidoCamino
+import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.ui.comun.FalsaFuenteUbicacion
 import app.trombito.rallycopilot.ui.comun.FalsoProveedorVia
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import app.trombito.rallycopilot.ui.comun.fijacion
+import app.trombito.rallycopilot.ui.navegacion.FalsoControlNavegacion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -42,6 +49,7 @@ class MapaViewModelTest {
     private val ubicacion = FalsaFuenteUbicacion()
     private val vias = FalsoProveedorVia()
     private val ajustes = FalsoRepositorioAjustesConduccion()
+    private val navegacion = FalsoControlNavegacion()
 
     @Before
     fun preparar() {
@@ -58,7 +66,7 @@ class MapaViewModelTest {
     private lateinit var planificador: TestCoroutineScheduler
 
     private fun crear(guardado: SavedStateHandle = SavedStateHandle()) =
-        MapaViewModel(repositorio, ubicacion, vias, ajustes, guardado).also {
+        MapaViewModel(repositorio, ubicacion, vias, ajustes, navegacion, guardado).also {
             it.reloj = { origenRelojMs + (if (::planificador.isInitialized) planificador.currentTime else 0L) }
         }
 
@@ -357,5 +365,88 @@ class MapaViewModelTest {
             ubicacion.flujo.emit(fijacion(tiempoMs = 11_000, velocidadMs = 90 / 3.6))
             val retomado = vm.uiState.value.zoomObjetivo ?: 0.0
             assertTrue("Debe bajar hacia 15 sin saltar: $retomado", retomado < 17.2 && retomado > 15.0)
+        }
+
+    /** Carretera recta hacia el este (rumbo 90) a 39,70 N. */
+    private val carretera = listOf(PuntoGeo(39.70, 2.900), PuntoGeo(39.70, 2.910))
+
+    /** Fijación a ~11 m al norte de la carretera, en marcha, con el rumbo bruto dado. */
+    private fun fijacionTorcida(
+        tiempoMs: Long,
+        rumbo: Double?,
+        velocidadMs: Double = 15.0,
+    ) = fijacion(tiempoMs, velocidadMs, lat = 39.7001, lon = 2.905).copy(rumboGrados = rumbo)
+
+    private val MapaUiState.rumboMostrado get() = posicionMostrada?.rumboGrados ?: Double.NaN
+    private val MapaUiState.rumboCrudo get() = posicion?.rumboGrados ?: Double.NaN
+    private val MapaUiState.latMostrada get() = posicionMostrada?.punto?.lat ?: Double.NaN
+    private val MapaUiState.lonMostrada get() = posicionMostrada?.punto?.lon ?: Double.NaN
+
+    private fun guiarPor(puntos: List<PuntoGeo>) {
+        val ruta = Ruta(puntos, maniobras = emptyList(), longitudM = 850.0, tiempoS = 60.0)
+        navegacion.publicar(
+            EstadoNavegacion.Guiando(Destino("Destino", puntos.last()), PerfilRuta.MAS_RAPIDA, ruta, null, false),
+        )
+    }
+
+    @Test
+    fun `en guiado el rumbo mostrado es el de la ruta aunque la fijacion traiga 30 grados de error`() =
+        runTest {
+            guiarPor(carretera)
+            val vm = crear()
+            recoger(vm)
+            val cruda = fijacionTorcida(1_000, rumbo = 60.0)
+            ubicacion.flujo.emit(cruda)
+            val estado = vm.uiState.value
+            assertEquals(cruda, estado.posicion)
+            assertEquals(90.0, estado.rumboMostrado, 0.5)
+            assertEquals(39.70, estado.latMostrada, 0.00002)
+            assertEquals(cruda.punto.lon, estado.lonMostrada, 0.00002)
+        }
+
+    @Test
+    fun `en libre el rumbo mostrado sigue la via actual`() =
+        runTest {
+            vias.via = ViaActual("Camí vell", null, null, carretera, SentidoCamino.AMBOS)
+            val vm = crear()
+            recoger(vm)
+            ubicacion.flujo.emit(fijacionTorcida(1_000, rumbo = 270.0))
+            assertEquals(270.0, vm.uiState.value.rumboMostrado, 0.5)
+            ubicacion.flujo.emit(fijacionTorcida(2_000, rumbo = 120.0))
+            assertEquals(90.0, vm.uiState.value.rumboMostrado, 0.5)
+            assertEquals(120.0, vm.uiState.value.rumboCrudo, 0.0)
+        }
+
+    @Test
+    fun `en guiado, fuera de la ruta pero sobre otra via, el marcador sigue la via`() =
+        runTest {
+            guiarPor(listOf(PuntoGeo(39.72, 2.900), PuntoGeo(39.72, 2.910)))
+            vias.via = ViaActual("Otra", null, null, carretera, SentidoCamino.AMBOS)
+            val vm = crear()
+            recoger(vm)
+            ubicacion.flujo.emit(fijacionTorcida(1_000, rumbo = 60.0))
+            assertEquals(90.0, vm.uiState.value.rumboMostrado, 0.5)
+        }
+
+    @Test
+    fun `sin ruta ni via cercana la posicion mostrada es la cruda`() =
+        runTest {
+            vias.via = ViaActual("Lejos", null, null, listOf(PuntoGeo(39.80, 2.90), PuntoGeo(39.80, 2.91)))
+            val vm = crear()
+            recoger(vm)
+            val cruda = fijacionTorcida(1_000, rumbo = 60.0)
+            ubicacion.flujo.emit(cruda)
+            assertEquals(cruda, vm.uiState.value.posicionMostrada)
+        }
+
+    @Test
+    fun `parado conserva el ultimo rumbo del camino aunque el bruto baile`() =
+        runTest {
+            guiarPor(carretera)
+            val vm = crear()
+            recoger(vm)
+            ubicacion.flujo.emit(fijacionTorcida(1_000, rumbo = 85.0, velocidadMs = 15.0))
+            ubicacion.flujo.emit(fijacionTorcida(2_000, rumbo = 200.0, velocidadMs = 0.3))
+            assertEquals(90.0, vm.uiState.value.rumboMostrado, 0.5)
         }
 }

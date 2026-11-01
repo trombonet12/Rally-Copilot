@@ -23,7 +23,10 @@ data class MapaUiState(
     val datos: EstadoDatosMapa = EstadoDatosMapa(),
     val estilos: EstilosMapa? = null,
     val capaElegida: CapaMapa = CapaMapa.VECTORIAL,
+    /** Fijación cruda del GPS (la que usan la navegación y las notas). */
     val posicion: Fijacion? = null,
+    /** [posicion] ajustada al camino (ruta o vía): punto proyectado y rumbo del camino. Null si no hay fijación. */
+    val posicionAjustada: Fijacion? = null,
     /** Null cuando no se conoce (sin permiso, sin fijación o velocidad caducada). */
     val velocidadKmh: Int? = null,
     val via: ViaActual? = null,
@@ -38,6 +41,9 @@ data class MapaUiState(
     val zoomObjetivo: Double? = null,
 ) {
     val hayDatos: Boolean get() = estilos != null
+
+    /** Lo que pinta el mapa: la posición ajustada al camino o, sin ajuste, la cruda. */
+    val posicionMostrada: Fijacion? get() = posicionAjustada ?: posicion
 
     /** Hay datos instalados pero su estilo no se pudo cargar (rechazado o ilegible). */
     val datosDanados: Boolean get() = !cargando && estilos == null && datos.instalados != null

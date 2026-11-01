@@ -55,7 +55,7 @@ fun MapaRoute(
         mapa = { estiloJson, modificador ->
             VistaMapa(
                 estiloJson = estiloJson,
-                posicion = estado.posicion,
+                posicion = estado.posicionMostrada,
                 camara = camaraVistaMapa(viewModel),
                 preferencias = preferenciasVista(estado, ruta),
                 modifier = modificador,
