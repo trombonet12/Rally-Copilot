@@ -10,7 +10,9 @@ import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -153,5 +155,46 @@ class RepositorioAjustesConduccionImplTest {
             val ajustes = repositorio.ajustes.first()
             assertEquals(NivelAnticipacion.NORMAL, ajustes.anticipacion)
             assertEquals(true, ajustes.notasSimplificadas)
+        }
+
+    @Test
+    fun `el copiloto por defecto es completo y sin voz elegida`() =
+        runBlocking {
+            val ajustes = repositorio.ajustes.first()
+            assertEquals(ModoCopiloto.COMPLETO, ajustes.modoCopiloto)
+            assertEquals(null, ajustes.voz)
+        }
+
+    @Test
+    fun `el modo y la voz del copiloto se guardan con sus setters`() =
+        runBlocking {
+            repositorio.elegirModoCopiloto(ModoCopiloto.SOLO_ALERTAS)
+            repositorio.elegirVoz(VozCopiloto.SHARVARD)
+            val ajustes = repositorio.ajustes.first()
+            assertEquals(ModoCopiloto.SOLO_ALERTAS, ajustes.modoCopiloto)
+            assertEquals(VozCopiloto.SHARVARD, ajustes.voz)
+            assertEquals(
+                AjustesConduccion(modoCopiloto = ModoCopiloto.SOLO_ALERTAS, voz = VozCopiloto.SHARVARD),
+                ajustes,
+            )
+        }
+
+    @Test
+    fun `un modo o una voz desconocidos en disco leen completo y sin voz`() =
+        runBlocking {
+            base.ajustesConduccionDao().guardar(
+                AjustesConduccionEntity(
+                    nivelZoom = 0,
+                    icono = "CASCO",
+                    orientacion = "NORTE",
+                    capa = "SATELITE",
+                    relieve = false,
+                    modoCopiloto = "CHARLATAN",
+                    voz = "ROBOT",
+                ),
+            )
+            val ajustes = repositorio.ajustes.first()
+            assertEquals(ModoCopiloto.COMPLETO, ajustes.modoCopiloto)
+            assertEquals(null, ajustes.voz)
         }
 }

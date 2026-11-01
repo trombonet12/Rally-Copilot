@@ -8,7 +8,9 @@ import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -39,6 +41,8 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         estiloManiobras = enumOrNull<EstiloManiobras>(estiloManiobras) ?: defecto.estiloManiobras,
         anticipacion = enumOrNull<NivelAnticipacion>(anticipacion) ?: defecto.anticipacion,
         notasSimplificadas = notasSimplificadas,
+        modoCopiloto = enumOrNull<ModoCopiloto>(modoCopiloto) ?: defecto.modoCopiloto,
+        voz = voz?.let { enumOrNull<VozCopiloto>(it) },
     )
 }
 
@@ -52,6 +56,8 @@ internal fun AjustesConduccion.aEntidad() =
         estiloManiobras = estiloManiobras.name,
         anticipacion = anticipacion.name,
         notasSimplificadas = notasSimplificadas,
+        modoCopiloto = modoCopiloto.name,
+        voz = voz?.name,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

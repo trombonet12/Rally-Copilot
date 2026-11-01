@@ -20,9 +20,9 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * Migraciones v1 -> v2 -> v3 -> v4. No hay `room-testing` (MigrationTestHelper) en el proyecto: la base antigua se crea
- * con el SQL exportado en `schemas/.../N.json` y Room la abre como v4; al abrir valida el esquema resultante contra
- * `4.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
+ * Migraciones v1 -> v2 -> v3 -> v4 -> v5. No hay `room-testing` (MigrationTestHelper) en el proyecto: la base antigua
+ * se crea con el SQL exportado en `schemas/.../N.json` y Room la abre como v5; al abrir valida el esquema resultante
+ * contra `5.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
  */
 @RunWith(RobolectricTestRunner::class)
 class MigracionRoomTest {
@@ -79,14 +79,14 @@ class MigracionRoomTest {
     }
 
     @Test
-    fun `de v1 a v4 conserva los datos y crea las tablas nuevas`() =
+    fun `de v1 a v5 conserva los datos y crea las tablas nuevas`() =
         runBlocking {
             crearBase(1)
 
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -106,7 +106,7 @@ class MigracionRoomTest {
             nueva.recorridosDao().anadirPuntos(id, listOf(RecorridoPuntoEntity(id, 0, 39.5, 2.9, 10, null)))
             assertEquals(1, nueva.recorridosDao().puntos(id).size)
             assertNotNull(nueva.openHelper.writableDatabase)
-            assertEquals(4, nueva.openHelper.writableDatabase.version)
+            assertEquals(5, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -117,7 +117,7 @@ class MigracionRoomTest {
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -134,7 +134,7 @@ class MigracionRoomTest {
                 ),
                 fila,
             )
-            assertEquals(4, nueva.openHelper.writableDatabase.version)
+            assertEquals(5, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -145,7 +145,7 @@ class MigracionRoomTest {
             val nueva =
                 Room
                     .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .allowMainThreadQueries()
                     .build()
             base = nueva
@@ -173,7 +173,57 @@ class MigracionRoomTest {
                     .first()
                     ?.destinoNombre,
             )
-            assertEquals(4, nueva.openHelper.writableDatabase.version)
+            assertEquals(5, nueva.openHelper.writableDatabase.version)
+        }
+
+    @Test
+    fun `de v4 a v5 conserva los ajustes con el copiloto en completo y sin voz elegida`() =
+        runBlocking {
+            crearBase(4)
+
+            val nueva =
+                Room
+                    .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .allowMainThreadQueries()
+                    .build()
+            base = nueva
+
+            assertEquals(
+                AjustesConduccionEntity(
+                    nivelZoom = 2,
+                    icono = "CASCO",
+                    orientacion = "NORTE",
+                    capa = "SATELITE",
+                    relieve = true,
+                    estiloManiobras = "PLACA",
+                    anticipacion = "NORMAL",
+                    notasSimplificadas = false,
+                    modoCopiloto = "COMPLETO",
+                    voz = null,
+                ),
+                nueva.ajustesConduccionDao().observar().first(),
+            )
+            nueva.ajustesConduccionDao().guardar(
+                AjustesConduccionEntity(
+                    nivelZoom = 0,
+                    icono = "CASCO",
+                    orientacion = "NORTE",
+                    capa = "SATELITE",
+                    relieve = false,
+                    modoCopiloto = "NOTAS",
+                    voz = "SHARVARD",
+                ),
+            )
+            assertEquals(
+                "SHARVARD",
+                nueva
+                    .ajustesConduccionDao()
+                    .observar()
+                    .first()
+                    ?.voz,
+            )
+            assertEquals(5, nueva.openHelper.writableDatabase.version)
         }
 
     private companion object {

@@ -14,7 +14,7 @@ import androidx.room.RoomDatabase
             RecorridoPuntoEntity::class,
             GuiadoPendienteEntity::class,
         ],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class RallyDatabase : RoomDatabase() {

@@ -17,6 +17,8 @@ data class AjustesConduccionEntity(
     @ColumnInfo(defaultValue = "'PLACA'") val estiloManiobras: String = "PLACA",
     @ColumnInfo(defaultValue = "'NORMAL'") val anticipacion: String = "NORMAL",
     @ColumnInfo(defaultValue = "0") val notasSimplificadas: Boolean = false,
+    @ColumnInfo(defaultValue = "'COMPLETO'") val modoCopiloto: String = "COMPLETO",
+    val voz: String? = null,
 )
 
 /** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */

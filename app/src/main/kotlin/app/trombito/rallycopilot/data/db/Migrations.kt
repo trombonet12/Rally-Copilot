@@ -51,3 +51,15 @@ val MIGRATION_3_4: Migration =
             )
         }
     }
+
+/**
+ * v4 -> v5: modo y voz del copiloto en los ajustes de conducción (la fila existente queda en COMPLETO y sin voz
+ * elegida). El SQL es el `createSql` de `schemas/.../5.json`.
+ */
+val MIGRATION_4_5: Migration =
+    object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `modoCopiloto` TEXT NOT NULL DEFAULT 'COMPLETO'")
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `voz` TEXT")
+        }
+    }
