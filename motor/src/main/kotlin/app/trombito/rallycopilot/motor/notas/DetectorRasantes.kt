@@ -5,8 +5,11 @@ import kotlin.math.ceil
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
-/** Tipo de rasante: cresta, cambio brusco de pendiente que no es cresta, o cresta con caída tan brusca que salta. */
-enum class TipoRasante { RASANTE, CAMBIO_RASANTE, SALTO }
+/**
+ * Tipo de rasante: cresta, cambio brusco de pendiente convexo que no es cresta, cresta con caída tan brusca que
+ * salta, o compresión (vaguada cóncava marcada, en la que el coche se hunde).
+ */
+enum class TipoRasante { RASANTE, CAMBIO_RASANTE, SALTO, COMPRESION }
 
 /** Rasante detectada; [posicionM] son metros desde el inicio de la ruta. */
 data class Rasante(
@@ -17,6 +20,12 @@ data class Rasante(
 /**
  * Umbrales de [DetectorRasantes]. Las pendientes y sus variaciones van en puntos porcentuales (% = m por 100 m);
  * las ventanas son distancias máximas (exclusivas) entre las dos pendientes comparadas.
+ *
+ * [variacionCompresionPuntos] es la subida de pendiente (cóncava) que hace una compresión en [ventanaCompresionM].
+ * Es más exigente que [variacionCambioPuntos] a propósito: una vaguada se nota menos que una pérdida de
+ * visibilidad y solo interesa avisar de las marcadas: 10 puntos (p. ej. de -5 % a +5 % en 40 m) son 2 más que el
+ * cambio convexo y, en las dos trazas de test (Ma-2141 y Ma-10) dejan 5 compresiones frente a 22 cambios convexos
+ * (con 8 salían 13, muchas en vaguadas suaves del MDT).
  */
 data class UmbralesRasantes(
     val pasoM: Double = 5.0,
@@ -28,6 +37,8 @@ data class UmbralesRasantes(
     val ventanaCambioM: Double = 40.0,
     val variacionSaltoPuntos: Double = 20.0,
     val ventanaSaltoM: Double = 30.0,
+    val variacionCompresionPuntos: Double = 10.0,
+    val ventanaCompresionM: Double = 40.0,
     val separacionM: Double = 60.0,
 ) {
     init {
@@ -39,9 +50,9 @@ data class UmbralesRasantes(
  * Detecta rasantes sobre un perfil de alturas equiespaciadas (típicamente [AlturasRuta]): suaviza con un núcleo
  * gaussiano (reflejo impar en los extremos, que conserva las rampas), deriva la pendiente y busca crestas
  * (la pendiente pasa de subida fuerte a bajada en poca distancia), saltos (crestas con caída brusca) y cambios de
- * pendiente convexos (la pendiente baja y quita visibilidad; los cóncavos no se avisan). Entre dos rasantes a menos
- * de [UmbralesRasantes.separacionM] solo queda la de mayor prioridad (SALTO > RASANTE > CAMBIO_RASANTE). Puro y
- * determinista.
+ * pendiente convexos (la pendiente baja y quita visibilidad) y compresiones (el cambio simétrico, cóncavo: la
+ * pendiente sube con fuerza). Entre dos rasantes a menos de [UmbralesRasantes.separacionM] solo queda la de mayor
+ * prioridad (SALTO > RASANTE > CAMBIO_RASANTE = COMPRESION; a igual prioridad, la primera). Puro y determinista.
  */
 class DetectorRasantes(
     private val umbrales: UmbralesRasantes = UmbralesRasantes(),
@@ -52,8 +63,14 @@ class DetectorRasantes(
         val suave = Pendientes.suavizar(alturasM.toDoubleArray(), umbrales.pasoM, umbrales.sigmaM)
         val pendiente = Pendientes.derivar(suave, umbrales.pasoM)
         val crestas = crestas(pendiente)
-        val cambios = cambios(pendiente, crestas)
-        return deduplicar(crestas.map { it.rasante } + cambios)
+        val convexos = cambios(pendiente, crestas, 1.0, umbrales.variacionCambioPuntos, umbrales.ventanaCambioM)
+        val concavos =
+            cambios(pendiente, emptyList(), -1.0, umbrales.variacionCompresionPuntos, umbrales.ventanaCompresionM)
+        return deduplicar(
+            crestas.map { it.rasante } +
+                convexos.map { Rasante(it, TipoRasante.CAMBIO_RASANTE) } +
+                concavos.map { Rasante(it, TipoRasante.COMPRESION) },
+        )
     }
 
     private class Cresta(
@@ -109,31 +126,39 @@ class DetectorRasantes(
         val delta: Double,
     )
 
-    /** La ventana que empieza en [i] con mayor caída de pendiente (convexo; j = -1 si no hay). */
+    /**
+     * La ventana que empieza en [i] con mayor variación de pendiente en el sentido de [signo] (1 = caída, convexo;
+     * -1 = subida, cóncavo); j = -1 si no hay.
+     */
     private fun mejorVentana(
         p: DoubleArray,
         i: Int,
         maxVentana: Int,
+        signo: Double,
     ): Ventana {
         var mejor = Ventana(i, -1, 0.0)
         for (j in i + 1..minOf(p.lastIndex, i + maxVentana)) {
-            val d = p[i] - p[j]
+            val d = signo * (p[i] - p[j])
             if (d > mejor.delta) mejor = Ventana(i, j, d)
         }
         return mejor
     }
 
+    /** Posiciones de los cambios de pendiente de sentido [signo] de [umbral] puntos o más en [ventanaM]. */
     private fun cambios(
         p: DoubleArray,
         crestas: List<Cresta>,
-    ): List<Rasante> {
-        val maxVentana = saltos(umbrales.ventanaCambioM)
-        val resultado = ArrayList<Rasante>()
+        signo: Double,
+        umbral: Double,
+        ventanaM: Double,
+    ): List<Double> {
+        val maxVentana = saltos(ventanaM)
+        val resultado = ArrayList<Double>()
         var mejorRacha: Ventana? = null
         for (i in 0..p.size) {
             val v =
                 if (i < p.size) {
-                    mejorVentana(p, i, maxVentana).takeIf { it.delta >= umbrales.variacionCambioPuntos }
+                    mejorVentana(p, i, maxVentana, signo).takeIf { it.delta >= umbral }
                 } else {
                     null
                 }
@@ -157,9 +182,9 @@ class DetectorRasantes(
         i: Int,
         j: Int,
         crestas: List<Cresta>,
-    ): Rasante? {
+    ): Double? {
         val contiene = crestas.any { it.indice >= i - 1 && it.indice <= j }
-        return if (contiene) null else Rasante((i + j) / 2.0 * umbrales.pasoM, TipoRasante.CAMBIO_RASANTE)
+        return if (contiene) null else (i + j) / 2.0 * umbrales.pasoM
     }
 
     private fun deduplicar(candidatas: List<Rasante>): List<Rasante> {
@@ -176,7 +201,7 @@ class DetectorRasantes(
         when (this) {
             TipoRasante.SALTO -> 2
             TipoRasante.RASANTE -> 1
-            TipoRasante.CAMBIO_RASANTE -> 0
+            TipoRasante.CAMBIO_RASANTE, TipoRasante.COMPRESION -> 0
         }
 
     private companion object {

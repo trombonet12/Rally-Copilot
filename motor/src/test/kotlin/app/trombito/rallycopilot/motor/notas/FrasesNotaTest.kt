@@ -96,7 +96,7 @@ class FrasesNotaTest {
 
     @Test
     fun `frases simplificadas`() {
-        assertEquals("derecha cerrada", FrasesNota.frase(nota(grado = 1), simplificada = true))
+        assertEquals("derecha muy cerrada", FrasesNota.frase(nota(grado = 1), simplificada = true))
         assertEquals("derecha cerrada", FrasesNota.frase(nota(grado = 2), simplificada = true))
         assertEquals("izquierda media", FrasesNota.frase(nota(Direccion.IZQUIERDA, 3), simplificada = true))
         assertEquals("derecha media", FrasesNota.frase(nota(grado = 4), simplificada = true))
@@ -112,7 +112,7 @@ class FrasesNotaTest {
         val categorias = (1..6).map { nota(grado = it).simplificada() }
         assertEquals(
             listOf(
-                GradoSimplificado.CERRADA,
+                GradoSimplificado.MUY_CERRADA,
                 GradoSimplificado.CERRADA,
                 GradoSimplificado.MEDIA,
                 GradoSimplificado.MEDIA,

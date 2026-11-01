@@ -73,12 +73,23 @@ class GeneradorHoja(
     private val tabla: TablaGrados = TablaGrados(),
     private val contexto: ContextoVias? = null,
 ) {
-    /** Hoja de [ruta]; [vRefKmh] da la velocidad de referencia en una posición (ver [GeneradorNotas.generar]). */
+    /**
+     * Hoja de [ruta]; [vRefKmh] da la velocidad de referencia en una posición (ver [GeneradorNotas.generar]).
+     * Las curvas cuya referencia al inicio es [sinCurvasHastaKmh] o menos (calles) no generan nota; se descartan
+     * antes de generar las notas, así que la distancia y la «y» de la nota anterior se calculan sin ellas. Los
+     * avisos, rasantes y «cuidado» siguen saliendo. Sin referencia (`null`) no se descarta nada.
+     */
     fun generar(
         ruta: List<PuntoGeo>,
         vRefKmh: (Double) -> Double? = { null },
+        sinCurvasHastaKmh: Double = SIN_CURVAS_HASTA_KMH,
     ): HojaNotas {
-        val notas = GeneradorNotas(tabla).generar(DetectorCurvas().detectar(ruta), vRefKmh)
+        val curvas =
+            DetectorCurvas().detectar(ruta).filterNot {
+                (vRefKmh(it.inicioM) ?: Double.MAX_VALUE) <=
+                    sinCurvasHastaKmh
+            }
+        val notas = GeneradorNotas(tabla).generar(curvas, vRefKmh)
         val extraidos = contexto?.let { ExtractorAvisos(it).extraer(ruta) } ?: AvisosRuta(emptyList(), emptyList())
         val marcadas = Precaucion.marcar(notas, extraidos.avisos, extraidos.curvasPeligrosasM)
         val sueltos =
@@ -88,6 +99,11 @@ class GeneradorHoja(
                     extraidos.curvasPeligrosasM,
                 ).map { Aviso(it, TipoAviso.CUIDADO) }
         return HojaNotas(Ensamblado.unir(marcadas, (extraidos.avisos + sueltos).sinDuplicados()))
+    }
+
+    companion object {
+        /** Velocidad de referencia (km/h) hasta la cual una curva se considera de calle y no se canta. */
+        const val SIN_CURVAS_HASTA_KMH = 30.0
     }
 }
 

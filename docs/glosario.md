@@ -140,12 +140,13 @@ Avisos de `ExtractorAvisos` (`TipoAviso`). Se cantan solos o unidos a una nota. 
 | cruce | Nodo del grafo que es cruce (3 o más ramas) con una rama de rango ≥ unclassified o giro > 30° (`GrafoVias.cruces`, docs/DECISIONES.md § calibración de notas (H3)), fuera de rotondas | En el cruce | ma-2141 `10797 m  cruce`; ma-10 `15 m  cruce, ceda el paso, izquierda dos y` |
 | rasante | Cresta del perfil MDT05: pendiente de subida ≥ 4 % seguida de bajada ≤ −2 % en 60 m (`pendienteSubidaCrestaPct`, `pendienteBajadaCrestaPct`, `ventanaCrestaM`) | En la cresta | ma-2141 `2658 m  rasante` |
 | cambio de rasante | Solo convexo: la pendiente baja ≥ 8 puntos en menos de 40 m (`variacionCambioPuntos`, `ventanaCambioM`). No sale si la racha contiene una cresta | En el cambio | ma-2141 `3623 m  cambio de rasante` |
+| compresión | Vaguada cóncava marcada, simétrica del cambio de rasante: la pendiente sube ≥ 10 puntos en menos de 40 m (`variacionCompresionPuntos`, `ventanaCompresionM`). Umbral propio, más exigente que el convexo (8) para no avisar vaguadas suaves del MDT; con 8 saldrían 13 en los dos goldens y con 10 salen 5 | En la vaguada | ma-10 `15458 m  compresión`; ma-2141 `3565 m  compresión, izquierda uno larga abre, treinta` |
 | salto | Cresta con caída de pendiente ≥ 20 puntos en menos de 30 m (`variacionSaltoPuntos`, `ventanaSaltoM`) | En la cresta | ma-2141 `10047 m  salto` |
 | cuidado | `hazard=*` de la vía, nodo `hazard:*`, o `hazard:curve` sin nota a 30 m (suelto) | En el punto | Sin aviso suelto «cuidado» en los goldens; sale junto a notas como «cuidado,» |
 
-- **Rasantes:** prioridad salto > rasante > cambio de rasante. Dos rasantes a menos de 60 m (`separacionM`) se quedan con la de mayor prioridad. Las rasantes a 30 m o menos de un extremo de puente o túnel se descartan (artefacto del MDT, `JUNTA_M`).
+- **Rasantes:** prioridad salto > rasante > cambio de rasante = compresión (a igual prioridad gana la primera). Dos rasantes a menos de 60 m (`separacionM`) se quedan con la de mayor prioridad. Las rasantes a 30 m o menos de un extremo de puente o túnel se descartan (artefacto del MDT, `JUNTA_M`).
 - **Stop y ceda de un cruce:** no se avisan si la ruta llega por la vía principal del cruce (de mayor rango, o de igual rango con la misma `ref`). En un nodo que no es cruce, siempre se avisan. Un nodo sin aristas (no está en el grafo) también sale.
-- **Unión:** los avisos a menos de 20 m antes de una nota se cantan con ella: «cambio de rasante, izquierda tres y» (ma-2141 `3120 m`). Dentro de una cadena «y», un cambio de rasante se descarta; los demás avisos se unen igual.
+- **Unión:** los avisos a menos de 20 m antes de una nota se cantan con ella: «cambio de rasante, izquierda tres y» (ma-2141 `3120 m`). Dentro de una cadena «y», un cambio de rasante se descarta; los demás avisos (también la compresión: «compresión, derecha cuatro») se unen igual.
 - Los avisos que no se unen salen sueltos, en su posición.
 
 ## Precaución («cuidado,»)
@@ -171,11 +172,12 @@ Modo «simplificada» (Ajustes): solo cambia el grado por palabra (`GradoSimplif
 | Grado | Palabra |
 |---|---|
 | Horquilla | horquilla |
-| 1–2 | cerrada |
+| 1 | muy cerrada |
+| 2 | cerrada |
 | 3–4 | media |
 | 5–6 | suave |
 
-Ej.: «derecha cuatro abre, cincuenta» → «derecha media abre, cincuenta».
+Ej.: «derecha cuatro abre, cincuenta» → «derecha media abre, cincuenta»; «izquierda uno» → «izquierda muy cerrada».
 
 ## Niveles de anticipación
 
@@ -199,11 +201,13 @@ Distancia para empezar a cantar: `d = v · (T_nivel + t_voz)`, con `t_voz` = 1 s
 - Notas en la franja, notas en modo libre y anticipación en Ajustes: docs/DECISIONES.md § Motor de notas (H3).
 - Pipeline, μ = 0,6 y tabla inicial (propuestas): docs/investigacion/notas-de-rally.md.
 - Código de referencia: `motor/src/main/kotlin/app/trombito/rallycopilot/motor/notas/` (`FrasesNota.kt`, `Nota.kt`, `Avisos.kt`, `TablaGrados.kt`, `GeneradorNotas.kt`, `HojaNotas.kt` con `Precaucion`, `Anticipacion.kt`, `DetectorRasantes.kt`); `motor/vias/GrafoVias.kt` para el criterio de cruce; `app/.../data/notas/GeneracionHoja.kt` para la velocidad de referencia por clase.
-- Goldens: `motor/src/test/resources/notas/ma-2141-hoja.txt` (Ma-2141, 139 líneas) y `ma-10-hoja.txt` (Ma-10, 272 líneas). Regenerados con la calibración nueva; cada línea lleva `[ángulo° R radio m]`.
+- Goldens: `motor/src/test/resources/notas/ma-2141-hoja.txt` (Ma-2141, 139 líneas) y `ma-10-hoja.txt` (Ma-10, 274 líneas). Regenerados con la calibración nueva; cada línea lleva `[ángulo° R radio m]`.
+
+- Vocabulario (Joan, 2026-11-01): «compresión» para las vaguadas fuertes y «muy cerrada» para el grado 1 simplificado.
+- Sin curvas en calles: `GeneradorHoja.generar` no genera notas de curva cuya velocidad de referencia al inicio sea ≤ 30 km/h (`sinCurvasHastaKmh`); sin referencia no se descarta ninguna. Los avisos, rasantes y «cuidado» siguen saliendo, y la distancia y la «y» de la nota anterior se calculan sin la curva descartada. Los goldens no la aplican (se generan sin referencia).
 
 ## Pendiente
 - **H11 (refinar con transcripciones reales):** si dicen «izquierda» o «izda.»; «recto» o «a fondo» para el grado 6; cómo cantan los grados 5–6; si la distancia va antes o después de la nota (ya decidido: después); «contra», «corta», «abierta»; «cierra a dos» (grado final); pausa de la voz entre notas unidas («y» o punto); cuántas precauciones «cuidado» tolera el piloto.
-- **Dudas abiertas de vocabulario** (QUESTIONS.md § Vocabulario: «compresión» y grado uno simplificado): «compresión» para las vaguadas fuertes (hoy no se dicen); «muy cerrada» para el grado 1 en modo simplificado (hoy 1 y 2 son «cerrada»).
 - Frases sin ejemplo en los goldens (rotonda, estrecha, cuidado badén, semáforo, cuidado suelto): confirmar con un tramo de Mallorca que las tenga.
 - Umbrales, μ y velocidades de referencia por clase: calibrar en carretera (VERIFICAR, ver docs/investigacion/notas-de-rally.md). Los límites por clase son estimados.
 - Cobertura de `width` y `lanes` fuera de Ma-2141 (VERIFICAR, ver docs/investigacion/notas-de-rally.md).

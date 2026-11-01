@@ -72,6 +72,7 @@ object FrasesNota {
     private fun palabra(g: GradoSimplificado): String =
         when (g) {
             GradoSimplificado.HORQUILLA -> "horquilla"
+            GradoSimplificado.MUY_CERRADA -> "muy cerrada"
             GradoSimplificado.CERRADA -> "cerrada"
             GradoSimplificado.MEDIA -> "media"
             GradoSimplificado.SUAVE -> "suave"

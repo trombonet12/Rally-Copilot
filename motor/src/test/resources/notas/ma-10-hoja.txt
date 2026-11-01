@@ -87,7 +87,7 @@
  9535 m  túnel
  9595 m  izquierda tres, ciento veinte  [34° R69 m]
  9800 m  izquierda cinco, cien  [11° R169 m]
- 9878 m  cambio de rasante
+ 9838 m  compresión
  9950 m  derecha cuatro, ochenta  [37° R106 m]
 10130 m  izquierda cuatro, doscientos cincuenta  [68° R99 m]
 10540 m  derecha dos, cuarenta  [95° R41 m]
@@ -127,6 +127,7 @@
 15130 m  cuidado, izquierda dos, treinta  [49° R52 m]
 15225 m  derecha cuatro, ciento cincuenta  [15° R134 m]
 15440 m  izquierda dos, trescientos  [84° R33 m]
+15458 m  compresión
 15490 m  túnel
 15880 m  izquierda dos abre, treinta  [89° R34 m]
 15990 m  derecha tres, seiscientos  [28° R86 m]
@@ -182,6 +183,7 @@
 24010 m  cuidado, derecha tres, ciento veinte  [41° R74 m]
 24033 m  cambio de rasante
 24210 m  izquierda dos larga abre, cien  [116° R43 m]
+24243 m  compresión
 24410 m  derecha dos larga y  [112° R50 m]
 24540 m  cuidado, izquierda uno larga cierra y  [113° R26 m]
 24630 m  derecha dos abre y  [77° R29 m]
@@ -211,7 +213,7 @@
 27620 m  izquierda tres, ciento cincuenta  [34° R60 m]
 27820 m  derecha cuatro, cien  [24° R96 m]
 27855 m  rasante
-27985 m  derecha cuatro y  [14° R114 m]
+27985 m  compresión, derecha cuatro y  [14° R114 m]
 28030 m  izquierda tres cierra y  [53° R92 m]
 28120 m  derecha seis, cuarenta  [29° R267 m]
 28250 m  cuidado, izquierda dos y  [52° R41 m]

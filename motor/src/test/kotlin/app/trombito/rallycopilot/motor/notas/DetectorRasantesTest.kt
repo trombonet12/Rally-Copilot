@@ -51,9 +51,65 @@ class DetectorRasantesTest {
     }
 
     @Test
-    fun `una vaguada concava no se avisa`() {
-        assertTrue(detector.detectar(perfil(300) { if (it < 150.0) -8.0 else 8.0 }).isEmpty())
-        assertTrue(detector.detectar(perfil(300) { if (it < 150.0) 0.0 else 14.0 }).isEmpty())
+    fun `una vaguada concava marcada es una compresion en su posicion`() {
+        for (subida in listOf(-8.0 to 8.0, 0.0 to 14.0, -14.0 to 0.0)) {
+            val r = detector.detectar(perfil(300) { if (it < 150.0) subida.first else subida.second })
+            assertEquals(subida.toString(), listOf(TipoRasante.COMPRESION), r.map { it.tipo })
+            assertEquals(150.0, r.single().posicionM, 8.0)
+        }
+    }
+
+    @Test
+    fun `una vaguada concava suave por debajo de 10 puntos no se avisa`() {
+        assertTrue(detector.detectar(perfil(300) { if (it < 150.0) 0.0 else 7.0 }).isEmpty())
+        assertTrue(detector.detectar(perfil(300) { if (it < 150.0) -4.0 else 4.0 }).isEmpty())
+    }
+
+    @Test
+    fun `la compresion es simetrica del cambio de rasante convexo`() {
+        val convexo = detector.detectar(perfil(300) { if (it < 150.0) 14.0 else 0.0 }).single()
+        val concavo = detector.detectar(perfil(300) { if (it < 150.0) -14.0 else 0.0 }).single()
+        assertEquals(TipoRasante.CAMBIO_RASANTE, convexo.tipo)
+        assertEquals(TipoRasante.COMPRESION, concavo.tipo)
+        assertEquals(convexo.posicionM, concavo.posicionM, 1.0)
+    }
+
+    @Test
+    fun `una compresion y un cambio de rasante a menos de 60 m no se duplican`() {
+        // Escalon convexo hacia los 150 m y vaguada a los 195 m: solo queda el primero.
+        val r =
+            detector.detectar(
+                perfil(400) {
+                    if (it < 150.0) {
+                        16.0
+                    } else if (it < 195.0) {
+                        0.0
+                    } else {
+                        16.0
+                    }
+                },
+            )
+        assertEquals(r.toString(), 1, r.size)
+        assertEquals(TipoRasante.CAMBIO_RASANTE, r.single().tipo)
+    }
+
+    @Test
+    fun `una compresion se conserva a mas de 60 m de una rasante`() {
+        val r =
+            detector.detectar(
+                perfil(600) {
+                    if (it < 150.0) {
+                        -8.0
+                    } else if (it < 350.0) {
+                        8.0
+                    } else {
+                        -8.0
+                    }
+                },
+            )
+        assertEquals(r.toString(), listOf(TipoRasante.COMPRESION, TipoRasante.RASANTE), r.map { it.tipo })
+        assertEquals(150.0, r[0].posicionM, 8.0)
+        assertEquals(350.0, r[1].posicionM, 6.0)
     }
 
     @Test
@@ -135,5 +191,8 @@ class DetectorRasantesTest {
         val cresta = perfil(300) { if (it < 150.0) 8.0 else -8.0 }
         val estricto = DetectorRasantes(UmbralesRasantes(pendienteSubidaCrestaPct = 9.0, variacionSaltoPuntos = 99.0))
         assertTrue(estricto.detectar(cresta).none { it.tipo == TipoRasante.RASANTE })
+        val vaguada = perfil(300) { if (it < 150.0) -8.0 else 8.0 }
+        assertEquals(1, detector.detectar(vaguada).size)
+        assertTrue(DetectorRasantes(UmbralesRasantes(variacionCompresionPuntos = 20.0)).detectar(vaguada).isEmpty())
     }
 }

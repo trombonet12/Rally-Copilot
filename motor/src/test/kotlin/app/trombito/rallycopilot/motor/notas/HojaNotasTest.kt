@@ -96,6 +96,14 @@ class HojaNotasTest {
     }
 
     @Test
+    fun `una compresion unida a una nota se canta antes de ella`() {
+        val elementos = Ensamblado.unir(listOf(nota(100.0)), listOf(aviso(90.0, TipoAviso.COMPRESION)))
+        assertEquals(listOf("compresión, derecha cuatro"), elementos.map { it.frase })
+        val suelta = Ensamblado.unir(listOf(nota(100.0)), listOf(aviso(60.0, TipoAviso.COMPRESION)))
+        assertEquals(listOf("compresión", "derecha cuatro"), suelta.map { it.frase })
+    }
+
+    @Test
     fun `el cuidado va siempre primero en la frase`() {
         val n = nota(100.0, grado = null).copy(cuidado = true)
         val unida = Ensamblado.unir(listOf(n), listOf(aviso(90.0, TipoAviso.RASANTE)))
@@ -178,6 +186,7 @@ class HojaNotasTest {
                 TipoAviso.RASANTE to "rasante",
                 TipoAviso.CAMBIO_RASANTE to "cambio de rasante",
                 TipoAviso.SALTO to "salto",
+                TipoAviso.COMPRESION to "compresión",
                 TipoAviso.CUIDADO to "cuidado",
             )
         assertEquals(TipoAviso.entries.toSet(), esperado.keys)
@@ -373,5 +382,61 @@ class HojaNotasTest {
         val a = GeneradorHoja(contexto = contexto).generar(arco)
         val b = GeneradorHoja(contexto = contexto).generar(arco)
         assertEquals(a, b)
+    }
+
+    // --- Sin curvas en calles ------------------------------------------------------------------------------------
+
+    /** Arco a la izquierda, 300 m de recta y arco a la derecha, en una sola polilínea. */
+    private val dosArcos: List<PuntoGeo> =
+        run {
+            val primero = TrazasDePrueba.arcoEnMetros(60.0, 90.0, entradaM = 150.0, salidaM = 300.0)
+            val segundo = TrazasDePrueba.arcoEnMetros(60.0, 90.0, izquierda = false, entradaM = 0.0, salidaM = 200.0)
+            val (x0, y0) = primero.last()
+            // El segundo arco, girado 90 grados a la izquierda (x, y) -> (-y, x) y trasladado al final del primero.
+            TrazasDePrueba.enPlano(primero + segundo.drop(1).map { (x, y) -> (x0 - y) to (y0 + x) })
+        }
+
+    @Test
+    fun `una curva con referencia de 30 km por hora o menos no genera nota y el resto si`() {
+        val curvas = DetectorCurvas().detectar(dosArcos)
+        assertEquals(2, curvas.size)
+        val segundaM = curvas[1].inicioM
+        val hoja = GeneradorHoja().generar(dosArcos, { if (it >= segundaM) 30.0 else 90.0 })
+        assertEquals(1, hoja.notas.size)
+        assertEquals(curvas[0].inicioM, hoja.notas.single().posicionM, 0.0)
+    }
+
+    @Test
+    fun `la referencia justo por encima de 30 conserva la curva y el umbral es parametro`() {
+        assertEquals(2, GeneradorHoja().generar(dosArcos, { 30.1 }).notas.size)
+        assertTrue(GeneradorHoja().generar(dosArcos, { 30.0 }).notas.isEmpty())
+        assertTrue(GeneradorHoja().generar(dosArcos, { 50.0 }, sinCurvasHastaKmh = 50.0).notas.isEmpty())
+        assertEquals(2, GeneradorHoja().generar(dosArcos, { 30.0 }, sinCurvasHastaKmh = 20.0).notas.size)
+    }
+
+    @Test
+    fun `sin referencia de velocidad no se descarta ninguna curva`() {
+        assertEquals(2, GeneradorHoja().generar(dosArcos).notas.size)
+    }
+
+    @Test
+    fun `si la curva filtrada era la siguiente la nota anterior no deja y ni distancia colgando`() {
+        val segundaM = DetectorCurvas().detectar(dosArcos)[1].inicioM
+        val con = GeneradorHoja().generar(dosArcos, { 90.0 }).notas.first()
+        val sin = GeneradorHoja().generar(dosArcos, { if (it >= segundaM) 20.0 else 90.0 }).notas.single()
+        assertTrue(con.distanciaSiguienteM != null || con.unidaConSiguiente)
+        assertEquals(null, sin.distanciaSiguienteM)
+        assertFalse(sin.unidaConSiguiente)
+    }
+
+    @Test
+    fun `una curva de calle no genera nota pero si siguen los avisos y el cuidado`() {
+        val stop = NodoAviso(dosArcos[10], "stop")
+        val peligro = NodoAviso(dosArcos[60], "hazard:curve")
+        val contexto = contextoSobre(listOf(viaDe(1, dosArcos)), listOf(stop, peligro))
+        val hoja = GeneradorHoja(contexto = contexto).generar(dosArcos, { 20.0 })
+        assertTrue(hoja.notas.isEmpty())
+        assertTrue(hoja.avisos.any { it.tipo == TipoAviso.STOP })
+        assertTrue(hoja.avisos.any { it.tipo == TipoAviso.CUIDADO })
     }
 }

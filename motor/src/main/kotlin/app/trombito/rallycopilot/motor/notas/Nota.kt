@@ -4,7 +4,7 @@ package app.trombito.rallycopilot.motor.notas
 enum class Modificador { LARGA, MUY_LARGA, CIERRA, ABRE }
 
 /** Nota reducida a su categoría gruesa (modo de notas simplificadas). */
-enum class GradoSimplificado { HORQUILLA, CERRADA, MEDIA, SUAVE }
+enum class GradoSimplificado { HORQUILLA, MUY_CERRADA, CERRADA, MEDIA, SUAVE }
 
 /**
  * Nota de rally de una curva. [posicionM] es el inicio de la curva y [finM] su final (metros desde el inicio de la
@@ -26,11 +26,12 @@ data class Nota(
         require(grado == null || grado in 1..6) { "Grado fuera de 1..6: $grado" }
     }
 
-    /** 1–2 cerrada, 3–4 media, 5–6 suave; la horquilla se queda como horquilla. */
+    /** 1 muy cerrada, 2 cerrada, 3–4 media, 5–6 suave; la horquilla se queda como horquilla. */
     fun simplificada(): GradoSimplificado =
         when (grado) {
             null -> GradoSimplificado.HORQUILLA
-            1, 2 -> GradoSimplificado.CERRADA
+            1 -> GradoSimplificado.MUY_CERRADA
+            2 -> GradoSimplificado.CERRADA
             3, 4 -> GradoSimplificado.MEDIA
             else -> GradoSimplificado.SUAVE
         }

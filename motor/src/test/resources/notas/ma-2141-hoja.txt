@@ -32,7 +32,7 @@
  3230 m  rasante
  3335 m  izquierda tres abre, cincuenta  [53° R58 m]
  3455 m  derecha tres larga cierra y  [130° R76 m]
- 3565 m  izquierda uno larga abre, treinta  [124° R22 m]
+ 3565 m  compresión, izquierda uno larga abre, treinta  [124° R22 m]
  3623 m  cambio de rasante
  3675 m  cuidado, derecha dos cierra, veinte  [77° R27 m]
  3760 m  derecha uno y  [84° R22 m]

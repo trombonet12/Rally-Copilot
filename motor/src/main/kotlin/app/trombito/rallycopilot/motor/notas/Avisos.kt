@@ -37,6 +37,7 @@ enum class TipoAviso(
     RASANTE("rasante"),
     CAMBIO_RASANTE("cambio de rasante"),
     SALTO("salto"),
+    COMPRESION("compresión"),
     CUIDADO("cuidado", esCuidado = true, palabra = ""),
 }
 
@@ -187,6 +188,7 @@ class ExtractorAvisos(
                     TipoRasante.RASANTE -> TipoAviso.RASANTE
                     TipoRasante.CAMBIO_RASANTE -> TipoAviso.CAMBIO_RASANTE
                     TipoRasante.SALTO -> TipoAviso.SALTO
+                    TipoRasante.COMPRESION -> TipoAviso.COMPRESION
                 },
             )
         }
