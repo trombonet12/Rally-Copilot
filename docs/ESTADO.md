@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H5 — Alertas: radares e incidencias (cerrado, 2026-11-01) · siguiente: H6 — Tramos y cronometraje |
-| Estado | **H5 cerrado** (2026-11-01); v0.5 publicada al hacer push con `version.properties` |
+| Hito | H6 — Tramos y cronometraje (en curso, 2026-11-01) |
+| Estado | H5 cerrado y v0.5.0 publicada. H6: motor de cronometraje |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -75,4 +75,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H5 cerrado y v0.5 publicada. Siguiente: `hito start H6` (tramos y cronometraje): preguntar a Joan las dudas de producto al empezar. En H10: Ajustes con vista previa en vivo y controles rápidos en el mapa (anticipación, simplificadas, volumen de voz).
+- **Agente:** H6 en curso. Lotes: (1) motor: cronometraje con reloj inyectado, sectores 4 + micro por km, delta interpolado, detección de tramo conocido; (2) app: Room v6 (tramos y pasadas), sesión de crono, delta por voz en modo Completo; (3) UI: HUD con tramo conocido y cronómetro pequeño; (4) emulador: dos velocidades y entrada a mitad.

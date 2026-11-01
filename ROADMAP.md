@@ -234,7 +234,7 @@ Convertir cada trayecto en un tramo cronometrado con sectores, detección de tra
 - Room: migraciones con tests.
 
 ### Estado
-pendiente · Depende de: H2 · Dudas: resueltas (2026-10-28)
+en curso (2026-11-01) · Depende de: H2 · Dudas: resueltas (2026-10-28); (2026-11-01): todo trayecto ≥ 1 km es tramo, delta por voz en sectores y meta, micro por km, HUD con tramo conocido
 
 ## H7 — Análisis post-tramo y perfil del piloto
 

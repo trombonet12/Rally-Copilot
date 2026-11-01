@@ -8,6 +8,9 @@ se marca como respondida. Ordenadas por el hito que bloquean.
 
 Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
+## Respondidas al empezar H6 (2026-11-01, en el chat)
+- **Libre:** todo trayecto ≥ 1 km es tramo y se compara si coincide con uno guardado. **Delta por voz:** sectores y meta. **Microsectores:** uno por km. **HUD:** completo solo con tramo conocido.
+
 ## Respondidas al empezar H5 (2026-11-01, en el chat)
 - **Exceso de velocidad:** límite + 10 %. **Radares fijos:** según la velocidad (≈ 15 s). **Radares de tramo:** velocidad media en pantalla. **Incidencias fuera de ruta:** a ≤ 3 km.
 
