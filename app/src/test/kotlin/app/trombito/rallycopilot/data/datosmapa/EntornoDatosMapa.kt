@@ -18,6 +18,7 @@ object PaqueteDePrueba {
             "estilo" to "estilo-mapa.zip",
             "vias" to "vias-mallorca.bin",
             "satelite" to "pnoa-mallorca-z16.pmtiles",
+            "satelite-z17" to "pnoa-mallorca-z17.pmtiles",
         )
 
     fun aleatorio(
@@ -86,7 +87,8 @@ class EntornoDatosMapa(
             },
         )
 
-    private val rutaManifest = URL(URL_MANIFEST).path
+    val rutaManifest: String = URL(URL_MANIFEST).path
+    val rutaManifestExtra: String = URL(URL_MANIFEST_EXTRA).path
 
     fun archivo(
         id: String,
@@ -129,6 +131,24 @@ class EntornoDatosMapa(
             }
         servidor.servir(rutaManifest, json.toByteArray())
         return archivos
+    }
+
+    /** Publica `manifest-extra.json` con estos [contenidos] (id -> bytes) y sirve sus archivos. */
+    fun publicarExtra(
+        version: String,
+        contenidos: Map<String, ByteArray> = mapOf("satelite-z17" to PaqueteDePrueba.aleatorio(17, 90_000)),
+    ): List<ArchivoDatos> {
+        val archivos = contenidos.map { (id, bytes) -> archivo(id, bytes, version) }
+        archivos.forEach { a -> servidor.servir(URL(a.url).path, contenidos.getValue(a.id)) }
+        val json =
+            """{"esquema":1,"version":"$version","generado":"2026-11-01T00:00:00Z","archivos":[""" +
+                archivos.joinToString(",") { manifestDe(it) } + "]}"
+        servidor.servir(rutaManifestExtra, json.toByteArray())
+        return archivos
+    }
+
+    fun publicarManifestExtraCrudo(json: String) {
+        servidor.servir(rutaManifestExtra, json.toByteArray())
     }
 
     private fun manifestDe(a: ArchivoDatos) =

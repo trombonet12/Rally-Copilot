@@ -165,7 +165,8 @@ class ActualizadorDatosTest {
         val resultado = actualizar()
 
         assertEquals(ResultadoActualizacion.Fallo(MotivoError.SUPERA_LIMITE), resultado)
-        assertEquals("Solo se pidió el manifest", 1, entorno.servidor.peticiones.size)
+        val manifests = setOf(entorno.rutaManifest, entorno.rutaManifestExtra)
+        assertTrue("Solo se pidieron los manifests", entorno.servidor.peticiones.all { it.ruta in manifests })
         runBlocking { assertEquals(MotivoError.SUPERA_LIMITE.name, dao.estado()?.ultimoError) }
     }
 
@@ -175,7 +176,8 @@ class ActualizadorDatosTest {
         entorno.bytesLibres = 1_000
 
         assertEquals(ResultadoActualizacion.Fallo(MotivoError.SIN_ESPACIO), actualizar())
-        assertEquals(1, entorno.servidor.peticiones.size)
+        val manifests = setOf(entorno.rutaManifest, entorno.rutaManifestExtra)
+        assertTrue(entorno.servidor.peticiones.all { it.ruta in manifests })
     }
 
     @Test
@@ -198,5 +200,122 @@ class ActualizadorDatosTest {
             // esperado: el trabajo reintenta con backoff
         }
         runBlocking { assertTrue(dao.archivos().isEmpty()) }
+    }
+
+    @Test
+    fun `una descarga manual baja z16 y z17 y la automatica no estrena el z17`() {
+        val contenidos = PaqueteDePrueba.contenidos("v1")
+        entorno.publicar("v1", contenidos)
+        val z17 = PaqueteDePrueba.aleatorio(17, 90_000)
+        val extra = entorno.publicarExtra("v1", mapOf("satelite-z17" to z17)).single()
+        actualizar() // lo sembrado
+
+        actualizar(automatico = true)
+        assertTrue(entorno.servidor.peticionesA(entorno.rutaDe(extra)).isEmpty())
+
+        assertEquals(ResultadoActualizacion.Instalado, actualizar())
+
+        assertArrayEquals(contenidos.getValue("satelite"), leer("pnoa-mallorca-z16.pmtiles"))
+        assertArrayEquals(z17, leer("pnoa-mallorca-z17.pmtiles"))
+        runBlocking {
+            val ids = dao.archivos().map { it.id }
+            assertEquals(listOf("estilo", "satelite", "satelite-z17", "vectorial", "vias"), ids)
+        }
+    }
+
+    @Test
+    fun `con z16 ya instalado una descarga manual baja solo el z17`() {
+        val archivos = entorno.publicar("v1")
+        actualizar()
+        actualizar() // z16
+        val extra = entorno.publicarExtra("v1").single()
+        val z16 = entorno.rutaDe(archivos.first { it.id == "satelite" })
+        val antesZ16 = entorno.servidor.peticionesA(z16).size
+
+        assertEquals(ResultadoActualizacion.Instalado, actualizar())
+
+        assertEquals(antesZ16, entorno.servidor.peticionesA(z16).size)
+        assertEquals(1, entorno.servidor.peticionesA(entorno.rutaDe(extra)).size)
+        assertTrue(File(entorno.mapa, "pnoa-mallorca-z17.pmtiles").isFile)
+    }
+
+    @Test
+    fun `la actualizacion automatica renueva el z17 instalado`() {
+        entorno.publicar("v1")
+        val v1 = PaqueteDePrueba.aleatorio(17, 90_000)
+        entorno.publicarExtra("v1", mapOf("satelite-z17" to v1))
+        actualizar()
+        actualizar()
+        val v2 = PaqueteDePrueba.aleatorio(18, 90_000)
+        entorno.publicarExtra("v2", mapOf("satelite-z17" to v2))
+
+        assertEquals(ResultadoActualizacion.Instalado, actualizar(automatico = true))
+
+        assertArrayEquals(v2, leer("pnoa-mallorca-z17.pmtiles"))
+    }
+
+    @Test
+    fun `sin manifest extra el z17 instalado se conserva y no hay error`() {
+        entorno.publicar("v1")
+        val z17 = PaqueteDePrueba.aleatorio(17, 90_000)
+        entorno.publicarExtra("v1", mapOf("satelite-z17" to z17))
+        actualizar()
+        actualizar()
+        entorno.servidor.servir(entorno.rutaManifestExtra, ByteArray(0)) // extra ilegible
+
+        assertEquals(ResultadoActualizacion.Instalado, actualizar(automatico = true))
+        entorno.publicarManifestExtraCrudo("""{"esquema":1,"version":"x","generado":"y","archivos":[""")
+        assertEquals(ResultadoActualizacion.Instalado, actualizar())
+
+        assertArrayEquals(z17, leer("pnoa-mallorca-z17.pmtiles"))
+        runBlocking {
+            assertTrue(dao.archivos().any { it.id == "satelite-z17" })
+            assertNull(dao.estado()?.ultimoError)
+        }
+    }
+
+    @Test
+    fun `sin manifest extra publicado la descarga funciona como antes`() {
+        val contenidos = PaqueteDePrueba.contenidos("v1")
+        entorno.publicar("v1", contenidos)
+        actualizar()
+
+        assertEquals(ResultadoActualizacion.Instalado, actualizar())
+
+        assertFalse(File(entorno.mapa, "pnoa-mallorca-z17.pmtiles").exists())
+        runBlocking { assertEquals(listOf("estilo", "satelite", "vectorial", "vias"), dao.archivos().map { it.id }) }
+    }
+
+    @Test
+    fun `el z17 cuenta para el limite de espacio`() {
+        val contenidos = PaqueteDePrueba.contenidos("v1")
+        entorno.publicar("v1", contenidos)
+        entorno.publicarExtra("v1")
+        actualizar() // lo sembrado
+        val sinZ17 = contenidos.values.sumOf { it.size.toLong() }
+        runBlocking {
+            base.ajustesMapasDao().guardarAjustes(
+                AjustesMapasEntity(
+                    soloWifi = true,
+                    limiteBytes =
+                        sinZ17 + 1_000,
+                ),
+            )
+        }
+
+        assertEquals(ResultadoActualizacion.Fallo(MotivoError.SUPERA_LIMITE), actualizar())
+        assertFalse(File(entorno.mapa, "pnoa-mallorca-z17.pmtiles").exists())
+    }
+
+    @Test
+    fun `un z17 corrupto no se instala y falla por hash`() {
+        entorno.publicar("v1")
+        val extra = entorno.publicarExtra("v1").single()
+        actualizar()
+        entorno.servidor.servir(entorno.rutaDe(extra), PaqueteDePrueba.aleatorio(99, 90_000))
+
+        assertEquals(ResultadoActualizacion.Fallo(MotivoError.HASH_INCORRECTO), actualizar())
+        assertFalse(File(entorno.mapa, "pnoa-mallorca-z17.pmtiles").exists())
+        assertFalse(File(entorno.mapa, "pnoa-mallorca-z16.pmtiles").exists())
     }
 }

@@ -18,7 +18,6 @@ import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
-import app.trombito.rallycopilot.motor.datos.LectorManifest
 import app.trombito.rallycopilot.motor.datos.ManifestInvalido
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -99,12 +98,13 @@ class RepositorioDatosMapaImpl(
     override suspend fun tamanoSatelite(): Long? =
         withContext(dispatcher) {
             try {
-                LectorManifest
-                    .leer(ClienteHttp(config).texto(config.urlManifest))
+                val instalados = dao.archivos().map { it.id }.toSet()
+                ClienteHttp(config)
+                    .leerManifestRemoto(config)
+                    .manifest
                     .archivos
-                    .filter { it.id.startsWith(PREFIJO_SATELITE) }
+                    .filter { it.id.startsWith(PREFIJO_SATELITE) && it.id !in instalados }
                     .sumOf { it.bytes }
-                    .takeIf { it > 0 }
             } catch (e: IOException) {
                 Log.w(ETIQUETA_LOG, "Sin tamaño del satélite: ${e.javaClass.simpleName}")
                 null
@@ -123,10 +123,15 @@ class RepositorioDatosMapaImpl(
             val vectorial = File(mapa, "vectorial.json").takeIf { it.isFile } ?: return@withContext null
             val raizUrl = "file://" + mapa.absolutePath.replace('\\', '/')
             val satelite = File(mapa, "satelite.json").takeIf { it.isFile && hayTeselasSatelite(mapa) }
+            val hayZ17 = File(mapa, NOMBRE_TESELAS_Z17).isFile
             val estilos =
                 EstilosMapa(
                     vectorial = vectorial.readText().replace(MARCADOR_DIR, raizUrl),
-                    satelite = satelite?.readText()?.replace(MARCADOR_DIR, raizUrl),
+                    satelite =
+                        satelite
+                            ?.readText()
+                            ?.let { if (hayZ17) EstiloSatelite.conZ17(it) else it }
+                            ?.replace(MARCADOR_DIR, raizUrl),
                 )
             val validos =
                 listOfNotNull(estilos.vectorial, estilos.satelite).all { ValidadorEstilo.esValido(it, raizUrl) }

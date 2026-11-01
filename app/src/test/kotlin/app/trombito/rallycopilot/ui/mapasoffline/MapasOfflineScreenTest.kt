@@ -115,12 +115,30 @@ class MapasOfflineScreenTest {
             MapasOfflineUiState(
                 cargando = false,
                 datos = EstadoDatosMapa(instalados = instalados),
-                bytesSatelite = 1_300_000_000,
+                bytesSatelite = 0,
             ),
         )
         assertFalse(banco.hay(ETIQUETA_DESCARGAR_SATELITE))
         assertTrue(banco.hay(ETIQUETA_BORRAR))
         assertTrue("Borrar satélite" in banco.textos(banco.conEtiqueta(ETIQUETA_BORRAR)))
+    }
+
+    @Test
+    fun `con el z16 instalado y el z17 por bajar se ofrece descargar con su tamano y tambien borrar`() {
+        var descargas = 0
+        ponerEstado(
+            MapasOfflineUiState(
+                cargando = false,
+                datos = EstadoDatosMapa(instalados = instalados),
+                bytesSatelite = 1_138_219_608,
+            ),
+            AccionesMapasOffline(onDescargar = { descargas++ }),
+        )
+        val boton = banco.textos(banco.conEtiqueta(ETIQUETA_DESCARGAR_SATELITE)).single()
+        assertTrue(boton, boton.startsWith("Descargar satélite (") && "GB" in boton)
+        assertTrue(banco.hay(ETIQUETA_BORRAR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_DESCARGAR_SATELITE))
+        assertEquals(1, descargas)
     }
 
     @Test

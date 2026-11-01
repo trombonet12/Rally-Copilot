@@ -71,8 +71,9 @@ interface RepositorioDatosMapa {
     suspend fun borrar()
 
     /**
-     * Tamaño del satélite según el manifest remoto (suma de sus entradas), o null si no se puede saber (sin red,
-     * manifest ilegible o sin entradas de satélite). Hace una petición de red.
+     * Bytes de satélite que FALTAN por instalar según los manifests remotos (principal + extra): la suma de sus
+     * entradas `satelite*` que aún no están instaladas. 0 si no falta ninguna; null si no se puede saber (sin red o
+     * manifest ilegible). Hace una petición de red.
      */
     suspend fun tamanoSatelite(): Long?
 

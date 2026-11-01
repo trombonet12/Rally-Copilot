@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.ui.mapasoffline
 
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
+import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
 
@@ -23,7 +24,7 @@ data class MapasOfflineUiState(
     val ajustes: AjustesMapas = AjustesMapas(),
     /** Último progreso con total conocido de la descarga activa: se sigue mostrando mientras espera red. */
     val ultimoProgreso: ProgresoDescarga? = null,
-    /** Tamaño del satélite según el manifest remoto; null mientras no se sabe (o sin red). */
+    /** Bytes de satélite que faltan por bajar según los manifests remotos (0 = todo instalado); null si no se sabe. */
     val bytesSatelite: Long? = null,
 ) {
     val fase: FaseMapas
@@ -44,11 +45,14 @@ data class MapasOfflineUiState(
         }
 
     /**
-     * Con lo sembrado desde el APK instalado y sin satélite, lo único que se descarga es el satélite: la pantalla lo
-     * ofrece con su tamaño. Mientras se descarga o falta lo sembrado no se ofrece.
+     * Con lo sembrado desde el APK instalado, la pantalla ofrece el satélite si no hay ninguno (aun sin red) o si los
+     * manifests remotos listan algún archivo de satélite que falta (p. ej. el z17 con el z16 ya puesto), con el tamaño
+     * de lo que falta. Mientras se descarga o falta lo sembrado no se ofrece.
      */
     val ofreceSatelite: Boolean
-        get() = fase == FaseMapas.INSTALADO && datos.instalados?.conSatelite == false
+        get() = fase == FaseMapas.INSTALADO && datos.instalados?.let(::faltaSatelite) == true
+
+    private fun faltaSatelite(instalados: DatosInstalados) = !instalados.conSatelite || (bytesSatelite ?: 0L) > 0L
 
     /**
      * Bytes que se bajarían por la red al desactivar «Solo con WiFi»: lo pendiente de la descarga en curso; si no hay
@@ -59,7 +63,7 @@ data class MapasOfflineUiState(
             val actual = progreso
             return when {
                 actual != null -> (actual.bytesTotales - actual.bytesHechos).coerceAtLeast(0).takeIf { it > 0 }
-                else -> datos.instalados?.let { if (it.conSatelite) it.bytes else bytesSatelite }
+                else -> datos.instalados?.let { if (faltaSatelite(it)) bytesSatelite else it.bytes }
             }
         }
 

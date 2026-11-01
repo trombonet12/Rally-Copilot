@@ -21,7 +21,19 @@ object LectorManifest {
     private val formato = Json { ignoreUnknownKeys = true }
 
     /** @throws ManifestInvalido si el JSON no se puede leer o incumple alguna regla de validez. */
-    fun leer(json: String): ManifestDatos {
+    fun leer(json: String): ManifestDatos = validar(json, exigirObligatorios = true)
+
+    /**
+     * Lee `manifest-extra.json`: mismo esquema y reglas que `manifest.json`, pero sin exigir los ids obligatorios
+     * (solo lleva archivos opcionales, como `satelite-z17`, que las apps viejas no deben bajar).
+     * @throws ManifestInvalido si el JSON no se puede leer o incumple alguna regla de validez.
+     */
+    fun leerExtra(json: String): ManifestDatos = validar(json, exigirObligatorios = false)
+
+    private fun validar(
+        json: String,
+        exigirObligatorios: Boolean,
+    ): ManifestDatos {
         val manifest = decodificar(json)
         exigir(manifest.esquema == ESQUEMA_SOPORTADO) { "Esquema no soportado: ${manifest.esquema}" }
         val ids = manifest.archivos.map { it.id }
@@ -30,7 +42,7 @@ object LectorManifest {
         val nombres = manifest.archivos.map { it.nombre }
         val nombresRepetidos = nombres.filter { n -> nombres.count { it == n } > 1 }.toSet()
         exigir(nombresRepetidos.isEmpty()) { "Nombres repetidos: ${nombresRepetidos.joinToString()}" }
-        val faltan = IDS_OBLIGATORIOS - ids.toSet()
+        val faltan = if (exigirObligatorios) IDS_OBLIGATORIOS - ids.toSet() else emptyList()
         exigir(faltan.isEmpty()) { "Faltan archivos obligatorios: ${faltan.joinToString()}" }
         manifest.archivos.forEach(::validarArchivo)
         return manifest

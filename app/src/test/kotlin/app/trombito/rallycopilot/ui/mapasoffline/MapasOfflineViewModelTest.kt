@@ -151,7 +151,7 @@ class MapasOfflineViewModelTest {
     @Test
     fun `con el satelite instalado o sin lo sembrado no se ofrece`() =
         runTest {
-            val repo = FalsoRepositorioDatosMapa(sembradoSinSatelite, bytesSatelite = 5)
+            val repo = FalsoRepositorioDatosMapa(sembradoSinSatelite, bytesSatelite = 0)
             val vm = MapasOfflineViewModel(repo)
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
 
@@ -161,6 +161,35 @@ class MapasOfflineViewModelTest {
 
             repo.estadoMutable.value = EstadoDatosMapa()
             assertEquals(FaseMapas.SIN_DATOS, vm.uiState.value.fase)
+            assertFalse(vm.uiState.value.ofreceSatelite)
+        }
+
+    @Test
+    fun `con el z16 instalado y el z17 por bajar se ofrece el satelite con el tamano de lo que falta`() =
+        runTest {
+            val z16Puesto = EstadoDatosMapa(instalados = DatosInstalados("v1", 1_000, conSatelite = true))
+            val repo = FalsoRepositorioDatosMapa(z16Puesto, bytesSatelite = 1_138_219_608)
+            val vm = MapasOfflineViewModel(repo)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+
+            assertTrue(vm.uiState.value.ofreceSatelite)
+            assertEquals(1_138_219_608L, vm.uiState.value.bytesSatelite)
+            assertEquals(1_138_219_608L, vm.uiState.value.bytesPendientes)
+
+            // Se instala el z17: cambia lo instalado, se vuelve a preguntar y ya no falta nada.
+            repo.bytesSatelite = 0
+            repo.estadoMutable.value = EstadoDatosMapa(instalados = DatosInstalados("v1", 1_138_220_608, true))
+
+            assertFalse(vm.uiState.value.ofreceSatelite)
+        }
+
+    @Test
+    fun `con el z16 instalado y sin red no se ofrece nada`() =
+        runTest {
+            val z16Puesto = EstadoDatosMapa(instalados = DatosInstalados("v1", 1_000, conSatelite = true))
+            val vm = MapasOfflineViewModel(FalsoRepositorioDatosMapa(z16Puesto, bytesSatelite = null))
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+
             assertFalse(vm.uiState.value.ofreceSatelite)
         }
 

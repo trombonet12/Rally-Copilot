@@ -9,7 +9,7 @@ import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.motor.datos.ArchivoDatos
 import app.trombito.rallycopilot.motor.datos.ArchivoLocal
-import app.trombito.rallycopilot.motor.datos.LectorManifest
+import app.trombito.rallycopilot.motor.datos.ManifestDatos
 import app.trombito.rallycopilot.motor.datos.ManifestInvalido
 import app.trombito.rallycopilot.motor.datos.PlanificadorDescarga
 import app.trombito.rallycopilot.motor.datos.ProblemaEspacio
@@ -80,21 +80,34 @@ class ActualizadorDatos
             alProgreso: suspend (Long, Long) -> Unit,
         ): ResultadoActualizacion {
             siembra.esperar()
-            val completo = LectorManifest.leer(http.texto(config.urlManifest))
+            val publicado = http.leerManifestRemoto(config)
+            val completo = publicado.manifest
             val instalados = dao.archivos()
-            // El satélite (1 GB+) solo lo baja el usuario cuando ya tiene lo sembrado: ni una actualización automática
-            // ni «Descargar mapas» tras una siembra fallida (faltan los datos base) lo incluyen.
+            // El satélite (z16 + z17, ≈1,5 GB) solo lo baja el usuario cuando ya tiene lo sembrado: ni una
+            // actualización automática ni «Descargar mapas» tras una siembra fallida (faltan los datos base) estrenan
+            // un archivo de satélite; sí actualizan los que ya hay instalados.
             val faltaBase = IDS_SEMBRADOS.any { id -> instalados.none { it.id == id } }
-            val sinSatelite = instalados.none { it.id.startsWith(PREFIJO_SATELITE) }
             val soloBase = faltaBase || (automatico && instalados.isNotEmpty())
+            val idsInstalados = instalados.map { it.id }.toSet()
             val remoto =
-                if (sinSatelite && soloBase) {
-                    completo.copy(archivos = completo.archivos.filterNot { it.id.startsWith(PREFIJO_SATELITE) })
+                if (soloBase) {
+                    completo.copy(
+                        archivos =
+                            completo.archivos.filterNot {
+                                it.id.startsWith(
+                                    PREFIJO_SATELITE,
+                                ) && it.id !in idsInstalados
+                            },
+                    )
                 } else {
                     completo
                 }
             val limite = (ajustes.ajustes()?.aDominio() ?: AjustesMapas()).limiteBytes
-            val locales = instalados.map { ArchivoLocal(it.id, it.sha256, it.bytes) }
+            // Sin el manifest extra no se sabe nada de sus archivos: lo instalado de ahí se deja como está.
+            val locales =
+                instalados
+                    .filter { publicado.extraDisponible || !it.id.esSateliteExtra(completo) }
+                    .map { ArchivoLocal(it.id, it.sha256, it.bytes) }
             // Lo ya bajado en .nuevo/ (de un intento anterior) ya ocupa disco: no cuenta contra el espacio libre.
             val libres = config.bytesLibres() + instalador.bytesEnCurso(remoto.archivos)
             val plan = PlanificadorDescarga.planificar(remoto, locales, libres, limite)
@@ -150,6 +163,10 @@ internal const val PREFIJO_SATELITE = "satelite"
 
 /** Las teselas del satélite instaladas son `pnoa-mallorca*.pmtiles` (z16 o z17: el nombre cambia con el paquete). */
 internal const val PREFIJO_TESELAS_SATELITE = "pnoa-mallorca"
+
+/** Un id de satélite que el manifest principal no lista: viene del extra (`satelite-z17`). */
+private fun String.esSateliteExtra(principal: ManifestDatos) =
+    startsWith(PREFIJO_SATELITE) && principal.archivo(this) == null
 
 internal fun ArchivoDatos.aEntidad() =
     ArchivoInstaladoEntity(id = id, nombre = nombre, sha256 = sha256, bytes = bytes, version = version)

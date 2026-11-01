@@ -5,6 +5,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 const val URL_MANIFEST = "https://github.com/trombonet12/rally-copilot-data/releases/latest/download/manifest.json"
+const val URL_MANIFEST_EXTRA =
+    "https://github.com/trombonet12/rally-copilot-data/releases/latest/download/manifest-extra.json"
 
 /**
  * Parámetros del paquete de datos. En producción los da `DatosMapaModule`; los tests cambian la URL del manifest, la
@@ -14,6 +16,8 @@ data class ConfigDatosMapa(
     val urlManifest: String,
     /** `filesDir/mapa/`: los datos instalados; las descargas en curso viven en `.nuevo/`. */
     val directorioMapa: File,
+    /** Archivos opcionales (satélite z17) que las apps viejas no ven: si falta o falla, se sigue sin él. */
+    val urlManifestExtra: String = URL_MANIFEST_EXTRA,
     val userAgent: String,
     val bytesLibres: () -> Long,
     val abrirConexion: (URL) -> HttpURLConnection = { it.openConnection() as HttpURLConnection },

@@ -23,6 +23,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -123,6 +128,65 @@ class RepositorioDatosMapaImplTest {
         assertEquals("""{"url":"pmtiles://$raiz/mallorca.pmtiles","g":"$raiz/glyphs"}""", estilos.vectorial)
         assertEquals("""{"url":"pmtiles://$raiz/pnoa-mallorca-z16.pmtiles"}""", estilos.satelite)
         assertFalse(estilos.vectorial.contains("{{DIR}}"))
+    }
+
+    private fun escribirEstiloSateliteRealista() {
+        val pnoa = """"pnoa":{"type":"raster","url":"pmtiles://{{DIR}}/pnoa-mallorca-z16.pmtiles","tileSize":256}"""
+        val calles = """"protomaps":{"type":"vector","url":"pmtiles://{{DIR}}/mallorca.pmtiles"}"""
+        val capas =
+            """[{"id":"pnoa","type":"raster","source":"pnoa"},""" +
+                """{"id":"calles","type":"line","source":"protomaps"}]"""
+        File(entorno.mapa, "satelite.json")
+            .writeText("""{"version":8,"sources":{$pnoa,$calles},"layers":$capas}""")
+    }
+
+    @Test
+    fun `con el z17 instalado el estilo satelite lleva su fuente y su capa encima de la del z16`() {
+        escribirEstilos(conSatelite = true)
+        escribirEstiloSateliteRealista()
+        File(entorno.mapa, "pnoa-mallorca-z17.pmtiles").writeText("z17")
+
+        val satelite = requireNotNull(runBlocking { repositorio.estilos() }?.satelite)
+        val estilo = Json.parseToJsonElement(satelite).jsonObject
+
+        val raiz = "file://" + entorno.mapa.absolutePath.replace('\\', '/')
+        val fuente =
+            estilo
+                .getValue("sources")
+                .jsonObject
+                .getValue("pnoa-z17")
+                .jsonObject
+        assertEquals("pmtiles://$raiz/pnoa-mallorca-z17.pmtiles", fuente.getValue("url").jsonPrimitive.content)
+        assertEquals(17, fuente.getValue("minzoom").jsonPrimitive.int)
+        assertEquals(17, fuente.getValue("maxzoom").jsonPrimitive.int)
+        assertEquals(256, fuente.getValue("tileSize").jsonPrimitive.int)
+        val capas =
+            estilo.getValue("layers").jsonArray.map {
+                it.jsonObject
+                    .getValue("id")
+                    .jsonPrimitive.content
+            }
+        assertEquals(listOf("pnoa", "pnoa-z17", "calles"), capas)
+        assertEquals(
+            17,
+            estilo
+                .getValue("layers")
+                .jsonArray[1]
+                .jsonObject
+                .getValue("minzoom")
+                .jsonPrimitive.int,
+        )
+    }
+
+    @Test
+    fun `sin el z17 el estilo satelite queda como esta en el paquete`() {
+        escribirEstilos(conSatelite = true)
+        escribirEstiloSateliteRealista()
+
+        val satelite = requireNotNull(runBlocking { repositorio.estilos() }?.satelite)
+
+        assertFalse(satelite.contains("pnoa-z17"))
+        assertFalse(satelite.contains("{{DIR}}"))
     }
 
     @Test
@@ -337,6 +401,61 @@ class RepositorioDatosMapaImplTest {
         entorno.publicarManifestCrudo(json)
 
         assertEquals(principal.bytes + extra.bytes, runBlocking { repositorio.tamanoSatelite() })
+    }
+
+    @Test
+    fun `el tamano del satelite suma el z16 del manifest y el z17 del manifest extra`() {
+        val archivos = entorno.publicar("datos-2026.11.01-1")
+        val z17 = entorno.publicarExtra("datos-2026.11.01-1").single()
+
+        val z16 = archivos.first { it.id == "satelite" }
+
+        assertEquals(z16.bytes + z17.bytes, runBlocking { repositorio.tamanoSatelite() })
+    }
+
+    @Test
+    fun `con el z16 instalado el tamano pendiente es solo el del z17`() {
+        val archivos = entorno.publicar("datos-2026.11.01-1")
+        val z17 = entorno.publicarExtra("datos-2026.11.01-1").single()
+        val z16 = archivos.first { it.id == "satelite" }
+        runBlocking {
+            dao.registrarInstalacion(
+                listOf(ArchivoInstaladoEntity("satelite", z16.nombre, z16.sha256, z16.bytes, "v1")),
+                emptyList(),
+                "v1",
+                avisar = false,
+            )
+        }
+
+        assertEquals(z17.bytes, runBlocking { repositorio.tamanoSatelite() })
+    }
+
+    @Test
+    fun `con z16 y z17 instalados no falta nada`() {
+        val archivos = entorno.publicar("datos-2026.11.01-1")
+        val z17 = entorno.publicarExtra("datos-2026.11.01-1").single()
+        val z16 = archivos.first { it.id == "satelite" }
+        runBlocking {
+            dao.registrarInstalacion(
+                listOf(
+                    ArchivoInstaladoEntity("satelite", z16.nombre, z16.sha256, z16.bytes, "v1"),
+                    ArchivoInstaladoEntity("satelite-z17", z17.nombre, z17.sha256, z17.bytes, "v1"),
+                ),
+                emptyList(),
+                "v1",
+                avisar = false,
+            )
+        }
+
+        assertEquals(0L, runBlocking { repositorio.tamanoSatelite() })
+    }
+
+    @Test
+    fun `con el manifest extra ilegible el tamano es el del z16`() {
+        val archivos = entorno.publicar("datos-2026.11.01-1")
+        entorno.publicarManifestExtraCrudo("no es json")
+
+        assertEquals(archivos.first { it.id == "satelite" }.bytes, runBlocking { repositorio.tamanoSatelite() })
     }
 
     @Test

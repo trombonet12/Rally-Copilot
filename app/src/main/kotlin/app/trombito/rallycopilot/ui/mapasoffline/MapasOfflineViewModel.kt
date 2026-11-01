@@ -9,8 +9,11 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,7 +30,13 @@ class MapasOfflineViewModel
         private val bytesSatelite = MutableStateFlow<Long?>(null)
 
         init {
-            cargarTamanoSatelite()
+            // Lo que falta de satélite cambia al instalar o borrar (también el z16 ya puesto con el z17 por bajar).
+            viewModelScope.launch {
+                repositorio.estado
+                    .map { it.instalados }
+                    .distinctUntilChanged()
+                    .collectLatest { bytesSatelite.value = repositorio.tamanoSatelite() }
+            }
         }
 
         val uiState: StateFlow<MapasOfflineUiState> =
@@ -60,7 +69,7 @@ class MapasOfflineViewModel
             }
         }
 
-        /** Pide el tamaño del satélite al manifest remoto; sin red se queda en null y la pantalla no da cifra. */
+        /** Pide lo que falta de satélite a los manifests; sin red se queda en null y la pantalla no da cifra. */
         private fun cargarTamanoSatelite() {
             viewModelScope.launch { bytesSatelite.value = repositorio.tamanoSatelite() }
         }

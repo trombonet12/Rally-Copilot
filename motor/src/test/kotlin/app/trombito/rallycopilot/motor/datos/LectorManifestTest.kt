@@ -137,6 +137,32 @@ class LectorManifestTest {
     }
 
     @Test
+    fun `el manifest extra se lee sin exigir los ids obligatorios`() {
+        val json =
+            manifestJson(archivos = listOf(archivoJson("satelite-z17", "pnoa-mallorca-z17.pmtiles", sha = SHA_B)))
+
+        val extra = LectorManifest.leerExtra(json)
+
+        assertEquals(listOf("satelite-z17"), extra.archivos.map { it.id })
+        assertInvalido(json, "Faltan archivos obligatorios")
+    }
+
+    @Test
+    fun `el manifest extra aplica las mismas reglas de validez`() {
+        val malo = archivoJson("satelite-z17", "pnoa-mallorca-z17.pmtiles", sha = "abc")
+        assertFailsWith<ManifestInvalido> { LectorManifest.leerExtra(manifestJson(archivos = listOf(malo))) }
+        val fueraDeGithub =
+            archivoJson("satelite-z17", "pnoa-mallorca-z17.pmtiles", url = "https://evil.example.com/z17.pmtiles")
+        assertFailsWith<ManifestInvalido> { LectorManifest.leerExtra(manifestJson(archivos = listOf(fueraDeGithub))) }
+        assertFailsWith<ManifestInvalido> { LectorManifest.leerExtra("{ esto no es json") }
+        assertFailsWith<ManifestInvalido> {
+            LectorManifest.leerExtra(
+                manifestJson(esquema = 2, archivos = emptyList()),
+            )
+        }
+    }
+
+    @Test
     fun `esMasNuevoQue sin manifest previo es verdadero`() {
         assertEquals(true, LectorManifest.leer(manifestJson()).esMasNuevoQue(null))
     }
