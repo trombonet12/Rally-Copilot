@@ -17,13 +17,16 @@ enum class OrigenNotas {
  * Notas de la conducción en curso: la [hoja], la [posicionM] actual a lo largo de ella (metros desde el inicio de
  * la ruta o de la predicción, en el mismo sistema que las posiciones de sus elementos) y la velocidad [vMs] del GPS
  * si la hay. [puntoEn] convierte una posición de la hoja en su coordenada (null si no se conoce la traza); sirve para
- * identificar la misma curva entre hojas regeneradas con otro origen.
+ * identificar la misma curva entre hojas regeneradas con otro origen. [traza] es la polilínea sobre la que se miden las
+ * posiciones (la carretera predicha en libre; null si no se conoce); las alertas la usan para ver lo que viene por
+ * delante en el mismo eje que las notas.
  */
 data class NotasEnCurso(
     val hoja: HojaNotas,
     val posicionM: Double,
     val vMs: Double?,
     val origen: OrigenNotas,
+    val traza: List<PuntoGeo>? = null,
     val puntoEn: ((Double) -> PuntoGeo)? = null,
 )
 

@@ -53,10 +53,12 @@ class FabricaAlertasSesion
  * de [arrancar]. Nunca registra coordenadas.
  *
  * - **Guiado**: radares, tramos y avisos de incidencias con la ruta (las posiciones son el progreso sobre ella).
- * - **Libre**: radares con la geometría de la vía actual (orientada en el sentido de la marcha) y, además, los que
- *   queden delante en línea recta; la posición de cada frase es `notasM` más la distancia al radar, así que comparte
- *   eje con las notas (sin notas el eje arranca en 0 en cada fijación). No hay velocidad media (solo en guiado) ni
- *   avisos de incidencias por voz (solo de la ruta), pero sí incidencias relevantes (radio de 3 km) para el mapa.
+ * - **Libre**: radares e incidencias de la carretera predicha por delante (unos 2 km, la de las notas; el radar de la
+ *   vía siguiente se ve así a la distancia de aviso) y, además, radares con la geometría de la vía actual (orientada
+ *   en el sentido de la marcha) y los que queden delante en línea recta; la posición de cada frase es `notasM` más
+ *   la distancia al radar, así que comparte eje con las notas (sin notas el eje arranca en 0 en cada fijación). No
+ *   hay velocidad media (solo en guiado: un tramo mide más que la predicción); las incidencias se cantan solo si
+ *   están en la carretera predicha, y las relevantes (radio de 3 km) van al mapa.
  * - Los radares se leen en segundo plano al [arrancar]: hasta entonces (o sin archivo) no hay avisos de radar.
  */
 class SesionAlertas internal constructor(
@@ -79,6 +81,7 @@ class SesionAlertas internal constructor(
     private var media: VelocidadMediaTramo? = null
     private var filtro: FiltroIncidencias? = null
     private var tramoFinal: Pair<TramoActivo, Long>? = null
+    private val cache = CacheCarreteraPredicha()
     private val exceso = ExcesoVelocidad()
 
     /**
@@ -116,16 +119,20 @@ class SesionAlertas internal constructor(
 
     /**
      * Una fijación: [velocidadMs] es la velocidad estimada, [progresoM] el progreso sobre la ruta guiada (null en
-     * libre) y [notasM] la posición de las notas (eje de las frases en libre). Devuelve las frases candidatas.
+     * libre), [notasM] la posición de las notas (eje de las frases en libre) y [prediccion] la traza de la carretera
+     * predicha por delante (en libre, la misma sobre la que se miden las notas; null si no hay). Devuelve las frases
+     * candidatas.
      */
     suspend fun alFijar(
         fijacion: Fijacion,
         velocidadMs: Double?,
         progresoM: Double?,
         notasM: Double?,
+        prediccion: List<PuntoGeo>? = null,
     ): List<Frase> {
         reconstruirSiToca()
         val v = velocidadMs ?: 0.0
+        val enPrediccion = enPrediccion(prediccion, notasM)
         val via = vias.viaEn(fijacion)
         val guiado = ruta != null
         // En guiado sin progreso todavía no hay nada que decir de la ruta.
@@ -133,20 +140,34 @@ class SesionAlertas internal constructor(
         val base = progresoM ?: notasM ?: 0.0
         val frasesRadar =
             when {
-                !guiado -> libres?.frases(fijacion, via, v, base).orEmpty()
-                sobreRuta != null -> radarRuta?.candidatas(sobreRuta, v).orEmpty()
-                else -> emptyList()
+                !guiado -> {
+                    frasesLibres(
+                        libres?.frases(fijacion, via, v, base).orEmpty(),
+                        enPrediccion?.radares(v).orEmpty(),
+                    )
+                }
+
+                sobreRuta != null -> {
+                    radarRuta?.candidatas(sobreRuta, v).orEmpty()
+                }
+
+                else -> {
+                    emptyList()
+                }
             }
         val estadoTramo = sobreRuta?.let { media?.actualizar(it, fijacion.tiempoMs) }
         val kmh = velocidadMs?.times(MS_A_KMH) ?: Double.NaN
         val estadoExceso = exceso.actualizar(kmh, via?.limiteKmh, fijacion.tiempoMs)
-        val frasesIncidencias = sobreRuta?.let { filtro?.candidatas(it, v) }.orEmpty()
+        val frasesIncidencias =
+            sobreRuta?.let { filtro?.candidatas(it, v).orEmpty() } ?: enPrediccion?.avisosIncidencias(v).orEmpty()
+        val incidenciasCercanas =
+            enPrediccion?.incidencias(fijacion.punto) ?: filtro?.relevantes(fijacion.punto, sobreRuta).orEmpty()
         publicar(
             AlertasEnCurso(
                 radarProximo = proximo(frasesRadar, base),
                 tramo = tramoActivo(estadoTramo, fijacion.tiempoMs),
                 exceso = ExcesoEnCurso(via?.limiteKmh, estadoExceso.rojo, estadoExceso.exceso),
-                incidencias = filtro?.relevantes(fijacion.punto, sobreRuta).orEmpty(),
+                incidencias = incidenciasCercanas,
                 antiguedadIncidenciasMs = antiguedadMs(),
                 errorIncidencias = vigentes.errorUltimo,
             ),
@@ -157,6 +178,26 @@ class SesionAlertas internal constructor(
     /** Fin de la conducción: publica «sin alertas». Se puede llamar más de una vez. */
     fun cerrar() {
         publicar(null)
+    }
+
+    /** Radares del modo libre: los de la carretera predicha mandan sobre los de la vía actual y la recta. */
+    private fun frasesLibres(
+        propias: List<Frase>,
+        predichas: List<Frase>,
+    ): List<Frase> = predichas + propias.filter { propia -> predichas.none { it.id == propia.id } }
+
+    /** El coche en la carretera predicha (solo en libre, con notas y radares ya leídos); null si no hay. */
+    private fun enPrediccion(
+        prediccion: List<PuntoGeo>?,
+        notasM: Double?,
+    ): PosicionEnPredicha? {
+        val traza = prediccion?.takeIf { ruta == null && it.size >= 2 }
+        val cargados = datosRadares
+        return if (traza == null || cargados == null || notasM == null) {
+            null
+        } else {
+            PosicionEnPredicha(cache.obtener(traza, cargados, vigentes.incidencias, ahoraMs()), notasM)
+        }
     }
 
     private fun antiguedadMs(): Long? = vigentes.obtenidasEn?.let { (ahoraMs() - it.toEpochMilli()).coerceAtLeast(0L) }
@@ -207,7 +248,7 @@ class SesionAlertas internal constructor(
         const val PREFIJO_RADAR = "radar-"
 
         /** Las incidencias se refiltran al menos cada minuto: así las que caducan salen aunque el feed no cambie. */
-        const val REFILTRO_MS = 60_000L
+        const val REFILTRO_MS = CacheCarreteraPredicha.REFILTRO_MS
 
         /** Cuánto se sigue enseñando la media final de un tramo ya terminado. */
         const val RETENCION_TRAMO_FINAL_MS = 10_000L

@@ -249,6 +249,65 @@ class SesionAlertasTest {
             assertTrue(frases.isEmpty())
         }
 
+    // Predicción en L: 200 m al norte y luego al este. La vía actual (OSM) acaba en el codo, así que el radar del
+    // segundo tramo (150 m al este del codo) ni está en la vía ni en la recta del coche.
+    private fun prediccionEnL() = listOf(punto(0.0), punto(200.0), punto(200.0, 1000.0))
+
+    private fun viaCortaHastaElCodo() =
+        ViaActual(null, null, null, listOf(punto(0.0), punto(200.0)), SentidoCamino.AMBOS)
+
+    @Test
+    fun `en libre con prediccion avisa del radar del segundo tramo a la distancia de aviso`() =
+        runTest {
+            val e =
+                escenario(
+                    radares = listOf(radarFijo("p1", 200.0, este = 150.0)),
+                    ruta = null,
+                    via = viaCortaHastaElCodo(),
+                )
+
+            // 100 km/h (27,8 m/s): aviso desde 400 m; el radar queda a 350 m por la predicción.
+            val frase = e.sesion.alFijar(fijacion(punto(0.0), 0, 27.8), 27.8, null, 0.0, prediccionEnL()).single()
+
+            assertEquals("radar-p1", frase.id)
+            assertEquals(350.0, checkNotNull(frase.puntoM), 3.0)
+            assertEquals(350.0, checkNotNull(e.ultima.radarProximo).distanciaM, 3.0)
+        }
+
+    @Test
+    fun `en libre sin prediccion el radar del segundo tramo no se ve todavia`() =
+        runTest {
+            val e =
+                escenario(
+                    radares = listOf(radarFijo("p1", 200.0, este = 150.0)),
+                    ruta = null,
+                    via = viaCortaHastaElCodo(),
+                )
+
+            val frases = e.sesion.alFijar(fijacion(punto(0.0), 0, 27.8), 27.8, null, 0.0, null)
+
+            assertTrue(frases.isEmpty())
+        }
+
+    @Test
+    fun `en libre con prediccion avisa de las incidencias de la carretera predicha`() =
+        runTest {
+            val e = escenario(ruta = null)
+            e.incidencias.estado.value =
+                IncidenciasVigentes(listOf(incidencia("i1", 200.0, 150.0)), Instant.ofEpochMilli(AHORA_MS), null)
+            runCurrent()
+
+            val frases = e.sesion.alFijar(fijacion(punto(0.0), 0, 27.8), 27.8, null, 0.0, prediccionEnL())
+
+            assertEquals(listOf("incidencia-i1"), frases.map { it.id })
+            assertEquals(350.0, checkNotNull(frases.single().puntoM), 3.0)
+            assertTrue(
+                e.ultima.incidencias
+                    .single()
+                    .enRuta,
+            )
+        }
+
     @Test
     fun `guiado mide la media del tramo y avisa una sola vez mientras la media pasa del limite`() =
         runTest {

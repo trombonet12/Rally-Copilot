@@ -6,6 +6,7 @@ import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
@@ -168,8 +169,13 @@ class SesionNavegacion(
             val progresoM = guia?.progreso?.progresoM
             val frases =
                 alertas
-                    ?.alFijar(fijacion, velocidadEstimada ?: fijacion.velocidadMs, progresoM, vigentes?.posicionM)
-                    .orEmpty()
+                    ?.alFijar(
+                        fijacion,
+                        velocidadEstimada ?: fijacion.velocidadMs,
+                        progresoM,
+                        vigentes?.posicionM,
+                        vigentes?.takeIf { it.origen == OrigenNotas.LIBRE }?.traza,
+                    ).orEmpty()
             copiloto?.alFijar(vigentes, guia?.rutaVoz, progresoM, fijacion.velocidadMs, frases)
         }
 
