@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.motor.tramos
 
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.geo.longitudMetros
 import app.trombito.rallycopilot.motor.notas.TrazasDePrueba
 import org.junit.Assert.assertEquals
@@ -26,6 +27,10 @@ class TramoTest {
         assertEquals(listOf(1000.0, 2000.0), Tramo.microsectoresPorDefecto(2500.0))
         assertEquals(emptyList<Double>(), Tramo.microsectoresPorDefecto(1000.0))
         assertEquals(listOf(500.0, 1000.0, 1500.0), Tramo.microsectoresPorDefecto(2000.0, 500.0))
+        // Con la meta 10 m antes del final, una traza de 2 km + 5 m no lleva corte a 2 km (caería tras la meta).
+        assertEquals(listOf(1000.0), Tramo.microsectoresPorDefecto(2005.0))
+        val traza = listOf(PuntoGeo(39.6, 2.9), PuntoGeo(39.6, 2.92))
+        assertEquals(listOf(1000.0), Tramo("t", traza, 2005.0).microsectores)
     }
 
     @Test

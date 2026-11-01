@@ -17,7 +17,7 @@ data class Tramo(
     val microsectores: List<Double> = microsectoresPorDefecto(longitudM),
 ) {
     /** Distancia (m desde la salida) a la que se cruza la meta: [longitudM] menos [META_ANTES_M]. */
-    val metaM: Double get() = if (longitudM > 2 * META_ANTES_M) longitudM - META_ANTES_M else longitudM
+    val metaM: Double get() = metaDe(longitudM)
 
     init {
         require(traza.size >= 2) { "Un tramo necesita al menos dos puntos" }
@@ -52,13 +52,18 @@ data class Tramo(
             numero: Int = SECTORES_POR_DEFECTO,
         ): List<Double> = (1 until numero).map { longitudM * it / numero }
 
-        /** Un corte cada [pasoM] metros mientras quede al menos un metro antes de la meta. */
+        /** Meta de un tramo de [longitudM]: [META_ANTES_M] antes del final si cabe. */
+        fun metaDe(longitudM: Double): Double =
+            if (longitudM > 2 * META_ANTES_M) longitudM - META_ANTES_M else longitudM
+
+        /** Un corte cada [pasoM] metros mientras quede al menos un metro antes de la meta (no del final). */
         fun microsectoresPorDefecto(
             longitudM: Double,
             pasoM: Double = MICROSECTOR_M,
         ): List<Double> {
             require(pasoM > 0.0) { "Paso inválido: $pasoM" }
-            return generateSequence(pasoM) { it + pasoM }.takeWhile { it < longitudM - 1.0 }.toList()
+            val meta = metaDe(longitudM)
+            return generateSequence(pasoM) { it + pasoM }.takeWhile { it < meta - 1.0 }.toList()
         }
     }
 }
