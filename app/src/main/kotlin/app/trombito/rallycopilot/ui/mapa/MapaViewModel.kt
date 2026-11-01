@@ -83,7 +83,16 @@ class MapaViewModel
                         send(LECTURA_VACIA)
                         launch {
                             ubicacion.fijaciones().collect { fijacion ->
-                                val velocidad = estimador.actualizar(fijacion)?.let(::kmh)
+                                // La posición aproximada de interior (fused/red) salta decenas de metros: se pinta,
+                                // pero no alimenta la velocidad derivada de la posición.
+                                val precisa = (fijacion.precisionM ?: 0.0) <= PRECISION_VELOCIDAD_M
+                                val ms =
+                                    if (precisa) {
+                                        estimador.actualizar(fijacion)
+                                    } else {
+                                        estimador.vigente(fijacion.tiempoMs)
+                                    }
+                                val velocidad = ms?.let(::kmh)
                                 // Primero la velocidad: la vía puede tardar (carga perezosa del archivo de vías).
                                 ultima = Lectura(fijacion, velocidad, viaPrevia)
                                 send(ultima)
@@ -186,6 +195,9 @@ class MapaViewModel
         private companion object {
             const val PARADA_MS = 5_000L
             const val TICK_CADUCIDAD_MS = 1_000L
+
+            /** Peor precisión (m) con la que una fijación cuenta para la velocidad; la misma que la sesión. */
+            const val PRECISION_VELOCIDAD_M = 30.0
             const val CLAVE_SIGUIENDO = "mapa-siguiendo"
             const val CLAVE_CAMARA = "mapa-camara"
             const val TAMANO_CAMARA = 3

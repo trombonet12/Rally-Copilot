@@ -35,6 +35,7 @@ class FuenteUbicacionGpsTest {
     fun preparar() {
         shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
         shadowOf(manager).setProviderEnabled(LocationManager.GPS_PROVIDER, true)
+        shadowOf(manager).setProviderEnabled(LocationManager.FUSED_PROVIDER, true)
     }
 
     private fun posicion(
@@ -51,6 +52,19 @@ class FuenteUbicacionGpsTest {
         accuracy = 4f
         velocidad?.let { speed = it }
         rumbo?.let { bearing = it }
+    }
+
+    private fun aproximada(
+        lat: Double,
+        lon: Double,
+        segundo: Long,
+        proveedor: String = LocationManager.FUSED_PROVIDER,
+    ) = Location(proveedor).apply {
+        latitude = lat
+        longitude = lon
+        time = 1_700_000_000_000L + segundo * 1000
+        elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() + segundo * 1_000_000_000L
+        accuracy = 25f
     }
 
     private fun simular(location: Location) {
@@ -94,9 +108,9 @@ class FuenteUbicacionGpsTest {
         }
 
     @Test
-    fun `al empezar emite la ultima posicion conocida si tiene menos de 10 s`() =
+    fun `al empezar emite la ultima posicion conocida si tiene menos de 2 min`() =
         runTest(UnconfinedTestDispatcher()) {
-            simular(posicion(39.61, 2.91, segundo = -5))
+            simular(posicion(39.61, 2.91, segundo = -90))
             val recibidas = mutableListOf<Fijacion>()
             val job = launch { fuente.fijaciones().toList(recibidas) }
 
@@ -106,14 +120,84 @@ class FuenteUbicacionGpsTest {
         }
 
     @Test
-    fun `la ultima posicion conocida de hace mas de 10 s no se emite`() =
+    fun `la ultima posicion conocida de hace mas de 2 min no se emite`() =
         runTest(UnconfinedTestDispatcher()) {
-            simular(posicion(39.61, 2.91, segundo = -30))
+            simular(posicion(39.61, 2.91, segundo = -150))
             val recibidas = mutableListOf<Fijacion>()
             val job = launch { fuente.fijaciones().toList(recibidas) }
 
             assertTrue(recibidas.isEmpty())
             job.cancel()
+        }
+
+    @Test
+    fun `entre la ultima del gps y la del fused se elige la mas reciente`() =
+        runTest(UnconfinedTestDispatcher()) {
+            simular(posicion(39.60, 2.90, segundo = -60))
+            simular(aproximada(39.70, 2.95, segundo = -20))
+            val recibidas = mutableListOf<Fijacion>()
+            val job = launch { fuente.fijaciones().toList(recibidas) }
+
+            assertEquals(1, recibidas.size)
+            assertEquals(39.70, recibidas[0].punto.lat, 1e-9)
+            assertNull(recibidas[0].velocidadMs)
+            job.cancel()
+        }
+
+    @Test
+    fun `en interior sin gps emite las posiciones del fused sin velocidad ni rumbo`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val recibidas = mutableListOf<Fijacion>()
+            val job = launch { fuente.fijaciones().toList(recibidas) }
+
+            simular(aproximada(39.62, 2.92, segundo = 1))
+            simular(aproximada(39.62, 2.9201, segundo = 2))
+
+            assertEquals(2, recibidas.size)
+            assertEquals(39.62, recibidas[0].punto.lat, 1e-9)
+            assertNull(recibidas[0].velocidadMs)
+            assertNull(recibidas[0].rumboGrados)
+            assertEquals(25.0, recibidas[0].precisionM!!, 1e-6)
+            job.cancel()
+        }
+
+    @Test
+    fun `con gps reciente se ignora el fused y si el gps se pierde 3 s vuelve`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val recibidas = mutableListOf<Fijacion>()
+            val job = launch { fuente.fijaciones().toList(recibidas) }
+
+            simular(posicion(39.6, 2.9, segundo = 10))
+            simular(aproximada(39.7, 2.95, segundo = 11))
+            simular(aproximada(39.7, 2.95, segundo = 12))
+            assertEquals(1, recibidas.size)
+            assertEquals(15.0, recibidas[0].velocidadMs!!, 1e-6)
+
+            simular(aproximada(39.7, 2.95, segundo = 13))
+            assertEquals(2, recibidas.size)
+            assertEquals(39.7, recibidas[1].punto.lat, 1e-9)
+            job.cancel()
+        }
+
+    @Test
+    fun `sin gps entre los proveedores funciona solo con el fused`() =
+        runTest(UnconfinedTestDispatcher()) {
+            shadowOf(manager).removeProvider(LocationManager.GPS_PROVIDER)
+            val recibidas = mutableListOf<Fijacion>()
+            val job = launch { fuente.fijaciones().toList(recibidas) }
+
+            simular(aproximada(39.62, 2.92, segundo = 1))
+
+            assertEquals(1, recibidas.size)
+            job.cancel()
+        }
+
+    @Test
+    fun `sin ningun proveedor util el flujo termina vacio`() =
+        runTest(UnconfinedTestDispatcher()) {
+            for (p in manager.allProviders) shadowOf(manager).removeProvider(p)
+
+            assertTrue(fuente.fijaciones().toList().isEmpty())
         }
 
     @Test

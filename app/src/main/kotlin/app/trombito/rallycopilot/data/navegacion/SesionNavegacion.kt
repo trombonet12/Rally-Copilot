@@ -43,7 +43,8 @@ sealed interface SolicitudNavegacion {
  * epoch (hora de pared: llegada prevista y marcas del recorrido) y [publicar] recibe cada cambio de estado. La
  * detección de salida de ruta y el reintento del recálculo usan el reloj monótono de la fijación, que no salta con
  * cambios de hora. Nunca registra coordenadas en logs. Si hay [fabricaNotas], genera y publica las notas de rally
- * de la conducción (guiada: hoja de la ruta; libre: hoja de la carretera prevista); sin ella, no hay notas.
+ * de la conducción (guiada: hoja de la ruta; libre: hoja de la carretera prevista); sin ella, no hay notas. Ignora las
+ * fijaciones con `precisionM` > [PRECISION_MAX_M] (posición aproximada de interior): ni se graban ni cuentan.
  */
 @Suppress("LongParameterList") // colaboradores de la sesión: fuente, enrutador, grabación, reloj, salidas y notas
 class SesionNavegacion(
@@ -112,6 +113,8 @@ class SesionNavegacion(
             fijacion: Fijacion,
             alcance: CoroutineScope,
         ): Boolean {
+            // Posición aproximada (fused/red bajo techo): sirve para pintar, no para grabar, sumar ni seguir la ruta.
+            if ((fijacion.precisionM ?: 0.0) > PRECISION_MAX_M) return true
             val ahora = reloj()
             ultimaFijacionMs = fijacion.tiempoMs
             ultimaPosicion = fijacion.punto
@@ -220,6 +223,9 @@ class SesionNavegacion(
 
     companion object {
         const val TAMANO_LOTE = 10
+
+        /** Las fijaciones con peor precisión (m) se ignoran al grabar, acumular distancia, seguir la ruta y anotar. */
+        const val PRECISION_MAX_M = 30.0
         const val ESPERA_LLEGADA_MS = 10_000L
         const val REINTENTO_MS = 10_000L
     }

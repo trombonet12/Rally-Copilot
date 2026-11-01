@@ -71,6 +71,22 @@ private class FuenteFalsa(
     override fun tienePermiso() = permiso
 }
 
+/** Fuente con fijaciones ya hechas (para fijar la precisión de cada una), a 1 Hz de tiempo virtual. */
+private class FuenteDeFijaciones(
+    private val fijaciones: List<Fijacion>,
+) : FuenteUbicacion {
+    override fun fijaciones(): Flow<Fijacion> =
+        flow {
+            for (f in fijaciones) {
+                emit(f)
+                delay(1000)
+            }
+            awaitCancellation()
+        }
+
+    override fun tienePermiso() = true
+}
+
 private class EnrutadorFalso(
     private val respuestas: MutableList<ResultadoRuta>,
     private val tardaMs: Long = 200,
@@ -208,6 +224,39 @@ class SesionNavegacionTest {
             assertEquals(listOf(10, 10, 5), e.recorridos.tamanos)
             assertEquals(listOf(RecorridosFalso.ID), e.recorridos.terminados)
             assertEquals(null, e.recorridos.destino)
+        }
+
+    @Test
+    fun `las fijaciones imprecisas de mas de 30 m no se graban ni suman distancia`() =
+        runTest {
+            // Interior: 5 posiciones aproximadas (80 m) que saltan 50 m; luego 5 buenas (5 m) separadas 10 m.
+            val aproximadas = List(5) { fijacion(p(0.0, it * 50.0), it).copy(precisionM = 80.0) }
+            val buenas = List(5) { fijacion(p(0.0, 1000.0 + it * 10.0), 5 + it) }
+            val e = escenario(FuenteDeFijaciones(aproximadas + buenas))
+            val trabajo = lanzar(e, SolicitudNavegacion.Libre)
+            advanceTimeBy(9_500)
+            runCurrent()
+
+            assertEquals(40.0, (e.estados.last() as EstadoNavegacion.Libre).distanciaM, 1.0)
+            trabajo.cancel()
+            runCurrent()
+            assertEquals(5, e.recorridos.lotes.size)
+            assertTrue(e.recorridos.lotes.all { it.lat >= p(0.0, 999.0).lat })
+        }
+
+    @Test
+    fun `una fijacion justo en 30 m o sin precision si se usa`() =
+        runTest {
+            val limite = fijacion(p(0.0, 0.0), 0).copy(precisionM = 30.0)
+            val sinPrecision = fijacion(p(0.0, 100.0), 1).copy(precisionM = null)
+            val e = escenario(FuenteDeFijaciones(listOf(limite, sinPrecision)))
+            val trabajo = lanzar(e, SolicitudNavegacion.Libre)
+            advanceTimeBy(1_500)
+            runCurrent()
+            trabajo.cancel()
+            runCurrent()
+
+            assertEquals(2, e.recorridos.lotes.size)
         }
 
     @Test

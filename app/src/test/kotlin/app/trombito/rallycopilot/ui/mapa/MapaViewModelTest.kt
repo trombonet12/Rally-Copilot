@@ -131,6 +131,20 @@ class MapaViewModelTest {
         }
 
     @Test
+    fun `una fijacion imprecisa mueve la posicion pero no inventa velocidad`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            ubicacion.flujo.emit(fijacion(tiempoMs = 1_000, velocidadMs = 10.0))
+            assertEquals(36, vm.uiState.value.velocidadKmh)
+            // Posición aproximada de interior: 22 m en 1 s sin velocidad propia (serían ~80 km/h derivados).
+            val imprecisa = fijacion(tiempoMs = 2_000, lat = 39.7002).copy(precisionM = 50.0)
+            ubicacion.flujo.emit(imprecisa)
+            assertEquals(36, vm.uiState.value.velocidadKmh)
+            assertEquals(imprecisa, vm.uiState.value.posicion)
+        }
+
+    @Test
     fun `una via sin maxspeed no tiene limite`() =
         runTest {
             vias.via = ViaActual("Camí vell", null, null)
