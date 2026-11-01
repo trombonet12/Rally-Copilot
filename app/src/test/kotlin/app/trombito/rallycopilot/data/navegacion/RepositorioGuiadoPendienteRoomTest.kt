@@ -93,4 +93,33 @@ class RepositorioGuiadoPendienteRoomTest {
 
             assertNull(repositorio.pendiente.first())
         }
+
+    @Test
+    fun `las paradas pendientes se guardan en orden y vuelven iguales`() =
+        runBlocking {
+            val paradas =
+                listOf(
+                    Destino("Cala \"Agulla\", Capdepera", PuntoGeo(39.7, 3.45)),
+                    Destino("Lluc", PuntoGeo(39.82, 2.88)),
+                )
+
+            repositorio.guardar(destino, PerfilRuta.SINUOSA, paradas)
+
+            assertEquals(
+                GuiadoPendiente(destino, PerfilRuta.SINUOSA, desdeMs = 1_000_000L, paradas = paradas),
+                repositorio.pendiente.first(),
+            )
+        }
+
+    @Test
+    fun `sin paradas la lista sale vacia y un texto ilegible no tumba el guiado`() =
+        runBlocking {
+            repositorio.guardar(destino, PerfilRuta.MAS_RAPIDA)
+            assertEquals(emptyList<Destino>(), repositorio.pendiente.first()?.paradas)
+
+            base.guiadoPendienteDao().guardar(
+                GuiadoPendienteEntity(1, "Sóller", 39.77, 2.71, "MAS_RAPIDA", 1_000_000L, paradas = "{no es json"),
+            )
+            assertEquals(emptyList<Destino>(), repositorio.pendiente.first()?.paradas)
+        }
 }

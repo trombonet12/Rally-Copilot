@@ -8,6 +8,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.GuiadoPendiente
+import app.trombito.rallycopilot.domain.navegacion.OrdenParadas
 import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
@@ -265,6 +266,7 @@ class ControlNavegacionImplTest {
                 override suspend fun guardar(
                     destino: Destino,
                     perfil: PerfilRuta,
+                    paradas: List<Destino>,
                 ): Unit = throw android.database.sqlite.SQLiteException("disco lleno")
 
                 override suspend fun borrar() = Unit
@@ -276,17 +278,85 @@ class ControlNavegacionImplTest {
 
         assertEquals(EstadoNavegacion.Inactiva, control.estado.value)
     }
+
+    @Test
+    fun `empezar con paradas las publica y las guarda en el guiado pendiente`() {
+        val paradaA = Destino("A", PuntoGeo(39.6, 2.7))
+        val paradaB = Destino("B", PuntoGeo(39.7, 2.7))
+        val conParadas = rutaPrueba.copy(indicesParadas = listOf(0, 1))
+
+        control.empezar(destinoPrueba, PerfilRuta.SINUOSA, conParadas, listOf(paradaA, paradaB))
+
+        assertEquals(listOf(paradaA, paradaB), (control.estado.value as EstadoNavegacion.Guiando).paradas)
+        assertEquals(listOf(paradaA, paradaB), guiadoPendiente.paradas)
+        val solicitud = checkNotNull(control.tomarSolicitud()).solicitud as SolicitudNavegacion.Guiada
+        assertEquals(listOf(paradaA, paradaB), solicitud.paradas)
+    }
+
+    @Test
+    fun `cuando la sesion publica menos paradas se actualiza el guiado pendiente`() {
+        val paradaA = Destino("A", PuntoGeo(39.6, 2.7))
+        val paradaB = Destino("B", PuntoGeo(39.7, 2.7))
+        val conParadas = rutaPrueba.copy(indicesParadas = listOf(0, 1))
+        control.empezar(destinoPrueba, PerfilRuta.SINUOSA, conParadas, listOf(paradaA, paradaB))
+        val id = checkNotNull(control.tomarSolicitud()).id
+
+        control.publicar(
+            id,
+            EstadoNavegacion.Guiando(
+                destinoPrueba,
+                PerfilRuta.SINUOSA,
+                conParadas,
+                progreso = null,
+                recalculando = false,
+                paradas = listOf(paradaB),
+                paradasHechas = 1,
+            ),
+        )
+
+        assertEquals(listOf(paradaB), guiadoPendiente.paradas)
+    }
+
+    @Test
+    fun `las ordenes de edicion llegan a la sesion solo con un guiado en curso`() {
+        val parada = Destino("A", PuntoGeo(39.6, 2.7))
+        control.anadirParada(parada)
+        assertTrue(control.ordenes.tryReceive().isFailure)
+
+        control.empezar(destinoPrueba, PerfilRuta.SINUOSA, rutaPrueba)
+        control.anadirParada(parada)
+        control.moverParada(0, 1)
+        control.quitarParada(0)
+
+        assertEquals(OrdenParadas.Anadir(parada), control.ordenes.tryReceive().getOrNull())
+        assertEquals(OrdenParadas.Mover(0, 1), control.ordenes.tryReceive().getOrNull())
+        assertEquals(OrdenParadas.Quitar(0), control.ordenes.tryReceive().getOrNull())
+    }
+
+    @Test
+    fun `una sesion nueva descarta las ordenes de la anterior`() {
+        control.empezar(destinoPrueba, PerfilRuta.SINUOSA, rutaPrueba)
+        control.quitarParada(0)
+        control.terminar()
+
+        control.empezar(destinoPrueba, PerfilRuta.SINUOSA, rutaPrueba)
+
+        assertTrue(control.ordenes.tryReceive().isFailure)
+    }
 }
 
 private class GuiadoPendienteEnMemoria : RepositorioGuiadoPendiente {
     val valor = MutableStateFlow<Pair<Destino, PerfilRuta>?>(null)
+    var paradas: List<Destino> = emptyList()
 
     override val pendiente: Flow<GuiadoPendiente?> = emptyFlow()
 
     override suspend fun guardar(
         destino: Destino,
         perfil: PerfilRuta,
+        paradas: List<Destino>,
     ) {
+        this.paradas = paradas
         valor.value = destino to perfil
     }
 

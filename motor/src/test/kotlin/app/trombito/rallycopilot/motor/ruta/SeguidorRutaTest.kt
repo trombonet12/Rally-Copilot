@@ -255,4 +255,94 @@ class SeguidorRutaTest {
         e = seguidor.actualizar(p(maximo - 10.0, 0.0), 70_000)
         assertFalse(e.sentidoContrario)
     }
+
+    // Tres tramos en L: 1000 m al este (parada A), 500 m al norte (parada B) y otros 500 m al norte (destino).
+    private val conParadas =
+        Ruta(
+            puntos = listOf(p(0.0, 0.0), p(1000.0, 0.0), p(1000.0, 500.0), p(1000.0, 1000.0)),
+            maniobras =
+                listOf(
+                    m(TipoManiobra.SALIDA, 0, 1, 1000.0, 100.0),
+                    m(TipoManiobra.DESTINO, 1, 1, 0.0, 0.0),
+                    m(TipoManiobra.SALIDA, 1, 2, 500.0, 50.0),
+                    m(TipoManiobra.DESTINO, 2, 2, 0.0, 0.0),
+                    m(TipoManiobra.SALIDA, 2, 3, 500.0, 50.0),
+                    m(TipoManiobra.DESTINO, 3, 3, 0.0, 0.0),
+                ),
+            longitudM = 2000.0,
+            tiempoS = 200.0,
+            indicesParadas = listOf(1, 2),
+        )
+
+    @Test
+    fun `sin paradas el estado no cuenta paradas ni distancia a la proxima`() {
+        val e = SeguidorRuta(ruta).actualizar(p(500.0, 0.0), 0)
+        assertEquals(0, e.paradasAlcanzadas)
+        assertNull(e.distanciaAProximaParadaM)
+        assertNull(e.tiempoAProximaParadaS)
+    }
+
+    @Test
+    fun `la distancia y el tiempo a la proxima parada salen del progreso`() {
+        val e = SeguidorRuta(conParadas).actualizar(p(600.0, 0.0), 0)
+        assertEquals(0, e.paradasAlcanzadas)
+        assertEquals(400.0, e.distanciaAProximaParadaM!!, 1.0)
+        assertEquals(40.0, e.tiempoAProximaParadaS!!, 0.5)
+        assertEquals(1400.0, e.distanciaRestanteM, 1.0)
+    }
+
+    @Test
+    fun `una parada se alcanza a 30 m o menos y no a 40 m`() {
+        val seguidor = SeguidorRuta(conParadas)
+        assertEquals(0, seguidor.actualizar(p(960.0, 0.0), 0).paradasAlcanzadas)
+        assertEquals(1, seguidor.actualizar(p(975.0, 0.0), 1000).paradasAlcanzadas)
+    }
+
+    @Test
+    fun `pasar la parada sin acercarse a 30 m tambien la alcanza`() {
+        val seguidor = SeguidorRuta(conParadas)
+        assertEquals(0, seguidor.actualizar(p(900.0, 0.0), 0).paradasAlcanzadas)
+        // La fijacion salta a 55 m de la ruta pero ya con 200 m de progreso por delante.
+        val e = seguidor.actualizar(p(1055.0, 260.0), 1000)
+        assertEquals(1, e.paradasAlcanzadas)
+        assertEquals(240.0, e.distanciaAProximaParadaM!!, 5.0)
+    }
+
+    @Test
+    fun `las paradas se alcanzan en orden y una vez cada una`() {
+        val seguidor = SeguidorRuta(conParadas)
+        seguidor.actualizar(p(0.0, 0.0), 0)
+        assertEquals(1, seguidor.actualizar(p(1000.0, 300.0), 1000).paradasAlcanzadas)
+        assertEquals(1, seguidor.actualizar(p(1000.0, 310.0), 2000).paradasAlcanzadas)
+        val e = seguidor.actualizar(p(1000.0, 700.0), 3000)
+        assertEquals(2, e.paradasAlcanzadas)
+        assertNull(e.distanciaAProximaParadaM)
+        assertNull(e.tiempoAProximaParadaS)
+    }
+
+    @Test
+    fun `volver atras despues de alcanzar una parada no la desalcanza`() {
+        val seguidor = SeguidorRuta(conParadas)
+        assertEquals(1, seguidor.actualizar(p(1000.0, 0.0), 0).paradasAlcanzadas)
+        assertEquals(1, seguidor.actualizar(p(980.0, 0.0), 1000).paradasAlcanzadas)
+    }
+
+    @Test
+    fun `una ruta que vuelve a pasar cerca de una parada futura no la da por alcanzada`() {
+        // Ida y vuelta: la parada B (indice 3) esta en el kilometro 2 pero la ruta ya pasa a 10 m de ella en el km 0.
+        val bucle =
+            Ruta(
+                puntos = listOf(p(0.0, 0.0), p(1000.0, 0.0), p(1000.0, 5.0), p(0.0, 5.0), p(0.0, 10.0)),
+                maniobras =
+                    listOf(
+                        m(TipoManiobra.SALIDA, 0, 4, 2010.0, 200.0),
+                        m(TipoManiobra.DESTINO, 4, 4, 0.0, 0.0),
+                    ),
+                longitudM = 2010.0,
+                tiempoS = 200.0,
+                indicesParadas = listOf(3),
+            )
+        val e = SeguidorRuta(bucle).actualizar(p(5.0, 0.0), 0)
+        assertEquals(0, e.paradasAlcanzadas)
+    }
 }

@@ -12,6 +12,7 @@ import app.trombito.rallycopilot.motor.voz.CandidatasNotas
 import app.trombito.rallycopilot.motor.voz.Frase
 import app.trombito.rallycopilot.motor.voz.IdsEstablesNotas
 import app.trombito.rallycopilot.motor.voz.PlanificadorFrases
+import app.trombito.rallycopilot.motor.voz.TipoFrase
 import kotlinx.coroutines.flow.Flow
 import kotlin.math.roundToInt
 
@@ -34,6 +35,7 @@ class RutaVoz(
  * El [locutor] es de la aplicación y sobrevive a la sesión: [cerrar] solo deja de pedirle trabajo. No es concurrente:
  * [alFijar] y [cerrar] se llaman desde la corrutina de la sesión.
  */
+@Suppress("TooManyFunctions") // un solo planificador por sesión; los ayudantes comparten su estado
 class CopilotoVoz(
     private val locutor: Locutor,
     private val ajustes: Flow<AjustesConduccion>,
@@ -48,6 +50,20 @@ class CopilotoVoz(
     private var ultimaPreparacion: List<String>? = null
     private var rutaAnterior: RutaVoz? = null
     private var generacionRuta = 0
+    private val paradasPorDecir = ArrayList<ParadaPorDecir>()
+
+    /**
+     * Una parada intermedia alcanzada ([numero]: cuántas van, desde 1): se dice [texto] en cuanto el altavoz esté libre
+     * (como una maniobra, sin posición: no caduca por distancia) y, si no cabe en [VIGENCIA_PARADA_FIJACIONES]
+     * fijaciones, se pierde.
+     */
+    fun anunciarParada(
+        numero: Int,
+        texto: String,
+    ) {
+        paradasPorDecir +=
+            ParadaPorDecir(Frase("parada-$numero", texto, TipoFrase.MANIOBRA, null), VIGENCIA_PARADA_FIJACIONES)
+    }
 
     /** Mantiene al día los ajustes (modo, voz, anticipación, notas simplificadas) hasta que se cancele. */
     suspend fun seguirAjustes() {
@@ -85,14 +101,26 @@ class CopilotoVoz(
         val visibles = visibles(notas, a, v)
         val maniobras = maniobras(ruta, posicionM, v)
         val idDe = idsDe(notas)
-        val activas = CandidatasNotas.de(visibles, a.notasSimplificadas, idDe) + maniobras + alertas
+        val paradas = paradasVigentes()
+        val activas = CandidatasNotas.de(visibles, a.notasSimplificadas, idDe) + maniobras + alertas + paradas
         val previstas =
             CandidatasNotas.de(visibles.map { it.copy(activa = true) }, a.notasSimplificadas, idDe) +
                 maniobras + inminentesPrevistos(ruta, posicionM)
         if (!locutor.hablando.value) {
-            planificador.siguiente(activas, posicionM, vMs, a.modoCopiloto)?.let { decir(it, posicionM, vMs) }
+            planificador.siguiente(activas, posicionM, vMs, a.modoCopiloto)?.let {
+                paradasPorDecir.removeAll { p -> p.frase.id == it.id }
+                decir(it, posicionM, vMs)
+            }
         }
         preparar(previstas, posicionM, a)
+    }
+
+    /** Las paradas por decir aún vigentes; cada fijación gasta una de su vigencia. */
+    private fun paradasVigentes(): List<Frase> {
+        paradasPorDecir.removeAll { it.fijacionesRestantes <= 0 }
+        val frases = paradasPorDecir.map { it.frase }
+        paradasPorDecir.forEach { it.fijacionesRestantes-- }
+        return frases
     }
 
     /** Deja de pedir trabajo al locutor (vacía lo que había por sintetizar); se puede llamar más de una vez. */
@@ -184,5 +212,13 @@ class CopilotoVoz(
         const val PREPARADAS = 6
         const val SUFIJO_INMINENTE = "-inminente"
         const val MS_A_KMH = 3.6
+
+        /** Fijaciones (≈ s) que una parada alcanzada espera a que el altavoz esté libre antes de perderse. */
+        const val VIGENCIA_PARADA_FIJACIONES = 15
     }
 }
+
+private class ParadaPorDecir(
+    val frase: Frase,
+    var fijacionesRestantes: Int,
+)

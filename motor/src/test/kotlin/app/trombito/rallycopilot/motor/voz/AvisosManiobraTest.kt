@@ -123,4 +123,22 @@ class AvisosManiobraTest {
         val resultado = runCatching { AvisosManiobra(listOf(maniobra()), emptyList()) }
         assertTrue(resultado.exceptionOrNull() is IllegalArgumentException)
     }
+
+    @Test
+    fun `un destino intermedio se anuncia como parada y el ultimo como destino`() {
+        val conParada =
+            AvisosManiobra(
+                maniobras =
+                    listOf(
+                        maniobra(TipoManiobra.SALIDA, emptyList()),
+                        maniobra(TipoManiobra.DESTINO, emptyList()),
+                        maniobra(TipoManiobra.SALIDA, emptyList()),
+                        maniobra(TipoManiobra.DESTINO, emptyList()),
+                    ),
+                posicionesM = listOf(0.0, 1000.0, 1000.0, 3000.0),
+            )
+        assertEquals("a cuatrocientos, parada", conParada.candidatas(600.0, 30.0).single().texto)
+        assertEquals("parada", conParada.candidatas(970.0, 5.0).single().texto)
+        assertEquals("destino", conParada.candidatas(2970.0, 5.0).single().texto)
+    }
 }

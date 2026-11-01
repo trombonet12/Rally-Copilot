@@ -50,6 +50,24 @@ class PeticionRutaTest {
     }
 
     @Test
+    fun `las paradas van entre el origen y el destino en el orden en que se dan`() {
+        val primera = PuntoGeo(39.60, 2.70)
+        val segunda = PuntoGeo(39.70, 2.65)
+        val p =
+            Json
+                .parseToJsonElement(
+                    PeticionRuta.json(palma, soller, PerfilRuta.MAS_RAPIDA, paradas = listOf(primera, segunda)),
+                ).jsonObject
+        val lats =
+            p.getValue("locations").jsonArray.map {
+                it.jsonObject
+                    .getValue("lat")
+                    .jsonPrimitive.double
+            }
+        assertEquals(listOf(39.5696, 39.60, 39.70, 39.7667), lats)
+    }
+
+    @Test
     fun `la más rápida no añade opciones de costing`() {
         assertNull(json(PerfilRuta.MAS_RAPIDA)["costing_options"])
     }

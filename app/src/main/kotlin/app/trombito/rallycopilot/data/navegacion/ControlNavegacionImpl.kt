@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.navegacion.OrdenParadas
 import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
@@ -33,10 +34,13 @@ import javax.inject.Singleton
  * primer plano desde segundo plano).
  *
  * Recuerda el destino del guiado en [guiadoPendiente]: lo guarda al empezar y lo borra al terminar, llegar o pasar a
- * libre. Si el proceso muere la fila queda, y la UI la usa para ofrecer «Seguir a destino». Las escrituras van por
- * una cola en [alcance] para conservar el orden sin bloquear al llamante.
+ * libre, y la actualiza cuando cambian las paradas pendientes (se alcanza una, o se añade, quita o mueve). Si el
+ * proceso muere la fila queda, y la UI la usa para ofrecer «Seguir a destino». Las escrituras van por una cola en
+ * [alcance] para conservar el orden sin bloquear al llamante. Las órdenes de edición de paradas llegan a la sesión por
+ * [ordenes].
  */
 @Singleton
+@Suppress("TooManyFunctions") // control de sesión + guiado pendiente + órdenes de paradas, todo con un cerrojo
 class ControlNavegacionImpl
     internal constructor(
         @ApplicationContext private val contexto: Context,
@@ -78,6 +82,12 @@ class ControlNavegacionImpl
 
         @Volatile
         private var pendiente: SolicitudConId? = null
+
+        /** Órdenes de edición de paradas hacia la sesión guiada en curso; el servicio se las pasa a la sesión. */
+        internal val ordenes = Channel<OrdenParadas>(Channel.UNLIMITED)
+
+        /** Paradas pendientes que hay en el guiado pendiente guardado. Solo se toca con el [cerrojo] o al empezar. */
+        private var paradasGuardadas: List<Destino> = emptyList()
         private val huerfanosReclamados = AtomicBoolean(false)
 
         override fun empezarLibre() {
@@ -89,15 +99,29 @@ class ControlNavegacionImpl
             destino: Destino,
             perfil: PerfilRuta,
             ruta: Ruta,
+            paradas: List<Destino>,
         ) {
             val yaGuiando = _estado.value is EstadoNavegacion.Guiando
             arrancar(
-                SolicitudNavegacion.Guiada(destino, perfil, ruta),
-                EstadoNavegacion.Guiando(destino, perfil, ruta, progreso = null, recalculando = false),
+                SolicitudNavegacion.Guiada(destino, perfil, ruta, paradas),
+                EstadoNavegacion.Guiando(
+                    destino,
+                    perfil,
+                    ruta,
+                    progreso = null,
+                    recalculando = false,
+                    paradas = paradas.take(ruta.indicesParadas.size),
+                ),
             )
             if (!yaGuiando && _estado.value is EstadoNavegacion.Guiando) {
-                cola.trySend { guiadoPendiente.guardar(destino, perfil) }
+                val pendientes = paradas.take(ruta.indicesParadas.size)
+                synchronized(cerrojo) { paradasGuardadas = pendientes }
+                cola.trySend { guiadoPendiente.guardar(destino, perfil, pendientes) }
             }
+        }
+
+        override fun editarParadas(orden: OrdenParadas) {
+            if (_estado.value is EstadoNavegacion.Guiando) ordenes.trySend(orden)
         }
 
         override fun terminar() {
@@ -127,6 +151,7 @@ class ControlNavegacionImpl
             }
             val id = ultimoId.incrementAndGet()
             pendiente = SolicitudConId(id, solicitud)
+            descartarOrdenesViejas()
             synchronized(cerrojo) {
                 vigente = id
                 _estado.value = inicial
@@ -172,8 +197,24 @@ class ControlNavegacionImpl
                 if (id == vigente) {
                     _estado.value = nuevo
                     if (nuevo is EstadoNavegacion.Llegada) borrarPendiente()
+                    if (nuevo is EstadoNavegacion.Guiando) guardarParadasSiCambian(nuevo)
                 }
             }
+        }
+
+        /** Las órdenes de edición que quedaron de una sesión anterior no valen para la nueva. */
+        private fun descartarOrdenesViejas() {
+            generateSequence { ordenes.tryReceive().getOrNull() }.count()
+        }
+
+        /** Mantiene el guiado pendiente al día con las paradas que faltan. Llamar con el [cerrojo] tomado. */
+        private fun guardarParadasSiCambian(guiando: EstadoNavegacion.Guiando) {
+            if (guiando.paradas == paradasGuardadas) return
+            paradasGuardadas = guiando.paradas
+            val destino = guiando.destino
+            val perfil = guiando.perfil
+            val paradas = guiando.paradas
+            cola.trySend { guiadoPendiente.guardar(destino, perfil, paradas) }
         }
 
         private fun borrarPendiente() {

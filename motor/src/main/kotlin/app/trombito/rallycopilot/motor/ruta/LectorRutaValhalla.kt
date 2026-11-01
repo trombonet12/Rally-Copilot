@@ -14,8 +14,9 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Lee la respuesta de `route` de Valhalla (`trip.legs[].shape` en polyline6 y `maneuvers[]`). Las longitudes de
- * Valhalla vienen en kilómetros (o millas si `trip.units` es `miles`) y aquí se convierten a metros.
+ * Lee la respuesta de `route` de Valhalla (`trip.legs[].shape` en polyline6 y `maneuvers[]`). Con paradas hay una leg
+ * por tramo y el final de cada una, salvo la última, es una parada ([Ruta.indicesParadas]). Las longitudes de Valhalla
+ * vienen en kilómetros (o millas si `trip.units` es `miles`) y aquí se convierten a metros.
  */
 object LectorRutaValhalla {
     private const val METROS_POR_KM = 1000.0
@@ -42,16 +43,11 @@ object LectorRutaValhalla {
         val metrosPorUnidad = if (trip["units"]?.jsonPrimitive?.content == "miles") METROS_POR_MILLA else METROS_POR_KM
         val puntos = ArrayList<PuntoGeo>()
         val maniobras = ArrayList<Maniobra>()
-        for (leg in legs) {
-            val l = leg.jsonObject
-            val shape = Polyline6.decodificar(l["shape"]?.jsonPrimitive?.content ?: invalida("Leg sin shape"))
-            if (shape.size < 2) invalida("Leg con menos de dos puntos")
-            // La leg siguiente empieza donde acaba la anterior: no se repite el punto de unión.
-            val repetido = puntos.isNotEmpty() && puntos.last() == shape.first()
-            val base = if (repetido) puntos.size - 1 else puntos.size
-            puntos.addAll(if (repetido) shape.drop(1) else shape)
-            val delLeg = l["maneuvers"]?.jsonArray ?: JsonArray(emptyList())
-            delLeg.mapTo(maniobras) { maniobra(it.jsonObject, base, shape.size, metrosPorUnidad) }
+        val paradas = ArrayList<Int>()
+        for ((numero, leg) in legs.withIndex()) {
+            anadirLeg(leg.jsonObject, puntos, maniobras, metrosPorUnidad)
+            // El final de cada leg menos el último es una parada (location de tipo break).
+            if (numero < legs.size - 1) paradas.add(puntos.lastIndex)
         }
         if (maniobras.isEmpty()) invalida("La ruta no tiene maniobras")
         return Ruta(
@@ -59,7 +55,25 @@ object LectorRutaValhalla {
             fusionarRotondas(maniobras),
             maniobras.sumOf { it.longitudM },
             maniobras.sumOf { it.tiempoS },
+            paradas,
         )
+    }
+
+    /** Suma a [puntos] y [maniobras] los de una [leg]; los índices de sus maniobras se desplazan a la ruta entera. */
+    private fun anadirLeg(
+        leg: JsonObject,
+        puntos: MutableList<PuntoGeo>,
+        maniobras: MutableList<Maniobra>,
+        metrosPorUnidad: Double,
+    ) {
+        val shape = Polyline6.decodificar(leg["shape"]?.jsonPrimitive?.content ?: invalida("Leg sin shape"))
+        if (shape.size < 2) invalida("Leg con menos de dos puntos")
+        // La leg siguiente empieza donde acaba la anterior: no se repite el punto de unión.
+        val repetido = puntos.isNotEmpty() && puntos.last() == shape.first()
+        val base = if (repetido) puntos.size - 1 else puntos.size
+        puntos.addAll(if (repetido) shape.drop(1) else shape)
+        val delLeg = leg["maneuvers"]?.jsonArray ?: JsonArray(emptyList())
+        delLeg.mapTo(maniobras) { maniobra(it.jsonObject, base, shape.size, metrosPorUnidad) }
     }
 
     /**

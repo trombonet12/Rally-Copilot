@@ -9,7 +9,8 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 /**
- * Petición `route` de Valhalla (docs: valhalla/docs/api/turn-by-turn/api-reference.md, Valhalla 3.6+).
+ * Petición `route` de Valhalla (docs: valhalla/docs/api/turn-by-turn/api-reference.md, Valhalla 3.6+). Las [paradas]
+ * van entre el origen y el destino, en orden.
  * Opciones de `costing_options.auto` usadas en [PerfilRuta.SINUOSA]: `use_highways`, `use_tolls` (0..1) y
  * `top_speed` (10..252 km/h, evita vías más rápidas). `exclude_tunnels` es una «hard exclusion» experimental que el
  * motor solo acepta con `service_limits.allow_hard_exclusions`; `FabricaMotorValhalla` lo activa.
@@ -22,9 +23,11 @@ internal object PeticionRuta {
         destino: PuntoGeo,
         perfil: PerfilRuta,
         excluirTuneles: Boolean = false,
+        paradas: List<PuntoGeo> = emptyList(),
     ): String =
         buildJsonObject {
-            put("locations", JsonArray(listOf(punto(origen), punto(destino))))
+            // Todas las locations son de tipo break (por defecto): cada parada cierra una leg con su «has llegado».
+            put("locations", JsonArray((listOf(origen) + paradas + destino).map(::punto)))
             put("costing", "auto")
             opciones(perfil, excluirTuneles)?.let { put("costing_options", it) }
             put("units", "kilometers")

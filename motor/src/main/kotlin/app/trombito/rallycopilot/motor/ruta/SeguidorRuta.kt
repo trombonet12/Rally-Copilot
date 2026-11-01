@@ -9,7 +9,9 @@ import kotlin.math.roundToLong
  * Situación del conductor sobre la ruta. [maniobraActual] es la próxima maniobra por ejecutar (la primera cuyo punto
  * de inicio aún no se ha pasado; la salida nunca se anuncia) y [distanciaAManiobraM] lo que falta por la ruta hasta
  * ella; [maniobraSiguiente] es la que viene después. [llegadaMs] es la hora estimada de llegada en el reloj de
- * [SeguidorRuta.actualizar].
+ * [SeguidorRuta.actualizar]. Con paradas ([Ruta.indicesParadas]): [paradasAlcanzadas] cuenta las ya alcanzadas (en
+ * orden, nunca baja) y [distanciaAProximaParadaM] / [tiempoAProximaParadaS] llevan a la siguiente (null si no queda
+ * ninguna).
  */
 data class EstadoRuta(
     val progresoM: Double,
@@ -22,6 +24,9 @@ data class EstadoRuta(
     val distanciaALaRutaM: Double,
     val llegado: Boolean,
     val sentidoContrario: Boolean = false,
+    val paradasAlcanzadas: Int = 0,
+    val distanciaAProximaParadaM: Double? = null,
+    val tiempoAProximaParadaS: Double? = null,
 )
 
 /**
@@ -30,6 +35,11 @@ data class EstadoRuta(
  * salvo salto: si en esa ventana la ruta queda a más de 60 m pero en otro punto está a 30 m o menos, se da por bueno.
  * Recuerda el progreso máximo alcanzado: si el actual queda a más de 50 m por detrás, el conductor va en sentido
  * contrario ([EstadoRuta.sentidoContrario]); el jitter del GPS y los retrocesos breves no llegan a ese margen.
+ *
+ * Las paradas se alcanzan de una en una y en orden: la siguiente cuenta como alcanzada cuando el conductor está a
+ * [RADIO_PARADA_M] o menos de ella (siempre que su progreso no quede a más de [MARGEN_PARADA_M] por detrás de la
+ * parada: así una ruta que vuelve a pasar cerca de una parada futura no la da por hecha) o cuando su progreso supera
+ * la posición de la parada aunque no se haya acercado a 30 m (fijaciones espaciadas, salto de GPS, curva cerrada).
  */
 class SeguidorRuta(
     private val ruta: Ruta,
@@ -42,6 +52,11 @@ class SeguidorRuta(
     /** Posición de cada maniobra de la ruta (m desde el inicio, en el mismo sistema que [EstadoRuta.progresoM]). */
     val posicionesManiobrasM: List<Double> = ruta.maniobras.map { linea.progresoEn(it.inicioIndice) }
 
+    /** Posición de cada parada intermedia de la ruta (m desde el inicio), en el orden del viaje. */
+    val posicionesParadasM: List<Double> = ruta.indicesParadas.map { linea.progresoEn(it) }
+    private val puntosParadas = ruta.indicesParadas.map { ruta.puntos[it.coerceIn(0, ruta.puntos.lastIndex)] }
+    private var paradasAlcanzadas = 0
+
     fun actualizar(
         punto: PuntoGeo,
         ahoraMs: Long,
@@ -52,7 +67,13 @@ class SeguidorRuta(
         progresoPrevio = proyeccion.progresoM
         progresoMaximo = maxOf(progresoMaximo, proyeccion.progresoM)
         val restante = (linea.longitudM - proyeccion.progresoM).coerceAtLeast(0.0)
-        val tiempoRestante = tiempoRestante(proyeccion.progresoM)
+        val tiempoRestante = tiempoHasta(proyeccion.progresoM, linea.longitudM)
+        while (paradasAlcanzadas < posicionesParadasM.size &&
+            alcanzada(paradasAlcanzadas, punto, proyeccion.progresoM)
+        ) {
+            paradasAlcanzadas++
+        }
+        val proxima = posicionesParadasM.getOrNull(paradasAlcanzadas)
         val indiceManiobra =
             ruta.maniobras.indexOfFirst {
                 it.tipo != TipoManiobra.SALIDA && linea.progresoEn(it.inicioIndice) >= proyeccion.progresoM
@@ -69,7 +90,20 @@ class SeguidorRuta(
             distanciaALaRutaM = proyeccion.distanciaM,
             llegado = restante <= RADIO_LLEGADA_M && punto.distanciaA(final) <= RADIO_LLEGADA_M,
             sentidoContrario = progresoMaximo - proyeccion.progresoM > SENTIDO_CONTRARIO_M,
+            paradasAlcanzadas = paradasAlcanzadas,
+            distanciaAProximaParadaM = proxima?.let { (it - proyeccion.progresoM).coerceAtLeast(0.0) },
+            tiempoAProximaParadaS = proxima?.let { tiempoHasta(proyeccion.progresoM, it) },
         )
+    }
+
+    private fun alcanzada(
+        indice: Int,
+        punto: PuntoGeo,
+        progresoM: Double,
+    ): Boolean {
+        val posicion = posicionesParadasM[indice]
+        val cerca = punto.distanciaA(puntosParadas[indice]) <= RADIO_PARADA_M && progresoM >= posicion - MARGEN_PARADA_M
+        return cerca || progresoM >= posicion
     }
 
     private fun elegir(
@@ -89,19 +123,22 @@ class SeguidorRuta(
         }
     }
 
-    private fun tiempoRestante(progreso: Double): Double {
+    /** Tiempo (s) para ir del progreso [desde] a la posición [hasta] de la ruta, repartido por maniobras. */
+    private fun tiempoHasta(
+        desde: Double,
+        hasta: Double,
+    ): Double {
         if (ruta.maniobras.isEmpty()) {
-            return ruta.tiempoS * (linea.longitudM - progreso).coerceAtLeast(0.0) /
-                linea.longitudM
+            return ruta.tiempoS * (hasta - desde).coerceAtLeast(0.0) / linea.longitudM
         }
         return ruta.maniobras.sumOf { m ->
             val ini = linea.progresoEn(m.inicioIndice)
             val fin = linea.progresoEn(m.finIndice)
             val fraccion =
                 when {
-                    progreso >= fin -> 0.0
-                    progreso <= ini || fin == ini -> 1.0
-                    else -> (fin - progreso) / (fin - ini)
+                    desde >= fin || ini >= hasta -> 0.0
+                    fin == ini -> 1.0
+                    else -> (minOf(fin, hasta) - maxOf(ini, desde)) / (fin - ini)
                 }
             m.tiempoS * fraccion
         }
@@ -113,6 +150,8 @@ class SeguidorRuta(
         const val LEJOS_M = 60.0
         const val SOBRE_RUTA_M = 30.0
         const val RADIO_LLEGADA_M = 30.0
+        const val RADIO_PARADA_M = 30.0
+        const val MARGEN_PARADA_M = 150.0
         const val SENTIDO_CONTRARIO_M = 50.0
         const val MS_POR_S = 1000.0
     }

@@ -13,6 +13,18 @@ interface Enrutador {
         destino: PuntoGeo,
         perfil: PerfilRuta,
     ): ResultadoRuta
+
+    /**
+     * Ruta de [origen] a [destino] pasando por las [paradas] intermedias en ese orden (una leg por tramo; la ruta
+     * lleva los índices de las paradas en `Ruta.indicesParadas`). Sin paradas es [ruta].
+     */
+    suspend fun rutaConParadas(
+        origen: PuntoGeo,
+        paradas: List<PuntoGeo>,
+        destino: PuntoGeo,
+        perfil: PerfilRuta,
+    ): ResultadoRuta =
+        if (paradas.isEmpty()) ruta(origen, destino, perfil) else ResultadoRuta.Error("Sin soporte de paradas")
 }
 
 sealed interface ResultadoRuta {

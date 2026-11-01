@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.GuiadoPendiente
+import app.trombito.rallycopilot.domain.navegacion.OrdenParadas
 import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
@@ -92,6 +93,7 @@ class FalsoControlNavegacion : ControlNavegacion {
     override val estado: StateFlow<EstadoNavegacion> = mutable
 
     val empezadas = mutableListOf<Triple<Destino, PerfilRuta, Ruta>>()
+    val ordenes = mutableListOf<OrdenParadas>()
     var libres = 0
     var terminadas = 0
 
@@ -108,9 +110,15 @@ class FalsoControlNavegacion : ControlNavegacion {
         destino: Destino,
         perfil: PerfilRuta,
         ruta: Ruta,
+        paradas: List<Destino>,
     ) {
         empezadas += Triple(destino, perfil, ruta)
-        mutable.value = EstadoNavegacion.Guiando(destino, perfil, ruta, progreso = null, recalculando = false)
+        mutable.value =
+            EstadoNavegacion.Guiando(destino, perfil, ruta, progreso = null, recalculando = false, paradas = paradas)
+    }
+
+    override fun editarParadas(orden: OrdenParadas) {
+        ordenes += orden
     }
 
     override fun terminar() {
@@ -130,8 +138,9 @@ class FalsoGuiadoPendiente(
     override suspend fun guardar(
         destino: Destino,
         perfil: PerfilRuta,
+        paradas: List<Destino>,
     ) {
-        mutable.value = GuiadoPendiente(destino, perfil, 0L)
+        mutable.value = GuiadoPendiente(destino, perfil, 0L, paradas)
     }
 
     override suspend fun borrar() {

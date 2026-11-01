@@ -49,11 +49,31 @@ class EnrutadorValhalla internal constructor(
         origen: PuntoGeo,
         destino: PuntoGeo,
         perfil: PerfilRuta,
+    ): ResultadoRuta = rutaConParadas(origen, emptyList(), destino, perfil)
+
+    /** Igual que [ruta] con las [paradas] intermedias como locations de tipo break (una leg por tramo). */
+    override suspend fun rutaConParadas(
+        origen: PuntoGeo,
+        paradas: List<PuntoGeo>,
+        destino: PuntoGeo,
+        perfil: PerfilRuta,
     ): ResultadoRuta {
         val excluida =
-            if (perfil == PerfilRuta.SINUOSA) calcular(origen, destino, perfil, excluirTuneles = true) else null
-        if (excluida !is ResultadoRuta.Ok) return calcular(origen, destino, perfil, excluirTuneles = false)
-        val normal = calcular(origen, destino, perfil, excluirTuneles = false)
+            if (perfil == PerfilRuta.SINUOSA) {
+                calcular(origen, destino, perfil, excluirTuneles = true, paradas = paradas)
+            } else {
+                null
+            }
+        if (excluida !is ResultadoRuta.Ok) {
+            return calcular(
+                origen,
+                destino,
+                perfil,
+                excluirTuneles = false,
+                paradas = paradas,
+            )
+        }
+        val normal = calcular(origen, destino, perfil, excluirTuneles = false, paradas = paradas)
         val total = excluida.calculoMs + ((normal as? ResultadoRuta.Ok)?.calculoMs ?: 0L)
         return when {
             normal !is ResultadoRuta.Ok -> excluida
@@ -68,11 +88,12 @@ class EnrutadorValhalla internal constructor(
         destino: PuntoGeo,
         perfil: PerfilRuta,
         excluirTuneles: Boolean,
+        paradas: List<PuntoGeo> = emptyList(),
     ): ResultadoRuta =
         withContext(dispatcher) {
             siembra.esperar()
             if (!tar.isFile) return@withContext ResultadoRuta.SinDatos
-            val peticion = PeticionRuta.json(origen, destino, perfil, excluirTuneles)
+            val peticion = PeticionRuta.json(origen, destino, perfil, excluirTuneles, paradas)
             cerrojo.withLock {
                 val inicio = reloj()
                 try {

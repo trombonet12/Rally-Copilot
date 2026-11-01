@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.motor.voz
 
 import app.trombito.rallycopilot.motor.notas.FrasesNota
 import app.trombito.rallycopilot.motor.ruta.FrasesManiobra
+import app.trombito.rallycopilot.motor.ruta.FrasesParada
 import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import kotlin.math.roundToInt
@@ -43,11 +44,11 @@ class AvisosManiobra(
                 }
 
                 distancia <= inminenteM -> {
-                    Frase("maniobra-$i-inminente", FrasesManiobra.frase(maniobra), TipoFrase.MANIOBRA, punto)
+                    Frase("maniobra-$i-inminente", texto(i), TipoFrase.MANIOBRA, punto)
                 }
 
                 distancia <= preavisoM -> {
-                    preaviso(i, maniobra, punto, distancia)
+                    preaviso(i, punto, distancia)
                 }
 
                 else -> {
@@ -57,9 +58,14 @@ class AvisosManiobra(
         }
     }
 
+    private fun texto(indice: Int): String {
+        val maniobra = maniobras[indice]
+        val intermedio = maniobra.tipo == TipoManiobra.DESTINO && indice < maniobras.lastIndex
+        return if (intermedio) FrasesParada.PARADA else FrasesManiobra.frase(maniobra)
+    }
+
     private fun preaviso(
         indice: Int,
-        maniobra: Maniobra,
         punto: Double,
         distanciaM: Double,
     ): Frase? {
@@ -67,7 +73,7 @@ class AvisosManiobra(
         if (cientos < 1) return null
         val metros = cientos * CIENTO_M.toInt()
         val palabras = if (metros >= MIL_M) "mil" else FrasesNota.enPalabras(metros)
-        val texto = "a $palabras, ${FrasesManiobra.frase(maniobra)}"
+        val texto = "a $palabras, ${texto(indice)}"
         return Frase("maniobra-$indice-preaviso", texto, TipoFrase.MANIOBRA, punto)
     }
 

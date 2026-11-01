@@ -221,6 +221,7 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         fabricaNotas = fabricaNotas,
         copiloto = CopilotoVoz(locutor, ajustes.ajustes, registroDeTiempos()),
         alertas = fabricaAlertas.crear(),
+        ordenes = control.ordenes,
     )
 
 /** Solo en un APK depurable: una línea por frase dicha para medir la anticipación (sin coordenadas). */

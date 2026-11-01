@@ -63,3 +63,11 @@ val MIGRATION_4_5: Migration =
             db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `voz` TEXT")
         }
     }
+
+/** v5 -> v6: paradas intermedias pendientes del guiado pendiente (la fila existente queda sin paradas). */
+val MIGRATION_5_6: Migration =
+    object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `guiado_pendiente` ADD COLUMN `paradas` TEXT NOT NULL DEFAULT ''")
+        }
+    }

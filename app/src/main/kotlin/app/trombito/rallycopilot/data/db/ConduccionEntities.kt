@@ -62,4 +62,6 @@ data class GuiadoPendienteEntity(
     val lon: Double,
     val perfil: String,
     val desdeMs: Long,
+    /** Paradas intermedias pendientes en JSON (`[{"n":..,"lat":..,"lon":..}]`); vacío si no hay. */
+    @ColumnInfo(defaultValue = "''") val paradas: String = "",
 )

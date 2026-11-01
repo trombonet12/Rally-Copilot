@@ -109,6 +109,26 @@ class LectorRutaValhallaTest {
         assertEquals(listOf("A", "B", "C"), ruta.maniobras.map { it.instruccionValhalla })
         assertEquals(300.0, ruta.longitudM, 1e-6)
         assertEquals(30.0, ruta.tiempoS, 1e-9)
+        assertEquals("el final de la primera leg es la parada", listOf(2), ruta.indicesParadas)
+    }
+
+    @Test
+    fun `una sola leg no tiene paradas`() {
+        val ruta = LectorRutaValhalla.leer(respuesta(leg(puntos, "$salida,$girar,$destino")))
+        assertEquals(emptyList<Int>(), ruta.indicesParadas)
+    }
+
+    @Test
+    fun `la maniobra tras la parada ignora la salida del tramo siguiente`() {
+        val legA = leg(puntos.take(3), man(1, "A", 0.1, 0, 1) + "," + man(4, "Parada", 0.0, 2, 2))
+        val legB =
+            leg(
+                puntos.drop(2),
+                man(1, "Sal", 0.1, 0, 1) + "," + man(10, "B", 0.2, 1, 1) + "," + man(4, "C", 0.0, 1, 1),
+            )
+        val ruta = LectorRutaValhalla.leer(respuesta(legA, legB))
+        assertEquals("B", ruta.maniobraTrasParada(0)?.instruccionValhalla)
+        assertEquals(null, ruta.maniobraTrasParada(1))
     }
 
     @Test

@@ -17,12 +17,26 @@ data class Maniobra(
     val salidaRotonda: Int?,
 )
 
+/**
+ * [indicesParadas]: índice en [puntos] de cada parada intermedia, en el orden del viaje (el final de cada tramo de
+ * Valhalla salvo el último); vacío si la ruta va directa al destino.
+ */
 data class Ruta(
     val puntos: List<PuntoGeo>,
     val maniobras: List<Maniobra>,
     val longitudM: Double,
     val tiempoS: Double,
-)
+    val indicesParadas: List<Int> = emptyList(),
+) {
+    /**
+     * Primera maniobra real tras la parada [n] (0 = la primera): la salida del tramo siguiente no cuenta. Null si no
+     * hay parada [n] o no queda ninguna maniobra.
+     */
+    fun maniobraTrasParada(n: Int): Maniobra? {
+        val indice = indicesParadas.getOrNull(n) ?: return null
+        return maniobras.firstOrNull { it.inicioIndice > indice && it.tipo != TipoManiobra.SALIDA }
+    }
+}
 
 /** La respuesta de Valhalla no es una ruta utilizable (JSON roto, error del servidor o datos incoherentes). */
 class RutaInvalida(

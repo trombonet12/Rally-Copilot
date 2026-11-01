@@ -379,4 +379,42 @@ class CopilotoVozTest {
     private companion object {
         const val METROS_POR_GRADO_LON = 85_500.0
     }
+
+    @Test
+    fun `una parada alcanzada se dice una vez, con prioridad, y no caduca por distancia`() {
+        val locutor = LocutorFalso()
+        val c = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+        c.anunciarParada(1, "parada alcanzada, siguiente cruce, izquierda")
+
+        c.fijar(ruta(), 100.0)
+        c.fijar(ruta(), 140.0)
+
+        assertEquals(listOf("parada alcanzada, siguiente cruce, izquierda"), locutor.dichas)
+    }
+
+    @Test
+    fun `una parada alcanzada espera a que el altavoz quede libre`() {
+        val locutor = LocutorFalso()
+        val c = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+        locutor.estaHablando.value = true
+        c.anunciarParada(1, "parada alcanzada")
+        c.fijar(ruta(), 100.0)
+        assertTrue(locutor.dichas.isEmpty())
+
+        locutor.estaHablando.value = false
+        c.fijar(ruta(), 120.0)
+
+        assertEquals(listOf("parada alcanzada"), locutor.dichas)
+    }
+
+    @Test
+    fun `en silencio la parada alcanzada no se dice nunca`() {
+        val locutor = LocutorFalso()
+        val c = copiloto(locutor, con(ModoCopiloto.SILENCIO))
+        c.anunciarParada(1, "parada alcanzada")
+
+        repeat(30) { c.fijar(ruta(), 100.0 + it) }
+
+        assertTrue(locutor.dichas.isEmpty())
+    }
 }

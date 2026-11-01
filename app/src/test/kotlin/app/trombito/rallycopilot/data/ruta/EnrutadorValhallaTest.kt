@@ -195,4 +195,30 @@ class EnrutadorValhallaTest {
         assertEquals(1, fabrica.motores[0].peticiones.size)
         assertTrue("exclude_tunnels" !in fabrica.motores[0].peticiones[0])
     }
+
+    @Test
+    fun `con una parada pide tres locations y la ruta marca la parada entre las dos legs`() {
+        val medio = PuntoGeo(39.65, 2.68)
+        val tramoA = Polyline6.codificar(listOf(a, medio))
+        val tramoB = Polyline6.codificar(listOf(medio, b))
+        val respuesta =
+            """{"trip":{"units":"kilometers","legs":[
+            {"shape":"$tramoA","maneuvers":[
+              {"type":1,"instruction":"Sal","length":5.0,"time":300.0,"begin_shape_index":0,"end_shape_index":1},
+              {"type":4,"instruction":"Parada","length":0.0,"time":0.0,"begin_shape_index":1,"end_shape_index":1}]},
+            {"shape":"$tramoB","maneuvers":[
+              {"type":1,"instruction":"Sal","length":5.0,"time":300.0,"begin_shape_index":0,"end_shape_index":1},
+              {"type":4,"instruction":"Llegas","length":0.0,"time":0.0,
+               "begin_shape_index":1,"end_shape_index":1}]}]}}"""
+        val fabrica = FabricaFalsa { respuesta }
+        runTest {
+            val e = enrutador(tarExistente(), fabrica)
+            val r = e.rutaConParadas(a, listOf(medio), b, PerfilRuta.MAS_RAPIDA)
+            r as ResultadoRuta.Ok
+            assertEquals(listOf(1), r.ruta.indicesParadas)
+            assertEquals(3, r.ruta.puntos.size)
+            assertEquals(10_000.0, r.ruta.longitudM, 0.001)
+        }
+        assertEquals(3, Regex("\"lat\"").findAll(fabrica.motores[0].peticiones[0]).count())
+    }
 }

@@ -6,6 +6,8 @@ import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.navegacion.OrdenParadas
+import app.trombito.rallycopilot.domain.navegacion.aplicar
 import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
@@ -15,6 +17,7 @@ import app.trombito.rallycopilot.motor.geo.AcumuladorRecorrido
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.DetectorSalidaRuta
 import app.trombito.rallycopilot.motor.ruta.EstadoRuta
+import app.trombito.rallycopilot.motor.ruta.FrasesParada
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.SeguidorRuta
 import app.trombito.rallycopilot.motor.velocidad.EstimadorVelocidad
@@ -23,6 +26,7 @@ import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
@@ -30,7 +34,11 @@ import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Lo que el usuario pidió al pulsar «Empezar»: modo libre o guiado hacia un destino con la ruta ya calculada. */
+/**
+ * Lo que el usuario pidió al pulsar «Empezar»: modo libre o guiado hacia un destino con la ruta ya calculada. En el
+ * guiado, [Guiada.paradas] son las intermedias en el orden en que se añadieron y la [Guiada.ruta] las lleva en
+ * `indicesParadas` (una por parada; las que la ruta no incluya se ignoran).
+ */
 sealed interface SolicitudNavegacion {
     data object Libre : SolicitudNavegacion
 
@@ -38,6 +46,7 @@ sealed interface SolicitudNavegacion {
         val destino: Destino,
         val perfil: PerfilRuta,
         val ruta: Ruta,
+        val paradas: List<Destino> = emptyList(),
     ) : SolicitudNavegacion
 }
 
@@ -52,6 +61,10 @@ sealed interface SolicitudNavegacion {
  * [copiloto], en cada fijación válida le pasa las notas vigentes y el progreso de la ruta para que hable. Si hay
  * [alertas] (radares, tramos, exceso de velocidad, incidencias), en cada fijación válida calcula las suyas, las publica
  * y se las suma al copiloto como candidatas.
+ *
+ * Paradas: al alcanzar la próxima (a ≤ 30 m o al pasarla) la siguiente pasa a ser el objetivo y el copiloto lo dice
+ * («parada alcanzada, siguiente …»); un recálculo conserva solo las paradas pendientes. Las [ordenes] de edición
+ * (añadir, quitar, mover) de la UI recalculan la ruta desde la posición actual.
  */
 @Suppress("LongParameterList") // colaboradores de la sesión: fuente, enrutador, grabación, reloj, salidas y notas
 class SesionNavegacion(
@@ -64,6 +77,7 @@ class SesionNavegacion(
     private val fabricaNotas: FabricaNotasSesion? = null,
     private val copiloto: CopilotoVoz? = null,
     private val alertas: SesionAlertas? = null,
+    private val ordenes: ReceiveChannel<OrdenParadas>? = null,
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
     suspend fun cerrarHuerfanos() {
@@ -91,6 +105,7 @@ class SesionNavegacion(
         }
     }
 
+    @Suppress("TooManyFunctions") // el estado de la conducción es uno: fijaciones, recálculo y paradas lo comparten
     private inner class Ejecucion(
         private val id: Long,
         solicitud: SolicitudNavegacion,
@@ -112,8 +127,15 @@ class SesionNavegacion(
                 if (guia != null) notas?.iniciarGuiado(guia.ruta.puntos) else notas?.iniciarLibre()
                 val ajustesCopiloto = copiloto?.let { launch { it.seguirAjustes() } }
                 val datosAlertas = alertas?.arrancar(this, guia?.ruta?.puntos)
+                val edicion =
+                    if (guia != null && ordenes != null) {
+                        launch { for (orden in ordenes) editar(guia, orden, this@coroutineScope) }
+                    } else {
+                        null
+                    }
                 publicar(estadoActual())
                 fuente.fijaciones().takeWhile { procesar(it, this) }.collect()
+                edicion?.cancel()
                 guia?.recalculo?.cancel()
                 ajustesCopiloto?.cancel()
                 datosAlertas?.cancel()
@@ -145,6 +167,7 @@ class SesionNavegacion(
             if (guia != null) {
                 val progreso = guia.seguidor.actualizar(fijacion.punto, ahora)
                 guia.progreso = progreso
+                paradasAlcanzadas(guia, progreso, alcance)
                 llegado = progreso.llegado
                 if (!llegado) {
                     notas?.posicionGuiada(progreso.progresoM, fijacion.velocidadMs)
@@ -196,23 +219,77 @@ class SesionNavegacion(
             }
         }
 
+        /**
+         * Recalcula desde [origen] hacia el destino pasando por las paradas que [guia] tiene pendientes. Si se cancela
+         * (otra edición o una parada alcanzada mientras tanto) no toca el estado: quien cancela relanza.
+         */
         private suspend fun recalcular(
             guia: Guia,
             origen: PuntoGeo,
         ) {
             guia.recalculando = true
             publicar(estadoActual())
-            val resultado = enrutador.ruta(origen, guia.destino.punto, guia.perfil)
+            val paradas = guia.paradas
+            val resultado =
+                enrutador.rutaConParadas(origen, paradas.map { it.punto }, guia.destino.punto, guia.perfil)
             if (resultado is ResultadoRuta.Ok && resultado.ruta.puntos.size >= 2) {
                 // Se proyecta ya la última posición: sin progreso el banner enseñaría la salida de la ruta nueva (0 m).
-                guia.usar(resultado.ruta, ultimaPosicion, reloj())
+                guia.usar(resultado.ruta, paradas, ultimaPosicion, reloj())
                 notas?.nuevaRuta(resultado.ruta.puntos)
                 alertas?.nuevaRuta(resultado.ruta.puntos)
             } else {
                 guia.reintentoMs = ultimaFijacionMs + REINTENTO_MS
+                // La ruta vigente sigue sin las paradas pedidas: las pendientes vuelven a ser las de esa ruta.
+                guia.paradas = guia.paradasEnRuta
             }
             guia.recalculando = false
+            guia.progreso?.let { paradasAlcanzadas(guia, it, null) }
             publicar(estadoActual())
+        }
+
+        /** Aplica una orden de la UI sobre las paradas pendientes y recalcula la ruta desde la posición actual. */
+        private fun editar(
+            guia: Guia,
+            orden: OrdenParadas,
+            alcance: CoroutineScope,
+        ) {
+            val nuevas = orden.aplicar(guia.paradas)
+            if (nuevas == guia.paradas) return
+            guia.paradas = nuevas
+            relanzarRecalculo(guia, alcance)
+        }
+
+        private fun relanzarRecalculo(
+            guia: Guia,
+            alcance: CoroutineScope,
+        ) {
+            guia.recalculo?.cancel()
+            val origen = ultimaPosicion ?: guia.ruta.puntos.first()
+            // Ya, sin esperar al enrutador: la UI enseña la lista nueva y «recalculando».
+            guia.recalculando = true
+            publicar(estadoActual())
+            guia.recalculo = alcance.launch { recalcular(guia, origen) }
+        }
+
+        /**
+         * Registra las paradas que [progreso] da por alcanzadas desde la última vez: las quita de las pendientes, se lo
+         * dice al copiloto y, si había un recálculo en marcha (con esa parada dentro), lo relanza. [alcance] es null
+         * cuando se llama desde el propio recálculo (la ruta nueva ya parte de las pendientes).
+         */
+        private fun paradasAlcanzadas(
+            guia: Guia,
+            progreso: EstadoRuta,
+            alcance: CoroutineScope?,
+        ) {
+            val nuevas = progreso.paradasAlcanzadas - guia.alcanzadasEnRuta
+            if (nuevas <= 0) return
+            repeat(nuevas) {
+                val numero = guia.alcanzadasEnRuta
+                guia.alcanzadasEnRuta++
+                guia.paradaAlcanzada()
+                copiloto?.anunciarParada(guia.paradasHechas, FrasesParada.alcanzada(guia.ruta, numero))
+            }
+            if (alcance != null && guia.recalculo?.isActive == true) relanzarRecalculo(guia, alcance)
         }
 
         private suspend fun registrar(
@@ -246,6 +323,14 @@ class SesionNavegacion(
         val destino = solicitud.destino
         val perfil = solicitud.perfil
         var ruta: Ruta = solicitud.ruta
+
+        /** Paradas pendientes que se quieren (las que enseña la UI); con una edición en marcha difieren de la ruta. */
+        var paradas: List<Destino> = solicitud.paradas.take(ruta.indicesParadas.size)
+
+        /** Paradas pendientes que [ruta] realmente incluye. */
+        var paradasEnRuta: List<Destino> = paradas
+        var paradasHechas = 0
+        var alcanzadasEnRuta = 0
         var seguidor = SeguidorRuta(ruta)
         var rutaVoz = rutaVoz(ruta, seguidor)
         var detector = DetectorSalidaRuta()
@@ -254,11 +339,23 @@ class SesionNavegacion(
         var reintentoMs = 0L
         var recalculo: Job? = null
 
+        /** La próxima parada de la ruta se alcanzó: deja de estar pendiente. */
+        fun paradaAlcanzada() {
+            val llegada = paradasEnRuta.firstOrNull() ?: return
+            paradasEnRuta = paradasEnRuta.drop(1)
+            if (paradas.firstOrNull() == llegada) paradas = paradas.drop(1)
+            paradasHechas++
+        }
+
+        /** [nueva] se calculó con las [pendientes] (las paradas de entonces, todas aún por alcanzar). */
         fun usar(
             nueva: Ruta,
+            pendientes: List<Destino>,
             posicion: PuntoGeo?,
             ahoraMs: Long,
         ) {
+            paradasEnRuta = pendientes.take(nueva.indicesParadas.size)
+            alcanzadasEnRuta = 0
             ruta = nueva
             seguidor = SeguidorRuta(nueva)
             rutaVoz = rutaVoz(nueva, seguidor)
@@ -266,7 +363,7 @@ class SesionNavegacion(
             progreso = posicion?.let { seguidor.actualizar(it, ahoraMs) }
         }
 
-        fun estado() = EstadoNavegacion.Guiando(destino, perfil, ruta, progreso, recalculando)
+        fun estado() = EstadoNavegacion.Guiando(destino, perfil, ruta, progreso, recalculando, paradas, paradasHechas)
 
         private fun rutaVoz(
             ruta: Ruta,
