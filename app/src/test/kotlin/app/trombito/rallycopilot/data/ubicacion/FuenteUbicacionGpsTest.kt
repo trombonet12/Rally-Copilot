@@ -254,6 +254,18 @@ class FuenteUbicacionGpsTest {
     }
 
     @Test
+    fun `un rumbo con precision peor de 20 grados no cuenta`() {
+        // El GPS del emulador (y algunos móviles a poca velocidad) dicen tener rumbo 0 con ±30°.
+        val dudoso = posicion(39.6, 2.9, 1, rumbo = 0f).apply { bearingAccuracyDegrees = 30f }
+        val bueno = posicion(39.6, 2.9, 1, rumbo = 270f).apply { bearingAccuracyDegrees = 5f }
+        val sinPrecision = posicion(39.6, 2.9, 1, rumbo = 270f)
+
+        assertNull(dudoso.aFijacion()!!.rumboGrados)
+        assertEquals(270.0, bueno.aFijacion()!!.rumboGrados!!, 0.0)
+        assertEquals(270.0, sinPrecision.aFijacion()!!.rumboGrados!!, 0.0)
+    }
+
+    @Test
     fun `las coordenadas fuera de rango se descartan`() {
         val invalida = Location(LocationManager.GPS_PROVIDER)
         invalida.latitude = 91.0

@@ -15,6 +15,7 @@ import app.trombito.rallycopilot.motor.ruta.DetectorSalidaRuta
 import app.trombito.rallycopilot.motor.ruta.EstadoRuta
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.SeguidorRuta
+import app.trombito.rallycopilot.motor.velocidad.EstimadorVelocidad
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import kotlinx.coroutines.CoroutineScope
@@ -97,6 +98,9 @@ class SesionNavegacion(
         private var ultimaFijacionMs = 0L
         private var ultimaPosicion: PuntoGeo? = null
 
+        /** Rumbo del movimiento para las fijaciones sin rumbo fiable (emulador, rumbo impreciso). */
+        private val movimiento = EstimadorVelocidad()
+
         suspend fun ejecutar() =
             coroutineScope {
                 if (guia != null) notas?.iniciarGuiado(guia.ruta.puntos) else notas?.iniciarLibre()
@@ -117,11 +121,14 @@ class SesionNavegacion(
 
         /** Devuelve false cuando hay que dejar de recoger posiciones (llegada). */
         private suspend fun procesar(
-            fijacion: Fijacion,
+            cruda: Fijacion,
             alcance: CoroutineScope,
         ): Boolean {
             // Posición aproximada (fused/red bajo techo): sirve para pintar, no para grabar, sumar ni seguir la ruta.
-            if ((fijacion.precisionM ?: 0.0) > PRECISION_MAX_M) return true
+            if ((cruda.precisionM ?: 0.0) > PRECISION_MAX_M) return true
+            // Sin rumbo fiable, el del movimiento (lo usan la predicción en libre y el sentido contrario).
+            movimiento.actualizar(cruda)
+            val fijacion = if (cruda.rumboGrados != null) cruda else cruda.copy(rumboGrados = movimiento.rumbo())
             val ahora = reloj()
             ultimaFijacionMs = fijacion.tiempoMs
             ultimaPosicion = fijacion.punto

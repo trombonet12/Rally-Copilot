@@ -178,10 +178,20 @@ internal fun Location.aFijacion(): Fijacion? {
             // Reloj monótono: `time` es la hora UTC del GNSS y en el emulador puede repetirse.
             tiempoMs = elapsedRealtimeNanos / NS_POR_MS,
             velocidadMs = if (hasSpeed()) speed.toDouble() else null,
-            rumboGrados = if (hasBearing()) bearing.toDouble() else null,
+            rumboGrados = if (rumboFiable()) bearing.toDouble() else null,
             precisionM = if (hasAccuracy()) accuracy.toDouble() else null,
         )
     } else {
         null
     }
 }
+
+/** Peor precisión de rumbo (grados) que se acepta del receptor. */
+private const val PRECISION_RUMBO_MAX_GRADOS = 20f
+
+/**
+ * El rumbo del receptor solo cuenta si su precisión es buena: el GPS del emulador da siempre 0 con ±30° y algunos
+ * móviles dan rumbos sin sentido a poca velocidad. Sin rumbo fiable, el mapa usa el del movimiento.
+ */
+private fun Location.rumboFiable(): Boolean =
+    hasBearing() && (!hasBearingAccuracy() || bearingAccuracyDegrees <= PRECISION_RUMBO_MAX_GRADOS)

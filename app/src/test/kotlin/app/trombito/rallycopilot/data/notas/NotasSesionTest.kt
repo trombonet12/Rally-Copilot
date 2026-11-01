@@ -247,6 +247,22 @@ class NotasSesionTest {
         }
 
     @Test
+    fun `libre predice la carretera aunque las fijaciones no traigan rumbo`() =
+        runTest {
+            // Como el GPS del emulador o un rumbo poco preciso: el sentido sale del movimiento.
+            val carretera = recta(0.0, 0.0, haciaEste = true, largoM = 4000.0)
+            val fijaciones =
+                fijacionesPor(carretera, desdeM = 100.0, hastaM = 800.0).map { it.copy(rumboGrados = null) }
+            val e = escenario(FuenteFalsa(fijaciones), contextoDe(listOf(via(1, carretera))))
+            val trabajo = lanzar(e, SolicitudNavegacion.Libre)
+            advanceTimeBy(40_000)
+
+            assertTrue(e.fallos.toString(), e.fallos.isEmpty())
+            assertTrue(e.publicadas.isNotEmpty())
+            trabajo.cancel()
+        }
+
+    @Test
     fun `libre regenera la hoja al salirse de la prediccion por otra via`() =
         runTest {
             val a = recta(0.0, 0.0, haciaEste = true, largoM = 2000.0)
