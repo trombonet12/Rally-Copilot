@@ -8,6 +8,9 @@ se marca como respondida. Ordenadas por el hito que bloquean.
 
 Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
+## Respondidas al empezar H8 (2026-11-02, en el chat)
+- **Hablar:** botón en la app que pausa la música (no el del volante). **Activación:** «Copiloto», desactivada. **Órdenes:** repite, más pronto/tarde, silencio/habla, marca aquí. **Editar en el mapa:** parado o desde el tramo.
+
 ## Respondidas al empezar H7 (2026-11-01, en el chat)
 - **Abrir análisis:** Mis tramos + botón en la meta. **Comparar:** la mejor, eligiendo otra. **Nombres:** automáticos y editables. **Lista:** todos, con filtros Repetidos y Favoritos.
 

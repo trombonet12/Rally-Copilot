@@ -318,7 +318,8 @@ Pendiente: los tramos creados antes de v8 salen «Tramo sin nombre» (renombrabl
 Corregir notas a mano o por voz y hacer pasadas de reconocimiento.
 
 ### Alcance
-- Edición tocando la nota sobre el mapa; edición por voz (reconocimiento offline) activada con botón (en pantalla o del volante) y palabra de activación opcional.
+- Edición tocando la nota sobre el mapa (parado o desde el detalle del tramo); edición por voz (reconocimiento offline) activada con un botón en la app que pausa la música mientras escucha, y palabra de activación «Copiloto» opcional (desactivada por defecto).
+- Órdenes de voz: corregir notas, repite, más pronto / más tarde, silencio / habla, marca aquí.
 - Notas editadas ligadas al tramo; siempre prevalecen sobre las automáticas.
 - Modo reconocimiento: pasada para dictar o corregir notas; recalibra el perfil de velocidad de Joan en ese tramo.
 - Edición de sectores arrastrando sobre el mapa.
@@ -332,7 +333,7 @@ Corregir notas a mano o por voz y hacer pasadas de reconocimiento.
 - Motor: fusión de notas editadas con automáticas; intérprete de órdenes de voz (gramática del glosario).
 
 ### Estado
-pendiente · Depende de: H3, H6 · Dudas: resueltas (2026-10-28)
+en curso (2026-11-02) · Depende de: H3, H6 · Dudas: resueltas (2026-10-28); (2026-11-02): botón en la app que pausa la música, «Copiloto» desactivada, cuatro órdenes, editar parado
 
 ## H9 — Precarga de rutas y satélite de alta calidad
 

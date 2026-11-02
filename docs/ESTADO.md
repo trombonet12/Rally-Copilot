@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H7 cerrado (2026-11-02) · siguiente: H8 — Edición de notas y reconocimiento |
-| Estado | **H7 cerrado**; v0.8 publicada al hacer push con `version.properties` |
+| Hito | H8 — Edición de notas y reconocimiento (en curso, 2026-11-02) |
+| Estado | H7 cerrado y v0.8.0 publicada. H8: investigación de ASR offline y motor de órdenes |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -80,4 +80,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H7 cerrado y v0.8 publicada. Siguiente: `hito start H8` (edición de notas y reconocimiento por voz): preguntar a Joan las dudas de producto al empezar.
+- **Agente:** H8: (1) investigación ASR español offline (sherpa-onnx ya integrado) y palabra de activación; (2) motor: intérprete de órdenes y fusión de notas editadas; después app (escucha, Room), UI (edición en el mapa, reconocimiento) y sectores arrastrables.
