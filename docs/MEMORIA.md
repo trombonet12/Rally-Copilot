@@ -17,6 +17,7 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · firma · Keystore nueva y propia de Rally Copilot (`~/.rallycopilot/`); nunca reutilizar la de otro proyecto · regla del usuario.
 - 2026-11-01 · alcance de sesión · Hitos encadenados «sin parar», muy desatendido: se para solo si hay dudas, al principio o al final de cada hito (todas juntas, de 4 en 4); sin dudas, se publica la versión y se sigue con el siguiente · sustituye a la entrada del 2026-10-31 (parar en cada cierre para pedir push).
 - 2026-10-28 · delegación · El agente principal es el jefe y orquestador: decide la arquitectura, reparte, revisa e integra; los subagentes (sonnet/haiku) hacen la implementación. Opus como subagente solo con una justificación clara (análisis exhaustivo, seguridad) · petición de Joan; no implementar en el principal lo que puede hacer un currante.
+- 2026-11-02 · consumo · Queda ~12 % del límite semanal y Joan quiere acabar todos los hitos con eso: ahorrar tokens y no repetir tareas · un agente por frente e hito con brief corto y respuesta ≤ 6 líneas; gate completo y push solo al cerrar el hito; emulador y capturas solo al cierre; sin revisiones opus salvo seguridad imprescindible. Preguntar no es problema: ante la duda, preguntar en vez de asumir.
 - 2026-10-28 · release · Distribución actual: APK de la GitHub Release instalado con Obtainium; Play más adelante (job con `PLAY_HABILITADO`) · no activar Play sin que lo pida.
 
 ## Producto
