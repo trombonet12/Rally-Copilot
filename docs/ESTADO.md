@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H7 — Análisis post-tramo y perfil del piloto (en curso, 2026-11-01) |
-| Estado | H6 cerrado y v0.7.0 publicada. H7: motor de análisis y datos (Room v8) |
+| Hito | H7 cerrado (2026-11-02) · siguiente: H8 — Edición de notas y reconocimiento |
+| Estado | **H7 cerrado**; v0.8 publicada al hacer push con `version.properties` |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -20,6 +20,7 @@
 - 2026-10-28 · `scripts/gps-replay.mjs` + traza real de la Ma-2141 ([rutas/](rutas/)), verificado en el emulador; `voice-lab/README.md` con dónde dejar el material de voz.
 - 2026-10-28 · **H1**: PRs #1 y #2 de Dependabot fusionados (con permiso). Repo público [`trombonet12/rally-copilot-data`](https://github.com/trombonet12/rally-copilot-data) con workflow mensual (decidir → build sin token → publicar) y release `datos-2026.10.28-2`. Motor: manifest, plan de descarga, vías/límites, velocidad. App: MapLibre 13.6.1, Room, WorkManager, descarga reanudable verificada, GPS sin GMS, mapa vectorial/satélite, velocidad y límite, Mapas offline, Ajustes/Acerca de. Revisión de seguridad aplicada. Capturas en [capturas/h1/](capturas/h1/).
 
+- 2026-11-02 · **H7**: análisis de cada pasada (sectores, gráficos, mapa coloreado, repetición), Mis tramos, perfil del piloto, Room v8. Capturas en [capturas/h7/](capturas/h7/).
 - 2026-11-01 · **H6**: tramos y cronometraje (motor tramos/, Room v7, delta por voz en Completo, HUD de retransmisión, tarjeta de meta); «Ir aquí» y búsqueda durante el guiado. Capturas en [capturas/h6/](capturas/h6/).
 - 2026-11-01 · **H5B**: gestos de girar/inclinar, buscador por palabras (índice `datos-2026.11.01-10`), mantener pulsado con Ir aquí / Añadir parada, rutas con paradas (Room v6), panel compacto parado. Capturas en [capturas/h5b/](capturas/h5b/).
 - 2026-11-01 · **H5**: radares DGT + OSM (fijos, tramo, zonas móviles) dentro del APK, incidencias DATEX II de la DGT con caché y antigüedad, alertas por voz y banner animado, exceso +10 % como pastilla roja, media de tramo, incidencias en el mapa; revisión de seguridad aplicada. Capturas en [capturas/h5/](capturas/h5/).
@@ -45,6 +46,7 @@
 - H1 (2026-10-28): gate verde con 174 tests JVM de app y 82 del motor; `rally-copilot-data`: 5 tests de scripts + actionlint. Emulador `trombito-36` y `rally-sin-gms-36`: descarga real, corte de WiFi y reanudación, modo avión, Ma-2141 a 50 km/h con límite 90/30/sin dato, satélite, horizontal y spike `mbtiles://`.
 
 ## Problemas conocidos
+- Windows MAX_PATH (260): Robolectric crea bases en directorios temporales con el nombre del test; nombres de base largos dan SQLITE_CANTOPEN intermitente. Usar nombres cortos (`m.db`).
 - `scripts/test-hooks.sh` falló una vez (87/88) y pasó al repetir: intermitente, probablemente por lentitud; vigilar.
 - El icono adaptativo debe quedarse en `mipmap-anydpi-v26`: con `mipmap-anydpi` el release no enlaza (`@mipmap/ic_launcher` not found).
 - `gradlew` debe estar en git como ejecutable (`git update-index --chmod=+x gradlew`); si no, el CI falla con «Permission denied».
@@ -78,4 +80,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H7: (1) motor análisis/perfil, (2) datos Room v8 (nombre, favorito, último uso, pasada↔recorrido), (3) UI Mis tramos + Perfil, (4) UI Análisis (tabla, gráfico, mapa coloreado, repetición) y botón en la meta.
+- **Agente:** H7 cerrado y v0.8 publicada. Siguiente: `hito start H8` (edición de notas y reconocimiento por voz): preguntar a Joan las dudas de producto al empezar.

@@ -297,15 +297,20 @@ Analizar cada tramo y mostrar la evolución del piloto.
 - Fuera: exportar o compartir.
 
 ### Criterios de aceptación
-- [ ] El análisis de un tramo grabado con `gps-replay` coincide con los tiempos del cronometraje en vivo (±0,1 s).
-- [ ] El perfil agrega correctamente varios tramos de prueba.
+- [x] El análisis de un tramo grabado con `gps-replay` coincide con los tiempos del cronometraje en vivo (±0,1 s): `AnalisisPasadaTest` contra los `EventoCrono` reales de la Ma-2141; pantalla probada en el emulador con pasadas de `gps-replay` ([capturas](docs/capturas/h7/)).
+- [x] El perfil agrega correctamente varios tramos de prueba: `PerfilPilotoTest` y `PerfilViewModelTest`.
 
 ### Tests
 - Motor: estadísticas por sector, agregados del perfil.
 - Robolectric: pantallas con datos falsos (BancoCompose).
 
 ### Estado
-en curso (2026-11-01) · Depende de: H6 · Dudas: resueltas (2026-11-01): análisis desde Mis tramos y la meta, comparar con la mejor o elegir, nombres automáticos editables, lista con filtros
+completado (2026-11-02) · Depende de: H6 · Dudas: resueltas (2026-11-01): análisis desde Mis tramos y la meta, comparar con la mejor o elegir, nombres automáticos editables, lista con filtros
+<!-- Hecho: motor analisis/ (AnalisisPasada, EscalaVelocidad, PerfilPiloto, NombreTramo); Room v8 (nombre automático, favorito,
+último uso, pasada ↔ recorrido); Mis tramos (filtros, favoritos, renombrar, borrar con deshacer), detalle del tramo, perfil del
+piloto con evolución e historial; pantalla de análisis (sectores y micros, gráficos de velocidad y delta, mapa coloreado,
+repetición x1/x4/x16, comparada elegible); «Ver análisis» en la tarjeta de meta (la pasada se guarda al cruzar la meta).
+Pendiente: los tramos creados antes de v8 salen «Tramo sin nombre» (renombrables); fuera de alcance exportar/compartir. -->
 
 ## H8 — Edición de notas y reconocimiento
 
