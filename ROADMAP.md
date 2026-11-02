@@ -326,14 +326,19 @@ Corregir notas a mano o por voz y hacer pasadas de reconocimiento.
 - Fuera: compartir notas.
 
 ### Criterios de aceptación
-- [ ] Una nota editada sobrevive a regenerar las automáticas del tramo.
-- [ ] Dictar «derecha tres larga» en reconocimiento crea esa nota en la posición actual.
+- [x] Una nota editada sobrevive a regenerar las automáticas del tramo: `FusionNotasTest`, `NotasSesionEdicionesTest`.
+- [x] Dictar «derecha tres larga» en reconocimiento crea esa nota en la posición actual: test de reconocimiento (JVM); Vosk carga con la gramática en el emulador (`VoskDebugReceiver`).
 
 ### Tests
 - Motor: fusión de notas editadas con automáticas; intérprete de órdenes de voz (gramática del glosario).
 
 ### Estado
-en curso (2026-11-02) · Depende de: H3, H6 · Dudas: resueltas (2026-10-28); (2026-11-02): botón en la app que pausa la música, «Copiloto» desactivada, cuatro órdenes, editar parado
+completado (2026-11-02) · Depende de: H3, H6 · Dudas: resueltas (2026-10-28); (2026-11-02): botón en la app que pausa la música, «Copiloto» desactivada, cuatro órdenes, editar parado
+<!-- Hecho: motor edicion/ (intérprete de órdenes, fusión); Vosk 0.3.75 + modelo small-es con gramática cerrada (Room v9:
+marca, «Copiloto»); órdenes repite, más pronto/tarde, silencio/habla, marca aquí; ediciones en Room v10; edición en el mapa
+parado y desde el tramo; reconocimiento; sectores arrastrables y micros por km.
+Pendiente: probar la UI nueva y el reconocimiento de voz real en el móvil (el emulador no tiene micrófono); liberar el modelo
+Vosk al quedar inactivo; duda de aviso sonoro tras «Copiloto». -->
 
 ## H9 — Precarga de rutas y satélite de alta calidad
 
