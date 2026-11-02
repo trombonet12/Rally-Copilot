@@ -25,8 +25,12 @@ androidxHilt = "1.4.0"
 valhallaMobile = "0.6.4"
 # AAR oficial de la release de GitHub (no está en Maven Central): lo baja y verifica app/build.gradle.kts.
 sherpaOnnx = "1.13.8"
+vosk = "0.3.75"
+jna = "5.18.1"
 
 [libraries]
+vosk-android = { module = "com.alphacephei:vosk-android", version.ref = "vosk" }
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
 androidx-compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3" }
 androidx-compose-ui = { module = "androidx.compose.ui:ui" }
