@@ -3,7 +3,11 @@ package app.trombito.rallycopilot.di
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.data.tramos.CronoEnVivoImpl
+import app.trombito.rallycopilot.data.tramos.GuardadorTramos
+import app.trombito.rallycopilot.data.tramos.NombradorTramos
 import app.trombito.rallycopilot.data.tramos.RepositorioTramosRoom
+import app.trombito.rallycopilot.domain.tramos.GuardaTraza
+import app.trombito.rallycopilot.domain.tramos.NombraTraza
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import dagger.Binds
@@ -19,6 +23,12 @@ import javax.inject.Singleton
 abstract class TramosModule {
     @Binds
     abstract fun proveedorCrono(implementacion: CronoEnVivoImpl): ProveedorCrono
+
+    @Binds
+    abstract fun guardaTraza(implementacion: GuardadorTramos): GuardaTraza
+
+    @Binds
+    abstract fun nombraTraza(implementacion: NombradorTramos): NombraTraza
 
     companion object {
         @Provides

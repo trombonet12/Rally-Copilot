@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.ui.comun
 
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -31,6 +32,7 @@ fun BarraSuperior(
     titulo: String,
     onVolver: () -> Unit,
     modifier: Modifier = Modifier,
+    acciones: @Composable RowScope.() -> Unit = {},
 ) {
     Row(
         modifier = modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = Espacio.xs),
@@ -42,8 +44,9 @@ fun BarraSuperior(
             text = titulo.uppercase(),
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.semantics { heading() },
+            modifier = Modifier.weight(1f).semantics { heading() },
         )
+        acciones()
     }
 }
 

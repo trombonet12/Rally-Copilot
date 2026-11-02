@@ -19,6 +19,34 @@
     <string name="mistramos_deshacer">Deshacer</string>
     <string name="mistramos_borrado_error">No se pudo borrar «%1$s». El tramo sigue en tu lista; inténtalo de nuevo.</string>
 
+    <!-- Importar y dibujar -->
+    <string name="mistramos_importar">Importar un archivo GPX o KML</string>
+    <string name="mistramos_dibujar">Dibujar una ruta</string>
+    <string name="mistramos_importando">Importando…</string>
+    <string name="mistramos_importado">«%1$s» importado. Ya puedes conducirlo o reconocerlo.</string>
+    <string name="mistramos_importado_sin_nombre">Tramo importado. Ya puedes conducirlo o reconocerlo.</string>
+    <string name="mistramos_importar_no_se_puede_abrir">No se pudo abrir el archivo.</string>
+    <string name="mistramos_importar_demasiado_grande">El archivo pesa más de 20 MB.</string>
+    <string name="mistramos_importar_formato">Eso no parece un archivo GPX ni KML.</string>
+    <string name="mistramos_importar_danado">El archivo está dañado o incompleto.</string>
+    <string name="mistramos_importar_sin_traza">El archivo no trae ninguna ruta de al menos dos puntos.</string>
+    <string name="mistramos_importar_corto">La ruta mide menos de un kilómetro: no llega a tramo.</string>
+    <string name="mistramos_importar_no_guardado">No se pudo guardar el tramo. Inténtalo de nuevo.</string>
+
+    <!-- Dibujar una ruta -->
+    <string name="dibujar_titulo">Dibujar ruta</string>
+    <string name="dibujar_ayuda">Toca el mapa para marcar puntos; la ruta sigue las carreteras entre ellos.</string>
+    <string name="dibujar_deshacer">Quitar el último punto</string>
+    <string name="dibujar_borrar_todo">Borrar todos los puntos</string>
+    <string name="dibujar_guardar">Guardar como tramo</string>
+    <string name="dibujar_calculando">Calculando la ruta…</string>
+    <string name="dibujar_longitud">%1$s · %2$d puntos</string>
+    <string name="dibujar_sin_datos">Faltan los mapas offline para calcular la ruta.</string>
+    <string name="dibujar_error_ruta">No se pudo calcular la ruta entre esos puntos.</string>
+    <string name="dibujar_corto">La ruta mide menos de un kilómetro: añade más puntos.</string>
+    <string name="dibujar_no_guardado">No se pudo guardar el tramo. Inténtalo de nuevo.</string>
+    <string name="dibujar_sin_estilo">Descarga el mapa de Mallorca para dibujar una ruta.</string>
+
     <!-- Estados vacíos -->
     <string name="mistramos_vacio_titulo">Aún no tienes tramos</string>
     <string name="mistramos_vacio_texto">Conduce al menos un kilómetro y el trayecto quedará guardado como tu primer tramo.</string>

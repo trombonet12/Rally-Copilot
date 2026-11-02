@@ -165,6 +165,7 @@ class ControlYContinuaTest {
         audio: FabricaAudio,
         permiso: Boolean,
         control: ControlOrdenes,
+        tic: suspend () -> Unit = {},
     ) = EscuchaContinua(
         audio,
         { ReconocedorDeActivacion(true) },
@@ -172,6 +173,7 @@ class ControlYContinuaTest {
         ajustes.ajustes,
         control,
         Dispatchers.IO,
+        tic,
     )
 
     @Test
@@ -188,6 +190,39 @@ class ControlYContinuaTest {
 
             assertTrue(control.peticiones.get() >= 1)
         }
+
+    @Test
+    fun `al oir la palabra suena el tic antes de escuchar la orden`() =
+        runBlocking {
+            val orden = java.util.Collections.synchronizedList(mutableListOf<String>())
+            val control =
+                object : ControlOrdenes {
+                    override val escuchando: StateFlow<Boolean> = MutableStateFlow(false)
+
+                    override fun tienePermiso(): Boolean = true
+
+                    override fun escucharOrden() {
+                        orden += "orden"
+                    }
+                }
+            val continua = continua(microfonoConVoz, permiso = true, control = control, tic = { orden += "tic" })
+            ajustes.mutable.value = ajustes.mutable.value.copy(activarConCopiloto = true)
+
+            val trabajo = ambito.launch { continua.correr() }
+            withTimeout(5_000) { while (orden.size < 2) Thread.sleep(5) }
+            trabajo.cancel()
+
+            assertEquals(listOf("tic", "orden"), orden.take(2))
+        }
+
+    @Test
+    fun `el tic generado es un seno corto con rampas`() {
+        val pcm = GeneradorTic.pcm()
+        assertEquals(GeneradorTic.FRECUENCIA_MUESTREO_HZ * GeneradorTic.DURACION_MS / 1000, pcm.size)
+        assertEquals(0, pcm.first().toInt())
+        assertEquals(0, pcm.last().toInt())
+        assertTrue(pcm.any { kotlin.math.abs(it.toInt()) > 10_000 })
+    }
 
     @Test
     fun `con Copiloto desactivado o sin permiso no abre el microfono`() =

@@ -109,6 +109,24 @@ class RepositorioTramosRoom(
         }
     }
 
+    override suspend fun crearSinPasadas(
+        tramo: Tramo,
+        nombre: String?,
+        nombreAutomatico: String?,
+        creadoEnMs: Long,
+    ) {
+        withContext(dispatcher) {
+            dao.insertarTramo(
+                tramo
+                    .aEntidad(
+                        nombre?.takeIf { it.isNotBlank() },
+                        creadoEnMs,
+                        nombreAutomatico,
+                    ).copy(ultimoUso = creadoEnMs),
+            )
+        }
+    }
+
     override suspend fun guardarPasada(
         pasada: Pasada,
         origen: OrigenPasada,

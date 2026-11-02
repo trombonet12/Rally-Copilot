@@ -232,6 +232,15 @@ private class TramosEnMemoria : RepositorioTramos {
         guardarPasada(primera, origen)
     }
 
+    override suspend fun crearSinPasadas(
+        tramo: Tramo,
+        nombre: String?,
+        nombreAutomatico: String?,
+        creadoEnMs: Long,
+    ) {
+        tramos[tramo.id] = tramo.aEntidad(nombre, creadoEnMs, nombreAutomatico)
+    }
+
     override suspend fun guardarPasada(
         pasada: Pasada,
         origen: OrigenPasada,

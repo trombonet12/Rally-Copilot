@@ -174,6 +174,41 @@ object Iconos {
         )
     }
 
+    /** Documento con flecha hacia arriba: «Importar un archivo». */
+    val Importar: ImageVector by lazy {
+        icono(
+            "Importar",
+            "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z" +
+                "M8 15.01l1.41 1.41L11 14.84V19h2v-4.16l1.59 1.59L16 15.01 12.01 11 8 15.01z",
+        )
+    }
+
+    /** Línea quebrada con nodos: «Dibujar una ruta». */
+    val Dibujar: ImageVector by lazy {
+        icono(
+            "Dibujar",
+            "M23 8c0 1.1-.9 2-2 2-.18 0-.35-.02-.51-.07l-3.56 3.55c.05.16.07.34.07.52 0 1.1-.9 2-2 2s-2-.9-2-2" +
+                "c0-.18.02-.36.07-.52l-2.55-2.55c-.16.05-.34.07-.52.07s-.36-.02-.52-.07l-4.55 4.56c.05.16.07.33.07.51" +
+                " 0 1.1-.9 2-2 2s-2-.9-2-2 .9-2 2-2c.18 0 .35.02.51.07l4.56-4.55C8.02 9.36 8 9.18 8 9c0-1.1.9-2 2-2" +
+                "s2 .9 2 2c0 .18-.02.36-.07.52l2.55 2.55c.16-.05.34-.07.52-.07s.36.02.52.07l3.55-3.56" +
+                "C19.02 8.35 19 8.18 19 8c0-1.1.9-2 2-2s2 .9 2 2z",
+        )
+    }
+
+    /** Flecha curva hacia atrás: «Deshacer». */
+    val Deshacer: ImageVector by lazy {
+        icono(
+            "Deshacer",
+            "M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31" +
+                " 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z",
+        )
+    }
+
+    /** Marca de verificación: «Guardar». */
+    val Hecho: ImageVector by lazy {
+        icono("Hecho", "M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z")
+    }
+
     val ExpandirMenos: ImageVector by lazy {
         icono("ExpandirMenos", "M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z")
     }

@@ -46,6 +46,35 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!--
+                GPX y KML recibidos de otras apps («Abrir con» y «Compartir»), solo como content:// y solo para importarlos
+                como tramos: la app no lee nada fuera del Uri recibido y rechaza lo que pase de 20 MB. Los .gpx/.kml con
+                tipo genérico (octet-stream) se reconocen por la extensión del Uri.
+            -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/gpx+xml" />
+                <data android:mimeType="application/vnd.google-earth.kml+xml" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.gpx" />
+                <data android:pathPattern=".*\\.kml" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/gpx+xml" />
+                <data android:mimeType="application/vnd.google-earth.kml+xml" />
+                <data android:mimeType="application/octet-stream" />
+            </intent-filter>
         </activity>
 
         <!-- WorkManager se inicializa con HiltWorkerFactory (RallyCopilotApplication es Configuration.Provider). -->

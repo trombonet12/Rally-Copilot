@@ -51,6 +51,14 @@ fun detalladaFalsa(
     esMejor: Boolean = false,
 ) = PasadaDetallada(id, inicioMs, pasadaFalsa(tramoId, totalMs), emptyList(), esMejor)
 
+/** Un tramo guardado con [RepositorioTramos.crearSinPasadas]. */
+data class GuardadoSinPasadas(
+    val tramo: Tramo,
+    val nombre: String?,
+    val nombreAutomatico: String?,
+    val creadoEnMs: Long,
+)
+
 /** Repositorio de tramos en memoria que registra lo que se le pide. */
 class FalsoRepositorioTramos(
     resumenes: List<ResumenTramo> = emptyList(),
@@ -64,6 +72,8 @@ class FalsoRepositorioTramos(
     val tramos = trazas.toMutableMap()
 
     val borrados = mutableListOf<String>()
+    val sinPasadas = mutableListOf<GuardadoSinPasadas>()
+    var fallarAlGuardar = false
     val favoritos = mutableListOf<Pair<String, Boolean>>()
     val renombrados = mutableListOf<Pair<String, String?>>()
 
@@ -106,6 +116,17 @@ class FalsoRepositorioTramos(
         primera: Pasada,
         origen: OrigenPasada,
     ) = Unit
+
+    override suspend fun crearSinPasadas(
+        tramo: Tramo,
+        nombre: String?,
+        nombreAutomatico: String?,
+        creadoEnMs: Long,
+    ) {
+        if (fallarAlGuardar) error("base caída")
+        tramos[tramo.id] = tramo
+        sinPasadas += GuardadoSinPasadas(tramo, nombre, nombreAutomatico, creadoEnMs)
+    }
 
     override suspend fun guardarPasada(
         pasada: Pasada,

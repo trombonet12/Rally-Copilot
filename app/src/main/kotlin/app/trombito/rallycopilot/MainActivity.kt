@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -14,6 +15,8 @@ import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.alertas.RepositorioIncidencias
 import app.trombito.rallycopilot.ui.ActualizacionDatosViewModel
 import app.trombito.rallycopilot.ui.AppNavHost
+import app.trombito.rallycopilot.ui.mistramos.ImportarViewModel
+import app.trombito.rallycopilot.ui.mistramos.uriDeImportacion
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -23,12 +26,16 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
     private val actualizacion: ActualizacionDatosViewModel by viewModels()
 
+    private val importar: ImportarViewModel by viewModels()
+
     @Inject lateinit var incidencias: RepositorioIncidencias
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         actualizacion.comprobarActualizacion()
+        // Al recrear la actividad (giro) el intent llega otra vez: ya se importó.
+        if (savedInstanceState == null) intent.uriDeImportacion()?.let(importar::importarEntrante)
         // Incidencias de la DGT al abrir la app (a lo sumo cada 5 min); sin red se queda con la copia.
         lifecycleScope.launch { incidencias.refrescar() }
         setContent {
@@ -40,9 +47,14 @@ class MainActivity : ComponentActivity() {
                 onDispose {}
             }
             RallyCopilotTheme(darkTheme = oscuro) {
-                Surface { AppNavHost() }
+                Surface { AppNavHost(importacion = importar) }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        intent.uriDeImportacion()?.let(importar::importarEntrante)
     }
 
     private companion object {

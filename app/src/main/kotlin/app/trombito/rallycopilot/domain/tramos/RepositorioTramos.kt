@@ -130,6 +130,17 @@ interface RepositorioTramos {
         origen: OrigenPasada,
     )
 
+    /**
+     * Guarda un tramo sin pasadas (importado de un GPX/KML o dibujado en el mapa). Su último uso es [creadoEnMs]; las
+     * notas se generan al conducirlo o reconocerlo.
+     */
+    suspend fun crearSinPasadas(
+        tramo: Tramo,
+        nombre: String?,
+        nombreAutomatico: String?,
+        creadoEnMs: Long,
+    )
+
     /** Guarda una pasada de un tramo existente, adelanta su último uso y devuelve su número; falla si no existe. */
     suspend fun guardarPasada(
         pasada: Pasada,

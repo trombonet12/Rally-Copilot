@@ -20,6 +20,7 @@ import app.trombito.rallycopilot.data.escucha.FocoAudioExclusivo
 import app.trombito.rallycopilot.data.escucha.MemoriaFrases
 import app.trombito.rallycopilot.data.escucha.RepositorioEdicionesRoom
 import app.trombito.rallycopilot.data.escucha.RepositorioMarcasRoom
+import app.trombito.rallycopilot.data.escucha.ReproductorTic
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
 import app.trombito.rallycopilot.domain.escucha.Escucha
@@ -125,6 +126,7 @@ object EscuchaModule {
             ajustes = ajustes.ajustes,
             control = control,
             dispatcher = Dispatchers.IO,
+            tic = ReproductorTic()::sonar,
         )
 
     private fun tienePermisoMicrofono(contexto: Context): Boolean =

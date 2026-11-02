@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.tramos
 import android.database.sqlite.SQLiteException
 import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.domain.busqueda.Buscador
+import app.trombito.rallycopilot.domain.tramos.NombraTraza
 import app.trombito.rallycopilot.motor.analisis.NombreTramo
 import app.trombito.rallycopilot.motor.analisis.PasoVia
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
@@ -23,7 +24,7 @@ class NombradorTramos
     constructor(
         private val vias: FuenteVias,
         private val buscador: Buscador,
-    ) {
+    ) : NombraTraza {
         /** Un trozo seguido de traza sobre la misma vía y los metros que recorre. */
         private class Trozo(
             val ref: String?,
@@ -31,7 +32,7 @@ class NombradorTramos
             var metros: Double,
         )
 
-        suspend fun nombrar(traza: List<PuntoGeo>): String? {
+        override suspend fun nombrar(traza: List<PuntoGeo>): String? {
             val muestras = MuestreoTraza.puntos(traza, MUESTRAS)
             val trozos = if (muestras.isEmpty()) emptyList() else trozosPorVias(muestras, traza.longitudMetros())
             return if (trozos.isEmpty()) {

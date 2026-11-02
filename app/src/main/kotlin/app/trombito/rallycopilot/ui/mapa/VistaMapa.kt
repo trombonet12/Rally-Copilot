@@ -83,6 +83,8 @@ data class CamaraVistaMapa(
     val onToqueNota: (posicionM: Double) -> Unit = {},
     /** Mantener pulsado el mapa: el punto y el nombre del lugar o la calle bajo el dedo (null si no hay). */
     val onMantenerPulsado: (punto: PuntoGeo, nombre: String?) -> Unit = { _, _ -> },
+    /** Toque en el mapa que no es de una nota ni de una incidencia: el punto tocado (lo usa el modo dibujo). */
+    val onToque: (punto: PuntoGeo) -> Unit = {},
 )
 
 /** Lo que el mapa pinta según los ajustes de conducción y el zoom automático. */
@@ -136,6 +138,7 @@ fun VistaMapa(
                 alTocarIncidencia = { actual.value.onToqueIncidencia(it) },
                 alTocarNota = { actual.value.onToqueNota(it) },
                 alMantenerPulsado = { punto, nombre -> actual.value.onMantenerPulsado(punto, nombre) },
+                alTocar = { actual.value.onToque(it) },
             )
         }
 
@@ -258,6 +261,7 @@ private class ControladorMapa(
     private val alTocarIncidencia: (String?) -> Unit,
     private val alTocarNota: (Double) -> Unit,
     private val alMantenerPulsado: (PuntoGeo, String?) -> Unit,
+    private val alTocar: (PuntoGeo) -> Unit,
 ) {
     private var mapa: MapLibreMap? = null
     private var estilo: Style? = null
@@ -313,6 +317,7 @@ private class ControladorMapa(
                 }
                 val id = CapaIncidencias.idEn(m, pantalla.x, pantalla.y, densidad)
                 alTocarIncidencia(id)
+                if (id == null) alTocar(PuntoGeo(punto.latitude, punto.longitude))
                 id != null
             }
             m.addOnMapLongClickListener { punto ->

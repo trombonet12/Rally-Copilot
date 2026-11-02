@@ -25,6 +25,7 @@ import kotlin.coroutines.coroutineContext
  * decodificando solo cuando [PuertaVoz] detecta voz (el silencio y el ruido constante del coche no se decodifican). No
  * toma el foco de audio: la música sigue sonando hasta que se dice la palabra. Sin permiso de micrófono no hace nada.
  */
+@Suppress("LongParameterList") // cada pieza de la escucha llega inyectada
 class EscuchaContinua(
     private val audio: FabricaAudio,
     private val reconocedores: FabricaReconocedor,
@@ -32,6 +33,8 @@ class EscuchaContinua(
     private val ajustes: Flow<AjustesConduccion>,
     private val control: ControlOrdenes,
     private val dispatcher: CoroutineDispatcher,
+    /** Señal sonora tras oír la palabra, antes de escuchar la orden; debe volver cuando haya acabado de sonar. */
+    private val tic: suspend () -> Unit = {},
 ) {
     /** Escucha hasta que se cancele; sigue los cambios del ajuste y del permiso. */
     suspend fun correr() {
@@ -40,6 +43,7 @@ class EscuchaContinua(
                 if (!permiso() || !esperarPalabra()) {
                     delay(REINTENTO_MS)
                 } else {
+                    tic()
                     control.escucharOrden()
                     control.escuchando.first { !it }
                 }

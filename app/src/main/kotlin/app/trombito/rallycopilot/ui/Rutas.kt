@@ -19,6 +19,10 @@ data object RutaAcercaDe
 @Serializable
 data object RutaMisTramos
 
+/** Mapa en modo dibujo: tocar puntos y guardar la ruta como tramo. */
+@Serializable
+data object RutaDibujar
+
 /** Detalle de un tramo guardado. */
 @Serializable
 data class RutaTramo(

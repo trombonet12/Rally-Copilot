@@ -12,11 +12,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -32,6 +36,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.domain.importar.MotivoFalloImportar
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
@@ -42,6 +47,9 @@ import app.trombito.rallycopilot.ui.theme.Espacio
 const val ETIQUETA_TRAMOS_LISTA = "tramos-lista"
 const val ETIQUETA_TRAMOS_CARGANDO = "tramos-cargando"
 const val ETIQUETA_TRAMOS_VACIO = "tramos-vacio"
+const val ETIQUETA_TRAMOS_IMPORTAR = "tramos-importar"
+const val ETIQUETA_TRAMOS_DIBUJAR = "tramos-dibujar"
+const val ETIQUETA_TRAMOS_IMPORTANDO = "tramos-importando"
 const val ETIQUETA_FILTRO_PREFIJO = "tramos-filtro-"
 
 /** Callbacks de «Mis tramos». */
@@ -57,6 +65,11 @@ data class AccionesMisTramos(
     val onRenombrar: (String) -> Unit = {},
     val onCancelarRenombrar: () -> Unit = {},
     val onFalloVisto: () -> Unit = {},
+    /** Abre el selector de archivos para importar un GPX/KML; null = sin botón (p. ej. al elegir tramo a reconocer). */
+    val onImportar: (() -> Unit)? = null,
+    /** Abre el mapa en modo dibujo; null = sin botón. */
+    val onDibujar: (() -> Unit)? = null,
+    val onImportacionVista: () -> Unit = {},
 )
 
 /** «Mis tramos»: filtros, lista por último uso, borrar deslizando con deshacer y renombrar. */
@@ -66,13 +79,20 @@ fun MisTramosScreen(
     acciones: AccionesMisTramos,
     modifier: Modifier = Modifier,
     @StringRes titulo: Int = R.string.inicio_mis_tramos,
+    importacion: EstadoImportacion = EstadoImportacion.Inactivo,
 ) {
     val avisos = remember { SnackbarHostState() }
     AvisoDeshacer(estado.borradoPendiente, avisos, acciones)
     AvisoFallo(estado.falloBorrado, avisos, acciones.onFalloVisto)
+    AvisoImportacion(importacion, avisos, acciones.onImportacionVista)
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         Column(Modifier.fillMaxSize()) {
-            BarraSuperior(titulo = stringResource(titulo), onVolver = acciones.onVolver)
+            BarraSuperior(titulo = stringResource(titulo), onVolver = acciones.onVolver) {
+                BotonesCrear(acciones)
+            }
+            if (importacion == EstadoImportacion.Importando) {
+                LinearProgressIndicator(Modifier.fillMaxWidth().testTag(ETIQUETA_TRAMOS_IMPORTANDO))
+            }
             FiltrosTramos(estado.filtro, acciones.onFiltro)
             when {
                 estado.cargando -> Cargando()
