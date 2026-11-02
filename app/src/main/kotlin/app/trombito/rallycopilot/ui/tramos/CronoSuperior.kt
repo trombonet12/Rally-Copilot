@@ -11,9 +11,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.domain.tramos.ResultadoCrono
+
+/**
+ * Abre el análisis de una pasada (tramo y número de pasada) desde la tarjeta de meta; null donde no hay a dónde
+ * navegar. Lo da la ruta del mapa: así no hay que pasarlo por todas las capas de la pantalla.
+ */
+val LocalAbrirAnalisis = staticCompositionLocalOf<((tramoId: String, pasadaId: Long) -> Unit)?> { null }
 
 /**
  * Lo que el cronómetro pone arriba del mapa, bajo el banner de maniobra, la franja de notas y el banner de alerta: el
@@ -56,6 +63,7 @@ private fun MetaTemporal(
     modifier: Modifier,
 ) {
     var visible by remember(resultado) { mutableStateOf(true) }
+    val alVerAnalisis = accionVerAnalisis(LocalAbrirAnalisis.current, resultado)
     LaunchedEffect(resultado) {
         esperarEnPrincipal(DURACION_TARJETA_META_MS)
         visible = false
@@ -66,6 +74,17 @@ private fun MetaTemporal(
         enter = slideInVertically { -it } + fadeIn(),
         exit = slideOutVertically { -it } + fadeOut(),
     ) {
-        TarjetaMeta(resultado, compacta = compacta)
+        TarjetaMeta(resultado, compacta = compacta, onVerAnalisis = alVerAnalisis)
     }
+}
+
+/** El botón «Ver análisis» solo si hay a dónde navegar y la pasada ya está guardada (tiene tramo y número). */
+private fun accionVerAnalisis(
+    abrir: ((tramoId: String, pasadaId: Long) -> Unit)?,
+    resultado: ResultadoCrono,
+): (() -> Unit)? {
+    val tramoId = resultado.tramoId
+    val pasadaId = resultado.pasadaId
+    if (abrir == null || tramoId == null || pasadaId == null) return null
+    return { abrir(tramoId, pasadaId) }
 }

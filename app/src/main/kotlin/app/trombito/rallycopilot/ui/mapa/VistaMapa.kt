@@ -163,7 +163,7 @@ fun VistaMapa(
 }
 
 /** Reenvía el ciclo de vida de Compose al `MapView` (que no es lifecycle-aware) sin repetir ni saltarse pasos. */
-private class PuenteCicloVida(
+internal class PuenteCicloVida(
     private val vista: MapView,
     private val alActivar: (Boolean) -> Unit,
 ) : LifecycleEventObserver {

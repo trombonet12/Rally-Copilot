@@ -30,12 +30,18 @@ data class ParcialCrono(
     val deltaAcumuladoMs: Long?,
 )
 
-/** Cómo acabó una pasada: [deltaMs] frente a la mejor anterior (null si no la había); [nuevoMejor] si la mejora. */
+/**
+ * Cómo acabó una pasada: [deltaMs] frente a la mejor anterior (null si no la había); [nuevoMejor] si la mejora.
+ * [tramoId] y [pasadaId] identifican la pasada ya guardada para abrir su análisis desde la tarjeta de meta; null
+ * mientras no se haya guardado (sin ellos la tarjeta no ofrece «Ver análisis»).
+ */
 data class ResultadoCrono(
     val totalMs: Long,
     val deltaMs: Long?,
     val nuevoMejor: Boolean,
     val mejorAnteriorMs: Long?,
+    val tramoId: String? = null,
+    val pasadaId: Long? = null,
 )
 
 /**

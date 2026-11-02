@@ -136,6 +136,11 @@ object Iconos {
         icono("Empezar", "M8,5 V19 L19,12Z")
     }
 
+    /** Dos barras: pausar la repetición. */
+    val Pausa: ImageVector by lazy {
+        icono("Pausa", "M6,19 H10 V5 H6Z M14,5 V19 H18 V5Z")
+    }
+
     val Lugar: ImageVector by lazy {
         icono(
             "Lugar",

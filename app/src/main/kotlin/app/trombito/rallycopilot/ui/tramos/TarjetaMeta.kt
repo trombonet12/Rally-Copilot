@@ -2,10 +2,12 @@ package app.trombito.rallycopilot.ui.tramos
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -15,16 +17,19 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -39,6 +44,7 @@ const val ETIQUETA_CRONO_META_TOTAL = "crono-meta-total"
 const val ETIQUETA_CRONO_META_DELTA = "crono-meta-delta"
 const val ETIQUETA_CRONO_META_MEJOR_ANTERIOR = "crono-meta-mejor-anterior"
 const val ETIQUETA_CRONO_NUEVO_MEJOR = "crono-nuevo-mejor"
+const val ETIQUETA_CRONO_META_ANALISIS = "crono-meta-analisis"
 
 private const val OPACIDAD_FONDO = 0.96f
 private const val OPACIDAD_SECUNDARIO = 0.75f
@@ -46,13 +52,16 @@ private const val OPACIDAD_SECUNDARIO = 0.75f
 /**
  * Tarjeta de resultado al cruzar la meta, tipo WRC: bandera y «META», tiempo total grande, delta contra el mejor tiempo
  * anterior (verde o rojo; sin delta si no había mejor) y «NUEVO MEJOR» sobre latón si lo mejora. Con [compacta]
- * (apaisado) va en dos filas bajas. Región viva: TalkBack la anuncia entera al aparecer.
+ * (apaisado) va en dos filas bajas. Región viva: TalkBack la anuncia entera al aparecer. Con [onVerAnalisis] ofrece
+ * debajo el botón «Ver análisis» (nunca se abre solo: solo al pulsarlo); va fuera de la región viva para que TalkBack
+ * lo trate como botón.
  */
 @Composable
 fun TarjetaMeta(
     resultado: ResultadoCrono,
     modifier: Modifier = Modifier,
     compacta: Boolean = false,
+    onVerAnalisis: (() -> Unit)? = null,
 ) {
     val recursos = LocalContext.current.resources
     val descripcion =
@@ -70,8 +79,26 @@ fun TarjetaMeta(
     val sesgo = if (compacta) 6.dp else 10.dp
     val forma = ParalelogramoShape(sesgo)
     Column(
+        modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        CuerpoTarjeta(resultado, descripcion, compacta, sesgo, forma)
+        if (onVerAnalisis != null) BotonVerAnalisis(onVerAnalisis, sesgo)
+    }
+}
+
+@Composable
+private fun CuerpoTarjeta(
+    resultado: ResultadoCrono,
+    descripcion: String,
+    compacta: Boolean,
+    sesgo: Dp,
+    forma: ParalelogramoShape,
+) {
+    Column(
         modifier =
-            modifier
+            Modifier
                 .fillMaxWidth()
                 .testTag(ETIQUETA_CRONO_META)
                 .background(ColoresGuiado.Carbon.copy(OPACIDAD_FONDO), forma)
@@ -84,6 +111,36 @@ fun TarjetaMeta(
         verticalArrangement = Arrangement.spacedBy(if (compacta) 2.dp else 6.dp),
     ) {
         if (compacta) FilaPrincipal(resultado, compacta = true) else CuerpoVertical(resultado)
+    }
+}
+
+/** «Ver análisis» sobre latón, con icono de gráfico; 48 dp de alto para pulsarlo sin fallar. */
+@Composable
+private fun BotonVerAnalisis(
+    onVerAnalisis: () -> Unit,
+    sesgo: Dp,
+) {
+    val etiqueta = stringResource(R.string.analisis_meta_boton_descripcion)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier =
+            Modifier
+                .defaultMinSize(minHeight = 48.dp)
+                .clip(ParalelogramoShape(sesgo))
+                .background(ColoresGuiado.Laton)
+                .clickable(onClickLabel = etiqueta, role = Role.Button, onClick = onVerAnalisis)
+                .padding(horizontal = sesgo + 14.dp)
+                .testTag(ETIQUETA_CRONO_META_ANALISIS),
+    ) {
+        Icon(Iconos.Grafico, contentDescription = null, tint = ColoresGuiado.Carbon, modifier = Modifier.size(22.dp))
+        Text(
+            text = stringResource(R.string.analisis_meta_boton).uppercase(),
+            style = estiloMeta(16.sp),
+            color = ColoresGuiado.Carbon,
+            maxLines = 1,
+            softWrap = false,
+        )
     }
 }
 

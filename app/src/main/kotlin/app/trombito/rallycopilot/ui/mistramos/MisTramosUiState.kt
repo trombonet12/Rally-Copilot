@@ -16,4 +16,6 @@ data class MisTramosUiState(
     val tramos: List<ResumenTramo> = emptyList(),
     val renombrando: ResumenTramo? = null,
     val borradoPendiente: BorradoPendiente? = null,
+    /** Nombre del tramo cuyo borrado definitivo falló (la base dio error): se avisa y el tramo sigue en la lista. */
+    val falloBorrado: String? = null,
 )

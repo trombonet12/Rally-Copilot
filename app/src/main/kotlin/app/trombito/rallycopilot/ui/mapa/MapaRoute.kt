@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.ui.mapa
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +24,7 @@ import app.trombito.rallycopilot.ui.navegacion.PanelGuiado
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasViewModel
 import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
 import app.trombito.rallycopilot.ui.tramos.CronoViewModel
+import app.trombito.rallycopilot.ui.tramos.LocalAbrirAnalisis
 
 /**
  * Une los ViewModels (mapa y navegación), el permiso de ubicación y el mapa real con la pantalla sin lógica.
@@ -34,6 +36,7 @@ import app.trombito.rallycopilot.ui.tramos.CronoViewModel
 fun MapaRoute(
     onAbrirMapasOffline: () -> Unit,
     modifier: Modifier = Modifier,
+    onVerAnalisis: ((tramoId: String, pasadaId: Long) -> Unit)? = null,
     panelGuiado: PanelGuiado? = null,
     viewModel: MapaViewModel = hiltViewModel(),
     navegacionViewModel: NavegacionViewModel = hiltViewModel(),
@@ -60,25 +63,27 @@ fun MapaRoute(
     val ruta = rutaParaMapa(navegacion)
     val panel = panelGuiado ?: remember(estado.estiloManiobras) { panelGuiadoMapa(estado.estiloManiobras.variante()) }
 
-    MapaScreen(
-        estado = estado,
-        vista = EstadoVistaMapa(permiso = permiso.estado, siguiendo = estado.siguiendo),
-        acciones = accionesMapa(viewModel, permiso, onAbrirMapasOffline, alertasViewModel),
-        mapa = { estiloJson, modificador ->
-            VistaMapa(
-                estiloJson = estiloJson,
-                posicion = estado.posicionMostrada,
-                camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel),
-                preferencias = preferenciasVista(estado, ruta, alertas.marcadores),
-                modifier = modificador,
-            )
-        },
-        modifier = modifier,
-        navegacion = NavegacionEnMapa(navegacion, accionesNavegacion(navegacionViewModel), panel, notas),
-        copiloto = CopilotoEnMapa(copiloto, accionesCopiloto(copilotoViewModel)),
-        alertas = alertas,
-        crono = crono,
-    )
+    CompositionLocalProvider(LocalAbrirAnalisis provides onVerAnalisis) {
+        MapaScreen(
+            estado = estado,
+            vista = EstadoVistaMapa(permiso = permiso.estado, siguiendo = estado.siguiendo),
+            acciones = accionesMapa(viewModel, permiso, onAbrirMapasOffline, alertasViewModel),
+            mapa = { estiloJson, modificador ->
+                VistaMapa(
+                    estiloJson = estiloJson,
+                    posicion = estado.posicionMostrada,
+                    camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel),
+                    preferencias = preferenciasVista(estado, ruta, alertas.marcadores),
+                    modifier = modificador,
+                )
+            },
+            modifier = modifier,
+            navegacion = NavegacionEnMapa(navegacion, accionesNavegacion(navegacionViewModel), panel, notas),
+            copiloto = CopilotoEnMapa(copiloto, accionesCopiloto(copilotoViewModel)),
+            alertas = alertas,
+            crono = crono,
+        )
+    }
 }
 
 private fun accionesCopiloto(vm: CopilotoViewModel) =

@@ -1,5 +1,7 @@
 package app.trombito.rallycopilot.ui.mistramos
 
+import android.database.sqlite.SQLiteException
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
@@ -24,6 +26,7 @@ import javax.inject.Inject
  * se borra de verdad al terminar el aviso de deshacer (o al borrar otro, o al salir de la pantalla).
  */
 @HiltViewModel
+@Suppress("TooManyFunctions") // un callback por acción de la lista
 class MisTramosViewModel
     @Inject
     constructor(
@@ -33,19 +36,27 @@ class MisTramosViewModel
         private val ocultos = MutableStateFlow<Set<String>>(emptySet())
         private val renombrando = MutableStateFlow<String?>(null)
         private val pendiente = MutableStateFlow<BorradoPendiente?>(null)
+        private val fallo = MutableStateFlow<String?>(null)
 
         @OptIn(ExperimentalCoroutinesApi::class)
         private val lista =
             filtro.flatMapLatest { f -> repositorio.observarResumenes(f).map { f to it } }
 
         val uiState: StateFlow<MisTramosUiState> =
-            combine(lista, ocultos, renombrando, pendiente) { (f, tramos), ocultosAhora, idRenombrando, borrado ->
+            combine(
+                lista,
+                ocultos,
+                renombrando,
+                pendiente,
+                fallo,
+            ) { (f, tramos), ocultosAhora, id, borrado, error ->
                 MisTramosUiState(
                     cargando = false,
                     filtro = f,
                     tramos = tramos.filter { it.id !in ocultosAhora },
-                    renombrando = tramos.firstOrNull { it.id == idRenombrando },
+                    renombrando = tramos.firstOrNull { it.id == id },
                     borradoPendiente = borrado,
+                    falloBorrado = error,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), MisTramosUiState())
 
@@ -58,7 +69,7 @@ class MisTramosViewModel
         }
 
         fun onBorrar(tramo: ResumenTramo) {
-            pendiente.value?.let { borrarDeVerdad(it.id) }
+            pendiente.value?.let { borrarDeVerdad(it) }
             ocultos.update { it + tramo.id }
             pendiente.value = BorradoPendiente(tramo.id, tramo.nombre)
         }
@@ -74,7 +85,12 @@ class MisTramosViewModel
         fun onBorradoConfirmado() {
             val borrado = pendiente.value ?: return
             pendiente.value = null
-            borrarDeVerdad(borrado.id)
+            borrarDeVerdad(borrado)
+        }
+
+        /** El aviso del borrado fallido ya se mostró. */
+        fun onFalloVisto() {
+            fallo.value = null
         }
 
         /** Al salir de la pantalla con un aviso abierto no se pierde el borrado. */
@@ -95,12 +111,30 @@ class MisTramosViewModel
             viewModelScope.launch { repositorio.renombrar(id, nombre.trim().ifEmpty { null }) }
         }
 
-        // Sin cancelación: el borrado que se confirma al cerrar la pantalla no debe perderse con el ViewModel.
-        private fun borrarDeVerdad(id: String) {
-            viewModelScope.launch(NonCancellable) { repositorio.borrar(id) }
+        // Sin cancelación: el borrado que se confirma al cerrar la pantalla no debe perderse con el ViewModel. Si la
+        // base falla, el tramo sigue guardado: vuelve a la lista y se avisa, en lugar de cerrar la app.
+        private fun borrarDeVerdad(borrado: BorradoPendiente) {
+            viewModelScope.launch(NonCancellable) {
+                val error =
+                    try {
+                        repositorio.borrar(borrado.id)
+                        null
+                    } catch (e: SQLiteException) {
+                        e
+                    } catch (e: IllegalStateException) {
+                        e
+                    }
+                if (error != null) {
+                    // Solo el tipo de la excepción al registro: nada de datos del tramo.
+                    Log.w(ETIQUETA_LOG, "No se pudo borrar un tramo: ${error.javaClass.simpleName}")
+                    ocultos.update { it - borrado.id }
+                    fallo.value = borrado.nombre
+                }
+            }
         }
 
         private companion object {
             const val PARADA_MS = 5_000L
+            const val ETIQUETA_LOG = "MisTramos"
         }
     }

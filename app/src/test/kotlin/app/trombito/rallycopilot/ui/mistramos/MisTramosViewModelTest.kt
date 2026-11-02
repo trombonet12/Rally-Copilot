@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mistramos
 
+import android.database.sqlite.SQLiteException
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
 import app.trombito.rallycopilot.ui.comun.resumenFalso
@@ -19,8 +20,11 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class MisTramosViewModelTest {
     private val a = resumenFalso("a", "Ma-2141 · Escorca", pasadas = 3, favorito = true, ultimoUsoMs = 3_000L)
     private val b = resumenFalso("b", "Ma-10 · Valldemossa", pasadas = 1, ultimoUsoMs = 2_000L)
@@ -135,6 +139,52 @@ class MisTramosViewModelTest {
                     .map { it.id },
             )
             assertNull(vm.uiState.value.borradoPendiente)
+        }
+
+    @Test
+    fun `si la base falla al borrar el tramo vuelve a la lista y se avisa sin cerrar la app`() =
+        runTest {
+            val vm = crear()
+            repositorio.falloAlBorrar = SQLiteException("disco lleno")
+            vm.onBorrar(b)
+            assertEquals(
+                listOf("a", "c"),
+                vm.uiState.value.tramos
+                    .map { it.id },
+            )
+            vm.onBorradoConfirmado()
+            assertEquals(
+                listOf("a", "b", "c"),
+                vm.uiState.value.tramos
+                    .map { it.id },
+            )
+            assertEquals("Ma-10 · Valldemossa", vm.uiState.value.falloBorrado)
+            assertNull(vm.uiState.value.borradoPendiente)
+            assertTrue(repositorio.borrados.isEmpty())
+            vm.onFalloVisto()
+            assertNull(vm.uiState.value.falloBorrado)
+        }
+
+    @Test
+    fun `un fallo de estado de la base al borrar tampoco cierra la app`() =
+        runTest {
+            val vm = crear()
+            repositorio.falloAlBorrar = IllegalStateException("base cerrada")
+            vm.onBorrar(c)
+            vm.onSalir()
+            assertEquals(
+                listOf("a", "b", "c"),
+                vm.uiState.value.tramos
+                    .map { it.id },
+            )
+            assertEquals("Ma-13 · Pollença", vm.uiState.value.falloBorrado)
+            // Y se puede volver a intentar cuando la base responde
+            repositorio.falloAlBorrar = null
+            vm.onFalloVisto()
+            vm.onBorrar(c)
+            vm.onBorradoConfirmado()
+            assertEquals(listOf("c"), repositorio.borrados)
+            assertNull(vm.uiState.value.falloBorrado)
         }
 
     @Test

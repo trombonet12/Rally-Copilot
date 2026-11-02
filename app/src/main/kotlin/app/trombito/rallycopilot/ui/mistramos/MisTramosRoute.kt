@@ -31,6 +31,7 @@ fun MisTramosRoute(
                 onPedirRenombrar = viewModel::onPedirRenombrar,
                 onRenombrar = viewModel::onRenombrar,
                 onCancelarRenombrar = viewModel::onCancelarRenombrar,
+                onFalloVisto = viewModel::onFalloVisto,
             ),
         modifier = modifier,
     )

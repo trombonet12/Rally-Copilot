@@ -7,7 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import app.trombito.rallycopilot.ui.ajustes.AcercaDeRoute
 import app.trombito.rallycopilot.ui.ajustes.AjustesRoute
-import app.trombito.rallycopilot.ui.analisis.AnalisisPlaceholder
+import app.trombito.rallycopilot.ui.analisis.AnalisisRoute
 import app.trombito.rallycopilot.ui.inicio.EntradaInicio
 import app.trombito.rallycopilot.ui.inicio.InicioScreen
 import app.trombito.rallycopilot.ui.mapa.MapaRoute
@@ -23,7 +23,10 @@ fun AppNavHost() {
         composable<RutaInicio> { InicioScreen(onEntrada = { abrirEntrada(nav, it) }) }
         composable<RutaMapa> {
             // Sin flecha de volver en el mapa: lo cierra el atrás del sistema (la pila de navegación).
-            MapaRoute(onAbrirMapasOffline = { nav.navigate(RutaMapasOffline) })
+            MapaRoute(
+                onAbrirMapasOffline = { nav.navigate(RutaMapasOffline) },
+                onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
+            )
         }
         composable<RutaMapasOffline> { MapasOfflineRoute(onVolver = { nav.popBackStack() }) }
         composable<RutaAjustes> {
@@ -43,8 +46,7 @@ fun AppNavHost() {
                 onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
             )
         }
-        // Marcador: la pantalla de análisis la sustituye en su lote.
-        composable<RutaAnalisis> { AnalisisPlaceholder(onVolver = { nav.popBackStack() }) }
+        composable<RutaAnalisis> { AnalisisRoute(onVolver = { nav.popBackStack() }) }
         composable<RutaPerfil> { PerfilRoute(onVolver = { nav.popBackStack() }) }
     }
 }

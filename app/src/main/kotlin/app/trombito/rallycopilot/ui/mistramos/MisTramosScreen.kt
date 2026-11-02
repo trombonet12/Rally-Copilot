@@ -55,6 +55,7 @@ data class AccionesMisTramos(
     val onPedirRenombrar: (ResumenTramo) -> Unit = {},
     val onRenombrar: (String) -> Unit = {},
     val onCancelarRenombrar: () -> Unit = {},
+    val onFalloVisto: () -> Unit = {},
 )
 
 /** «Mis tramos»: filtros, lista por último uso, borrar deslizando con deshacer y renombrar. */
@@ -66,6 +67,7 @@ fun MisTramosScreen(
 ) {
     val avisos = remember { SnackbarHostState() }
     AvisoDeshacer(estado.borradoPendiente, avisos, acciones)
+    AvisoFallo(estado.falloBorrado, avisos, acciones.onFalloVisto)
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         Column(Modifier.fillMaxSize()) {
             BarraSuperior(titulo = stringResource(R.string.inicio_mis_tramos), onVolver = acciones.onVolver)
@@ -94,6 +96,22 @@ private fun AvisoDeshacer(
         if (mensaje != null) {
             val resultado = avisos.showSnackbar(mensaje, deshacer, duration = SnackbarDuration.Long)
             if (resultado == SnackbarResult.ActionPerformed) acciones.onDeshacer() else acciones.onBorradoConfirmado()
+        }
+    }
+}
+
+/** Avisa de que la base no pudo borrar el tramo (que sigue en la lista) sin cerrar la app. */
+@Composable
+private fun AvisoFallo(
+    nombre: String?,
+    avisos: SnackbarHostState,
+    onVisto: () -> Unit,
+) {
+    val mensaje = nombre?.let { stringResource(R.string.mistramos_borrado_error, it) }
+    LaunchedEffect(nombre) {
+        if (mensaje != null) {
+            avisos.showSnackbar(mensaje, duration = SnackbarDuration.Long)
+            onVisto()
         }
     }
 }

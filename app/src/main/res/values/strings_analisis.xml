@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="analisis_titulo">Análisis</string>
+
+    <!-- Resumen y comparación -->
+    <string name="analisis_resumen_descripcion">Tiempo total %1$s.</string>
+    <string name="analisis_resumen_descripcion_delta">Diferencia contra la pasada comparada: %1$s.</string>
+    <string name="analisis_contra">contra %1$s</string>
+    <string name="analisis_sin_comparar">Sin comparar</string>
+    <string name="analisis_sin_otras">Es la única pasada de este tramo: aún no hay con qué compararla.</string>
+    <string name="analisis_comparar_con">Comparar con</string>
+    <string name="analisis_comparar_ninguna">Ninguna</string>
+
+    <!-- Estados -->
+    <string name="analisis_no_existe_titulo">Pasada no encontrada</string>
+    <string name="analisis_no_existe_texto">Esta pasada o su tramo ya no existen. Vuelve atrás para elegir otra.</string>
+    <string name="analisis_ilegible_titulo">No se puede analizar</string>
+    <string name="analisis_ilegible_texto">Los datos de esta pasada están incompletos y no permiten calcular el análisis.</string>
+    <string name="analisis_sin_mapa">El mapa no está instalado. Descárgalo en Mapas offline para ver aquí el recorrido.</string>
+
+    <!-- Mapa y leyenda -->
+    <string name="analisis_mapa_descripcion">Mapa del tramo con el recorrido coloreado según la velocidad</string>
+    <string name="analisis_leyenda_titulo">Velocidad</string>
+    <string name="analisis_leyenda_descripcion">Leyenda del color: de %1$s (lento) a %2$s (rápido)</string>
+
+    <!-- Repetición -->
+    <string name="analisis_repeticion_play">Reproducir la repetición</string>
+    <string name="analisis_repeticion_pausa">Pausar la repetición</string>
+    <string name="analisis_repeticion_velocidad">×%1$d</string>
+    <string name="analisis_repeticion_posicion">Posición de la repetición</string>
+
+    <!-- Gráficos -->
+    <string name="analisis_graficos_titulo">Velocidad y delta</string>
+    <string name="analisis_grafico_delta_titulo">Delta acumulado en segundos: arriba pierdes tiempo, abajo lo ganas</string>
+    <string name="analisis_grafico_velocidad_descripcion">Gráfico de la velocidad en km/h según la distancia, con esta pasada y la comparada. Toca o arrastra para ver el valor en cada punto.</string>
+    <string name="analisis_grafico_delta_descripcion">Gráfico del delta acumulado en segundos según la distancia. Toca o arrastra para ver el valor en cada punto.</string>
+    <string name="analisis_leyenda_esta">Esta pasada</string>
+    <string name="analisis_leyenda_comparada">Comparada</string>
+    <string name="analisis_lectura_ayuda">Toca o arrastra sobre un gráfico para ver el valor en ese punto.</string>
+    <string name="analisis_lectura_km">A los %1$s</string>
+    <string name="analisis_lectura_comparada">comparada %1$s</string>
+
+    <!-- Tabla de parciales -->
+    <string name="analisis_sectores_titulo">Sectores</string>
+    <string name="analisis_micros_titulo">Microsectores</string>
+    <string name="analisis_sector_abreviado">S%1$d</string>
+    <string name="analisis_micro_abreviado">M%1$d</string>
+    <string name="analisis_total">Total</string>
+    <string name="analisis_columna_parcial">Parcial</string>
+    <string name="analisis_columna_tiempo">Tiempo</string>
+    <string name="analisis_columna_delta">Delta</string>
+    <string name="analisis_columna_media">Media</string>
+    <string name="analisis_columna_maxima">Máx.</string>
+    <string name="analisis_sin_delta">—</string>
+    <string name="analisis_sin_comparada">sin comparada</string>
+    <string name="analisis_fila_descripcion">%1$s: tiempo %2$s, diferencia %3$s, velocidad media %4$s, máxima %5$s</string>
+
+    <!-- Tarjeta de meta -->
+    <string name="analisis_meta_boton">Ver análisis</string>
+    <string name="analisis_meta_boton_descripcion">Ver el análisis de la pasada que acabas de hacer</string>
+</resources>

@@ -17,6 +17,7 @@
     <string name="mistramos_borrar">Borrar</string>
     <string name="mistramos_borrado_aviso">«%1$s» borrado</string>
     <string name="mistramos_deshacer">Deshacer</string>
+    <string name="mistramos_borrado_error">No se pudo borrar «%1$s». El tramo sigue en tu lista; inténtalo de nuevo.</string>
 
     <!-- Estados vacíos -->
     <string name="mistramos_vacio_titulo">Aún no tienes tramos</string>
@@ -42,9 +43,4 @@
     <string name="detalle_ver_analisis">Ver análisis</string>
     <string name="detalle_no_existe_titulo">Tramo no encontrado</string>
     <string name="detalle_no_existe_texto">Este tramo ya no existe. Vuelve a la lista para elegir otro.</string>
-
-    <!-- Análisis (marcador hasta que exista la pantalla) -->
-    <string name="analisis_titulo">Análisis</string>
-    <string name="analisis_placeholder_titulo">Análisis en preparación</string>
-    <string name="analisis_placeholder_texto">Muy pronto verás aquí los parciales, la velocidad y el mapa de esta pasada.</string>
 </resources>

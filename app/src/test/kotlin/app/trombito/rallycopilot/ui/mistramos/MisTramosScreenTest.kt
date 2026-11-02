@@ -188,6 +188,22 @@ class MisTramosScreenTest {
     }
 
     @Test
+    fun `si la base falla al borrar avisa de que el tramo sigue en la lista`() {
+        banco.poner {
+            RallyCopilotTheme {
+                MisTramosScreen(
+                    estado(escorca, valldemossa).copy(falloBorrado = "Ma-10 · Valldemossa"),
+                    AccionesMisTramos(),
+                )
+            }
+        }
+        banco.esperar(300)
+        val aviso = "No se pudo borrar «Ma-10 · Valldemossa». El tramo sigue en tu lista; inténtalo de nuevo."
+        assertTrue(aviso in banco.todosLosTextos())
+        assertTrue(banco.hay("$ETIQUETA_FILA_PREFIJO${valldemossa.id}"))
+    }
+
+    @Test
     fun `el dialogo de renombrar entrega el texto escrito`() {
         val guardados = mutableListOf<String>()
         banco.poner {

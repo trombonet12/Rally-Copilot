@@ -67,6 +67,9 @@ class FalsoRepositorioTramos(
     val favoritos = mutableListOf<Pair<String, Boolean>>()
     val renombrados = mutableListOf<Pair<String, String?>>()
 
+    /** Si no es null, `borrar` lo lanza (una base que falla). */
+    var falloAlBorrar: Throwable? = null
+
     override fun observar(): Flow<List<TramoGuardado>> = MutableStateFlow(emptyList())
 
     override fun observarResumenes(filtro: FiltroTramos): Flow<List<ResumenTramo>> =
@@ -130,6 +133,7 @@ class FalsoRepositorioTramos(
     }
 
     override suspend fun borrar(tramoId: String) {
+        falloAlBorrar?.let { throw it }
         borrados += tramoId
         resumenesMutable.value = resumenesMutable.value.filterNot { it.id == tramoId }
     }
