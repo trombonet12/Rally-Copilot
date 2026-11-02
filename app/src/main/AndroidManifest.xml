@@ -14,9 +14,16 @@
     <!-- Conducción: servicio en primer plano de ubicación arrancado por el usuario (Empezar/Conducir). -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Órdenes de voz al copiloto (Vosk, sin red): solo se graba al pulsar el micrófono o con «Copiloto» activado. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Escucha de «Copiloto» con la pantalla apagada: el servicio de conducción añade el tipo micrófono. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <uses-feature
         android:name="android.hardware.location.gps"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.microphone"
         android:required="false" />
 
     <application
@@ -56,7 +63,7 @@
         <service
             android:name=".data.navegacion.ServicioNavegacion"
             android:exported="false"
-            android:foregroundServiceType="location" />
+            android:foregroundServiceType="location|microphone" />
 
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"

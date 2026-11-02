@@ -32,6 +32,7 @@ fun AjustesRoute(
                 onModoCopiloto = viewModel::onModoCopiloto,
                 onVozCopiloto = viewModel::onVozCopiloto,
                 onProbarVoz = viewModel::onProbarVoz,
+                onActivarConCopiloto = viewModel::onActivarConCopiloto,
             ),
         modifier = modifier,
     )

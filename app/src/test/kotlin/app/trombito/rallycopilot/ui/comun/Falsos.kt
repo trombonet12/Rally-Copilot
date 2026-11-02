@@ -126,3 +126,16 @@ fun fijacion(
     lat: Double = 39.70,
     lon: Double = 2.90,
 ) = Fijacion(PuntoGeo(lat, lon), tiempoMs, velocidadMs, rumboGrados = 90.0, precisionM = 5.0)
+
+/** Órdenes de voz de pruebas: anota cuántas veces se pidió escuchar y deja fijar si está escuchando. */
+class FalsoControlOrdenes : app.trombito.rallycopilot.domain.escucha.ControlOrdenes {
+    val estaEscuchando = MutableStateFlow(false)
+    var peticiones = 0
+    override val escuchando: StateFlow<Boolean> = estaEscuchando
+
+    override fun tienePermiso(): Boolean = true
+
+    override fun escucharOrden() {
+        peticiones++
+    }
+}

@@ -21,6 +21,8 @@ enum class Orientacion { RUMBO, NORTE }
  * automático por velocidad (`ZoomPorVelocidad` del motor). [anticipacion] es cuánto antes de la curva se canta la nota;
  * [notasSimplificadas] reduce las notas a las curvas relevantes. [modoCopiloto] es cuánto habla el copiloto y [voz] la
  * voz elegida (`null` = aún no se ha elegido: se pregunta en el primer uso y mientras tanto el copiloto no habla).
+ * [activarConCopiloto] escucha sin parar, solo mientras se conduce, la palabra «Copiloto» para recibir una orden de voz
+ * (desactivado por defecto: gasta batería y mantiene el micrófono abierto).
  */
 data class AjustesConduccion(
     val nivelZoom: Int = 0,
@@ -33,6 +35,7 @@ data class AjustesConduccion(
     val notasSimplificadas: Boolean = false,
     val modoCopiloto: ModoCopiloto = ModoCopiloto.POR_DEFECTO,
     val voz: VozCopiloto? = null,
+    val activarConCopiloto: Boolean = false,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }
@@ -52,6 +55,11 @@ interface RepositorioAjustesConduccion {
     /** Cambia solo el modo del copiloto. */
     suspend fun elegirModoCopiloto(modo: ModoCopiloto) {
         guardar(ajustes.first().copy(modoCopiloto = modo))
+    }
+
+    /** Activa o desactiva la escucha de la palabra «Copiloto» durante la conducción. */
+    suspend fun elegirActivarConCopiloto(activar: Boolean) {
+        guardar(ajustes.first().copy(activarConCopiloto = activar))
     }
 
     /** Cambia solo la voz del copiloto. */

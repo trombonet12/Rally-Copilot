@@ -9,6 +9,7 @@ data class AccionesCopiloto(
     val onElegirVoz: (VozCopiloto) -> Unit = {},
     val onProbarVoz: (VozCopiloto) -> Unit = {},
     val onPosponerVoz: () -> Unit = {},
+    val onEscuchar: () -> Unit = {},
 )
 
 /** Estado y acciones del copiloto que la pantalla de mapa pinta: selector de modo y diálogo de voz. */

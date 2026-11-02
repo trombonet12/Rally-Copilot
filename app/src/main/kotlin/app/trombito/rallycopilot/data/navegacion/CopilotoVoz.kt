@@ -30,7 +30,8 @@ class RutaVoz(
  * toca decir y se la pasa al [locutor]; además le pide sintetizar por adelantado las próximas. Un
  * [PlanificadorFrases] por sesión: no repite lo dicho ni dice lo que llegaría tarde. Con el modo SILENCIO, o sin voz
  * elegida (`voz == null`), no habla (ni sintetiza). Las [ajustes] se siguen con [seguirAjustes]; [registro] recibe
- * una línea por frase dicha (id, metros que faltaban y velocidad: nunca coordenadas) para medir la anticipación.
+ * una línea por frase dicha (id, metros que faltaban y velocidad: nunca coordenadas) para medir la anticipación y
+ * [alDecir] el texto de cada frase dicha (la orden de voz «repite» vuelve a decir la última).
  *
  * El [locutor] es de la aplicación y sobrevive a la sesión: [cerrar] solo deja de pedirle trabajo. No es concurrente:
  * [alFijar] y [cerrar] se llaman desde la corrutina de la sesión.
@@ -40,6 +41,7 @@ class CopilotoVoz(
     private val locutor: Locutor,
     private val ajustes: Flow<AjustesConduccion>,
     private val registro: ((String) -> Unit)? = null,
+    private val alDecir: ((String) -> Unit)? = null,
 ) {
     private val selector = SelectorNotas()
     private val planificador = PlanificadorFrases(locutor::duracionEstimadaS)
@@ -192,6 +194,7 @@ class CopilotoVoz(
         vMs: Double?,
     ) {
         locutor.decir(frase.texto)
+        alDecir?.invoke(frase.texto)
         registro?.invoke(
             "dice id=${frase.id} faltan=${frase.puntoM?.let { (it - posicionM).roundToInt().toString() } ?: "-"}m " +
                 "v=${vMs?.let { (it * MS_A_KMH).roundToInt().toString() } ?: "-"}km/h",

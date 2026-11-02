@@ -8,8 +8,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
+import app.trombito.rallycopilot.ui.copiloto.BotonMicrofono
 import app.trombito.rallycopilot.ui.copiloto.BotonModoCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.DialogoVozCopiloto
@@ -138,6 +140,14 @@ internal fun botonesDelPanel(
 ): BotonesPanel {
     val terminar = navegacion.acciones.onTerminar.takeIf { navegacion.estado.conduciendo }
     val buscar = navegacion.acciones.onAbrirBusqueda.takeIf { navegacion.estado.conduciendo }
+    val control = navegacion.estado.control
+    val hablar = control is EstadoNavegacion.Guiando || control is EstadoNavegacion.Libre
+    val microfono: (@Composable () -> Unit)? =
+        if (hablar) {
+            { BotonMicrofono(copiloto.estado.escuchando, copiloto.acciones.onEscuchar) }
+        } else {
+            null
+        }
     return BotonesPanel(
         izquierda =
             listOfNotNull(
@@ -151,6 +161,7 @@ internal fun botonesDelPanel(
         derecha =
             listOfNotNull(
                 { BotonOrientacion(estado.orientacion, acciones.onOrientacion) },
+                microfono,
                 terminar?.let { alTerminar -> { BotonTerminar(alTerminar) } },
             ),
     )

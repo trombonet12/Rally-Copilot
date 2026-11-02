@@ -73,6 +73,8 @@ class AjustesYAcercaDeTest {
                 "BSD-2",
                 "sherpa-onnx",
                 "Apache-2.0",
+                "Vosk",
+                "Alpha Cephei",
                 "espeak-ng",
                 "GPL-3.0",
                 "Sharvard corpus",
@@ -80,6 +82,6 @@ class AjustesYAcercaDeTest {
                 "CC BY 3.0",
             )
         claves.forEach { clave -> assertTrue("Falta $clave en $atribuciones", atribuciones.any { clave in it }) }
-        assertEquals(8, atribuciones.size)
+        assertEquals(9, atribuciones.size)
     }
 }

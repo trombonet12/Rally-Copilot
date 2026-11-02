@@ -1,9 +1,11 @@
 package app.trombito.rallycopilot.data.navegacion
 
+import android.Manifest
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.database.sqlite.SQLiteException
 import android.os.IBinder
@@ -12,6 +14,8 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.data.alertas.FabricaAlertasSesion
+import app.trombito.rallycopilot.data.escucha.EscuchaContinua
+import app.trombito.rallycopilot.data.escucha.MemoriaFrases
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.tramos.FabricaCronoSesion
@@ -60,6 +64,10 @@ class ServicioNavegacion : Service() {
 
     @Inject lateinit var ajustes: RepositorioAjustesConduccion
 
+    @Inject lateinit var memoriaFrases: MemoriaFrases
+
+    @Inject lateinit var escuchaContinua: EscuchaContinua
+
     private lateinit var notificacion: NotificacionNavegacion
     private lateinit var scope: CoroutineScope
     private var trabajo: Job? = null
@@ -84,6 +92,8 @@ class ServicioNavegacion : Service() {
         // Un solo hilo: SesionNavegacion no es concurrente y los recálculos no deben pisar a las posiciones.
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1) + alFallar)
         if (control.reclamarCierreDeHuerfanos()) huerfanos = scope.launch { cerrarHuerfanos() }
+        // «Copiloto»: solo hace algo con el ajuste activado y el permiso de micrófono; vive lo que dure el servicio.
+        scope.launch(Dispatchers.Default) { escuchaContinua.correr() }
     }
 
     /** Limpieza de otro proceso: si falla no debe parar la conducción que se está arrancando. */
@@ -119,9 +129,28 @@ class ServicioNavegacion : Service() {
         return START_NOT_STICKY
     }
 
-    /** Debe ocurrir en los primeros segundos tras `startForegroundService`, aunque luego no haya nada que hacer. */
-    private fun entrarEnPrimerPlano(): Boolean =
-        try {
+    /**
+     * Debe ocurrir en los primeros segundos tras `startForegroundService`, aunque luego no haya nada que hacer. Con el
+     * permiso de micrófono concedido pide también el tipo `microphone` (la escucha de «Copiloto» con la pantalla
+     * apagada); si el sistema lo rechaza, sigue solo con `location`.
+     */
+    private fun entrarEnPrimerPlano(): Boolean {
+        if (conPermisoDeMicrofono()) {
+            try {
+                ServiceCompat.startForeground(
+                    this,
+                    NotificacionNavegacion.ID_NOTIFICACION,
+                    notificacion.construir(control.estado.value),
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+                )
+                return true
+            } catch (e: SecurityException) {
+                Log.w(ETIQUETA, "Sin tipo micrófono en primer plano: ${e.javaClass.simpleName}")
+            } catch (e: IllegalStateException) {
+                Log.w(ETIQUETA, "Sin tipo micrófono en primer plano: ${e.javaClass.simpleName}")
+            }
+        }
+        return try {
             ServiceCompat.startForeground(
                 this,
                 NotificacionNavegacion.ID_NOTIFICACION,
@@ -134,6 +163,7 @@ class ServicioNavegacion : Service() {
         } catch (e: IllegalStateException) {
             fallarAlArrancar(e)
         }
+    }
 
     private fun fallarAlArrancar(e: RuntimeException): Boolean {
         Log.w(ETIQUETA, "No se pudo pasar a primer plano: ${e.javaClass.simpleName}")
@@ -222,7 +252,7 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         publicar = { control.publicar(id, it) },
         motivoSinGps = getString(R.string.navegacion_error_gps),
         fabricaNotas = fabricaNotas,
-        copiloto = CopilotoVoz(locutor, ajustes.ajustes, registroDeTiempos()),
+        copiloto = CopilotoVoz(locutor, ajustes.ajustes, registroDeTiempos(), memoriaFrases::recordar),
         alertas = fabricaAlertas.crear(),
         ordenes = control.ordenes,
         crono = fabricaCrono.crear(),
@@ -239,3 +269,6 @@ private fun ServicioNavegacion.registroDeTiempos(): ((String) -> Unit)? =
 private fun ServicioNavegacion.publicarFalloDeArranque(id: Long?) {
     if (id != null) control.publicar(id, EstadoNavegacion.Error(getString(R.string.navegacion_error_arranque)))
 }
+
+private fun ServicioNavegacion.conPermisoDeMicrofono(): Boolean =
+    ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED

@@ -16,3 +16,9 @@
 
 # sherpa-onnx (TTS): el JNI de libsherpa-onnx-jni.so busca clases, campos y métodos por nombre.
 -keep class com.k2fsa.sherpa.onnx.** { *; }
+
+# Vosk (ASR) y JNA: JNA enlaza por reflexión con sus clases y con las interfaces de Vosk (LibVosk).
+-keep class org.vosk.** { *; }
+-keep class com.sun.jna.** { *; }
+-keep class * extends com.sun.jna.** { *; }
+-dontwarn java.awt.**

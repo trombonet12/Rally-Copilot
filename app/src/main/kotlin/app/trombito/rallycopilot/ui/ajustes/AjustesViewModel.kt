@@ -24,6 +24,7 @@ import javax.inject.Inject
  * notas, notas simplificadas, modo y voz del copiloto, persistidos en el repositorio; la voz se puede probar.
  */
 @HiltViewModel
+@Suppress("TooManyFunctions") // un método por ajuste de la pantalla
 class AjustesViewModel
     @Inject
     constructor(
@@ -56,6 +57,10 @@ class AjustesViewModel
 
         fun onNotasSimplificadas(simplificadas: Boolean) {
             guardar { it.copy(notasSimplificadas = simplificadas) }
+        }
+
+        fun onActivarConCopiloto(activar: Boolean) {
+            viewModelScope.launch { repositorio.elegirActivarConCopiloto(activar) }
         }
 
         fun onModoCopiloto(modo: ModoCopiloto) {

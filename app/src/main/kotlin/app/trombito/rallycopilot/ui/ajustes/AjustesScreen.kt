@@ -75,6 +75,7 @@ data class AccionesAjustes(
     val onModoCopiloto: (ModoCopiloto) -> Unit = {},
     val onVozCopiloto: (VozCopiloto) -> Unit = {},
     val onProbarVoz: (VozCopiloto) -> Unit = {},
+    val onActivarConCopiloto: (Boolean) -> Unit = {},
 )
 
 @StringRes

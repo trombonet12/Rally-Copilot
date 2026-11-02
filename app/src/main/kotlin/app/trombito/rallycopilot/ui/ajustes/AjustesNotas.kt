@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.ui.ajustes
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -56,11 +57,12 @@ internal fun SeccionNotas(
 }
 
 @Composable
-private fun FilaInterruptor(
+internal fun FilaInterruptor(
     titulo: String,
     marcado: Boolean,
     onCambio: (Boolean) -> Unit,
     etiqueta: String,
+    detalle: String? = null,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -76,12 +78,20 @@ private fun FilaInterruptor(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Espacio.m),
         ) {
-            Text(
-                text = titulo,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                if (detalle != null) {
+                    Text(
+                        text = detalle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Switch(checked = marcado, onCheckedChange = null)
         }
     }

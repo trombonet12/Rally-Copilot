@@ -219,6 +219,35 @@ abstract class GenerarAssetsVoz : DefaultTask() {
     }
 }
 
+/** Reconocimiento de voz: descomprime el zip del modelo Vosk en asr/vosk-model (el zip lleva una carpeta raíz). */
+abstract class GenerarAssetsAsr : DefaultTask() {
+    @get:InputFile abstract val modelo: RegularFileProperty
+
+    @get:OutputDirectory abstract val outputDir: DirectoryProperty
+
+    @get:Inject abstract val archivos: ArchiveOperations
+
+    @get:Inject abstract val sistema: FileSystemOperations
+
+    @TaskAction
+    fun generar() {
+        val destino = outputDir.get().asFile
+        sistema.delete { delete(destino) }
+        sistema.copy {
+            into(File(destino, "asr/vosk-model"))
+            includeEmptyDirs = false
+            from(archivos.zipTree(modelo.get().asFile)) {
+                eachFile { path = path.substringAfter('/') }
+            }
+        }
+        val raiz = File(destino, "asr/vosk-model")
+        val esperados = listOf("am/final.mdl", "graph/Gr.fst", "graph/HCLr.fst", "conf/model.conf")
+        check(esperados.all { File(raiz, it).isFile }) {
+            "El modelo Vosk extraído no tiene am/final.mdl, graph/Gr.fst, graph/HCLr.fst y conf/model.conf"
+        }
+    }
+}
+
 /**
  * Datos de mapas: baja el manifest (hash fijo) y todos sus archivos salvo el satélite; los deja en datos/<nombre>.asset
  * (más datos/manifest-incluido.json, con los nombres reales).
@@ -309,6 +338,17 @@ fun registrarVoz(
 val descargarVozDavefx = registrarVoz("davefx", "8bb8ac1cefb727caec9bd9c6c3185c673c8b42c53bd29bb25d5a7715dac37125")
 val descargarVozSharvard = registrarVoz("sharvard", "bf5507cbdedea650365bd6175b3164a8ecca5847533ddf97afcba9d76ea599d1")
 
+// --- Reconocimiento de voz offline (Vosk): modelo pequeño español, bajado y verificado como las voces ---
+val voskModeloSha256 = "09b239888f633ef2f0b4e09736e3d9936acfd810bc65d53fad45261762c6511f"
+val descargarModeloVosk =
+    tasks.register<DescargaVerificada>("descargarModeloVosk") {
+        group = "descargas"
+        description = "Descarga y verifica vosk-model-small-es-0.42 (Apache-2.0)."
+        url.set("https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip")
+        sha256.set(voskModeloSha256)
+        archivo.set(directorioDescargas.file("${voskModeloSha256.take(12)}-vosk-model-small-es-0.42.zip"))
+    }
+
 // --- Datos de mapas incluidos ---
 val datosIncluidos =
     Properties().apply {
@@ -335,6 +375,14 @@ androidComponents.onVariants { variante ->
             sharvard.set(descargarVozSharvard.flatMap { it.archivo })
         }
     variante.sources.assets?.addGeneratedSourceDirectory(voz, GenerarAssetsVoz::outputDir)
+
+    val asr =
+        tasks.register<GenerarAssetsAsr>("generarAssetsAsr$sufijo") {
+            group = "descargas"
+            description = "Genera los assets de asr de ${variante.name} (modelo Vosk descomprimido)."
+            modelo.set(descargarModeloVosk.flatMap { it.archivo })
+        }
+    variante.sources.assets?.addGeneratedSourceDirectory(asr, GenerarAssetsAsr::outputDir)
 
     val datos =
         tasks.register<GenerarAssetsDatos>("generarAssetsDatos$sufijo") {
@@ -449,6 +497,10 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+
+    implementation(libs.vosk.android)
+    // JNA como AAR (lleva libjnidispatch.so para Android); Vosk la declara sin el empaquetado nativo.
+    implementation("${libs.jna.get().module}:${libs.jna.get().version}@aar")
 
     implementation(libs.maplibre.android)
     implementation(libs.valhalla.mobile)

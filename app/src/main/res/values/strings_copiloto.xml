@@ -22,8 +22,19 @@
     <string name="copiloto_voz_dialogo_texto">Escucha cada voz y quédate con la que prefieras. Podrás cambiarla en Ajustes.</string>
     <string name="copiloto_voz_elegir">Elegir</string>
 
+    <!-- Órdenes de voz: botón del micrófono, permiso y palabra de activación -->
+    <string name="microfono_boton">Hablar al copiloto</string>
+    <string name="microfono_escuchando">Escuchando al copiloto</string>
+    <string name="microfono_permiso_titulo">Permiso de micrófono</string>
+    <string name="microfono_permiso_texto">El copiloto necesita el micrófono para oír tus órdenes («repite», «más pronto», «marca aquí»…). Solo escucha al pulsar el micrófono o, si lo activas en Ajustes, al decir «Copiloto». Todo se reconoce en el móvil, sin conexión, y no se guarda ningún audio.</string>
+    <string name="microfono_permiso_continuar">Continuar</string>
+    <string name="microfono_permiso_ahora_no">Ahora no</string>
+    <string name="ajustes_copiloto_palabra">Activar con «Copiloto»</string>
+    <string name="ajustes_copiloto_palabra_detalle">Mientras conduces, el micrófono escucha la palabra «Copiloto» para recibir una orden sin tocar el móvil. Gasta más batería.</string>
+
     <!-- Acerca de: voz y motor de síntesis -->
     <string name="acerca_voz_sharvard">Voz 2 (Sharvard): Sharvard corpus, University of Edinburgh, CC BY 3.0</string>
     <string name="acerca_espeak">espeak-ng: GPL-3.0</string>
     <string name="acerca_sherpa">sherpa-onnx: Apache-2.0</string>
+    <string name="acerca_vosk">Vosk (reconocimiento de voz) y modelo vosk-model-small-es-0.42: Apache-2.0, Alpha Cephei; JNA: Apache-2.0 / LGPL-2.1</string>
 </resources>

@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.copiloto
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -26,6 +27,8 @@ data class CopilotoUiState(
     val voz: VozCopiloto? = null,
     /** El usuario cerró el diálogo con atrás: no se vuelve a preguntar hasta la próxima apertura del mapa. */
     val vozPospuesta: Boolean = false,
+    /** El copiloto está escuchando una orden de voz (el micrófono late). */
+    val escuchando: Boolean = false,
 ) {
     /** Hay que enseñar el diálogo «Elige la voz del copiloto». */
     val pedirVoz: Boolean get() = cargado && voz == null && !vozPospuesta
@@ -38,16 +41,18 @@ class CopilotoViewModel
     constructor(
         private val repositorio: RepositorioAjustesConduccion,
         private val locutor: Locutor,
+        private val ordenes: ControlOrdenes,
     ) : ViewModel() {
         private val pospuesta = MutableStateFlow(false)
 
         val uiState: StateFlow<CopilotoUiState> =
-            combine(repositorio.ajustes, pospuesta) { ajustes, aplazada ->
+            combine(repositorio.ajustes, pospuesta, ordenes.escuchando) { ajustes, aplazada, escuchando ->
                 CopilotoUiState(
                     cargado = true,
                     modo = ajustes.modoCopiloto,
                     voz = ajustes.voz,
                     vozPospuesta = aplazada,
+                    escuchando = escuchando,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), CopilotoUiState())
 
@@ -62,6 +67,11 @@ class CopilotoViewModel
         /** Atrás en el diálogo: se deja la voz sin elegir y se vuelve a preguntar al abrir el mapa otra vez. */
         fun onPosponerVoz() {
             pospuesta.value = true
+        }
+
+        /** El micrófono del panel: el copiloto escucha una orden (el permiso ya lo pidió la interfaz). */
+        fun onEscuchar() {
+            ordenes.escucharOrden()
         }
 
         /** Hace sonar la frase de muestra con [voz] sin cambiar la elegida. */

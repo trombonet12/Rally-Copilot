@@ -20,9 +20,9 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * Migraciones v1 -> ... -> v8. No hay `room-testing` (MigrationTestHelper) en el proyecto: la
- * base antigua se crea con el SQL exportado en `schemas/.../N.json` y Room la abre como v8; al abrir valida el esquema
- * resultante contra `8.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
+ * Migraciones v1 -> ... -> v9. No hay `room-testing` (MigrationTestHelper) en el proyecto: la
+ * base antigua se crea con el SQL exportado en `schemas/.../N.json` y Room la abre como v9; al abrir valida el esquema
+ * resultante contra `9.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
  */
 @RunWith(RobolectricTestRunner::class)
 class MigracionRoomTest {
@@ -100,7 +100,7 @@ class MigracionRoomTest {
     }
 
     @Test
-    fun `de v1 a v8 conserva los datos y crea las tablas nuevas`() =
+    fun `de v1 a v9 conserva los datos y crea las tablas nuevas`() =
         runBlocking {
             crearBase(1)
 
@@ -127,7 +127,7 @@ class MigracionRoomTest {
             nueva.recorridosDao().anadirPuntos(id, listOf(RecorridoPuntoEntity(id, 0, 39.5, 2.9, 10, null)))
             assertEquals(1, nueva.recorridosDao().puntos(id).size)
             assertNotNull(nueva.openHelper.writableDatabase)
-            assertEquals(8, nueva.openHelper.writableDatabase.version)
+            assertEquals(9, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -155,7 +155,7 @@ class MigracionRoomTest {
                 ),
                 fila,
             )
-            assertEquals(8, nueva.openHelper.writableDatabase.version)
+            assertEquals(9, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -194,7 +194,7 @@ class MigracionRoomTest {
                     .first()
                     ?.destinoNombre,
             )
-            assertEquals(8, nueva.openHelper.writableDatabase.version)
+            assertEquals(9, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -244,7 +244,7 @@ class MigracionRoomTest {
                     .first()
                     ?.voz,
             )
-            assertEquals(8, nueva.openHelper.writableDatabase.version)
+            assertEquals(9, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -275,7 +275,7 @@ class MigracionRoomTest {
                     .first()
                     ?.paradas,
             )
-            assertEquals(8, nueva.openHelper.writableDatabase.version)
+            assertEquals(9, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -303,7 +303,7 @@ class MigracionRoomTest {
             assertEquals(90_000L, nueva.tramosDao().mejorPasada("t1")?.totalMs)
             nueva.tramosDao().borrar("t1")
             assertEquals(null, nueva.tramosDao().mejorPasada("t1"))
-            assertEquals(8, nueva.openHelper.writableDatabase.version)
+            assertEquals(9, nueva.openHelper.writableDatabase.version)
         }
 
     private fun abrirV8DesdeV7(): RallyDatabase {
@@ -339,7 +339,7 @@ class MigracionRoomTest {
             val pasadas = nueva.tramosDao().pasadas("a")
             assertEquals(listOf(1L, 2L), pasadas.map { it.id })
             assertEquals(listOf(null, null), pasadas.map { it.recorridoId })
-            assertEquals(8, nueva.openHelper.writableDatabase.version)
+            assertEquals(9, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -369,6 +369,40 @@ class MigracionRoomTest {
             assertEquals(emptyList<PasadaEntity>(), dao.pasadas("a"))
         }
 
+    @Test
+    fun `de v8 a v9 conserva los ajustes con Copiloto desactivado y crea la tabla de marcas`() =
+        runBlocking {
+            crearBase(8)
+            val nueva =
+                Room
+                    .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
+                    .addMigrations(*TODAS)
+                    .allowMainThreadQueries()
+                    .build()
+                    .also { base = it }
+
+            val ajustes = checkNotNull(nueva.ajustesConduccionDao().observar().first())
+            assertEquals(2, ajustes.nivelZoom)
+            assertEquals("CASCO", ajustes.icono)
+            assertEquals(false, ajustes.activarConCopiloto)
+
+            nueva.ajustesConduccionDao().guardar(ajustes.copy(activarConCopiloto = true))
+            assertEquals(
+                true,
+                nueva
+                    .ajustesConduccionDao()
+                    .observar()
+                    .first()
+                    ?.activarConCopiloto,
+            )
+            val marcas = nueva.marcasDao()
+            marcas.insertar(MarcaEntity(posicionM = 120.5, tiempoMs = 7L, tramoId = null, lat = 39.7, lon = 2.9))
+            marcas.insertar(MarcaEntity(posicionM = 40.0, tiempoMs = 9L, tramoId = "t1", lat = null, lon = null))
+            assertEquals(listOf(120.5, 40.0), marcas.todas().map { it.posicionM })
+            assertEquals(listOf(40.0), marcas.deTramo("t1").map { it.posicionM })
+            assertEquals(9, nueva.openHelper.writableDatabase.version)
+        }
+
     private companion object {
         val TODAS =
             arrayOf(
@@ -379,6 +413,7 @@ class MigracionRoomTest {
                 MIGRATION_5_6,
                 MIGRATION_6_7,
                 MIGRATION_7_8,
+                MIGRATION_8_9,
             )
     }
 }

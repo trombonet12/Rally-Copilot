@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.copiloto
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import app.trombito.rallycopilot.ui.comun.FalsoControlOrdenes
 import app.trombito.rallycopilot.ui.comun.FalsoLocutor
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,7 @@ import org.junit.Test
 class CopilotoViewModelTest {
     private val repositorio = FalsoRepositorioAjustesConduccion()
     private val locutor = FalsoLocutor()
+    private val ordenes = FalsoControlOrdenes()
 
     @Before
     fun preparar() {
@@ -37,7 +39,7 @@ class CopilotoViewModelTest {
     }
 
     private fun TestScope.crear(): CopilotoViewModel {
-        val vm = CopilotoViewModel(repositorio, locutor)
+        val vm = CopilotoViewModel(repositorio, locutor, ordenes)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -115,5 +117,18 @@ class CopilotoViewModelTest {
             vm.onProbarVoz(VozCopiloto.SHARVARD)
             assertEquals(listOf(VozCopiloto.DAVEFX, VozCopiloto.SHARVARD), locutor.probadas)
             assertTrue(repositorio.guardados.isEmpty())
+        }
+
+    @Test
+    fun `el microfono pide escuchar una orden y el estado refleja que escucha`() =
+        runTest {
+            val vm = crear()
+            assertFalse(vm.uiState.value.escuchando)
+
+            vm.onEscuchar()
+            ordenes.estaEscuchando.value = true
+
+            assertEquals(1, ordenes.peticiones)
+            assertTrue(vm.uiState.value.escuchando)
         }
 }

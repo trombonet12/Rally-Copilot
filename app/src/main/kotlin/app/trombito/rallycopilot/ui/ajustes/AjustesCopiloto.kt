@@ -26,10 +26,12 @@ import app.trombito.rallycopilot.ui.copiloto.FilaVozCopiloto
 import app.trombito.rallycopilot.ui.copiloto.IconoModo
 import app.trombito.rallycopilot.ui.copiloto.detalle
 import app.trombito.rallycopilot.ui.copiloto.nombre
+import app.trombito.rallycopilot.ui.copiloto.rememberSolicitudMicrofono
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_AJUSTES_MODO_PREFIJO = "ajustes-modo-"
 const val ETIQUETA_AJUSTES_VOZ_SIN_ELEGIR = "ajustes-voz-sin-elegir"
+const val ETIQUETA_AJUSTES_ACTIVAR_COPILOTO = "ajustes-activar-con-copiloto"
 
 private val ALTO_FILA = 56.dp
 
@@ -50,6 +52,15 @@ internal fun SeccionCopiloto(
             }
         }
     }
+    // Activarlo pide antes el permiso de micrófono (con su explicación); desactivarlo es inmediato.
+    val pedirMicrofono = rememberSolicitudMicrofono { acciones.onActivarConCopiloto(true) }
+    FilaInterruptor(
+        titulo = stringResource(R.string.ajustes_copiloto_palabra),
+        marcado = ajustes.activarConCopiloto,
+        onCambio = { activar -> if (activar) pedirMicrofono() else acciones.onActivarConCopiloto(false) },
+        etiqueta = ETIQUETA_AJUSTES_ACTIVAR_COPILOTO,
+        detalle = stringResource(R.string.ajustes_copiloto_palabra_detalle),
+    )
     Seccion(R.string.copiloto_voz_titulo) {
         Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
             if (ajustes.voz == null) {

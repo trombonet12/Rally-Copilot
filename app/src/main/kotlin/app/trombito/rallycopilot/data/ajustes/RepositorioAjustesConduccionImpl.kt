@@ -43,6 +43,7 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         notasSimplificadas = notasSimplificadas,
         modoCopiloto = enumOrNull<ModoCopiloto>(modoCopiloto) ?: defecto.modoCopiloto,
         voz = voz?.let { enumOrNull<VozCopiloto>(it) },
+        activarConCopiloto = activarConCopiloto,
     )
 }
 
@@ -58,6 +59,7 @@ internal fun AjustesConduccion.aEntidad() =
         notasSimplificadas = notasSimplificadas,
         modoCopiloto = modoCopiloto.name,
         voz = voz?.name,
+        activarConCopiloto = activarConCopiloto,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

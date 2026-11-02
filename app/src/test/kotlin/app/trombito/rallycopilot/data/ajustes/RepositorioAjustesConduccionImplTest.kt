@@ -62,6 +62,19 @@ class RepositorioAjustesConduccionImplTest {
         }
 
     @Test
+    fun `activar con Copiloto esta desactivado por defecto y se guarda y se lee`() =
+        runBlocking {
+            assertEquals(false, repositorio.ajustes.first().activarConCopiloto)
+
+            repositorio.elegirActivarConCopiloto(true)
+            assertEquals(true, repositorio.ajustes.first().activarConCopiloto)
+            assertEquals(AjustesConduccion(activarConCopiloto = true), repositorio.ajustes.first())
+
+            repositorio.elegirActivarConCopiloto(false)
+            assertEquals(false, repositorio.ajustes.first().activarConCopiloto)
+        }
+
+    @Test
     fun `un nivel de zoom fuera de rango en disco se acota`() =
         runBlocking {
             val dao = base.ajustesConduccionDao()

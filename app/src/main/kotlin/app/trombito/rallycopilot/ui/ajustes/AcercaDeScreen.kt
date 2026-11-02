@@ -32,6 +32,7 @@ internal val ATRIBUCIONES: List<Int> =
         R.string.acerca_noto,
         R.string.acerca_maplibre,
         R.string.acerca_sherpa,
+        R.string.acerca_vosk,
         R.string.acerca_espeak,
         R.string.acerca_voz_sharvard,
     )

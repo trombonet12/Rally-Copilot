@@ -120,3 +120,18 @@ val MIGRATION_7_8: Migration =
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_pasada_recorridoId` ON `pasada` (`recorridoId`)")
         }
     }
+
+/**
+ * v8 -> v9: ajuste «Activar con "Copiloto"» (desactivado en la fila existente) y la tabla `marca` de «marca aquí». El
+ * SQL es el `createSql` de `schemas/.../9.json`.
+ */
+val MIGRATION_8_9: Migration =
+    object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `activarConCopiloto` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `marca` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`posicionM` REAL NOT NULL, `tiempoMs` INTEGER NOT NULL, `tramoId` TEXT, `lat` REAL, `lon` REAL)",
+            )
+        }
+    }

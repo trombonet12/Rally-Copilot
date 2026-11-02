@@ -92,6 +92,7 @@ private fun accionesCopiloto(vm: CopilotoViewModel) =
         onElegirVoz = vm::onElegirVoz,
         onProbarVoz = vm::onProbarVoz,
         onPosponerVoz = vm::onPosponerVoz,
+        onEscuchar = vm::onEscuchar,
     )
 
 private fun accionesMapa(
