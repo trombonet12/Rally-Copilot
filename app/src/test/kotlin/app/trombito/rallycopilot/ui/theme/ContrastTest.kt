@@ -53,6 +53,16 @@ class ContrastTest {
             "inversePrimary/inverseSurface" to (s.inversePrimary to s.inverseSurface),
             "primary/surface" to (s.primary to s.surface),
             "tertiary/surface" to (s.tertiary to s.surface),
+            // Tarjetas de seccion de Ajustes, su vista previa y la hoja rapida del mapa.
+            "onSurface/surfaceContainerLow" to (s.onSurface to s.surfaceContainerLow),
+            "onSurfaceVariant/surfaceContainerLow" to (s.onSurfaceVariant to s.surfaceContainerLow),
+            "primary/surfaceContainerLow" to (s.primary to s.surfaceContainerLow),
+            "onSurface/surfaceContainerLowest" to (s.onSurface to s.surfaceContainerLowest),
+            "onSurfaceVariant/surfaceContainerLowest" to (s.onSurfaceVariant to s.surfaceContainerLowest),
+            "onSurfaceVariant/surfaceContainerHigh" to (s.onSurfaceVariant to s.surfaceContainerHigh),
+            "primary/primaryContainer" to (s.primary to s.primaryContainer),
+            "onSurface/primaryContainer" to (s.onSurface to s.primaryContainer),
+            "primary/surfaceContainerHighest" to (s.primary to s.surfaceContainerHighest),
         )
 
     private fun check(
@@ -106,6 +116,29 @@ class ContrastTest {
                 val c = tipo.colores()
                 val r = ratio(c.texto, c.fondo)
                 if (r < MIN_AA) "$tipo = ${"%.2f".format(r)}" else null
+            }
+        assertTrue("Contraste < $MIN_AA: $failures", failures.isEmpty())
+    }
+
+    /** Los colores de delta y aviso tambien se leen sobre las tarjetas y el fondo de la muestra de tema. */
+    @Test
+    fun coloresRally_meetAAOnCardsAndPanels() {
+        val casos = listOf(Triple("oscuro", RallyOscuro, DarkColors), Triple("claro", RallyClaro, LightColors))
+        val failures =
+            casos.flatMap { (nombre, rally, esquema) ->
+                val fondos =
+                    mapOf(
+                        "background" to esquema.background,
+                        "surfaceContainerLow" to esquema.surfaceContainerLow,
+                        "surfaceContainerLowest" to esquema.surfaceContainerLowest,
+                    )
+                fondos.flatMap { (fondo, color) ->
+                    listOf("deltaMejor" to rally.deltaMejor, "deltaPeor" to rally.deltaPeor, "aviso" to rally.aviso)
+                        .mapNotNull { (k, c) ->
+                            val r = ratio(c, color)
+                            if (r < MIN_AA) "$nombre $k/$fondo = ${"%.2f".format(r)}" else null
+                        }
+                }
             }
         assertTrue("Contraste < $MIN_AA: $failures", failures.isEmpty())
     }

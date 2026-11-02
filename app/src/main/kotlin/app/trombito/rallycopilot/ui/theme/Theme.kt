@@ -6,6 +6,7 @@ import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.dp
 
 private val RallyShapes =
@@ -17,14 +18,20 @@ private val RallyShapes =
         extraLarge = RoundedCornerShape(24.dp),
     )
 
-/** Tema de la app. Oscuro por defecto: decide quien llama (Ajustes en H10), no el sistema. */
+/** Si el tema aplicado es oscuro; lo usan quienes dependen de él fuera de Material (estilo del mapa). */
+val LocalTemaOscuro = staticCompositionLocalOf { true }
+
+/** Tema de la app. Oscuro por defecto: decide quien llama (el ajuste de tema), no el sistema. */
 @Composable
 fun RallyCopilotTheme(
     darkTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
     val typography = remember { rallyTypography() }
-    CompositionLocalProvider(LocalColoresRally provides if (darkTheme) RallyOscuro else RallyClaro) {
+    CompositionLocalProvider(
+        LocalColoresRally provides if (darkTheme) RallyOscuro else RallyClaro,
+        LocalTemaOscuro provides darkTheme,
+    ) {
         MaterialTheme(
             colorScheme = if (darkTheme) DarkColors else LightColors,
             typography = typography,

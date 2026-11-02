@@ -116,7 +116,7 @@ internal fun anchoPanelLateral(botones: BotonesPanel) =
     }
 
 /** Menú desplegado sobre el mapa desde el panel inferior: solo uno a la vez. */
-internal enum class MenuMapa { NINGUNO, CAPAS, MODO }
+internal enum class MenuMapa { NINGUNO, CAPAS, MODO, AJUSTES }
 
 internal class MenuAbierto(
     val actual: MenuMapa,
@@ -127,9 +127,10 @@ internal class MenuAbierto(
 }
 
 /**
- * Izquierda: capas, modo del copiloto y, mientras se guía, la lupa que abre la búsqueda. Derecha: rumbo/norte y,
- * mientras se guía, la bandera de terminar. Con cuatro botones la velocidad no se tapa: dos a cada lado en vertical y
- * una sola fila en horizontal; con la lupa, tres a la izquierda y el panel lateral se ensancha para la fila de cinco.
+ * Izquierda: capas, modo del copiloto, ajustes rápidos (deslizadores) y, mientras se guía, la lupa que abre la
+ * búsqueda. Derecha: rumbo/norte y, mientras se guía, la bandera de terminar. Con cuatro botones la velocidad no se
+ * tapa: dos a cada lado en vertical y una sola fila en horizontal; con más, el panel lateral se ensancha y los que
+ * sobran pasan a otra fila.
  */
 internal fun botonesDelPanel(
     estado: MapaUiState,
@@ -156,6 +157,7 @@ internal fun botonesDelPanel(
                     val abierto = menu.actual == MenuMapa.MODO
                     BotonModoCopiloto(copiloto.estado.modo, abierto, { menu.alternar(MenuMapa.MODO) })
                 },
+                { BotonAjustesRapidos(menu.actual == MenuMapa.AJUSTES, { menu.alternar(MenuMapa.AJUSTES) }) },
                 buscar?.let { alBuscar -> { BotonBuscarGuiando(alBuscar) } },
             ),
         derecha =
@@ -167,7 +169,7 @@ internal fun botonesDelPanel(
     )
 }
 
-/** El menú abierto desde el panel inferior (capas o modo del copiloto), pegado a su botón. */
+/** El menú abierto desde el panel inferior (capas, modo del copiloto o ajustes rápidos), pegado a su botón. */
 @Composable
 internal fun MenuSobreMapa(
     estado: MapaUiState,
@@ -190,6 +192,10 @@ internal fun MenuSobreMapa(
                 },
                 modifier = modifier,
             )
+        }
+
+        MenuMapa.AJUSTES -> {
+            PanelAjustesRapidos(copiloto.estado, copiloto.acciones, modifier)
         }
 
         MenuMapa.NINGUNO -> {}

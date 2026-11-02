@@ -7,6 +7,7 @@ import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
@@ -44,6 +45,8 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         modoCopiloto = enumOrNull<ModoCopiloto>(modoCopiloto) ?: defecto.modoCopiloto,
         voz = voz?.let { enumOrNull<VozCopiloto>(it) },
         activarConCopiloto = activarConCopiloto,
+        volumenVoz = volumenVoz.coerceIn(AjustesConduccion.VOLUMEN_VOZ_MIN, AjustesConduccion.VOLUMEN_VOZ_MAX),
+        tema = enumOrNull<Tema>(tema) ?: defecto.tema,
     )
 }
 
@@ -60,6 +63,8 @@ internal fun AjustesConduccion.aEntidad() =
         modoCopiloto = modoCopiloto.name,
         voz = voz?.name,
         activarConCopiloto = activarConCopiloto,
+        volumenVoz = volumenVoz,
+        tema = tema.name,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

@@ -30,7 +30,7 @@ private class SintetizadorFalso : SintetizadorTts {
     ): AudioPcm {
         llamadas += voz to texto
         if (falla) throw ErrorSintesis("falso")
-        return AudioPcm(ShortArray(texto.length * 100), 1_000)
+        return AudioPcm(ShortArray(texto.length * 100) { 1_000 }, 1_000)
     }
 
     override fun liberar() = Unit
@@ -38,6 +38,9 @@ private class SintetizadorFalso : SintetizadorTts {
 
 private class ReproductorFalso : ReproductorPcm {
     val sonadas = mutableListOf<Int>()
+
+    /** Pico (valor absoluto máximo) de cada frase que ha sonado. */
+    val picos = mutableListOf<Int>()
     var puerta: CompletableDeferred<Unit>? = null
 
     override suspend fun reproducir(
@@ -45,6 +48,7 @@ private class ReproductorFalso : ReproductorPcm {
         frecuenciaHz: Int,
     ) {
         sonadas += muestras.size
+        picos += muestras.maxOf { kotlin.math.abs(it.toInt()) }
         puerta?.await()
     }
 }
@@ -217,6 +221,37 @@ class LocutorImplTest {
             advanceUntilIdle()
 
             assertEquals(listOf(VozCopiloto.SHARVARD, VozCopiloto.DAVEFX), sint.llamadas.map { it.first })
+        }
+
+    @Test
+    fun `el volumen propio escala lo que suena sin tocar la cache`() =
+        runTest {
+            val (locutor, cache) = locutor()
+
+            locutor.decir("a")
+            advanceUntilIdle()
+            locutor.usarVolumen(50)
+            locutor.decir("a")
+            advanceUntilIdle()
+            locutor.usarVolumen(150)
+            locutor.decir("a")
+            advanceUntilIdle()
+
+            assertEquals(listOf(1_000, 500, 1_500), repro.picos)
+            assertEquals(1_000, cache.leer(VozCopiloto.DAVEFX, "a")!!.maxOf { it.toInt() })
+        }
+
+    @Test
+    fun `probarFrase dice el texto con la voz pedida y el volumen vigente`() =
+        runTest {
+            val (locutor, _) = locutor()
+            locutor.usarVolumen(50)
+
+            locutor.probarFrase(VozCopiloto.SHARVARD, "derecha cuatro")
+            advanceUntilIdle()
+
+            assertEquals(listOf(VozCopiloto.SHARVARD to "derecha cuatro"), sint.llamadas)
+            assertEquals(listOf(500), repro.picos)
         }
 
     @Test

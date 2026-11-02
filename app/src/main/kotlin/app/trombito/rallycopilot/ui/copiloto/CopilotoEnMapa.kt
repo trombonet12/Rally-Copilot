@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.ui.copiloto
 
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 
 /** Callbacks del copiloto en la pantalla de conducción. */
@@ -10,6 +11,10 @@ data class AccionesCopiloto(
     val onProbarVoz: (VozCopiloto) -> Unit = {},
     val onPosponerVoz: () -> Unit = {},
     val onEscuchar: () -> Unit = {},
+    val onAnticipacion: (NivelAnticipacion) -> Unit = {},
+    val onNotasSimplificadas: (Boolean) -> Unit = {},
+    val onVolumenVoz: (Int) -> Unit = {},
+    val onEscucharEjemplo: () -> Unit = {},
 )
 
 /** Estado y acciones del copiloto que la pantalla de mapa pinta: selector de modo y diálogo de voz. */

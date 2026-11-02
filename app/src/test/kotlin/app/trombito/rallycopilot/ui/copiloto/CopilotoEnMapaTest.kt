@@ -22,6 +22,7 @@ import app.trombito.rallycopilot.ui.mapa.AccionesMapa
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_CAPAS_BOTON
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_CAPAS_PANEL
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_ORIENTACION
+import app.trombito.rallycopilot.ui.mapa.ETIQUETA_RAPIDOS_BOTON
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_VELOCIDAD
 import app.trombito.rallycopilot.ui.mapa.EstadoVistaMapa
 import app.trombito.rallycopilot.ui.mapa.MapaScreen
@@ -109,6 +110,7 @@ abstract class CopilotoEnMapaBase {
         listOf(
             ETIQUETA_CAPAS_BOTON,
             ETIQUETA_MODO_BOTON,
+            ETIQUETA_RAPIDOS_BOTON,
             ETIQUETA_BUSCAR_GUIANDO,
             ETIQUETA_ORIENTACION,
             ETIQUETA_TERMINAR,
@@ -217,7 +219,7 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
     }
 
     @Test
-    fun `en vertical los cinco botones caben en el panel sin tapar la velocidad`() {
+    fun `en vertical todos los botones caben en el panel sin tapar la velocidad`() {
         poner(guiando = true)
         comprobarQueCabenSinTaparLaVelocidad()
     }
@@ -312,7 +314,7 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
 @Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
 class CopilotoEnMapaHorizontalTest : CopilotoEnMapaBase() {
     @Test
-    fun `en horizontal los cinco botones caben en el panel lateral sin tapar la velocidad`() {
+    fun `en horizontal todos los botones caben en el panel lateral sin tapar la velocidad`() {
         poner(guiando = true)
         comprobarQueCabenSinTaparLaVelocidad()
     }

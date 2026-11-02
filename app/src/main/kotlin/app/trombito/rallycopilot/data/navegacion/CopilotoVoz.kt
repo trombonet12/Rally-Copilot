@@ -49,6 +49,7 @@ class CopilotoVoz(
 
     @Volatile private var actuales = AjustesConduccion()
     private var vozEnLocutor: VozCopiloto? = null
+    private var volumenEnLocutor: Int? = null
     private var ultimaPreparacion: List<String>? = null
     private var rutaAnterior: RutaVoz? = null
     private var generacionRuta = 0
@@ -102,6 +103,10 @@ class CopilotoVoz(
             locutor.usarVoz(voz)
             vozEnLocutor = voz
             ultimaPreparacion = null
+        }
+        if (a.volumenVoz != volumenEnLocutor) {
+            locutor.usarVolumen(a.volumenVoz)
+            volumenEnLocutor = a.volumenVoz
         }
         if (ruta !== rutaAnterior) {
             rutaAnterior = ruta

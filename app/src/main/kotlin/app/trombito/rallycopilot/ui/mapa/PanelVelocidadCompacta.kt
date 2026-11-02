@@ -52,9 +52,7 @@ internal fun ContenidoCompacto(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Espacio.m),
             ) { centro() }
-            Row(horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-                (datos.izquierda + datos.derecha).forEach { it() }
-            }
+            FilasDeBotones(datos.izquierda + datos.derecha)
         }
     } else {
         Row(

@@ -25,35 +25,87 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.ui.comun.BotonIcono
+import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_ANTICIPACION_PREFIJO = "ajustes-anticipacion-"
 const val ETIQUETA_NOTAS_SIMPLIFICADAS = "ajustes-notas-simplificadas"
 
-/** Anticipación (5 niveles, solo iconos) e interruptor de notas simplificadas. */
+/** Anticipación (5 niveles, solo iconos) e interruptor de notas simplificadas, con la vista previa de la nota. */
 @Composable
 internal fun SeccionNotas(
     ajustes: AjustesConduccion,
     acciones: AccionesAjustes,
 ) {
-    Seccion(R.string.ajustes_anticipacion_titulo) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s), verticalAlignment = Alignment.CenterVertically) {
-            NivelAnticipacion.entries.forEach { nivel ->
-                BotonIcono(
-                    descripcion = stringResource(nivel.nombre()),
-                    onClick = { acciones.onAnticipacion(nivel) },
-                    modifier = Modifier.testTag(ETIQUETA_ANTICIPACION_PREFIJO + nivel.name.lowercase()),
-                    estado = estadoSeleccion(nivel == ajustes.anticipacion),
-                ) { Icon(painterResource(nivel.icono()), contentDescription = null, modifier = Modifier.size(32.dp)) }
-            }
+    TarjetaSeccion(
+        clave = "notas",
+        icono = Iconos.Notas,
+        titulo = R.string.ajustes_seccion_notas,
+        detalle = R.string.ajustes_seccion_notas_detalle,
+        vistaPrevia = {
+            VistaPreviaNotas(ajustes.anticipacion, ajustes.notasSimplificadas, acciones.onEscucharEjemplo)
+        },
+    ) {
+        Opcion(R.string.ajustes_anticipacion_titulo, R.string.ajustes_anticipacion_detalle) {
+            OpcionesAnticipacion(ajustes.anticipacion, acciones.onAnticipacion)
+        }
+        FilaInterruptor(
+            titulo = stringResource(R.string.ajustes_notas_simplificadas),
+            marcado = ajustes.notasSimplificadas,
+            onCambio = acciones.onNotasSimplificadas,
+            etiqueta = ETIQUETA_NOTAS_SIMPLIFICADAS,
+            detalle = stringResource(R.string.ajustes_simplificadas_detalle),
+        )
+    }
+}
+
+/** Los cinco niveles de anticipación como botones de icono (barras de señal). */
+@Composable
+internal fun OpcionesAnticipacion(
+    elegido: NivelAnticipacion,
+    onAnticipacion: (NivelAnticipacion) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(Espacio.s),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        NivelAnticipacion.entries.forEach { nivel ->
+            BotonIcono(
+                descripcion = stringResource(nivel.nombre()),
+                onClick = { onAnticipacion(nivel) },
+                modifier = Modifier.testTag(ETIQUETA_ANTICIPACION_PREFIJO + nivel.name.lowercase()),
+                estado = estadoSeleccion(nivel == elegido),
+            ) { Icon(painterResource(nivel.icono()), contentDescription = null, modifier = Modifier.size(32.dp)) }
         }
     }
-    FilaInterruptor(
-        titulo = stringResource(R.string.ajustes_notas_simplificadas),
-        marcado = ajustes.notasSimplificadas,
-        onCambio = acciones.onNotasSimplificadas,
-        etiqueta = ETIQUETA_NOTAS_SIMPLIFICADAS,
-    )
+}
+
+/** Volumen propio del copiloto (50–150 %), con ▶ para oírlo con el volumen elegido. */
+@Composable
+internal fun SeccionVoz(
+    ajustes: AjustesConduccion,
+    acciones: AccionesAjustes,
+) {
+    TarjetaSeccion(
+        clave = "voz",
+        icono = Iconos.Volumen,
+        titulo = R.string.ajustes_seccion_voz,
+        detalle = R.string.ajustes_seccion_voz_detalle,
+        vistaPrevia = {
+            Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+                ControlVolumen(ajustes.volumenVoz, acciones.onVolumenVoz)
+                BotonEscucharEjemplo(acciones.onEscucharEjemplo)
+            }
+        },
+    ) {
+        Text(
+            text = stringResource(R.string.ajustes_volumen_aviso),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Composable

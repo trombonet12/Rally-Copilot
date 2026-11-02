@@ -7,6 +7,8 @@ import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.ajustes.Tema
+import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
@@ -21,7 +23,8 @@ import javax.inject.Inject
 
 /**
  * Ajustes de conducción: zoom del mapa, icono de posición, orientación, estilo de las maniobras, anticipación de las
- * notas, notas simplificadas, modo y voz del copiloto, persistidos en el repositorio; la voz se puede probar.
+ * notas, notas simplificadas, modo, voz y volumen del copiloto, tema, capa y relieve, persistidos en el
+ * repositorio; la voz se puede probar y se puede oír la nota de ejemplo.
  */
 @HiltViewModel
 @Suppress("TooManyFunctions") // un método por ajuste de la pantalla
@@ -71,9 +74,36 @@ class AjustesViewModel
             viewModelScope.launch { repositorio.elegirVoz(voz) }
         }
 
-        /** Dice la frase de muestra con [voz] sin cambiar la elegida. */
+        /** Dice la frase de muestra con [voz] sin cambiar la elegida y con el volumen elegido. */
         fun onProbarVoz(voz: VozCopiloto) {
-            locutor.probar(voz)
+            viewModelScope.launch {
+                locutor.usarVolumen(repositorio.ajustes.first().volumenVoz)
+                locutor.probar(voz)
+            }
+        }
+
+        /** Volumen propio del copiloto (50–150 %): se guarda y se aplica al locutor al instante. */
+        fun onVolumenVoz(porcentaje: Int) {
+            val volumen = porcentaje.coerceIn(AjustesConduccion.VOLUMEN_VOZ_MIN, AjustesConduccion.VOLUMEN_VOZ_MAX)
+            locutor.usarVolumen(volumen)
+            guardar { it.copy(volumenVoz = volumen) }
+        }
+
+        /** «Escuchar ejemplo»: la nota de ejemplo con la voz, el volumen y el modo simplificado de los ajustes. */
+        fun onEscucharEjemplo() {
+            viewModelScope.launch { locutor.decirEjemplo(repositorio.ajustes.first()) }
+        }
+
+        fun onTema(tema: Tema) {
+            guardar { it.copy(tema = tema) }
+        }
+
+        fun onCapa(capa: CapaMapa) {
+            guardar { it.copy(capa = capa) }
+        }
+
+        fun onRelieve(relieve: Boolean) {
+            guardar { it.copy(relieve = relieve) }
         }
 
         private fun guardar(cambio: (AjustesConduccion) -> AjustesConduccion) {

@@ -1,0 +1,186 @@
+package app.trombito.rallycopilot.ui.mapa
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
+import app.trombito.rallycopilot.domain.datos.DatosInstalados
+import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
+import app.trombito.rallycopilot.domain.datos.EstilosMapa
+import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
+import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_AJUSTES_VOLUMEN
+import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_AJUSTES_VOLUMEN_VALOR
+import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_ANTICIPACION_PREFIJO
+import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_NOTAS_SIMPLIFICADAS
+import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_PREVISTA_ANTICIPACION
+import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_PREVISTA_ESCUCHAR
+import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_PREVISTA_NOTA
+import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
+import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
+import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
+import app.trombito.rallycopilot.ui.copiloto.CopilotoUiState
+import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+private const val ETIQUETA_MAPA_FALSO = "mapa-falso"
+
+/** La hoja de ajustes rápidos del panel de conducción: abre, cambia en caliente y cabe en vertical y apaisado. */
+abstract class AjustesRapidosBase {
+    @get:Rule val limpieza = LimpiezaCompose()
+
+    protected val banco = BancoCompose()
+    protected var copiloto by mutableStateOf(CopilotoUiState(cargado = true, voz = VozCopiloto.DAVEFX))
+    protected val escuchas = mutableListOf<Unit>()
+
+    private val datos = EstadoDatosMapa(instalados = DatosInstalados("2026.10.1", 1_000_000, conSatelite = false))
+
+    private val acciones =
+        AccionesCopiloto(
+            onAnticipacion = { copiloto = copiloto.copy(anticipacion = it) },
+            onNotasSimplificadas = { copiloto = copiloto.copy(notasSimplificadas = it) },
+            onVolumenVoz = { copiloto = copiloto.copy(volumenVoz = it) },
+            onEscucharEjemplo = { escuchas += Unit },
+        )
+
+    protected fun poner() {
+        banco.poner {
+            RallyCopilotTheme {
+                MapaScreen(
+                    estado =
+                        MapaUiState(
+                            cargando = false,
+                            datos = datos,
+                            estilos = EstilosMapa("{}", null),
+                            velocidadKmh = 72,
+                        ),
+                    vista = EstadoVistaMapa(),
+                    acciones = AccionesMapa(),
+                    mapa = { _, m -> Box(m.testTag(ETIQUETA_MAPA_FALSO)) },
+                    copiloto = CopilotoEnMapa(copiloto, acciones),
+                )
+            }
+        }
+    }
+
+    protected fun abrir() {
+        poner()
+        assertFalse(banco.hay(ETIQUETA_RAPIDOS_PANEL))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_RAPIDOS_BOTON))
+        assertTrue(banco.hay(ETIQUETA_RAPIDOS_PANEL))
+    }
+
+    protected fun textoDe(etiqueta: String) = banco.textos(banco.conEtiqueta(etiqueta)).joinToString(" ")
+
+    /** La hoja suelta (en la pantalla real Robolectric no mide los menús): cabe y sus botones miden 48 dp. */
+    protected fun comprobarQueLaHojaEntraEnPantalla() {
+        banco.poner { RallyCopilotTheme { PanelAjustesRapidos(copiloto, AccionesCopiloto()) } }
+        val raiz = banco.raiz().boundsInRoot
+        val hoja = banco.conEtiqueta(ETIQUETA_RAPIDOS_PANEL).boundsInRoot
+        assertTrue("La hoja $hoja sale de la pantalla $raiz", hoja.left >= raiz.left && hoja.right <= raiz.right)
+        assertTrue("La hoja $hoja sale de la pantalla $raiz", hoja.top >= raiz.top && hoja.bottom <= raiz.bottom)
+        assertEquals(NivelAnticipacion.entries.size, banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).size)
+        banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).forEach {
+            val nodo = banco.conEtiqueta(it)
+            assertTrue("$it mide ${nodo.size}", nodo.size.width >= LADO_MINIMO_PX && nodo.size.height >= LADO_MINIMO_PX)
+            assertTrue("$it sale de la hoja", nodo.boundsInRoot.right <= hoja.right)
+        }
+    }
+
+    private companion object {
+        /** 48 dp a xxhdpi (densidad 3). */
+        const val LADO_MINIMO_PX = 48 * 3
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+class AjustesRapidosVerticalTest : AjustesRapidosBase() {
+    @Test
+    fun `el boton de deslizadores abre la hoja y volver a tocarlo la cierra`() {
+        abrir()
+        assertEquals("Ajustes rápidos", banco.descripcion(banco.conEtiqueta(ETIQUETA_RAPIDOS_BOTON)))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_RAPIDOS_BOTON))
+        assertFalse(banco.hay(ETIQUETA_RAPIDOS_PANEL))
+    }
+
+    @Test
+    fun `la hoja trae anticipacion de cinco niveles, simplificadas, volumen y la vista previa reducida`() {
+        abrir()
+        assertEquals(NivelAnticipacion.entries.size, banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).size)
+        assertTrue(banco.hay(ETIQUETA_NOTAS_SIMPLIFICADAS))
+        assertTrue(banco.hay(ETIQUETA_AJUSTES_VOLUMEN))
+        assertTrue(banco.hay(ETIQUETA_PREVISTA_NOTA))
+        assertEquals("Te la canta 5 s antes (a 90 km/h, a 150 m)", textoDe(ETIQUETA_PREVISTA_ANTICIPACION))
+    }
+
+    @Test
+    fun `tocar la anticipacion cambia la vista previa y lo pide en caliente`() {
+        abrir()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_ANTICIPACION_PREFIJO + "muy_pronto"))
+        assertEquals(NivelAnticipacion.MUY_PRONTO, copiloto.anticipacion)
+        assertEquals("Te la canta 8 s antes (a 90 km/h, a 230 m)", textoDe(ETIQUETA_PREVISTA_ANTICIPACION))
+        assertTrue("la hoja sigue abierta", banco.hay(ETIQUETA_RAPIDOS_PANEL))
+    }
+
+    @Test
+    fun `las simplificadas cambian la tarjeta de ejemplo`() {
+        abrir()
+        assertTrue("DERECHA 4" in textoDe(ETIQUETA_PREVISTA_NOTA))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_NOTAS_SIMPLIFICADAS).children.first { banco.esPulsable(it) })
+        assertTrue(copiloto.notasSimplificadas)
+        assertTrue("MEDIA" in textoDe(ETIQUETA_PREVISTA_NOTA))
+    }
+
+    @Test
+    fun `el volumen se cambia con el deslizador y la cifra sigue al valor`() {
+        abrir()
+        assertEquals("100 %", textoDe(ETIQUETA_AJUSTES_VOLUMEN_VALOR))
+        val progreso =
+            checkNotNull(banco.conEtiqueta(ETIQUETA_AJUSTES_VOLUMEN).config.getOrNull(SemanticsActions.SetProgress))
+        progreso.action?.invoke(80f)
+        banco.reposo()
+        assertEquals(80, copiloto.volumenVoz)
+        assertEquals("80 %", textoDe(ETIQUETA_AJUSTES_VOLUMEN_VALOR))
+    }
+
+    @Test
+    fun `escuchar ejemplo desde la hoja lo pide`() {
+        abrir()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_PREVISTA_ESCUCHAR))
+        assertEquals(1, escuchas.size)
+    }
+
+    @Test
+    fun `en vertical la hoja entra en pantalla con objetivos de 48 dp`() {
+        comprobarQueLaHojaEntraEnPantalla()
+    }
+
+    @Test
+    fun `la hoja de ajustes rapidos y las de capas y modo no estan abiertas a la vez`() {
+        abrir()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_CAPAS_BOTON))
+        assertTrue(banco.hay(ETIQUETA_CAPAS_PANEL))
+        assertFalse(banco.hay(ETIQUETA_RAPIDOS_PANEL))
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "w891dp-h411dp-land-xxhdpi")
+class AjustesRapidosHorizontalTest : AjustesRapidosBase() {
+    @Test
+    fun `en horizontal la hoja entra en pantalla con objetivos de 48 dp`() {
+        comprobarQueLaHojaEntraEnPantalla()
+    }
+}

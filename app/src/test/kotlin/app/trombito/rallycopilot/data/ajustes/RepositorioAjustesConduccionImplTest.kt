@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
+import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
@@ -72,6 +73,32 @@ class RepositorioAjustesConduccionImplTest {
 
             repositorio.elegirActivarConCopiloto(false)
             assertEquals(false, repositorio.ajustes.first().activarConCopiloto)
+        }
+
+    @Test
+    fun `volumen de la voz y tema tienen por defecto 100 por ciento y oscuro, y se guardan y se leen`() =
+        runBlocking {
+            assertEquals(100, repositorio.ajustes.first().volumenVoz)
+            assertEquals(Tema.OSCURO, repositorio.ajustes.first().tema)
+
+            val ajustes = repositorio.ajustes.first().copy(volumenVoz = 130, tema = Tema.SISTEMA)
+            repositorio.guardar(ajustes)
+            assertEquals(ajustes, repositorio.ajustes.first())
+        }
+
+    @Test
+    fun `un volumen fuera de rango o un tema desconocido en disco valen los de por defecto o se acotan`() =
+        runBlocking {
+            val dao = base.ajustesConduccionDao()
+            val fila = AjustesConduccionEntity(1, 0, "FLECHA", "RUMBO", "VECTORIAL", false)
+            dao.guardar(fila.copy(volumenVoz = 400, tema = "NEON"))
+            val leido = repositorio.ajustes.first()
+            assertEquals(AjustesConduccion.VOLUMEN_VOZ_MAX, leido.volumenVoz)
+            assertEquals(Tema.OSCURO, leido.tema)
+
+            dao.guardar(fila.copy(volumenVoz = 0, tema = "CLARO"))
+            assertEquals(AjustesConduccion.VOLUMEN_VOZ_MIN, repositorio.ajustes.first().volumenVoz)
+            assertEquals(Tema.CLARO, repositorio.ajustes.first().tema)
         }
 
     @Test

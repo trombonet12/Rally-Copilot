@@ -39,6 +39,8 @@ data class MapaUiState(
     val estiloManiobras: EstiloManiobras = EstiloManiobras.PLACA,
     /** Zoom automático (por velocidad y ajuste de Joan, suavizado); null mientras no hay velocidad conocida. */
     val zoomObjetivo: Double? = null,
+    /** El tema de la interfaz es oscuro (lo pone la ruta desde el tema aplicado). */
+    val temaOscuro: Boolean = true,
 ) {
     val hayDatos: Boolean get() = estilos != null
 
@@ -54,8 +56,17 @@ data class MapaUiState(
     val capa: CapaMapa
         get() = if (capaElegida == CapaMapa.SATELITE && puedeSatelite) CapaMapa.SATELITE else CapaMapa.VECTORIAL
 
+    /**
+     * El estilo que se dibuja: el satélite, el vectorial claro si el tema es claro y los datos lo traen, o el vectorial
+     * (oscuro). Sin estilo claro en los datos el mapa se queda oscuro también con el tema claro.
+     */
     val estiloJson: String?
-        get() = if (capa == CapaMapa.SATELITE) estilos?.satelite else estilos?.vectorial
+        get() =
+            when {
+                capa == CapaMapa.SATELITE -> estilos?.satelite
+                !temaOscuro -> estilos?.vectorialClaro ?: estilos?.vectorial
+                else -> estilos?.vectorial
+            }
 
     /** Sin `maxspeed` en OSM no hay límite que mostrar. */
     val limiteKmh: Int? get() = via?.limiteKmh

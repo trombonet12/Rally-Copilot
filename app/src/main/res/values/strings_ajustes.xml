@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Secciones de Ajustes: título y una línea que explica para qué sirve -->
+    <string name="ajustes_seccion_copiloto">Copiloto</string>
+    <string name="ajustes_seccion_copiloto_detalle">Cuánto habla y con qué voz.</string>
+    <string name="ajustes_seccion_notas">Notas</string>
+    <string name="ajustes_seccion_notas_detalle">Cuándo te canta cada curva y cómo la dice.</string>
+    <string name="ajustes_seccion_voz">Volumen de la voz</string>
+    <string name="ajustes_seccion_voz_detalle">La fuerza del copiloto, aparte del volumen del móvil.</string>
+    <string name="ajustes_seccion_mapa">Mapa</string>
+    <string name="ajustes_seccion_mapa_detalle">Cómo se ve el mapa mientras conduces.</string>
+    <string name="ajustes_seccion_escucha">Escucha</string>
+    <string name="ajustes_seccion_escucha_detalle">Hablar con el copiloto sin tocar el móvil.</string>
+    <string name="ajustes_seccion_tema">Tema</string>
+    <string name="ajustes_seccion_tema_detalle">Colores de la aplicación.</string>
+    <string name="ajustes_seccion_datos">Datos</string>
+    <string name="ajustes_seccion_datos_detalle">Lo que se guarda en el móvil para funcionar sin internet.</string>
+    <string name="ajustes_seccion_acerca">Acerca de</string>
+    <string name="ajustes_seccion_acerca_detalle">Versión, licencia y de dónde salen los datos.</string>
+    <string name="ajustes_mapas_offline_detalle">Mapa de Mallorca y satélite descargados.</string>
+
+    <!-- Una línea de explicación por opción -->
+    <string name="ajustes_modo_detalle">Elige cuánto te habla el copiloto.</string>
+    <string name="ajustes_voz_detalle">Toca el triángulo de una voz para oírla.</string>
+    <string name="ajustes_anticipacion_detalle">Cuántos segundos antes de la curva te canta la nota.</string>
+    <string name="ajustes_simplificadas_detalle">Dice «media» o «suave» en vez del número de cada curva.</string>
+    <string name="ajustes_zoom_detalle">Cuánto de cerca ves el mapa al conducir.</string>
+    <string name="ajustes_icono_detalle">El dibujo que te representa en el mapa.</string>
+    <string name="ajustes_maniobras_detalle">El estilo de los avisos de «gira aquí» del guiado.</string>
+    <string name="ajustes_orientacion_detalle">Rumbo arriba gira el mapa contigo; norte arriba lo deja fijo.</string>
+    <string name="ajustes_capa_titulo">Mapa al abrir la app</string>
+    <string name="ajustes_capa_detalle">Si el satélite no está descargado, se ve el mapa normal.</string>
+    <string name="ajustes_capa_mapa">Mapa normal</string>
+    <string name="ajustes_capa_satelite">Satélite</string>
+    <string name="ajustes_relieve">Relieve y curvas de nivel</string>
+    <string name="ajustes_relieve_detalle">Dibuja las montañas para ver mejor las subidas.</string>
+
+    <!-- Vista previa en vivo -->
+    <string name="ajustes_prevista_anticipacion">Te la canta %1$s s antes (a 90 km/h, a %2$d m)</string>
+    <string name="ajustes_prevista_escuchar">Escuchar ejemplo</string>
+    <string name="ajustes_prevista_escuchar_descripcion">Escuchar un ejemplo con tu voz y tu volumen</string>
+    <string name="ajustes_prevista_mapa">Así se verán tu posición y los avisos</string>
+    <string name="ajustes_prevista_mapa_descripcion">Muestra: icono de posición %1$s y avisos con estilo %2$s</string>
+
+    <!-- Volumen -->
+    <string name="ajustes_volumen_valor">%1$d %%</string>
+    <string name="ajustes_volumen_descripcion">Volumen de la voz del copiloto</string>
+    <string name="ajustes_volumen_estado">%1$d por ciento</string>
+    <string name="ajustes_volumen_aviso">Por encima del 100 % la voz sube pero puede sonar algo comprimida.</string>
+
+    <!-- Tema -->
+    <string name="ajustes_tema_oscuro">Oscuro</string>
+    <string name="ajustes_tema_claro">Claro</string>
+    <string name="ajustes_tema_sistema">Como el móvil</string>
+    <string name="ajustes_tema_detalle">Oscuro es el de siempre; «Como el móvil» sigue el modo del teléfono.</string>
+    <string name="ajustes_tema_muestra">Así se verá la app</string>
+    <string name="ajustes_tema_muestra_descripcion">Muestra del tema %1$s</string>
+    <string name="ajustes_tema_muestra_velocidad">87</string>
+    <string name="ajustes_tema_muestra_unidad">km/h</string>
+    <string name="ajustes_tema_muestra_delta">-0,4 s</string>
+    <string name="ajustes_tema_muestra_titulo">Botón</string>
+
+    <!-- Ajustes rápidos en el mapa -->
+    <string name="rapidos_boton">Ajustes rápidos</string>
+    <string name="rapidos_panel">Ajustes rápidos del copiloto</string>
+</resources>

@@ -29,10 +29,15 @@ private class LocutorFalso : Locutor {
     override val hablando: StateFlow<Boolean> = estaHablando
     val dichas = mutableListOf<String>()
     val vocesUsadas = mutableListOf<VozCopiloto>()
+    val volumenes = mutableListOf<Int>()
     val preparadas = mutableListOf<List<String>>()
 
     override fun usarVoz(v: VozCopiloto) {
         vocesUsadas += v
+    }
+
+    override fun usarVolumen(porcentaje: Int) {
+        volumenes += porcentaje
     }
 
     override fun preparar(textos: List<String>) {
@@ -75,6 +80,18 @@ class CopilotoVozTest {
         modo: ModoCopiloto,
         voz: VozCopiloto? = VozCopiloto.DAVEFX,
     ) = AjustesConduccion(modoCopiloto = modo, voz = voz)
+
+    @Test
+    fun `el volumen de los ajustes llega al locutor una sola vez`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.NOTAS).copy(volumenVoz = 130))
+        val ruta = ruta()
+
+        copiloto.fijar(ruta, 920.0)
+        copiloto.fijar(ruta, 921.0)
+
+        assertEquals(listOf(130), locutor.volumenes)
+    }
 
     @Test
     fun `en modo notas dice primero la maniobra y luego la nota, una sola vez cada una`() {

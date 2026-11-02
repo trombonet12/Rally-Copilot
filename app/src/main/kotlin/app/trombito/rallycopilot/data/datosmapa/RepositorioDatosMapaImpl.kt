@@ -131,11 +131,13 @@ class RepositorioDatosMapaImpl(
             val vectorial = File(mapa, "vectorial.json").takeIf { it.isFile } ?: return@withContext null
             val raizUrl = "file://" + mapa.absolutePath.replace('\\', '/')
             val satelite = File(mapa, "satelite.json").takeIf { it.isFile && hayTeselasSatelite(mapa) }
+            val claro = File(mapa, "vectorial-claro.json").takeIf { it.isFile }
             val hayZ17 = File(mapa, NOMBRE_TESELAS_Z17).isFile
             val detalle = File(mapa, NOMBRE_DETALLE).takeIf { it.isFile }
             val estilos =
                 EstilosMapa(
                     vectorial = vectorial.readText().replace(MARCADOR_DIR, raizUrl),
+                    vectorialClaro = claro?.readText()?.replace(MARCADOR_DIR, raizUrl),
                     satelite =
                         satelite
                             ?.readText()
@@ -144,7 +146,11 @@ class RepositorioDatosMapaImpl(
                             ?.replace(MARCADOR_DIR, raizUrl),
                 )
             val validos =
-                listOfNotNull(estilos.vectorial, estilos.satelite).all { ValidadorEstilo.esValido(it, raizUrl) }
+                listOfNotNull(
+                    estilos.vectorial,
+                    estilos.vectorialClaro,
+                    estilos.satelite,
+                ).all { ValidadorEstilo.esValido(it, raizUrl) }
             if (validos) {
                 estilos
             } else {

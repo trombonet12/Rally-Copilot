@@ -22,9 +22,12 @@ import kotlinx.coroutines.withContext
  *   [preparar] y las frases urgentes de [decir] se turnan, así que [decir] espera como mucho a la frase en curso.
  * - **Cola de [preparar]**: sin duplicados, sin lo ya cacheado ni lo que se está sintetizando, y cada llamada sustituye
  *   a la lista anterior (lo que ya no se pide se descarta antes de sintetizarlo).
+ * - **Volumen**: [usarVolumen] aplica una ganancia al PCM justo antes de reproducir (la caché guarda el original), así
+ *   que el cambio vale para la frase siguiente y puede subir de 100 % sin saturar ([GananciaPcm]).
  * - **[decir]**: una frase a la vez, por orden de llegada. Sintetiza si no está en caché, pide el foco, suena y lo
  *   suelta. [hablando] es `true` desde que se pide el foco hasta que acaba; si se deniega, no suena y vuelve a `false`.
  */
+@Suppress("TooManyFunctions") // una función por orden del Locutor más las de la cola
 class LocutorImpl(
     private val cache: CacheFrases,
     private val sintetizador: SintetizadorTts,
@@ -42,6 +45,8 @@ class LocutorImpl(
     override val hablando: StateFlow<Boolean> = estaHablando.asStateFlow()
 
     @Volatile private var voz = VozCopiloto.DAVEFX
+
+    @Volatile private var volumenPorcentaje = GananciaPcm.NORMAL
 
     private val turnoSintesis = Mutex()
     private val turnosDeVoz = Channel<Peticion>(Channel.UNLIMITED)
@@ -99,6 +104,17 @@ class LocutorImpl(
         turnosDeVoz.trySend(Peticion(v, FRASE_PRUEBA))
     }
 
+    override fun usarVolumen(porcentaje: Int) {
+        volumenPorcentaje = porcentaje.coerceIn(GananciaPcm.MINIMA, GananciaPcm.MAXIMA)
+    }
+
+    override fun probarFrase(
+        v: VozCopiloto,
+        texto: String,
+    ) {
+        if (texto.isNotBlank()) turnosDeVoz.trySend(Peticion(v, texto))
+    }
+
     override fun cerrar() {
         ambito.cancel()
         turnosDeVoz.close()
@@ -152,7 +168,10 @@ class LocutorImpl(
         val muestras = cache.leer(peticion.voz, peticion.texto) ?: sintetizar(peticion.voz, peticion.texto) ?: return
         estaHablando.value = true
         try {
-            if (foco.pedir()) reproductor.reproducir(muestras, sintetizador.frecuenciaHz(peticion.voz))
+            if (foco.pedir()) {
+                val conGanancia = GananciaPcm.aplicar(muestras, volumenPorcentaje)
+                reproductor.reproducir(conGanancia, sintetizador.frecuenciaHz(peticion.voz))
+            }
         } catch (e: ErrorSintesis) {
             Log.w(TAG, "No se pudo reproducir la frase", e)
         } finally {

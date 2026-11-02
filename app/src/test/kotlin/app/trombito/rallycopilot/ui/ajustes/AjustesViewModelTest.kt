@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
+import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
@@ -134,5 +135,70 @@ class AjustesViewModelTest {
             assertEquals(listOf(VozCopiloto.SHARVARD), locutor.probadas)
             assertEquals(VozCopiloto.DAVEFX, repositorio.mutable.value.voz)
             assertTrue(repositorio.guardados.isEmpty())
+        }
+
+    @Test
+    fun `el volumen se acota a 50-150, se guarda y se aplica al locutor al instante`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(nivelZoom = 1)
+            val vm = crear()
+            assertEquals(100, vm.uiState.value.volumenVoz)
+            vm.onVolumenVoz(130)
+            vm.onVolumenVoz(400)
+            vm.onVolumenVoz(0)
+            assertEquals(listOf(130, 150, 50), locutor.volumenes)
+            assertEquals(50, repositorio.mutable.value.volumenVoz)
+            assertEquals(1, repositorio.mutable.value.nivelZoom)
+        }
+
+    @Test
+    fun `escuchar ejemplo dice la nota con la voz, el volumen y las simplificadas elegidos`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(voz = VozCopiloto.SHARVARD, volumenVoz = 70)
+            val vm = crear()
+            vm.onEscucharEjemplo()
+            vm.onNotasSimplificadas(true)
+            vm.onEscucharEjemplo()
+            assertEquals(listOf(70, 70), locutor.volumenes)
+            assertEquals(
+                listOf(
+                    VozCopiloto.SHARVARD to "derecha cuatro larga, cincuenta",
+                    VozCopiloto.SHARVARD to "derecha media larga, cincuenta",
+                ),
+                locutor.ejemplos,
+            )
+        }
+
+    @Test
+    fun `probar una voz usa el volumen elegido`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(volumenVoz = 120)
+            val vm = crear()
+            vm.onProbarVoz(VozCopiloto.DAVEFX)
+            assertEquals(listOf(120), locutor.volumenes)
+        }
+
+    @Test
+    fun `sin voz elegida el ejemplo suena con la primera`() =
+        runTest {
+            val vm = crear()
+            vm.onEscucharEjemplo()
+            assertEquals(VozCopiloto.DAVEFX, locutor.ejemplos.single().first)
+        }
+
+    @Test
+    fun `el tema la capa y el relieve se guardan sin tocar el resto`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(nivelZoom = 2)
+            val vm = crear()
+            assertEquals(Tema.OSCURO, vm.uiState.value.tema)
+            vm.onTema(Tema.CLARO)
+            vm.onCapa(CapaMapa.SATELITE)
+            vm.onRelieve(true)
+            val guardado = repositorio.mutable.value
+            assertEquals(Tema.CLARO, guardado.tema)
+            assertEquals(CapaMapa.SATELITE, guardado.capa)
+            assertTrue(guardado.relieve)
+            assertEquals(2, guardado.nivelZoom)
         }
 }

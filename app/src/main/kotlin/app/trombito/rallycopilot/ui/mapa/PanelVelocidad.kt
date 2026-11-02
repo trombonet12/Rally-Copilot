@@ -116,10 +116,8 @@ fun PanelVelocidad(
                         contenido()
                         rotulo()
                         pie?.invoke()
-                        // Hasta cuatro botones de 48 dp en una sola fila: no se apila otra fila bajo la velocidad.
-                        Row(horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-                            (botonesIzquierda + botonesDerecha).forEach { it() }
-                        }
+                        // Hasta cinco botones de 48 dp por fila; los que sobran pasan a otra fila bajo la velocidad.
+                        FilasDeBotones(botonesIzquierda + botonesDerecha)
                     }
                 } else {
                     Row(

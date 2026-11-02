@@ -22,7 +22,9 @@ enum class Orientacion { RUMBO, NORTE }
  * [notasSimplificadas] reduce las notas a las curvas relevantes. [modoCopiloto] es cuánto habla el copiloto y [voz] la
  * voz elegida (`null` = aún no se ha elegido: se pregunta en el primer uso y mientras tanto el copiloto no habla).
  * [activarConCopiloto] escucha sin parar, solo mientras se conduce, la palabra «Copiloto» para recibir una orden de voz
- * (desactivado por defecto: gasta batería y mantiene el micrófono abierto).
+ * (desactivado por defecto: gasta batería y mantiene el micrófono abierto). [volumenVoz] es la ganancia propia del
+ * copiloto en porcentaje (50–150, 100 = sin cambio), aparte del volumen del móvil; [tema] es oscuro, claro o el del
+ * sistema.
  */
 data class AjustesConduccion(
     val nivelZoom: Int = 0,
@@ -36,14 +38,20 @@ data class AjustesConduccion(
     val modoCopiloto: ModoCopiloto = ModoCopiloto.POR_DEFECTO,
     val voz: VozCopiloto? = null,
     val activarConCopiloto: Boolean = false,
+    val volumenVoz: Int = VOLUMEN_VOZ_NORMAL,
+    val tema: Tema = Tema.PREDETERMINADO,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }
+        require(volumenVoz in VOLUMEN_VOZ_MIN..VOLUMEN_VOZ_MAX) { "volumenVoz fuera de rango: $volumenVoz" }
     }
 
     companion object {
         const val NIVEL_MIN = -2
         const val NIVEL_MAX = 2
+        const val VOLUMEN_VOZ_MIN = 50
+        const val VOLUMEN_VOZ_NORMAL = 100
+        const val VOLUMEN_VOZ_MAX = 150
     }
 }
 

@@ -33,6 +33,18 @@ interface Locutor {
     /** Dice una frase de muestra con [v] sin cambiar la voz elegida (diálogo de primer uso y Ajustes). */
     fun probar(v: VozCopiloto)
 
+    /**
+     * Ganancia propia del copiloto en porcentaje (50–150; 100 = sin cambio), aparte del volumen del móvil. Vale para
+     * lo que suene a partir de ahora, también durante la conducción.
+     */
+    fun usarVolumen(porcentaje: Int) = Unit
+
+    /** Dice [texto] con [v] sin cambiar la voz elegida (ejemplo de Ajustes con la voz y el volumen elegidos). */
+    fun probarFrase(
+        v: VozCopiloto,
+        texto: String,
+    ) = probar(v)
+
     /** Detiene todo y libera el modelo nativo; el locutor no se puede volver a usar. */
     fun cerrar()
 }

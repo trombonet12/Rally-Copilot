@@ -22,6 +22,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.copiloto.FilaVozCopiloto
 import app.trombito.rallycopilot.ui.copiloto.IconoModo
 import app.trombito.rallycopilot.ui.copiloto.detalle
@@ -35,51 +36,80 @@ const val ETIQUETA_AJUSTES_ACTIVAR_COPILOTO = "ajustes-activar-con-copiloto"
 
 private val ALTO_FILA = 56.dp
 
-/** Modo del copiloto (cuatro opciones con icono y texto) y voz (dos opciones con ▶ para probarlas). */
+/** Copiloto: modo (cuatro opciones con icono y texto) y voz (dos opciones con ▶ para probarlas), con vista previa. */
 @Composable
 internal fun SeccionCopiloto(
     ajustes: AjustesConduccion,
     acciones: AccionesAjustes,
 ) {
-    Seccion(R.string.copiloto_modo_titulo) {
-        Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
-            ModoCopiloto.entries.forEach { modo ->
-                FilaModo(
-                    modo = modo,
-                    seleccionado = modo == ajustes.modoCopiloto,
-                    onElegir = { acciones.onModoCopiloto(modo) },
-                )
+    TarjetaSeccion(
+        clave = "copiloto",
+        icono = Iconos.Microfono,
+        titulo = R.string.ajustes_seccion_copiloto,
+        detalle = R.string.ajustes_seccion_copiloto_detalle,
+        vistaPrevia = {
+            VistaPreviaNotas(
+                anticipacion = ajustes.anticipacion,
+                simplificadas = ajustes.notasSimplificadas,
+                onEscuchar = acciones.onEscucharEjemplo,
+                mostrarAnticipacion = false,
+            )
+        },
+    ) {
+        Opcion(R.string.copiloto_modo_titulo, R.string.ajustes_modo_detalle) {
+            Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+                ModoCopiloto.entries.forEach { modo ->
+                    FilaModo(
+                        modo = modo,
+                        seleccionado = modo == ajustes.modoCopiloto,
+                        onElegir = { acciones.onModoCopiloto(modo) },
+                    )
+                }
+            }
+        }
+        Opcion(R.string.copiloto_voz_titulo, R.string.ajustes_voz_detalle) {
+            Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+                if (ajustes.voz == null) {
+                    Text(
+                        text = stringResource(R.string.copiloto_voz_sin_elegir),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.testTag(ETIQUETA_AJUSTES_VOZ_SIN_ELEGIR),
+                    )
+                }
+                VozCopiloto.entries.forEach { voz ->
+                    FilaVozCopiloto(
+                        voz = voz,
+                        seleccionada = voz == ajustes.voz,
+                        onElegir = { acciones.onVozCopiloto(voz) },
+                        onProbar = { acciones.onProbarVoz(voz) },
+                    )
+                }
             }
         }
     }
-    // Activarlo pide antes el permiso de micrófono (con su explicación); desactivarlo es inmediato.
+}
+
+/** Escucha: activar la palabra «Copiloto» durante la conducción (pide el micrófono antes de activarla). */
+@Composable
+internal fun SeccionEscucha(
+    ajustes: AjustesConduccion,
+    acciones: AccionesAjustes,
+) {
     val pedirMicrofono = rememberSolicitudMicrofono { acciones.onActivarConCopiloto(true) }
-    FilaInterruptor(
-        titulo = stringResource(R.string.ajustes_copiloto_palabra),
-        marcado = ajustes.activarConCopiloto,
-        onCambio = { activar -> if (activar) pedirMicrofono() else acciones.onActivarConCopiloto(false) },
-        etiqueta = ETIQUETA_AJUSTES_ACTIVAR_COPILOTO,
-        detalle = stringResource(R.string.ajustes_copiloto_palabra_detalle),
-    )
-    Seccion(R.string.copiloto_voz_titulo) {
-        Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-            if (ajustes.voz == null) {
-                Text(
-                    text = stringResource(R.string.copiloto_voz_sin_elegir),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag(ETIQUETA_AJUSTES_VOZ_SIN_ELEGIR),
-                )
-            }
-            VozCopiloto.entries.forEach { voz ->
-                FilaVozCopiloto(
-                    voz = voz,
-                    seleccionada = voz == ajustes.voz,
-                    onElegir = { acciones.onVozCopiloto(voz) },
-                    onProbar = { acciones.onProbarVoz(voz) },
-                )
-            }
-        }
+    TarjetaSeccion(
+        clave = "escucha",
+        icono = Iconos.Microfono,
+        titulo = R.string.ajustes_seccion_escucha,
+        detalle = R.string.ajustes_seccion_escucha_detalle,
+    ) {
+        FilaInterruptor(
+            titulo = stringResource(R.string.ajustes_copiloto_palabra),
+            marcado = ajustes.activarConCopiloto,
+            onCambio = { activar -> if (activar) pedirMicrofono() else acciones.onActivarConCopiloto(false) },
+            etiqueta = ETIQUETA_AJUSTES_ACTIVAR_COPILOTO,
+            detalle = stringResource(R.string.ajustes_copiloto_palabra_detalle),
+        )
     }
 }
 

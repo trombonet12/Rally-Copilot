@@ -131,6 +131,70 @@ object Iconos {
         )
     }
 
+    /** Tres deslizadores: ajustes rápidos. */
+    val Deslizadores: ImageVector by lazy {
+        icono(
+            "Deslizadores",
+            "M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10z" +
+                "m-6-4h2V7h4V5h-4V3h-2v6z",
+        )
+    }
+
+    val Volumen: ImageVector by lazy {
+        icono(
+            "Volumen",
+            "M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06" +
+                "c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z",
+        )
+    }
+
+    val Microfono: ImageVector by lazy {
+        icono(
+            "Microfono",
+            "M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3" +
+                "-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z",
+        )
+    }
+
+    val Informacion: ImageVector by lazy {
+        icono(
+            "Informacion",
+            "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z",
+        )
+    }
+
+    val Descarga: ImageVector by lazy {
+        icono("Descarga", "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z")
+    }
+
+    val Notas: ImageVector by lazy {
+        icono("Notas", "M3 18h12v-2H3v2zM3 6v2h18V6H3zm0 7h18v-2H3v2z")
+    }
+
+    val TemaOscuro: ImageVector by lazy {
+        icono(
+            "TemaOscuro",
+            "M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.39 5.39 0 0 1-4.4 2.26 5.4 5.4 0 0 1-3.14-9.8" +
+                "c-.44-.06-.9-.1-1.36-.1z",
+        )
+    }
+
+    val TemaClaro: ImageVector by lazy {
+        icono(
+            "TemaClaro",
+            "M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM11 1h2v3h-2zM11 20h2v3h-2zM1 11h3v2H1zM20 11h3v2h-3z" +
+                "M4.2 5.6l1.4-1.4 2.1 2.1-1.4 1.4zM16.3 17.7l1.4-1.4 2.1 2.1-1.4 1.4zM4.2 18.4l2.1-2.1 1.4 1.4" +
+                "-2.1 2.1zM16.3 6.3l2.1-2.1 1.4 1.4-2.1 2.1z",
+        )
+    }
+
+    val TemaSistema: ImageVector by lazy {
+        icono(
+            "TemaSistema",
+            "M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z",
+        )
+    }
+
     /** Triángulo de play: empezar la ruta. */
     val Empezar: ImageVector by lazy {
         icono("Empezar", "M8,5 V19 L19,12Z")

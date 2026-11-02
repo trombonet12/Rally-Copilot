@@ -152,3 +152,15 @@ val MIGRATION_9_10: Migration =
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_edicion_nota_tramoId` ON `edicion_nota` (`tramoId`)")
         }
     }
+
+/**
+ * v10 -> v11: volumen propio de la voz del copiloto (100 % en la fila existente) y tema de la interfaz (oscuro). El
+ * SQL es el `createSql` de `schemas/.../11.json`.
+ */
+val MIGRATION_10_11: Migration =
+    object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `volumenVoz` INTEGER NOT NULL DEFAULT 100")
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `tema` TEXT NOT NULL DEFAULT 'OSCURO'")
+        }
+    }

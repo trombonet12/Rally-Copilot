@@ -47,6 +47,8 @@ data class EstilosMapa(
     val vectorial: String,
     /** Null si el satélite no está instalado. */
     val satelite: String?,
+    /** Variante clara del vectorial (`vectorial-claro.json`); null si los datos no la traen: el mapa sigue oscuro. */
+    val vectorialClaro: String? = null,
 )
 
 /** Paquete de datos de Mallorca (repo `rally-copilot-data`): comprobación, descarga, verificación y borrado. */

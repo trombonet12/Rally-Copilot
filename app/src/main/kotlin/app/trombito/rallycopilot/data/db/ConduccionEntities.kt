@@ -20,6 +20,8 @@ data class AjustesConduccionEntity(
     @ColumnInfo(defaultValue = "'COMPLETO'") val modoCopiloto: String = "COMPLETO",
     val voz: String? = null,
     @ColumnInfo(defaultValue = "0") val activarConCopiloto: Boolean = false,
+    @ColumnInfo(defaultValue = "100") val volumenVoz: Int = 100,
+    @ColumnInfo(defaultValue = "'OSCURO'") val tema: String = "OSCURO",
 )
 
 /** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */

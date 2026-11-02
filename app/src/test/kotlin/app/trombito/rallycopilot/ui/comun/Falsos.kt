@@ -89,7 +89,24 @@ class FalsoLocutor : Locutor {
     override val hablando: StateFlow<Boolean> = MutableStateFlow(false)
     val probadas = mutableListOf<VozCopiloto>()
 
+    /** Cada volumen (%) pedido al locutor, en orden. */
+    val volumenes = mutableListOf<Int>()
+
+    /** Cada frase de ejemplo pedida con su voz, en orden. */
+    val ejemplos = mutableListOf<Pair<VozCopiloto, String>>()
+
     override fun usarVoz(v: VozCopiloto) = Unit
+
+    override fun usarVolumen(porcentaje: Int) {
+        volumenes += porcentaje
+    }
+
+    override fun probarFrase(
+        v: VozCopiloto,
+        texto: String,
+    ) {
+        ejemplos += v to texto
+    }
 
     override fun preparar(textos: List<String>) = Unit
 

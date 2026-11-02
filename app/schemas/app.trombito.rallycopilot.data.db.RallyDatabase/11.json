@@ -1,0 +1,675 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 11,
+    "identityHash": "e5cebc2015e6c3ddd5007b2ee75f7e56",
+    "entities": [
+      {
+        "tableName": "archivo_instalado",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `nombre` TEXT NOT NULL, `sha256` TEXT NOT NULL, `bytes` INTEGER NOT NULL, `version` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sha256",
+            "columnName": "sha256",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bytes",
+            "columnName": "bytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "version",
+            "columnName": "version",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "ajustes_mapas",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `soloWifi` INTEGER NOT NULL, `limiteBytes` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "soloWifi",
+            "columnName": "soloWifi",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "limiteBytes",
+            "columnName": "limiteBytes",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "estado_datos",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `versionInstalada` TEXT, `avisoActualizado` TEXT, `ultimoError` TEXT, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "versionInstalada",
+            "columnName": "versionInstalada",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "avisoActualizado",
+            "columnName": "avisoActualizado",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ultimoError",
+            "columnName": "ultimoError",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "ajustes_conduccion",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `nivelZoom` INTEGER NOT NULL, `icono` TEXT NOT NULL, `orientacion` TEXT NOT NULL, `capa` TEXT NOT NULL, `relieve` INTEGER NOT NULL, `estiloManiobras` TEXT NOT NULL DEFAULT 'PLACA', `anticipacion` TEXT NOT NULL DEFAULT 'NORMAL', `notasSimplificadas` INTEGER NOT NULL DEFAULT 0, `modoCopiloto` TEXT NOT NULL DEFAULT 'COMPLETO', `voz` TEXT, `activarConCopiloto` INTEGER NOT NULL DEFAULT 0, `volumenVoz` INTEGER NOT NULL DEFAULT 100, `tema` TEXT NOT NULL DEFAULT 'OSCURO', PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nivelZoom",
+            "columnName": "nivelZoom",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icono",
+            "columnName": "icono",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orientacion",
+            "columnName": "orientacion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capa",
+            "columnName": "capa",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "relieve",
+            "columnName": "relieve",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "estiloManiobras",
+            "columnName": "estiloManiobras",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'PLACA'"
+          },
+          {
+            "fieldPath": "anticipacion",
+            "columnName": "anticipacion",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'NORMAL'"
+          },
+          {
+            "fieldPath": "notasSimplificadas",
+            "columnName": "notasSimplificadas",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "modoCopiloto",
+            "columnName": "modoCopiloto",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'COMPLETO'"
+          },
+          {
+            "fieldPath": "voz",
+            "columnName": "voz",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "activarConCopiloto",
+            "columnName": "activarConCopiloto",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "volumenVoz",
+            "columnName": "volumenVoz",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "100"
+          },
+          {
+            "fieldPath": "tema",
+            "columnName": "tema",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "'OSCURO'"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "recorrido",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `inicioMs` INTEGER NOT NULL, `finMs` INTEGER, `distanciaM` REAL NOT NULL, `destinoNombre` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inicioMs",
+            "columnName": "inicioMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "finMs",
+            "columnName": "finMs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "distanciaM",
+            "columnName": "distanciaM",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinoNombre",
+            "columnName": "destinoNombre",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "recorrido_punto",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`recorridoId` INTEGER NOT NULL, `orden` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `tiempoMs` INTEGER NOT NULL, `velocidadMs` REAL, PRIMARY KEY(`recorridoId`, `orden`), FOREIGN KEY(`recorridoId`) REFERENCES `recorrido`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "recorridoId",
+            "columnName": "recorridoId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "orden",
+            "columnName": "orden",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lat",
+            "columnName": "lat",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lon",
+            "columnName": "lon",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tiempoMs",
+            "columnName": "tiempoMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "velocidadMs",
+            "columnName": "velocidadMs",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "recorridoId",
+            "orden"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "recorrido",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "recorridoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "guiado_pendiente",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `destinoNombre` TEXT NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `perfil` TEXT NOT NULL, `desdeMs` INTEGER NOT NULL, `paradas` TEXT NOT NULL DEFAULT '', PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "destinoNombre",
+            "columnName": "destinoNombre",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lat",
+            "columnName": "lat",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lon",
+            "columnName": "lon",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "perfil",
+            "columnName": "perfil",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "desdeMs",
+            "columnName": "desdeMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "paradas",
+            "columnName": "paradas",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "''"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "tramo",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `nombre` TEXT, `traza` TEXT NOT NULL, `longitudM` REAL NOT NULL, `sectores` TEXT NOT NULL, `microsectores` TEXT NOT NULL, `creadoEn` INTEGER NOT NULL, `nombreAutomatico` TEXT, `favorito` INTEGER NOT NULL DEFAULT 0, `ultimoUso` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombre",
+            "columnName": "nombre",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "traza",
+            "columnName": "traza",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitudM",
+            "columnName": "longitudM",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sectores",
+            "columnName": "sectores",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "microsectores",
+            "columnName": "microsectores",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "creadoEn",
+            "columnName": "creadoEn",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nombreAutomatico",
+            "columnName": "nombreAutomatico",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "favorito",
+            "columnName": "favorito",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "ultimoUso",
+            "columnName": "ultimoUso",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "pasada",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tramoId` TEXT NOT NULL, `inicio` INTEGER NOT NULL, `totalMs` INTEGER NOT NULL, `marcas` TEXT NOT NULL, `recorridoId` INTEGER, `puntosDesdeMs` INTEGER, `puntosHastaMs` INTEGER, FOREIGN KEY(`tramoId`) REFERENCES `tramo`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`recorridoId`) REFERENCES `recorrido`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tramoId",
+            "columnName": "tramoId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inicio",
+            "columnName": "inicio",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalMs",
+            "columnName": "totalMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "marcas",
+            "columnName": "marcas",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recorridoId",
+            "columnName": "recorridoId",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "puntosDesdeMs",
+            "columnName": "puntosDesdeMs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "puntosHastaMs",
+            "columnName": "puntosHastaMs",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pasada_tramoId_totalMs",
+            "unique": false,
+            "columnNames": [
+              "tramoId",
+              "totalMs"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pasada_tramoId_totalMs` ON `${TABLE_NAME}` (`tramoId`, `totalMs`)"
+          },
+          {
+            "name": "index_pasada_recorridoId",
+            "unique": false,
+            "columnNames": [
+              "recorridoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pasada_recorridoId` ON `${TABLE_NAME}` (`recorridoId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tramo",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tramoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "recorrido",
+            "onDelete": "SET NULL",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "recorridoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "marca",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `posicionM` REAL NOT NULL, `tiempoMs` INTEGER NOT NULL, `tramoId` TEXT, `lat` REAL, `lon` REAL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "posicionM",
+            "columnName": "posicionM",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tiempoMs",
+            "columnName": "tiempoMs",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tramoId",
+            "columnName": "tramoId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lat",
+            "columnName": "lat",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "lon",
+            "columnName": "lon",
+            "affinity": "REAL"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "edicion_nota",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `tramoId` TEXT, `posicionM` REAL NOT NULL, `lat` REAL, `lon` REAL, `accion` TEXT NOT NULL, `nota` TEXT, `marcaTiempo` INTEGER NOT NULL, FOREIGN KEY(`tramoId`) REFERENCES `tramo`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tramoId",
+            "columnName": "tramoId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "posicionM",
+            "columnName": "posicionM",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lat",
+            "columnName": "lat",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "lon",
+            "columnName": "lon",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "accion",
+            "columnName": "accion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nota",
+            "columnName": "nota",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "marcaTiempo",
+            "columnName": "marcaTiempo",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_edicion_nota_tramoId",
+            "unique": false,
+            "columnNames": [
+              "tramoId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_edicion_nota_tramoId` ON `${TABLE_NAME}` (`tramoId`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "tramo",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "tramoId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'e5cebc2015e6c3ddd5007b2ee75f7e56')"
+    ]
+  }
+}

@@ -27,6 +27,7 @@ import app.trombito.rallycopilot.ui.navegacion.NavegacionViewModel
 import app.trombito.rallycopilot.ui.navegacion.PanelGuiado
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasViewModel
 import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
+import app.trombito.rallycopilot.ui.theme.LocalTemaOscuro
 import app.trombito.rallycopilot.ui.tramos.CronoViewModel
 import app.trombito.rallycopilot.ui.tramos.LocalAbrirAnalisis
 
@@ -50,7 +51,9 @@ fun MapaRoute(
     cronoViewModel: CronoViewModel = hiltViewModel(),
     edicionViewModel: EdicionMapaViewModel = hiltViewModel(),
 ) {
-    val estado by viewModel.uiState.collectAsStateWithLifecycle()
+    val estadoBase by viewModel.uiState.collectAsStateWithLifecycle()
+    val temaOscuro = LocalTemaOscuro.current
+    val estado = remember(estadoBase, temaOscuro) { estadoBase.copy(temaOscuro = temaOscuro) }
     val navegacion by navegacionViewModel.uiState.collectAsStateWithLifecycle()
     val notas by notasViewModel.uiState.collectAsStateWithLifecycle()
     val copiloto by copilotoViewModel.uiState.collectAsStateWithLifecycle()
@@ -114,6 +117,10 @@ private fun accionesCopiloto(vm: CopilotoViewModel) =
         onProbarVoz = vm::onProbarVoz,
         onPosponerVoz = vm::onPosponerVoz,
         onEscuchar = vm::onEscuchar,
+        onAnticipacion = vm::onAnticipacion,
+        onNotasSimplificadas = vm::onNotasSimplificadas,
+        onVolumenVoz = vm::onVolumenVoz,
+        onEscucharEjemplo = vm::onEscucharEjemplo,
     )
 
 private fun accionesMapa(
