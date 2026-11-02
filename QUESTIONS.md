@@ -8,6 +8,9 @@ se marca como respondida. Ordenadas por el hito que bloquean.
 
 Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
+## Respondidas al cerrar H9 y empezar H10 (2026-11-02, en el chat)
+- **Borrar satélite** incluye el detalle; precarga **solo con satélite**. **Notas grandes:** botón en el panel. **Rápidos:** botón que abre un panel. **Tema:** oscuro, claro y sistema.
+
 ## Respondidas al cerrar H8 y empezar H9 (2026-11-02, en el chat)
 - **Aviso tras «Copiloto»:** tic corto. **Satélite:** z18 automático con WiFi en corredor + manual z18–19. **Importar:** compartir y botón. **Dibujar:** tocando puntos.
 

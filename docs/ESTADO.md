@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H9 cerrado (2026-11-02) · siguiente: H10 — Interfaz completa estilo WRC |
-| Estado | **H9 cerrado**; v0.10 publicada al hacer push con `version.properties` |
+| Hito | H10 — Interfaz completa estilo WRC (en curso, 2026-11-02) |
+| Estado | H9 cerrado y v0.10.0 publicada. H10: Ajustes y ajustes rápidos, luego notas grandes y capturas |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -82,4 +82,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H9 cerrado y v0.10 publicada. Siguiente: `hito start H10` (interfaz WRC completa, Ajustes con vista previa en vivo y controles rápidos en el mapa): preguntar a Joan al empezar. Modo ahorro de tokens.
+- **Agente:** H10: (A) Ajustes con vista previa, hoja de ajustes rápidos, volumen de voz, tema; (B) modo notas grandes, pulido, ux-review y capturas.

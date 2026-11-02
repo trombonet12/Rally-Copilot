@@ -387,7 +387,7 @@ Pulir toda la app con estética de videojuego WRC y retransmisión de rally.
 - Robolectric: render de pantallas con BancoCompose; contraste.
 
 ### Estado
-pendiente · Depende de: H1–H9 · Dudas: resueltas (seguir la dirección de H0)
+en curso (2026-11-02) · Depende de: H1–H9 · Dudas: resueltas (2026-11-02): notas grandes con botón, ajustes rápidos en hoja, tema oscuro/claro/sistema
 
 ## H11 — Voz de Luis Moya
 
