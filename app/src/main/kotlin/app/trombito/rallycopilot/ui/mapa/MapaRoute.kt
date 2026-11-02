@@ -10,11 +10,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.ui.alertas.AlertasViewModel
 import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.CopilotoViewModel
+import app.trombito.rallycopilot.ui.edicion.AccionesEdicionMapa
+import app.trombito.rallycopilot.ui.edicion.EdicionEnMapa
+import app.trombito.rallycopilot.ui.edicion.EdicionMapaViewModel
 import app.trombito.rallycopilot.ui.maniobras.variante
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
@@ -44,6 +48,7 @@ fun MapaRoute(
     copilotoViewModel: CopilotoViewModel = hiltViewModel(),
     alertasViewModel: AlertasViewModel = hiltViewModel(),
     cronoViewModel: CronoViewModel = hiltViewModel(),
+    edicionViewModel: EdicionMapaViewModel = hiltViewModel(),
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     val navegacion by navegacionViewModel.uiState.collectAsStateWithLifecycle()
@@ -51,6 +56,7 @@ fun MapaRoute(
     val copiloto by copilotoViewModel.uiState.collectAsStateWithLifecycle()
     val alertas by alertasViewModel.uiState.collectAsStateWithLifecycle()
     val crono by cronoViewModel.crono.collectAsStateWithLifecycle()
+    val edicion by edicionViewModel.uiState.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
     LaunchedEffect(permiso.estado) {
         val concedido = permiso.estado == EstadoPermisoUbicacion.CONCEDIDO
@@ -72,8 +78,8 @@ fun MapaRoute(
                 VistaMapa(
                     estiloJson = estiloJson,
                     posicion = estado.posicionMostrada,
-                    camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel),
-                    preferencias = preferenciasVista(estado, ruta, alertas.marcadores),
+                    camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel, edicionViewModel),
+                    preferencias = preferenciasVista(estado, ruta, alertas.marcadores, edicion.marcadores),
                     modifier = modificador,
                 )
             },
@@ -82,6 +88,21 @@ fun MapaRoute(
             copiloto = CopilotoEnMapa(copiloto, accionesCopiloto(copilotoViewModel)),
             alertas = alertas,
             crono = crono,
+            superposicion = {
+                val control = navegacion.control
+                EdicionEnMapa(
+                    estado = edicion,
+                    acciones =
+                        AccionesEdicionMapa(
+                            onAplicar = edicionViewModel::onAplicar,
+                            onQuitar = edicionViewModel::onQuitar,
+                            onCerrar = edicionViewModel::onCerrar,
+                        ),
+                    reconocimiento = control is EstadoNavegacion.Libre && control.reconocimientoTramoId != null,
+                    escuchando = copiloto.escuchando,
+                    onEscuchar = copilotoViewModel::onEscuchar,
+                )
+            },
         )
     }
 }
@@ -116,6 +137,7 @@ private fun camaraVistaMapa(
     viewModel: MapaViewModel,
     alertas: AlertasViewModel,
     navegacion: NavegacionViewModel,
+    edicion: EdicionMapaViewModel,
 ) = CamaraVistaMapa(
     inicial = viewModel.camaraGuardada,
     onCambio = viewModel::onCamara,
@@ -127,12 +149,14 @@ private fun camaraVistaMapa(
         if (id == null) navegacion.cerrarPunto()
     },
     onMantenerPulsado = navegacion::onMantenerPulsado,
+    onToqueNota = edicion::onTocarNota,
 )
 
 private fun preferenciasVista(
     estado: MapaUiState,
     ruta: RutaEnMapa?,
     incidencias: List<MarcadorIncidencia>,
+    notas: List<MarcadorNota>,
 ) = PreferenciasVistaMapa(
     siguiendo = estado.siguiendo,
     relieve = estado.relieve,
@@ -141,6 +165,7 @@ private fun preferenciasVista(
     zoomObjetivo = estado.zoomObjetivo,
     ruta = ruta,
     incidencias = incidencias,
+    notas = notas,
 )
 
 private fun accionesNavegacion(vm: NavegacionViewModel) =

@@ -135,3 +135,20 @@ val MIGRATION_8_9: Migration =
             )
         }
     }
+
+/**
+ * v9 -> v10: la tabla `edicion_nota` de las ediciones de notas ligadas al tramo (o pendientes de anclar). El SQL es el
+ * `createSql` de `schemas/.../10.json`.
+ */
+val MIGRATION_9_10: Migration =
+    object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `edicion_nota` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`tramoId` TEXT, `posicionM` REAL NOT NULL, `lat` REAL, `lon` REAL, `accion` TEXT NOT NULL, " +
+                    "`nota` TEXT, `marcaTiempo` INTEGER NOT NULL, FOREIGN KEY(`tramoId`) REFERENCES `tramo`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_edicion_nota_tramoId` ON `edicion_nota` (`tramoId`)")
+        }
+    }

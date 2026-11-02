@@ -70,12 +70,15 @@ class ControlYContinuaTest {
             ajustes,
             locutor,
             MemoriaFrases(),
-            RepositorioEdicionesMemoria(),
+            EdicionesFalsas(),
             object : app.trombito.rallycopilot.domain.escucha.RepositorioMarcas {
                 override suspend fun guardar(
                     marca: app.trombito.rallycopilot.motor.edicion.Marca,
                     posicion: app.trombito.rallycopilot.motor.geo.PuntoGeo?,
                 ) = Unit
+
+                override suspend fun deTramo(tramoId: String) =
+                    emptyList<app.trombito.rallycopilot.domain.escucha.MarcaConPosicion>()
             },
             { ContextoConduccion(0.0, null, null) },
             { 1L },

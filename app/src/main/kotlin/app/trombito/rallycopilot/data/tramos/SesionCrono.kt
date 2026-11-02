@@ -42,7 +42,7 @@ import java.util.UUID
  * tramo nuevo y su primera pasada, salvo que ya coincida más de [UMBRAL_COINCIDENCIA] con un tramo completado durante
  * la conducción (su pasada ya queda guardada: no se duplica el tramo).
  */
-@Suppress("TooManyFunctions") // un solo estado por conducción: eventos, parciales, estado publicado y cierre
+@Suppress("TooManyFunctions", "LongParameterList") // un estado por conducción; colaboradores de guardado y cierre
 class SesionCrono(
     private val repositorio: RepositorioTramos,
     private val publicar: (CronoEnCurso?) -> Unit,
@@ -50,6 +50,7 @@ class SesionCrono(
     private val nuevoId: () -> String = { UUID.randomUUID().toString() },
     private val alFallar: (Throwable) -> Unit = {},
     private val nombrar: suspend (List<PuntoGeo>) -> String? = { null },
+    private val anclarEdiciones: suspend (Tramo?) -> Unit = {},
 ) {
     /** Un tramo en que se ha entrado y aún no se ha completado ni abandonado. */
     private class Vivo(
@@ -128,6 +129,9 @@ class SesionCrono(
             publicar(estado(f))
             frases
         }
+
+    /** El tramo en que se está ahora (entrado y sin completar ni abandonar); null si no hay ninguno. */
+    fun tramoActivo(): Tramo? = synchronized(cerrojo) { vivos.values.lastOrNull()?.tramo }
 
     private fun procesar(
         evento: EventoTramo,
@@ -339,7 +343,10 @@ class SesionCrono(
         for (c in completadas.filter { it.idGuardada == null }) {
             guardar { repositorio.guardarPasada(c.pasada, c.origen(recorridoId)) }
         }
-        if (recorrido != null) guardar { crearTramoNuevo(recorrido.id, puntos()) }
+        var creado: Tramo? = null
+        if (recorrido != null) guardar { creado = crearTramoNuevo(recorrido.id, puntos()) }
+        // Las ediciones dictadas sin tramo activo pasan al tramo recién creado; sin él se descartan.
+        guardar { anclarEdiciones(creado) }
     }
 
     private suspend fun guardar(accion: suspend () -> Unit) {
@@ -358,7 +365,7 @@ class SesionCrono(
     private suspend fun crearTramoNuevo(
         recorridoId: Long,
         puntos: List<PuntoRecorrido>,
-    ) {
+    ): Tramo? {
         val traza = puntos.map { PuntoGeo(it.lat, it.lon) }
         val repetido =
             completadas.any { c ->
@@ -369,7 +376,9 @@ class SesionCrono(
         val primera = tramo?.let { pasadaDelRecorrido(it, puntos) }
         if (tramo != null && primera != null) {
             repositorio.crear(tramo, null, nombrar(tramo.traza), ahoraMs(), primera.pasada, primera.origen(recorridoId))
+            return tramo
         }
+        return null
     }
 
     /** Repite el recorrido por el cronómetro del [tramo] recién creado: los tiempos salen de los puntos grabados. */

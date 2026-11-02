@@ -133,6 +133,23 @@ class RepositorioTramosRoom(
         withContext(dispatcher) { check(dao.marcarFavorito(tramoId, favorito) > 0) { "El tramo no existe" } }
     }
 
+    override suspend fun guardarCortes(
+        tramoId: String,
+        sectores: List<Double>,
+        microsectores: List<Double>,
+    ) {
+        val actual = checkNotNull(tramo(tramoId)) { "El tramo no existe" }
+        // `copy` valida los cortes (dentro de la meta y crecientes): uno inválido no llega a la base.
+        val nuevo = actual.copy(sectores = sectores, microsectores = microsectores)
+        withContext(dispatcher) {
+            dao.guardarCortes(
+                tramoId,
+                CodecTramos.codificarCortes(nuevo.sectores),
+                CodecTramos.codificarCortes(nuevo.microsectores),
+            )
+        }
+    }
+
     override suspend fun borrar(tramoId: String) {
         withContext(dispatcher) { dao.borrar(tramoId) }
     }

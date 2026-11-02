@@ -148,6 +148,16 @@ interface RepositorioTramos {
         favorito: Boolean,
     )
 
+    /**
+     * Guarda los cortes de [sectores] y [microsectores] (metros desde la salida). Falla si el tramo no existe o los
+     * cortes no son válidos para él; las pasadas ya hechas se reparten con los cortes nuevos al analizarlas.
+     */
+    suspend fun guardarCortes(
+        tramoId: String,
+        sectores: List<Double>,
+        microsectores: List<Double>,
+    )
+
     /** Borra el tramo y, en cascada, sus pasadas. */
     suspend fun borrar(tramoId: String)
 }

@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.escucha
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.escucha.ContextoConduccion
 import app.trombito.rallycopilot.domain.escucha.EdicionPendiente
+import app.trombito.rallycopilot.domain.escucha.MarcaConPosicion
 import app.trombito.rallycopilot.domain.escucha.ProveedorContextoConduccion
 import app.trombito.rallycopilot.domain.escucha.RepositorioMarcas
 import app.trombito.rallycopilot.domain.escucha.ResultadoEscucha
@@ -49,13 +50,15 @@ private class MarcasFalsas : RepositorioMarcas {
     ) {
         guardadas += marca to posicion
     }
+
+    override suspend fun deTramo(tramoId: String) = emptyList<MarcaConPosicion>()
 }
 
 class EjecutorOrdenesTest {
     private val ajustes = FalsoRepositorioAjustesConduccion(AjustesConduccion(voz = VozCopiloto.DAVEFX))
     private val locutor = LocutorGrabador()
     private val memoria = MemoriaFrases()
-    private val ediciones = RepositorioEdicionesMemoria()
+    private val ediciones = EdicionesFalsas()
     private val marcas = MarcasFalsas()
     private var contexto: ContextoConduccion? = ContextoConduccion(1_250.0, "tramo-1", PuntoGeo(39.7, 2.9))
     private val ejecutor =
@@ -167,21 +170,9 @@ class EjecutorOrdenesTest {
                     EdicionPendiente(Orden.Quitar, 1_250.0, "tramo-1", posicion, 777L),
                     EdicionPendiente(Orden.Cuidado, 1_250.0, "tramo-1", posicion, 777L),
                 ),
-                ediciones.pendientes.value,
+                ediciones.publicadas,
             )
             assertEquals(List(3) { "hecho" }, locutor.dichas)
-        }
-
-    @Test
-    fun `consumir quita las ediciones aplicadas`() =
-        runBlocking {
-            ejecutor.ejecutar(entendido(Orden.Quitar))
-            ejecutor.ejecutar(entendido(Orden.Cuidado))
-            val primera = ediciones.pendientes.value.first()
-
-            ediciones.consumir(listOf(primera))
-
-            assertEquals(listOf(Orden.Cuidado), ediciones.pendientes.value.map { it.orden })
         }
 
     @Test
@@ -193,7 +184,7 @@ class EjecutorOrdenesTest {
             ejecutor.ejecutar(entendido(Orden.Quitar))
 
             assertEquals(emptyList<Marca>(), marcas.guardadas.map { it.first })
-            assertEquals(emptyList<EdicionPendiente>(), ediciones.pendientes.value)
+            assertEquals(emptyList<EdicionPendiente>(), ediciones.publicadas)
             assertEquals(listOf("no entendido", "no entendido"), locutor.dichas)
         }
 

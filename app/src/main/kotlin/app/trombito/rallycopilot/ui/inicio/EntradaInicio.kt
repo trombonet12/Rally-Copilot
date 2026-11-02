@@ -11,7 +11,7 @@ enum class EntradaInicio(
 ) {
     CONDUCIR(R.string.inicio_conducir, activa = true),
     MIS_TRAMOS(R.string.inicio_mis_tramos, activa = true),
-    RECONOCIMIENTO(R.string.inicio_reconocimiento),
+    RECONOCIMIENTO(R.string.inicio_reconocimiento, activa = true),
     MAPAS_OFFLINE(R.string.inicio_mapas_offline, activa = true),
     PERFIL(R.string.inicio_perfil, activa = true),
     AJUSTES(R.string.inicio_ajustes, activa = true),

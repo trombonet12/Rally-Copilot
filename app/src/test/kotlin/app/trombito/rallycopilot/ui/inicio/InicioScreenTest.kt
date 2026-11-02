@@ -64,15 +64,15 @@ class InicioScreenTest {
     }
 
     @Test
-    fun `reconocimiento sigue desactivado y marcado como proximamente`() {
-        banco.poner { RallyCopilotTheme { InicioScreen() } }
-        listOf("reconocimiento").forEach {
-            val nodo = banco.conEtiqueta("inicio-$it")
-            assertFalse("$it no debe ser pulsable", banco.esPulsable(nodo))
-            assertFalse(banco.estaHabilitado(nodo))
-            assertTrue("Próximamente" in banco.textos(nodo))
+    fun `todas las entradas estan activas y ninguna sale como proximamente`() {
+        val abiertas = mutableListOf<EntradaInicio>()
+        banco.poner { RallyCopilotTheme { InicioScreen(onEntrada = { abiertas += it }) } }
+        EntradaInicio.entries.forEach {
+            val nodo = banco.conEtiqueta("inicio-${it.name.lowercase()}")
+            assertTrue("${it.name} debe ser pulsable", banco.esPulsable(nodo))
+            assertFalse("Próximamente" in banco.textos(nodo))
         }
-        val activa = banco.conEtiqueta("inicio-conducir")
-        assertFalse("Próximamente" in banco.textos(activa))
+        banco.pulsar(banco.conEtiqueta("inicio-reconocimiento"))
+        assertEquals(listOf(EntradaInicio.RECONOCIMIENTO), abiertas)
     }
 }

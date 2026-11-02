@@ -132,6 +132,17 @@ class FalsoRepositorioTramos(
             resumenesMutable.value.map { if (it.id == tramoId) it.copy(favorito = favorito) else it }
     }
 
+    val cortesGuardados = mutableListOf<Triple<String, List<Double>, List<Double>>>()
+
+    override suspend fun guardarCortes(
+        tramoId: String,
+        sectores: List<Double>,
+        microsectores: List<Double>,
+    ) {
+        cortesGuardados += Triple(tramoId, sectores, microsectores)
+        tramos[tramoId]?.let { tramos[tramoId] = it.copy(sectores = sectores, microsectores = microsectores) }
+    }
+
     override suspend fun borrar(tramoId: String) {
         falloAlBorrar?.let { throw it }
         borrados += tramoId

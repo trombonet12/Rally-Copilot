@@ -16,8 +16,9 @@ import androidx.room.RoomDatabase
             TramoEntity::class,
             PasadaEntity::class,
             MarcaEntity::class,
+            EdicionNotaEntity::class,
         ],
-    version = 9,
+    version = 10,
     exportSchema = true,
 )
 abstract class RallyDatabase : RoomDatabase() {
@@ -34,6 +35,8 @@ abstract class RallyDatabase : RoomDatabase() {
     abstract fun tramosDao(): TramosDao
 
     abstract fun marcasDao(): MarcasDao
+
+    abstract fun edicionesDao(): EdicionesDao
 
     companion object {
         const val NOMBRE = "rally.db"

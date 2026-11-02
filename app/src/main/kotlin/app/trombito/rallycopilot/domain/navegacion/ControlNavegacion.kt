@@ -15,10 +15,14 @@ data class Destino(
 sealed interface EstadoNavegacion {
     data object Inactiva : EstadoNavegacion
 
-    /** Modo libre (sin destino): sigue la vía y graba el recorrido. */
+    /**
+     * Modo libre (sin destino): sigue la vía y graba el recorrido. Con [reconocimientoTramoId] es una pasada de
+     * reconocimiento de ese tramo: lee sus notas, sin cronometrar.
+     */
     data class Libre(
         val desdeMs: Long,
         val distanciaM: Double,
+        val reconocimientoTramoId: String? = null,
     ) : EstadoNavegacion
 
     /**
@@ -80,6 +84,12 @@ interface ControlNavegacion {
 
     /** Empieza el modo libre; sustituye a un guiado en curso y no hace nada si ya está en libre. */
     fun empezarLibre()
+
+    /**
+     * Empieza el reconocimiento del tramo [tramoId]: el copiloto lee sus notas (fusionadas con las editadas) y lo que
+     * se dicta se anota en él. Sustituye a cualquier otra sesión; no hace nada si ya se reconoce ese tramo.
+     */
+    fun empezarReconocimiento(tramoId: String)
 
     /** Empieza el guiado; sustituye al modo libre y no hace nada si ya se está guiando. */
     fun empezar(

@@ -1,0 +1,215 @@
+package app.trombito.rallycopilot.ui.edicion
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.motor.notas.Direccion
+import app.trombito.rallycopilot.motor.notas.FrasesNota
+import app.trombito.rallycopilot.motor.notas.Modificador
+import app.trombito.rallycopilot.motor.notas.Nota
+import app.trombito.rallycopilot.ui.theme.Espacio
+
+const val ETIQUETA_EDITOR_NOTA = "editor-nota"
+const val ETIQUETA_EDITOR_GUARDAR = "editor-nota-guardar"
+const val ETIQUETA_EDITOR_QUITAR = "editor-nota-quitar"
+const val ETIQUETA_EDITOR_GRADO_PREFIJO = "editor-nota-grado-"
+
+/** Grado elegido en el editor: del 1 al 6 o horquilla (`null`). */
+private val GRADOS = listOf(1, 2, 3, 4, 5, 6)
+
+/**
+ * Lo que se está editando de una nota: [direccion], [grado] (`null` = horquilla), [modificadores] y [cuidado]. La nota
+ * resultante ([aNota]) no lleva posición: la pone quien la guarda (el tramo conserva la de la automática).
+ */
+data class BorradorNota(
+    val direccion: Direccion = Direccion.DERECHA,
+    val grado: Int? = 4,
+    val modificadores: Set<Modificador> = emptySet(),
+    val cuidado: Boolean = false,
+) {
+    fun aNota(): Nota = Nota(0.0, 0.0, direccion, grado, modificadores, cuidado = cuidado)
+
+    /** Pone o quita [modificador]; larga y muy larga se excluyen entre sí, y cierra y abre también. */
+    fun conModificador(modificador: Modificador): BorradorNota {
+        val opuestos =
+            when (modificador) {
+                Modificador.LARGA -> setOf(Modificador.MUY_LARGA)
+                Modificador.MUY_LARGA -> setOf(Modificador.LARGA)
+                Modificador.CIERRA -> setOf(Modificador.ABRE)
+                Modificador.ABRE -> setOf(Modificador.CIERRA)
+            }
+        val nuevos =
+            if (modificador in
+                modificadores
+            ) {
+                modificadores - modificador
+            } else {
+                modificadores - opuestos + modificador
+            }
+        return copy(modificadores = nuevos)
+    }
+
+    companion object {
+        fun de(nota: Nota?): BorradorNota =
+            nota?.let { BorradorNota(it.direccion, it.grado, it.modificadores, it.cuidado) } ?: BorradorNota()
+    }
+}
+
+/**
+ * Hoja inferior para corregir o añadir una nota: dirección, grado (1 a 6 o horquilla), modificadores y cuidado, con la
+ * frase que dirá el copiloto al instante. [inicial] es la nota que se corrige (null: nota nueva). [onQuitar] solo
+ * se ofrece al corregir una existente.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+@Suppress("LongParameterList") // la nota, tres acciones y el aspecto: cada una la pone quien edita
+fun EditorNota(
+    inicial: Nota?,
+    simplificadas: Boolean,
+    onAplicar: (Nota) -> Unit,
+    onQuitar: (() -> Unit)?,
+    onCerrar: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var borrador by remember(inicial) { mutableStateOf(BorradorNota.de(inicial)) }
+    ModalBottomSheet(
+        onDismissRequest = onCerrar,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        modifier = modifier.testTag(ETIQUETA_EDITOR_NOTA),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .verticalScroll(
+                        rememberScrollState(),
+                    ).padding(horizontal = Espacio.l, vertical = Espacio.s),
+            verticalArrangement = Arrangement.spacedBy(Espacio.s),
+        ) {
+            Text(
+                text = stringResource(if (inicial == null) R.string.edicion_titulo_nueva else R.string.edicion_titulo),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = stringResource(R.string.edicion_dira, FrasesNota.frase(borrador.aNota(), simplificadas)),
+                style = MaterialTheme.typography.titleMedium,
+            )
+            SelectorDireccion(borrador) { borrador = it }
+            SelectorGrado(borrador) { borrador = it }
+            SelectorModificadores(borrador) { borrador = it }
+            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                if (onQuitar != null) {
+                    TextButton(onClick = onQuitar, modifier = Modifier.testTag(ETIQUETA_EDITOR_QUITAR)) {
+                        Text(stringResource(R.string.edicion_quitar))
+                    }
+                }
+                TextButton(
+                    onClick = { onAplicar(borrador.aNota()) },
+                    modifier = Modifier.testTag(ETIQUETA_EDITOR_GUARDAR),
+                ) { Text(stringResource(R.string.edicion_guardar)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectorDireccion(
+    borrador: BorradorNota,
+    alCambiar: (BorradorNota) -> Unit,
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
+        Direccion.entries.forEach { direccion ->
+            FilterChip(
+                selected = borrador.direccion == direccion,
+                onClick = { alCambiar(borrador.copy(direccion = direccion)) },
+                label = {
+                    Text(
+                        stringResource(
+                            if (direccion ==
+                                Direccion.IZQUIERDA
+                            ) {
+                                R.string.edicion_izquierda
+                            } else {
+                                R.string.edicion_derecha
+                            },
+                        ),
+                    )
+                },
+            )
+        }
+    }
+}
+
+@Composable
+private fun SelectorGrado(
+    borrador: BorradorNota,
+    alCambiar: (BorradorNota) -> Unit,
+) {
+    Text(stringResource(R.string.edicion_grado), style = MaterialTheme.typography.labelLarge)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
+        GRADOS.forEach { grado ->
+            FilterChip(
+                selected = borrador.grado == grado,
+                onClick = { alCambiar(borrador.copy(grado = grado)) },
+                label = { Text(grado.toString()) },
+                modifier = Modifier.testTag(ETIQUETA_EDITOR_GRADO_PREFIJO + grado),
+            )
+        }
+        FilterChip(
+            selected = borrador.grado == null,
+            onClick = { alCambiar(borrador.copy(grado = null)) },
+            label = { Text(stringResource(R.string.edicion_horquilla)) },
+            modifier = Modifier.testTag(ETIQUETA_EDITOR_GRADO_PREFIJO + "horquilla"),
+        )
+    }
+}
+
+@Composable
+private fun SelectorModificadores(
+    borrador: BorradorNota,
+    alCambiar: (BorradorNota) -> Unit,
+) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
+        Modificador.entries.forEach { modificador ->
+            FilterChip(
+                selected = modificador in borrador.modificadores,
+                onClick = { alCambiar(borrador.conModificador(modificador)) },
+                label = { Text(stringResource(textoModificador(modificador))) },
+            )
+        }
+        FilterChip(
+            selected = borrador.cuidado,
+            onClick = { alCambiar(borrador.copy(cuidado = !borrador.cuidado)) },
+            label = { Text(stringResource(R.string.edicion_cuidado)) },
+        )
+    }
+}
+
+private fun textoModificador(modificador: Modificador): Int =
+    when (modificador) {
+        Modificador.LARGA -> R.string.edicion_larga
+        Modificador.MUY_LARGA -> R.string.edicion_muy_larga
+        Modificador.CIERRA -> R.string.edicion_cierra
+        Modificador.ABRE -> R.string.edicion_abre
+    }

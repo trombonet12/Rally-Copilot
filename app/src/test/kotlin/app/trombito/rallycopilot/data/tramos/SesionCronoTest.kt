@@ -245,6 +245,12 @@ private class TramosEnMemoria : RepositorioTramos {
         return pasadas.size.toLong()
     }
 
+    override suspend fun guardarCortes(
+        tramoId: String,
+        sectores: List<Double>,
+        microsectores: List<Double>,
+    ) = Unit
+
     override suspend fun borrar(tramoId: String) {
         tramos.remove(tramoId)
         pasadas.removeAll { it.tramoId == tramoId }
@@ -283,11 +289,13 @@ class SesionCronoTest {
     private var pasadasAlTerminar = -1
     private val recorridos = RecorridosEnMemoria { pasadasAlTerminar = tramos.pasadas.size }
     private var idsNuevos = 0
+    private val anclado = mutableListOf<String?>()
 
     /** Conduce una sesión libre completa con las [fijaciones]; [modo] da voz al copiloto (null: sin copiloto). */
     private suspend fun TestScope.conducir(
         fijaciones: List<Fijacion>,
         modo: ModoCopiloto? = null,
+        solicitud: SolicitudNavegacion = SolicitudNavegacion.Libre,
     ): Conducida {
         val publicados = mutableListOf<CronoEnCurso?>()
         val locutor = LocutorAnotador()
@@ -298,6 +306,7 @@ class SesionCronoTest {
                 { testScheduler.currentTime },
                 { "tramo-${++idsNuevos}" },
                 nombrar = { "Ma-2141 · Escorca" },
+                anclarEdiciones = { anclado += it?.id },
             )
         val copiloto =
             modo?.let { CopilotoVoz(locutor, flowOf(AjustesConduccion(modoCopiloto = it, voz = VozCopiloto.DAVEFX))) }
@@ -310,7 +319,8 @@ class SesionCronoTest {
             motivoSinGps = "sin GPS",
             copiloto = copiloto,
             crono = crono,
-        ).correr(SolicitudNavegacion.Libre)
+            tramos = tramos,
+        ).correr(solicitud)
         return Conducida(publicados, locutor.dichas)
     }
 
@@ -328,6 +338,30 @@ class SesionCronoTest {
             assertTrue(c.estados.all { it.tramo == null && !it.hayMejorPasada && it.deltaMs == null })
             assertTrue(c.estados.last().transcurridoMs > 1_000_000L)
             assertNull(c.publicados.last())
+        }
+
+    @Test
+    fun `al cerrar la conduccion las ediciones sin tramo se anclan al tramo nuevo`() =
+        runTest {
+            conducir(conduccion(40.0))
+
+            assertEquals(listOf<String?>("tramo-1"), anclado)
+        }
+
+    @Test
+    fun `una pasada de reconocimiento no crea tramos ni guarda pasadas ni ancla ediciones`() =
+        runTest {
+            conducir(conduccion(40.0))
+            val tramosAntes = tramos.tramos.size
+            val pasadasAntes = tramos.pasadas.size
+            anclado.clear()
+
+            val c = conducir(conduccion(10.0), solicitud = SolicitudNavegacion.Reconocimiento("tramo-1"))
+
+            assertEquals(tramosAntes, tramos.tramos.size)
+            assertEquals(pasadasAntes, tramos.pasadas.size)
+            assertTrue(anclado.isEmpty())
+            assertTrue(c.estados.isEmpty())
         }
 
     @Test

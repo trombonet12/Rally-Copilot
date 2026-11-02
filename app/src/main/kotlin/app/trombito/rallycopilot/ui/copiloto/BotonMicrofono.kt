@@ -35,19 +35,22 @@ import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
 const val ETIQUETA_MICROFONO_BOTON = "copiloto-microfono-boton"
 
 private val LADO_ICONO = 28.dp
+private val LADO_ICONO_GRANDE = 48.dp
+private val LADO_GRANDE = 88.dp
 private const val PULSO_MS = 600
 private const val ALFA_PULSO_MIN = 0.35f
 
 /**
  * Botón del micrófono del panel de conducción: pulsarlo hace que el copiloto escuche una orden. Mientras escucha
  * ([escuchando]) se resalta y el icono late. La primera vez (sin permiso) explica para qué se usa el micrófono y
- * lo pide.
+ * lo pide. Con [grande] (reconocimiento, donde se dicta todo el rato) el botón mide 88 dp, fácil de acertar.
  */
 @Composable
 fun BotonMicrofono(
     escuchando: Boolean,
     onEscuchar: () -> Unit,
     modifier: Modifier = Modifier,
+    grande: Boolean = false,
 ) {
     val solicitar = rememberSolicitudMicrofono(alConcedido = onEscuchar)
     val alfa =
@@ -65,13 +68,13 @@ fun BotonMicrofono(
     BotonIcono(
         descripcion = stringResource(if (escuchando) R.string.microfono_escuchando else R.string.microfono_boton),
         onClick = { if (!escuchando) solicitar() },
-        modifier = modifier.testTag(ETIQUETA_MICROFONO_BOTON),
+        modifier = (if (grande) modifier.size(LADO_GRANDE) else modifier).testTag(ETIQUETA_MICROFONO_BOTON),
         estado = EstadoBotonIcono(seleccionado = escuchando),
     ) {
         Icon(
             painterResource(R.drawable.ic_microfono),
             contentDescription = null,
-            modifier = Modifier.size(LADO_ICONO).alpha(alfa),
+            modifier = Modifier.size(if (grande) LADO_ICONO_GRANDE else LADO_ICONO).alpha(alfa),
         )
     }
 }

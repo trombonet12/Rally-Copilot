@@ -120,6 +120,13 @@ class FalsoControlNavegacion : ControlNavegacion {
         mutable.value = EstadoNavegacion.Libre(0L, 0.0)
     }
 
+    val reconocidos = mutableListOf<String>()
+
+    override fun empezarReconocimiento(tramoId: String) {
+        reconocidos += tramoId
+        mutable.value = EstadoNavegacion.Libre(0L, 0.0, tramoId)
+    }
+
     override fun empezar(
         destino: Destino,
         perfil: PerfilRuta,

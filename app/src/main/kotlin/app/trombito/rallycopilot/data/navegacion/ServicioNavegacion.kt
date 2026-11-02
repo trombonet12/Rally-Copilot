@@ -20,8 +20,10 @@ import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.tramos.FabricaCronoSesion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.Enrutador
+import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.voz.Locutor
 import dagger.hilt.android.AndroidEntryPoint
@@ -67,6 +69,10 @@ class ServicioNavegacion : Service() {
     @Inject lateinit var memoriaFrases: MemoriaFrases
 
     @Inject lateinit var escuchaContinua: EscuchaContinua
+
+    @Inject lateinit var ediciones: RepositorioEdiciones
+
+    @Inject lateinit var tramos: RepositorioTramos
 
     private lateinit var notificacion: NotificacionNavegacion
     private lateinit var scope: CoroutineScope
@@ -256,6 +262,8 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         alertas = fabricaAlertas.crear(),
         ordenes = control.ordenes,
         crono = fabricaCrono.crear(),
+        ediciones = ediciones,
+        tramos = tramos,
     )
 
 /** Solo en un APK depurable: una línea por frase dicha para medir la anticipación (sin coordenadas). */

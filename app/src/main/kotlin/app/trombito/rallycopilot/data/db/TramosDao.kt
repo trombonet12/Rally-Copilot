@@ -77,6 +77,13 @@ abstract class TramosDao {
         nombre: String?,
     ): Int
 
+    @Query("UPDATE tramo SET sectores = :sectores, microsectores = :microsectores WHERE id = :id")
+    abstract suspend fun guardarCortes(
+        id: String,
+        sectores: String,
+        microsectores: String,
+    ): Int
+
     @Query("UPDATE tramo SET favorito = :favorito WHERE id = :id")
     abstract suspend fun marcarFavorito(
         id: String,

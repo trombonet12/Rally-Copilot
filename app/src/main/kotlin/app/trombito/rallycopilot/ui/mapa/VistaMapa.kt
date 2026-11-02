@@ -79,6 +79,8 @@ data class CamaraVistaMapa(
     val onZoomManual: (zoom: Double, ahoraMs: Long) -> Unit = { _, _ -> },
     /** Toque en el mapa: el id de la incidencia tocada o null si se tocó otra cosa. */
     val onToqueIncidencia: (id: String?) -> Unit = {},
+    /** Toque en una nota del mapa (solo hay notas pintadas con el coche parado): su posición en la hoja. */
+    val onToqueNota: (posicionM: Double) -> Unit = {},
     /** Mantener pulsado el mapa: el punto y el nombre del lugar o la calle bajo el dedo (null si no hay). */
     val onMantenerPulsado: (punto: PuntoGeo, nombre: String?) -> Unit = { _, _ -> },
 )
@@ -96,6 +98,8 @@ data class PreferenciasVistaMapa(
     val ruta: RutaEnMapa? = null,
     /** Marcadores de incidencias de tráfico (icono por tipo); vacío = ninguno. */
     val incidencias: List<MarcadorIncidencia> = emptyList(),
+    /** Notas de la hoja tocables para editarlas (con el coche parado); vacío = ninguna. */
+    val notas: List<MarcadorNota> = emptyList(),
 )
 
 /**
@@ -130,6 +134,7 @@ fun VistaMapa(
                 alPerderSeguimiento = { actual.value.onSeguimientoPerdido() },
                 alCambiarZoomManual = { zoom, ahora -> actual.value.onZoomManual(zoom, ahora) },
                 alTocarIncidencia = { actual.value.onToqueIncidencia(it) },
+                alTocarNota = { actual.value.onToqueNota(it) },
                 alMantenerPulsado = { punto, nombre -> actual.value.onMantenerPulsado(punto, nombre) },
             )
         }
@@ -243,7 +248,7 @@ internal class PuenteCicloVida(
 }
 
 /** Estado imperativo del mapa: estilo, componente de ubicación (sin motor propio) y cámara. */
-@Suppress("LongParameterList") // un callback por gesto del mapa que la pantalla escucha
+@Suppress("LongParameterList", "TooManyFunctions") // un callback por gesto del mapa; una capa por función
 private class ControladorMapa(
     private val vista: MapView,
     private val camaraInicial: CamaraMapa?,
@@ -251,6 +256,7 @@ private class ControladorMapa(
     private val alPerderSeguimiento: () -> Unit,
     alCambiarZoomManual: (Double, Long) -> Unit,
     private val alTocarIncidencia: (String?) -> Unit,
+    private val alTocarNota: (Double) -> Unit,
     private val alMantenerPulsado: (PuntoGeo, String?) -> Unit,
 ) {
     private var mapa: MapLibreMap? = null
@@ -299,7 +305,13 @@ private class ControladorMapa(
             zoom.escuchar(m) { activo }
             m.addOnMapClickListener { punto ->
                 val pantalla = m.projection.toScreenLocation(punto)
-                val id = CapaIncidencias.idEn(m, pantalla.x, pantalla.y, vista.resources.displayMetrics.density)
+                val densidad = vista.resources.displayMetrics.density
+                val nota = CapaNotas.posicionEn(m, pantalla.x, pantalla.y, densidad)
+                if (nota != null) {
+                    alTocarNota(nota)
+                    return@addOnMapClickListener true
+                }
+                val id = CapaIncidencias.idEn(m, pantalla.x, pantalla.y, densidad)
                 alTocarIncidencia(id)
                 id != null
             }
@@ -346,9 +358,7 @@ private class ControladorMapa(
         val componente = mapa?.locationComponent?.takeIf { ubicacionActivada }
         if (nuevas.relieve != previas.relieve) estilo?.let { aplicarRelieve(it, nuevas.relieve) }
         aplicarRuta(previas.ruta, nuevas.ruta)
-        if (nuevas.incidencias != previas.incidencias) {
-            estilo?.let { CapaIncidencias.actualizar(it, nuevas.incidencias) }
-        }
+        actualizarMarcadores(previas, nuevas)
         if (componente != null && nuevas.icono != previas.icono) {
             componente.applyStyle(opcionesUbicacion(vista.context, nuevas.icono))
         }
@@ -359,6 +369,16 @@ private class ControladorMapa(
         if (ubicacionActivada && nuevas.siguiendo) {
             mapa?.locationComponent?.let { zoom.aplicar(it, nuevas.zoomObjetivo) }
         }
+    }
+
+    /** Redibuja los marcadores (incidencias y notas editables) que hayan cambiado. */
+    private fun actualizarMarcadores(
+        previas: PreferenciasVistaMapa,
+        nuevas: PreferenciasVistaMapa,
+    ) {
+        val capas = estilo ?: return
+        if (nuevas.incidencias != previas.incidencias) CapaIncidencias.actualizar(capas, nuevas.incidencias)
+        if (nuevas.notas != previas.notas) CapaNotas.actualizar(capas, nuevas.notas)
     }
 
     private fun aplicarEstilo(json: String) {
@@ -373,6 +393,7 @@ private class ControladorMapa(
             // Antes de activar la ubicación: la línea de la ruta queda debajo de la flecha de posición.
             CapaRuta.instalar(cargado, vista.context, preferencias.ruta)
             CapaIncidencias.instalar(cargado, vista.context, preferencias.incidencias)
+            CapaNotas.instalar(cargado, preferencias.notas)
             asegurarUbicacion()
         }
     }

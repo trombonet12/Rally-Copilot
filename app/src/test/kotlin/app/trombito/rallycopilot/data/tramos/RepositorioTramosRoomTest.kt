@@ -59,6 +59,25 @@ class RepositorioTramosRoomTest {
     }
 
     @Test
+    fun `los cortes guardados vuelven y uno invalido no se guarda`() =
+        runBlocking {
+            val t = tramo()
+            repositorio.crear(t, null, null, 5_000L, pasada(t, 100.0), OrigenPasada(4_000L))
+
+            repositorio.guardarCortes("t1", listOf(300.0, 900.0), listOf(500.0, 1_000.0, 1_500.0))
+
+            val guardado = checkNotNull(repositorio.tramo("t1"))
+            assertEquals(listOf(300.0, 900.0), guardado.sectores)
+            assertEquals(listOf(500.0, 1_000.0, 1_500.0), guardado.microsectores)
+            repositorio.guardarCortes("t1", listOf(300.0), emptyList())
+            assertEquals(emptyList<Double>(), repositorio.tramo("t1")?.microsectores)
+            val fallo = runCatching { repositorio.guardarCortes("t1", listOf(900.0, 300.0), emptyList()) }
+            assertTrue(fallo.exceptionOrNull() is IllegalArgumentException)
+            assertEquals(listOf(300.0), repositorio.tramo("t1")?.sectores)
+            assertTrue(runCatching { repositorio.guardarCortes("no", emptyList(), emptyList()) }.isFailure)
+        }
+
+    @Test
     fun `un tramo creado vuelve igual con su primera pasada como mejor`() =
         runBlocking {
             val t = tramo()

@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.tramos
 
 import android.util.Log
+import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -13,6 +14,7 @@ class FabricaCronoSesion
         private val repositorio: RepositorioTramos,
         private val salida: CronoEnVivoImpl,
         private val nombrador: NombradorTramos,
+        private val ediciones: RepositorioEdiciones,
     ) {
         fun crear(): SesionCrono =
             SesionCrono(
@@ -20,6 +22,7 @@ class FabricaCronoSesion
                 salida::publicar,
                 System::currentTimeMillis,
                 nombrar = nombrador::nombrar,
+                anclarEdiciones = ediciones::anclarPendientes,
                 alFallar = { Log.w("SesionCrono", "Fallo en el cronometraje: ${it.javaClass.simpleName}") },
             )
     }

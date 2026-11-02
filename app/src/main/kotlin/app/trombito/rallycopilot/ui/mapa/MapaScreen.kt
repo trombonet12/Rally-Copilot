@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.mapa
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -128,6 +129,7 @@ data class AccionesMapa(
  * diálogo de la voz del primer uso. [alertas] trae el banner de radar o incidencia, la velocidad en rojo, la media
  * del radar de tramo y la tarjeta de la incidencia tocada en el mapa. [crono] trae el cronómetro: el HUD arriba si el
  * tramo es conocido y la tarjeta de meta; con un tramo nuevo o sin tramo, un cronómetro pequeño en el panel.
+ * [superposicion] pinta encima de todo lo demás (editor de notas y micrófono grande del reconocimiento).
  */
 @Composable
 @Suppress("LongParameterList") // estado, vista, acciones, mapa y navegación son los bloques de la pantalla
@@ -141,6 +143,7 @@ fun MapaScreen(
     copiloto: CopilotoEnMapa = CopilotoEnMapa(),
     alertas: AlertasUiState = AlertasUiState(),
     crono: CronoEnCurso? = null,
+    superposicion: @Composable BoxScope.() -> Unit = {},
 ) {
     MantenerPantallaEncendida()
     var abierto by rememberSaveable { mutableStateOf(MenuMapa.NINGUNO) }
@@ -183,6 +186,8 @@ fun MapaScreen(
                 )
             }
         }
+        // Encima de todo: el editor de notas (parado) y el micrófono grande del reconocimiento.
+        superposicion()
     }
 }
 

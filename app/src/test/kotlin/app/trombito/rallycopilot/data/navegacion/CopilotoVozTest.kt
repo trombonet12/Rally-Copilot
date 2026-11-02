@@ -213,9 +213,9 @@ class CopilotoVozTest {
                 ElementoHoja.DeNota(Nota(derecha, derecha + 30.0, Direccion.DERECHA, grado = 3)),
                 izquierda?.let { ElementoHoja.DeNota(Nota(it, it + 30.0, Direccion.IZQUIERDA, grado = 3)) },
             )
-        return NotasEnCurso(HojaNotas(elementos), posicionM, 20.0, OrigenNotas.LIBRE) {
+        return NotasEnCurso(HojaNotas(elementos), posicionM, 20.0, OrigenNotas.LIBRE, puntoEn = {
             PuntoGeo(39.7, 2.9 + (it + origenM) / METROS_POR_GRADO_LON)
-        }
+        })
     }
 
     private fun CopilotoVoz.fijarLibre(notas: NotasEnCurso) = alFijar(notas, null, null, 20.0)

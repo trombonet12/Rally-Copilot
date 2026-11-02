@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import app.trombito.rallycopilot.data.db.EdicionesDao
 import app.trombito.rallycopilot.data.db.MarcasDao
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.escucha.ContextoConduccionImpl
@@ -17,7 +18,7 @@ import app.trombito.rallycopilot.data.escucha.FabricaReconocedor
 import app.trombito.rallycopilot.data.escucha.FabricaReconocedorVosk
 import app.trombito.rallycopilot.data.escucha.FocoAudioExclusivo
 import app.trombito.rallycopilot.data.escucha.MemoriaFrases
-import app.trombito.rallycopilot.data.escucha.RepositorioEdicionesMemoria
+import app.trombito.rallycopilot.data.escucha.RepositorioEdicionesRoom
 import app.trombito.rallycopilot.data.escucha.RepositorioMarcasRoom
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
@@ -38,12 +39,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import javax.inject.Singleton
 
-/** Órdenes de voz: escucha con Vosk, ejecución sobre la conducción, marcas en Room y ediciones en memoria. */
+/** Órdenes de voz: escucha con Vosk, ejecución sobre la conducción, marcas y ediciones de notas en Room. */
 @Module
 @InstallIn(SingletonComponent::class)
+@Suppress("TooManyFunctions") // un @Provides por pieza de la escucha, las órdenes y las ediciones
 object EscuchaModule {
     @Provides
     fun marcasDao(base: RallyDatabase): MarcasDao = base.marcasDao()
+
+    @Provides
+    fun edicionesDao(base: RallyDatabase): EdicionesDao = base.edicionesDao()
 
     @Provides
     @Singleton
@@ -72,7 +77,7 @@ object EscuchaModule {
 
     @Provides
     @Singleton
-    fun repositorioEdiciones(): RepositorioEdiciones = RepositorioEdicionesMemoria()
+    fun repositorioEdiciones(dao: EdicionesDao): RepositorioEdiciones = RepositorioEdicionesRoom(dao)
 
     @Provides
     @Singleton

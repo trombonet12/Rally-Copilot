@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Edición de notas (mapa parado y detalle del tramo) -->
+    <string name="edicion_titulo">Editar nota</string>
+    <string name="edicion_titulo_nueva">Añadir nota</string>
+    <string name="edicion_izquierda">Izquierda</string>
+    <string name="edicion_derecha">Derecha</string>
+    <string name="edicion_grado">Grado</string>
+    <string name="edicion_horquilla">Horquilla</string>
+    <string name="edicion_larga">Larga</string>
+    <string name="edicion_muy_larga">Muy larga</string>
+    <string name="edicion_cierra">Cierra</string>
+    <string name="edicion_abre">Abre</string>
+    <string name="edicion_cuidado">Cuidado</string>
+    <string name="edicion_guardar">Guardar</string>
+    <string name="edicion_quitar">Quitar nota</string>
+    <string name="edicion_dira">Dirá: «%1$s»</string>
+    <string name="edicion_nota_mapa">Nota a %1$d m: %2$s</string>
+    <string name="edicion_editar_notas">Editar notas</string>
+    <string name="edicion_tramo_titulo">Notas y sectores</string>
+    <string name="edicion_ayuda">Toca una nota para editarla o un punto del trazo para añadir una. Arrastra los cortes para mover los sectores.</string>
+    <string name="edicion_restaurar">Restaurar las notas automáticas</string>
+    <string name="edicion_sectores">Sectores</string>
+    <string name="edicion_microsectores">Microsectores por kilómetro</string>
+    <string name="edicion_microsectores_valor">%1$d</string>
+    <string name="edicion_menos">Menos microsectores</string>
+    <string name="edicion_mas">Más microsectores</string>
+    <string name="edicion_marcas">Marcas: %1$d</string>
+    <string name="edicion_lienzo">Trazo del tramo con sus notas, marcas y cortes de sector</string>
+    <string name="edicion_corte">Corte de sector %1$d a %2$d m</string>
+    <string name="edicion_no_encontrado">Este tramo ya no existe.</string>
+
+    <!-- Reconocimiento -->
+    <string name="reconocimiento_ayuda">Elige el tramo que vas a reconocer: el copiloto lee sus notas y puedes dictar o corregir las que falten. Esta pasada no cuenta para tiempos.</string>
+    <string name="reconocimiento_microfono">Dictar una nota</string>
+</resources>

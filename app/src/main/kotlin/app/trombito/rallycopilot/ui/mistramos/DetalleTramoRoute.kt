@@ -11,6 +11,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 fun DetalleTramoRoute(
     onVolver: () -> Unit,
     onVerAnalisis: (tramoId: String, pasadaId: Long) -> Unit,
+    onEditarNotas: (tramoId: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DetalleTramoViewModel = hiltViewModel(),
 ) {
@@ -25,6 +26,7 @@ fun DetalleTramoRoute(
                 onRenombrar = viewModel::onRenombrar,
                 onCancelarRenombrar = viewModel::onCancelarRenombrar,
                 onVerAnalisis = { pasadaId -> estado.tramo?.let { onVerAnalisis(it.id, pasadaId) } },
+                onEditarNotas = { estado.tramo?.let { onEditarNotas(it.id) } },
             ),
         modifier = modifier,
     )

@@ -37,7 +37,8 @@ class MemoriaFrases
  * - [Orden.MasPronto] / [Orden.MasTarde]: un nivel de anticipación más pronto o más tarde (con tope en los extremos).
  * - [Orden.Silencio] / [Orden.Habla]: el modo SILENCIO y el modo en que estaba antes (COMPLETO si no se sabe).
  * - [Orden.MarcaAqui]: guarda una [Marca] en la posición y el tramo activo.
- * - [Orden.Nota] / [Orden.Quitar] / [Orden.Cuidado]: publican una [EdicionPendiente] (otro componente las aplica).
+ * - [Orden.Nota] / [Orden.Quitar] / [Orden.Cuidado]: publican una [EdicionPendiente] (ligadas al tramo activo o
+ * pendientes; la fusión con las notas es de `NotasSesion`).
  */
 @Suppress("LongParameterList") // colaboradores de las órdenes: ajustes, voz, ediciones, marcas y contexto
 class EjecutorOrdenes(
@@ -107,7 +108,7 @@ class EjecutorOrdenes(
         return HECHO
     }
 
-    private fun editar(orden: Orden): String {
+    private suspend fun editar(orden: Orden): String {
         val actual = contexto.actual() ?: return NO_ENTENDIDO
         ediciones.publicar(EdicionPendiente(orden, actual.posicionM, actual.tramoId, actual.posicion, ahoraMs()))
         return HECHO

@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mistramos
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -64,13 +65,14 @@ fun MisTramosScreen(
     estado: MisTramosUiState,
     acciones: AccionesMisTramos,
     modifier: Modifier = Modifier,
+    @StringRes titulo: Int = R.string.inicio_mis_tramos,
 ) {
     val avisos = remember { SnackbarHostState() }
     AvisoDeshacer(estado.borradoPendiente, avisos, acciones)
     AvisoFallo(estado.falloBorrado, avisos, acciones.onFalloVisto)
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         Column(Modifier.fillMaxSize()) {
-            BarraSuperior(titulo = stringResource(R.string.inicio_mis_tramos), onVolver = acciones.onVolver)
+            BarraSuperior(titulo = stringResource(titulo), onVolver = acciones.onVolver)
             FiltrosTramos(estado.filtro, acciones.onFiltro)
             when {
                 estado.cargando -> Cargando()

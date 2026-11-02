@@ -98,6 +98,14 @@ class ControlNavegacionImpl
             arrancar(SolicitudNavegacion.Libre, EstadoNavegacion.Libre(System.currentTimeMillis(), 0.0))
         }
 
+        override fun empezarReconocimiento(tramoId: String) {
+            if (_estado.value is EstadoNavegacion.Guiando) borrarPendiente()
+            arrancar(
+                SolicitudNavegacion.Reconocimiento(tramoId),
+                EstadoNavegacion.Libre(System.currentTimeMillis(), 0.0, tramoId),
+            )
+        }
+
         override fun empezar(
             destino: Destino,
             perfil: PerfilRuta,
@@ -148,7 +156,14 @@ class ControlNavegacionImpl
             // Una sesión activa solo se sustituye por otra de distinto tipo (Libre <-> Guiando): el servicio sigue
             // vivo, recibe otro arranque con id nuevo y cierra el recorrido anterior antes de abrir el siguiente.
             val misma =
-                (actual is EstadoNavegacion.Libre && solicitud is SolicitudNavegacion.Libre) ||
+                (
+                    actual is EstadoNavegacion.Libre && solicitud is SolicitudNavegacion.Libre &&
+                        actual.reconocimientoTramoId == null
+                ) ||
+                    (
+                        actual is EstadoNavegacion.Libre && solicitud is SolicitudNavegacion.Reconocimiento &&
+                            actual.reconocimientoTramoId == solicitud.tramoId
+                    ) ||
                     (actual is EstadoNavegacion.Guiando && solicitud is SolicitudNavegacion.Guiada)
             if (misma) return
             if (!fuente.tienePermiso()) {

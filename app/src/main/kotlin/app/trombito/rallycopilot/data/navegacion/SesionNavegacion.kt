@@ -1,10 +1,14 @@
 package app.trombito.rallycopilot.data.navegacion
 
 import app.trombito.rallycopilot.data.alertas.SesionAlertas
+import app.trombito.rallycopilot.data.notas.EdicionEnMapa
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
+import app.trombito.rallycopilot.data.notas.NotasSesion
+import app.trombito.rallycopilot.data.notas.RutaMedida
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.tramos.SesionCrono
+import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.OrdenParadas
@@ -13,6 +17,7 @@ import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
+import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.motor.geo.AcumuladorRecorrido
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
@@ -21,16 +26,22 @@ import app.trombito.rallycopilot.motor.ruta.EstadoRuta
 import app.trombito.rallycopilot.motor.ruta.FrasesParada
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.SeguidorRuta
+import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.velocidad.EstimadorVelocidad
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,6 +53,11 @@ import kotlinx.coroutines.withContext
  */
 sealed interface SolicitudNavegacion {
     data object Libre : SolicitudNavegacion
+
+    /** Pasada de reconocimiento del tramo [tramoId]: lee sus notas fusionadas y no cuenta para tiempos. */
+    data class Reconocimiento(
+        val tramoId: String,
+    ) : SolicitudNavegacion
 
     data class Guiada(
         val destino: Destino,
@@ -61,7 +77,10 @@ sealed interface SolicitudNavegacion {
  * fijaciones con `precisionM` > [PRECISION_MAX_M] (posición aproximada de interior): ni se graban ni cuentan. Si hay
  * [copiloto], en cada fijación válida le pasa las notas vigentes y el progreso de la ruta para que hable. Si hay
  * [alertas] (radares, tramos, exceso de velocidad, incidencias), en cada fijación válida calcula las suyas, las publica
- * y se las suma al copiloto como candidatas. Si hay [crono], cronometra la conducción: detecta los tramos guardados,
+ * y se las suma al copiloto como candidatas. Con [ediciones] aplica a la hoja las notas editadas del tramo activo (y
+ * las
+ * dictadas sin tramo); en [SolicitudNavegacion.Reconocimiento] la hoja es la del tramo (de [tramos]) y no hay crono.
+ * Si hay [crono], cronometra la conducción: detecta los tramos guardados,
  * publica el cronómetro, le pasa al copiloto el delta de sectores y meta y, al cerrar, guarda las pasadas y el tramo.
  *
  * Paradas: al alcanzar la próxima (a ≤ 30 m o al pasarla) la siguiente pasa a ser el objetivo y el copiloto lo dice
@@ -81,6 +100,8 @@ class SesionNavegacion(
     private val alertas: SesionAlertas? = null,
     private val ordenes: ReceiveChannel<OrdenParadas>? = null,
     private val crono: SesionCrono? = null,
+    private val ediciones: RepositorioEdiciones? = null,
+    private val tramos: RepositorioTramos? = null,
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
     suspend fun cerrarHuerfanos() {
@@ -92,7 +113,9 @@ class SesionNavegacion(
      * Al salir, por cualquier motivo, vuelca los puntos pendientes y cierra el recorrido.
      */
     suspend fun correr(solicitud: SolicitudNavegacion) {
-        val destinoNombre = (solicitud as? SolicitudNavegacion.Guiada)?.destino?.nombre
+        val destinoNombre =
+            (solicitud as? SolicitudNavegacion.Guiada)?.destino?.nombre
+                ?: NOMBRE_RECONOCIMIENTO.takeIf { solicitud is SolicitudNavegacion.Reconocimiento }
         val id = recorridos.empezar(destinoNombre)
         val ejecucion = Ejecucion(id, solicitud)
         try {
@@ -104,7 +127,7 @@ class SesionNavegacion(
             withContext(NonCancellable) {
                 ejecucion.volcar()
                 val recorrido = recorridos.terminar(id)
-                crono?.cerrar(recorrido) { recorridos.puntos(id) }
+                if (solicitud !is SolicitudNavegacion.Reconocimiento) crono?.cerrar(recorrido) { recorridos.puntos(id) }
             }
         }
     }
@@ -119,6 +142,14 @@ class SesionNavegacion(
         private val lote = ArrayList<PuntoRecorrido>(TAMANO_LOTE)
         private val acumulador = AcumuladorRecorrido()
         private val notas = fabricaNotas?.crear()
+        private val reconocimiento = solicitud as? SolicitudNavegacion.Reconocimiento
+
+        /** En reconocimiento no se cronometra: la pasada lenta no cuenta para tiempos. */
+        private val cronometro = if (reconocimiento == null) crono else null
+
+        /** Tramo reconocido (cargado al empezar) o, conduciendo, el tramo actual: ahí se anclan las ediciones. */
+        private val tramoActivo = MutableStateFlow<Tramo?>(null)
+        private var tramoReconocido: Tramo? = null
         private var llegado = false
         private var ultimaFijacionMs = 0L
         private var ultimaPosicion: PuntoGeo? = null
@@ -128,10 +159,19 @@ class SesionNavegacion(
 
         suspend fun ejecutar() =
             coroutineScope {
-                if (guia != null) notas?.iniciarGuiado(guia.ruta.puntos) else notas?.iniciarLibre()
+                tramoReconocido = reconocimiento?.let { tramos?.tramo(it.tramoId) }
+                tramoActivo.value = tramoReconocido
+                val reconocido = tramoReconocido
+                when {
+                    guia != null -> notas?.iniciarGuiado(guia.ruta.puntos)
+                    reconocido != null -> notas?.iniciarReconocimiento(reconocido.id, reconocido.traza)
+                    else -> notas?.iniciarLibre()
+                }
+                val vigiladas =
+                    if (notas != null && ediciones != null) launch { vigilarEdiciones(notas, ediciones) } else null
                 val ajustesCopiloto = copiloto?.let { launch { it.seguirAjustes() } }
                 val datosAlertas = alertas?.arrancar(this, guia?.ruta?.puntos)
-                val cargaTramos = crono?.arrancar(this, id)
+                val cargaTramos = cronometro?.arrancar(this, id)
                 val edicion =
                     if (guia != null && ordenes != null) {
                         launch { for (orden in ordenes) editar(guia, orden, this@coroutineScope) }
@@ -141,6 +181,7 @@ class SesionNavegacion(
                 publicar(estadoActual())
                 fuente.fijaciones().takeWhile { procesar(it, this) }.collect()
                 edicion?.cancel()
+                vigiladas?.cancel()
                 guia?.recalculo?.cancel()
                 ajustesCopiloto?.cancel()
                 datosAlertas?.cancel()
@@ -170,7 +211,14 @@ class SesionNavegacion(
             ultimaFijacionMs = fijacion.tiempoMs
             ultimaPosicion = fijacion.punto
             registrar(fijacion, ahora)
-            crono?.alFijar(fijacion)?.forEach { copiloto?.anunciarCrono(it) }
+            cronometro?.alFijar(fijacion)?.forEach { copiloto?.anunciarCrono(it) }
+            cronometro?.tramoActivo().let {
+                if (cronometro != null &&
+                    it?.id != tramoActivo.value?.id
+                ) {
+                    tramoActivo.value = it
+                }
+            }
             if (guia != null) {
                 val progreso = guia.seguidor.actualizar(fijacion.punto, ahora)
                 guia.progreso = progreso
@@ -180,6 +228,8 @@ class SesionNavegacion(
                     notas?.posicionGuiada(progreso.progresoM, fijacion.velocidadMs)
                     vigilarSalida(guia, fijacion, alcance)
                 }
+            } else if (tramoReconocido != null) {
+                notas?.posicionReconocimiento(fijacion)
             } else {
                 notas?.posicionLibre(fijacion)
             }
@@ -326,7 +376,33 @@ class SesionNavegacion(
         }
 
         private fun estadoActual(): EstadoNavegacion =
-            guia?.estado() ?: EstadoNavegacion.Libre(inicioMs, acumulador.distanciaM)
+            guia?.estado() ?: EstadoNavegacion.Libre(inicioMs, acumulador.distanciaM, tramoReconocido?.id)
+
+        /**
+         * Lleva a las notas las ediciones que valen ahora: las del tramo activo (en metros de su traza, convertidas a
+         * coordenada) y las dictadas sin tramo (ya con la suya), en el orden en que se hicieron.
+         */
+        @OptIn(ExperimentalCoroutinesApi::class)
+        private suspend fun vigilarEdiciones(
+            notas: NotasSesion,
+            ediciones: RepositorioEdiciones,
+        ) {
+            tramoActivo
+                .flatMapLatest { tramo ->
+                    val trazado = tramo?.let { RutaMedida(it.traza) }
+                    val delTramo = tramo?.let { ediciones.observarDeTramo(it.id) } ?: flowOf(emptyList())
+                    combine(delTramo, ediciones.observarPendientes()) { guardadas, sinTramo ->
+                        val ancladas =
+                            guardadas.mapNotNull { e ->
+                                trazado?.let { EdicionEnMapa(it.puntoEn(e.posicionM), e.accion, e.marcaTiempoMs) }
+                            }
+                        ancladas +
+                            sinTramo.mapNotNull { e ->
+                                e.posicion?.let { EdicionEnMapa(it, e.accion, e.marcaTiempoMs) }
+                            }
+                    }
+                }.collect { notas.fijarEdiciones(it) }
+        }
     }
 
     private class Guia(
@@ -391,6 +467,9 @@ class SesionNavegacion(
 
     companion object {
         const val TAMANO_LOTE = 10
+
+        /** Nombre con que se graba el recorrido de una pasada de reconocimiento. */
+        const val NOMBRE_RECONOCIMIENTO = "Reconocimiento"
 
         /** Las fijaciones con peor precisión (m) se ignoran al grabar, acumular distancia, seguir la ruta y anotar. */
         const val PRECISION_MAX_M = 30.0

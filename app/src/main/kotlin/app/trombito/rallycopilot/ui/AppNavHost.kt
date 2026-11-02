@@ -13,8 +13,10 @@ import app.trombito.rallycopilot.ui.inicio.InicioScreen
 import app.trombito.rallycopilot.ui.mapa.MapaRoute
 import app.trombito.rallycopilot.ui.mapasoffline.MapasOfflineRoute
 import app.trombito.rallycopilot.ui.mistramos.DetalleTramoRoute
+import app.trombito.rallycopilot.ui.mistramos.EditarTramoRoute
 import app.trombito.rallycopilot.ui.mistramos.MisTramosRoute
 import app.trombito.rallycopilot.ui.perfil.PerfilRoute
+import app.trombito.rallycopilot.ui.reconocimiento.ReconocimientoRoute
 
 @Composable
 fun AppNavHost() {
@@ -43,7 +45,15 @@ fun AppNavHost() {
         composable<RutaTramo> {
             DetalleTramoRoute(
                 onVolver = { nav.popBackStack() },
+                onEditarNotas = { nav.navigate(RutaEditarTramo(it)) },
                 onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
+            )
+        }
+        composable<RutaEditarTramo> { EditarTramoRoute(onVolver = { nav.popBackStack() }) }
+        composable<RutaReconocimiento> {
+            ReconocimientoRoute(
+                onVolver = { nav.popBackStack() },
+                onEmpezado = { nav.navigate(RutaMapa) },
             )
         }
         composable<RutaAnalisis> { AnalisisRoute(onVolver = { nav.popBackStack() }) }
@@ -61,6 +71,7 @@ private fun abrirEntrada(
         EntradaInicio.MAPAS_OFFLINE -> nav.navigate(RutaMapasOffline)
         EntradaInicio.AJUSTES -> nav.navigate(RutaAjustes)
         EntradaInicio.MIS_TRAMOS -> nav.navigate(RutaMisTramos)
+        EntradaInicio.RECONOCIMIENTO -> nav.navigate(RutaReconocimiento)
         EntradaInicio.PERFIL -> nav.navigate(RutaPerfil)
         else -> Unit
     }

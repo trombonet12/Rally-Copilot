@@ -17,6 +17,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -43,6 +44,8 @@ import app.trombito.rallycopilot.ui.tramos.formatearTiempo
 
 const val ETIQUETA_DETALLE_CARGANDO = "detalle-cargando"
 const val ETIQUETA_DETALLE_NO_ENCONTRADO = "detalle-no-encontrado"
+const val ETIQUETA_DETALLE_EDITAR = "detalle-editar-notas"
+private val ALTO_MINIMO_TACTIL = 48.dp
 const val ETIQUETA_DETALLE_TITULO = "detalle-titulo"
 const val ETIQUETA_DETALLE_FAVORITO = "detalle-favorito"
 const val ETIQUETA_DETALLE_RENOMBRAR = "detalle-renombrar"
@@ -61,6 +64,7 @@ data class AccionesDetalleTramo(
     val onRenombrar: (String) -> Unit = {},
     val onCancelarRenombrar: () -> Unit = {},
     val onVerAnalisis: (pasadaId: Long) -> Unit = {},
+    val onEditarNotas: () -> Unit = {},
 )
 
 /** Detalle del tramo: traza dibujada, medidas y las pasadas, cada una con «Ver análisis». */
@@ -157,6 +161,12 @@ private fun ContenidoDetalle(
     ) {
         item { TrazaTramo(estado.traza) }
         item { MedidasTramo(tramo) }
+        item {
+            OutlinedButton(
+                onClick = acciones.onEditarNotas,
+                modifier = Modifier.fillMaxWidth().heightIn(min = ALTO_MINIMO_TACTIL).testTag(ETIQUETA_DETALLE_EDITAR),
+            ) { Text(stringResource(R.string.edicion_editar_notas)) }
+        }
         item {
             Text(
                 text = stringResource(R.string.detalle_pasadas_titulo).uppercase(),
