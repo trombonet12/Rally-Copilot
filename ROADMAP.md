@@ -352,14 +352,18 @@ Preparar tramos antes de conducirlos y descargar satélite de más detalle donde
 - Fuera: exportar.
 
 ### Criterios de aceptación
-- [ ] Un GPX importado genera tramo, notas y descarga de corredor.
-- [ ] El corredor descargado se ve sin red a z18 alrededor de la ruta y no fuera de ella.
+- [x] Un GPX importado genera tramo, notas y descarga de corredor: `ImportadorTramosTest` y encolado del corredor al crear tramo (`PrecargaDetalleTest`).
+- [x] El corredor descargado se ve sin red a z18 alrededor de la ruta y no fuera de ella: zona z18 real del IGN bajada y vista en el emulador ([captura](docs/capturas/h9/)); corredor por tests.
 
 ### Tests
 - Motor: parseo GPX/KML (variantes reales), cálculo de teselas de un corredor.
 
 ### Estado
-en curso (2026-11-02) · Depende de: H1, H6 · Dudas: resueltas (2026-11-02): z18 automático con WiFi, importar por compartir y botón, dibujar tocando puntos
+completado (2026-11-02) · Depende de: H1, H6 · Dudas: resueltas (2026-11-02): z18 automático con WiFi, importar por compartir y botón, dibujar tocando puntos, borrar satélite incluye detalle
+<!-- Hecho: lectores GPX/KML (motor/importar), importar por Compartir/Abrir con y botón, dibujar rutas tocando puntos, tic tras
+«Copiloto», teselas de corredor/rectángulo (motor/precarga), descargador IGN a MBTiles con WorkManager, capa z18–19, sección
+Detalle y zona manual en Mapas offline.
+Pendiente: probar «Abrir con» desde gestores de archivos reales en el móvil; a z19 fuera de zonas z19 se ve el z17 ampliado. -->
 
 ## H10 — Interfaz completa estilo WRC
 

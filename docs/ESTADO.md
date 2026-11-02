@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H9 — Precarga de rutas y satélite de alta calidad (en curso, 2026-11-02) |
-| Estado | H8 cerrado y v0.9.0 publicada. H9: importar/dibujar y luego satélite z18 |
+| Hito | H9 cerrado (2026-11-02) · siguiente: H10 — Interfaz completa estilo WRC |
+| Estado | **H9 cerrado**; v0.10 publicada al hacer push con `version.properties` |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -20,6 +20,7 @@
 - 2026-10-28 · `scripts/gps-replay.mjs` + traza real de la Ma-2141 ([rutas/](rutas/)), verificado en el emulador; `voice-lab/README.md` con dónde dejar el material de voz.
 - 2026-10-28 · **H1**: PRs #1 y #2 de Dependabot fusionados (con permiso). Repo público [`trombonet12/rally-copilot-data`](https://github.com/trombonet12/rally-copilot-data) con workflow mensual (decidir → build sin token → publicar) y release `datos-2026.10.28-2`. Motor: manifest, plan de descarga, vías/límites, velocidad. App: MapLibre 13.6.1, Room, WorkManager, descarga reanudable verificada, GPS sin GMS, mapa vectorial/satélite, velocidad y límite, Mapas offline, Ajustes/Acerca de. Revisión de seguridad aplicada. Capturas en [capturas/h1/](capturas/h1/).
 
+- 2026-11-02 · **H9**: importar GPX/KML, dibujar rutas, satélite z18 en corredor y zona manual z18–19.
 - 2026-11-02 · **H8**: órdenes de voz offline (Vosk con gramática), notas editadas que prevalecen, edición en el mapa y en el tramo, reconocimiento, sectores arrastrables (Room v9–v10).
 - 2026-11-02 · **H7**: análisis de cada pasada (sectores, gráficos, mapa coloreado, repetición), Mis tramos, perfil del piloto, Room v8. Capturas en [capturas/h7/](capturas/h7/).
 - 2026-11-01 · **H6**: tramos y cronometraje (motor tramos/, Room v7, delta por voz en Completo, HUD de retransmisión, tarjeta de meta); «Ir aquí» y búsqueda durante el guiado. Capturas en [capturas/h6/](capturas/h6/).
@@ -81,4 +82,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H9: (A) GPX/KML + dibujar rutas + tic de «Copiloto»; (B) satélite z18 en corredor y zona manual z18–19.
+- **Agente:** H9 cerrado y v0.10 publicada. Siguiente: `hito start H10` (interfaz WRC completa, Ajustes con vista previa en vivo y controles rápidos en el mapa): preguntar a Joan al empezar. Modo ahorro de tokens.
