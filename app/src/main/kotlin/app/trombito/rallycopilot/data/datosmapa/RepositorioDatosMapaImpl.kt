@@ -97,6 +97,8 @@ class RepositorioDatosMapaImpl(
             // Primero el registro: si se corta a medias, un archivo huérfano es mejor que un registro sin archivo.
             if (satelite.isNotEmpty()) dao.borrarArchivos(satelite.map { it.id })
             instalador.borrarSatelite(satelite.map { it.nombre })
+            // Sin satélite el detalle z18-19 no sirve: se borran el MBTiles, su cola y las rutas pendientes.
+            precarga.borrar()
             dao.establecerError(null)
         }
     }

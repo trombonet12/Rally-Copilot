@@ -91,7 +91,7 @@
     <string name="zona_descargar">Descargar esta zona</string>
     <string name="mapas_borrar">Borrar satélite</string>
     <string name="mapas_borrar_titulo">¿Borrar el satélite?</string>
-    <string name="mapas_borrar_texto">Se eliminarán las imágenes de satélite de este móvil. Los mapas de Mallorca se quedan y podrás volver a descargar el satélite.</string>
+    <string name="mapas_borrar_texto">Se eliminarán las imágenes de satélite de este móvil, también el detalle descargado. Los mapas de Mallorca se quedan y podrás volver a descargar el satélite.</string>
     <string name="mapas_borrar_confirmar">Borrar</string>
     <string name="mapas_borrar_cancelar">No borrar</string>
     <string name="mapas_error_sin_red">No hay conexión. Inténtalo de nuevo cuando tengas red.</string>

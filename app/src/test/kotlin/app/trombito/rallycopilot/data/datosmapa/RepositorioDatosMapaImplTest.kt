@@ -201,6 +201,27 @@ class RepositorioDatosMapaImplTest {
     }
 
     @Test
+    fun `borrar el satelite borra tambien el detalle z18 a z19`() {
+        val precarga =
+            app.trombito.rallycopilot.data.detalle
+                .FalsaPrecarga()
+        val conPrecarga =
+            RepositorioDatosMapaImpl(
+                dao,
+                base.ajustesMapasDao(),
+                workManager,
+                entorno.config,
+                Dispatchers.IO,
+                precarga = precarga,
+            )
+        instalarArchivo()
+
+        runBlocking { conPrecarga.borrar() }
+
+        assertTrue(precarga.borrado)
+    }
+
+    @Test
     fun `sin el archivo de detalle el estilo satelite no lo menciona`() {
         escribirEstilos(conSatelite = true)
         escribirEstiloSateliteRealista()

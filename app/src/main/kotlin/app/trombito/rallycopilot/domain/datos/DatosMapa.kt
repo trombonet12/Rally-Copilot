@@ -67,7 +67,7 @@ interface RepositorioDatosMapa {
 
     fun cancelar()
 
-    /** Borra solo el satélite (archivos y registros); lo sembrado desde el APK no se toca. */
+    /** Borra solo el satélite (archivos, registros y detalle z18–19); lo sembrado desde el APK no se toca. */
     suspend fun borrar()
 
     /**
