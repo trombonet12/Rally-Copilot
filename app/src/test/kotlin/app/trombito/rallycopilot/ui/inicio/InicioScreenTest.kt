@@ -20,12 +20,12 @@ class InicioScreenTest {
     private val banco = BancoCompose()
 
     @Test
-    fun `el menu muestra las seis entradas del producto en orden`() {
+    fun `el menu muestra las cuatro entradas del producto en orden`() {
         banco.poner { RallyCopilotTheme { InicioScreen() } }
-        val esperadas = listOf("conducir", "mis_tramos", "reconocimiento", "mapas_offline", "perfil", "ajustes")
+        val esperadas = listOf("conducir", "mis_tramos", "perfil", "ajustes")
         assertEquals(esperadas.map { "inicio-$it" }, banco.etiquetas("inicio-"))
         val textos = banco.textos(banco.raiz())
-        listOf("CONDUCIR", "MIS TRAMOS", "RECONOCIMIENTO", "MAPAS OFFLINE", "PERFIL DEL PILOTO", "AJUSTES").forEach {
+        listOf("CONDUCIR", "MIS TRAMOS", "PERFIL DEL PILOTO", "AJUSTES").forEach {
             assertTrue("Falta la entrada $it en $textos", it in textos)
         }
     }
@@ -45,17 +45,16 @@ class InicioScreenTest {
     }
 
     @Test
-    fun `conducir, mis tramos, mapas offline, perfil y ajustes son pulsables y navegan`() {
+    fun `conducir, mis tramos, perfil y ajustes son pulsables y navegan`() {
         val abiertas = mutableListOf<EntradaInicio>()
         banco.poner { RallyCopilotTheme { InicioScreen(onEntrada = { abiertas += it }) } }
-        listOf("conducir", "mis_tramos", "mapas_offline", "perfil", "ajustes").forEach {
+        listOf("conducir", "mis_tramos", "perfil", "ajustes").forEach {
             banco.pulsar(banco.conEtiqueta("inicio-$it"))
         }
         assertEquals(
             listOf(
                 EntradaInicio.CONDUCIR,
                 EntradaInicio.MIS_TRAMOS,
-                EntradaInicio.MAPAS_OFFLINE,
                 EntradaInicio.PERFIL,
                 EntradaInicio.AJUSTES,
             ),
@@ -72,7 +71,7 @@ class InicioScreenTest {
             assertTrue("${it.name} debe ser pulsable", banco.esPulsable(nodo))
             assertFalse("Próximamente" in banco.textos(nodo))
         }
-        banco.pulsar(banco.conEtiqueta("inicio-reconocimiento"))
-        assertEquals(listOf(EntradaInicio.RECONOCIMIENTO), abiertas)
+        banco.pulsar(banco.conEtiqueta("inicio-ajustes"))
+        assertEquals(listOf(EntradaInicio.AJUSTES), abiertas)
     }
 }

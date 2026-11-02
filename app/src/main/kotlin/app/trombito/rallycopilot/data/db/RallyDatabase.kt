@@ -18,7 +18,7 @@ import androidx.room.RoomDatabase
             MarcaEntity::class,
             EdicionNotaEntity::class,
         ],
-    version = 11,
+    version = 12,
     exportSchema = true,
 )
 abstract class RallyDatabase : RoomDatabase() {

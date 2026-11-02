@@ -39,10 +39,6 @@ data class RutaEditarTramo(
     val tramoId: String,
 )
 
-/** Elegir el tramo que se va a reconocer (modo reconocimiento). */
-@Serializable
-data object RutaReconocimiento
-
 /** Análisis de una pasada de un tramo. */
 @Serializable
 data class RutaAnalisis(

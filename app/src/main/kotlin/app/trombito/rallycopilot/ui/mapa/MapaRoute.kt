@@ -121,6 +121,7 @@ private fun accionesCopiloto(vm: CopilotoViewModel) =
         onNotasSimplificadas = vm::onNotasSimplificadas,
         onVolumenVoz = vm::onVolumenVoz,
         onEscucharEjemplo = vm::onEscucharEjemplo,
+        onNotasGrandes = vm::onNotasGrandes,
     )
 
 private fun accionesMapa(

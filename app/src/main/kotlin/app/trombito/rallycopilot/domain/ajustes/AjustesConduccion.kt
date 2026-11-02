@@ -24,7 +24,9 @@ enum class Orientacion { RUMBO, NORTE }
  * [activarConCopiloto] escucha sin parar, solo mientras se conduce, la palabra «Copiloto» para recibir una orden de voz
  * (desactivado por defecto: gasta batería y mantiene el micrófono abierto). [volumenVoz] es la ganancia propia del
  * copiloto en porcentaje (50–150, 100 = sin cambio), aparte del volumen del móvil; [tema] es oscuro, claro o el del
- * sistema.
+ * sistema. [cronometrar] activa los tramos cronometrados (desactivado: no se crean tramos ni pasadas ni se detectan los
+ * guardados, pero las notas y la navegación siguen); [notasGrandes] cambia la pantalla de conducción al modo roadbook
+ * (notas enormes, casi sin mapa).
  */
 data class AjustesConduccion(
     val nivelZoom: Int = 0,
@@ -40,6 +42,8 @@ data class AjustesConduccion(
     val activarConCopiloto: Boolean = false,
     val volumenVoz: Int = VOLUMEN_VOZ_NORMAL,
     val tema: Tema = Tema.PREDETERMINADO,
+    val cronometrar: Boolean = true,
+    val notasGrandes: Boolean = false,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }

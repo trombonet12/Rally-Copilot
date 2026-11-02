@@ -29,6 +29,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -42,13 +43,13 @@ import app.trombito.rallycopilot.ui.maniobras.ParalelogramoShape
 import app.trombito.rallycopilot.ui.navegacion.guiado.ColoresGuiado
 import app.trombito.rallycopilot.ui.theme.RallyOscuro
 
-private const val OPACIDAD_FONDO = 0.94f
+internal const val OPACIDAD_FONDO = 0.94f
 private const val REDUCCION_FUENTE = 0.92f
 private const val FRACCION_TEXTO_MINIMO = 0.7f
 private const val FRACCION_TEXTO_MINIMO_CON_DISTANCIA = 0.65f
 private const val FRACCION_TEXTO_DISTANCIA = 0.6f
-private val GRIS_BORDE = Color(0xFF80858D)
-private val FONDO_ACTIVA = Color(0xFF2A2008)
+internal val GRIS_BORDE = Color(0xFF80858D)
+internal val FONDO_ACTIVA = Color(0xFF2A2008)
 private val SESGO = 10.dp
 private val SESGO_COMPACTO = 6.dp
 private val FORMA_PEQUENA = RoundedCornerShape(10.dp)
@@ -76,6 +77,11 @@ internal class Medidas(
 internal val MEDIDAS_GRANDE = Medidas(48.dp, 24.sp, 28.dp, ParalelogramoShape(SESGO), SESGO + 8.dp, 2, false, true)
 internal val MEDIDAS_COMPACTA =
     Medidas(32.dp, 20.sp, 22.dp, ParalelogramoShape(SESGO_COMPACTO), SESGO_COMPACTO + 8.dp, 1, false, true)
+internal val FORMA_ENORME = RoundedCornerShape(24.dp)
+internal val MEDIDAS_ENORME = Medidas(200.dp, 44.sp, 64.dp, FORMA_ENORME, 24.dp, 2, false, true)
+internal val MEDIDAS_ENORME_APAISADA = Medidas(116.dp, 36.sp, 40.dp, FORMA_ENORME, 16.dp, 2, false, true)
+internal val MEDIDAS_ROADBOOK_LADO =
+    Medidas(36.dp, 20.sp, 24.dp, ParalelogramoShape(SESGO_COMPACTO), SESGO_COMPACTO + 8.dp, 1, true, true)
 internal val MEDIDAS_PEQUENA = Medidas(28.dp, 15.sp, 20.dp, FORMA_PEQUENA, 8.dp, 2, true)
 
 @Composable
@@ -136,7 +142,7 @@ internal fun FilaNota(
 
 /** Avisos unidos, icono de la curva y puente de la curva: lo que no va en el texto se ve solo como icono. */
 @Composable
-private fun RowScope.IconosDeLaNota(
+internal fun RowScope.IconosDeLaNota(
     elemento: ElementoHoja,
     indice: Int,
     simplificadas: Boolean,
@@ -168,11 +174,12 @@ private fun RowScope.IconosDeLaNota(
 
 /** Texto de la nota: reduce la fuente (hasta el mínimo de [medidas]) antes de recortar con «…». */
 @Composable
-private fun TextoAjustado(
+internal fun TextoAjustado(
     texto: String,
     color: Color,
     medidas: Medidas,
     modifier: Modifier = Modifier,
+    alineacion: TextAlign = TextAlign.Unspecified,
 ) {
     var tamano by remember(texto, medidas) { mutableStateOf(medidas.texto) }
     Text(
@@ -185,6 +192,7 @@ private fun TextoAjustado(
                 fontStyle = FontStyle.Italic,
             ),
         maxLines = medidas.lineas,
+        textAlign = alineacion,
         overflow = TextOverflow.Ellipsis,
         onTextLayout = {
             if (it.hasVisualOverflow && tamano.value > medidas.textoMinimo.value) {
@@ -218,7 +226,7 @@ private fun DistanciaNota(
 }
 
 @Composable
-private fun Icono(
+internal fun Icono(
     recurso: Int,
     color: Color,
     lado: Dp,
@@ -228,7 +236,7 @@ private fun Icono(
 }
 
 /** Pide precaución: la nota lleva la marca o alguno de sus avisos es de «cuidado» (resalto, badén, cuidado). */
-private fun esCuidado(elemento: ElementoHoja): Boolean =
+internal fun esCuidado(elemento: ElementoHoja): Boolean =
     when (elemento) {
         is ElementoHoja.DeNota -> elemento.nota.cuidado || elemento.avisosUnidos.any { it.tipo.esCuidado }
         is ElementoHoja.DeAviso -> elemento.aviso.tipo.esCuidado
@@ -240,7 +248,7 @@ private fun colorAviso(
 ): Color = if (tipo.esCuidado) RallyOscuro.aviso else normal
 
 /** Ámbar si pide precaución, latón si toca cantarla ya, y blanco roto en los demás casos. */
-private fun colorNota(
+internal fun colorNota(
     cuidado: Boolean,
     activa: Boolean,
 ): Color =

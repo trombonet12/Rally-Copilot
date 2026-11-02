@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.state.ToggleableState
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
@@ -50,6 +51,8 @@ class AjustesVistaPreviaTest {
                             onIcono = { ajustes = ajustes.copy(icono = it) },
                             onEstiloManiobras = { ajustes = ajustes.copy(estiloManiobras = it) },
                             onTema = { ajustes = ajustes.copy(tema = it) },
+                            onCronometrar = { ajustes = ajustes.copy(cronometrar = it) },
+                            onNotasGrandes = { ajustes = ajustes.copy(notasGrandes = it) },
                             onVolumenVoz = { ajustes = ajustes.copy(volumenVoz = it) },
                             onEscucharEjemplo = alEscuchar,
                         ),
@@ -57,6 +60,14 @@ class AjustesVistaPreviaTest {
             }
         }
     }
+
+    private fun estadoDe(etiqueta: String) =
+        banco
+            .conEtiqueta(etiqueta)
+            .children
+            .first { banco.esPulsable(it) }
+            .config
+            .getOrNull(SemanticsProperties.ToggleableState)
 
     private fun textoDe(etiqueta: String) = banco.textos(banco.conEtiqueta(etiqueta)).joinToString(" ")
 
@@ -70,18 +81,53 @@ class AjustesVistaPreviaTest {
     }
 
     @Test
+    fun `el interruptor de cronometrar trayectos esta activado por defecto y la vista previa lo explica`() {
+        ponerConEstado()
+        assertEquals(ToggleableState.On, estadoDe(ETIQUETA_AJUSTES_CRONOMETRAR))
+        assertTrue("Cronometrar trayectos" in banco.textos(banco.conEtiqueta(ETIQUETA_AJUSTES_CRONOMETRAR)))
+        assertTrue(banco.descripcion(banco.conEtiqueta(ETIQUETA_PREVISTA_CRONO))!!.startsWith("Cronómetro activo"))
+    }
+
+    @Test
+    fun `desactivar cronometrar cambia la vista previa a solo notas y guiado`() {
+        ponerConEstado()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AJUSTES_CRONOMETRAR).children.first { banco.esPulsable(it) })
+        assertEquals(ToggleableState.Off, estadoDe(ETIQUETA_AJUSTES_CRONOMETRAR))
+        val prevista = banco.conEtiqueta(ETIQUETA_PREVISTA_CRONO)
+        assertEquals("Sin cronómetro: solo notas y guiado", banco.descripcion(prevista))
+        assertFalse(banco.descripcion(prevista)!!.contains("minuto"))
+    }
+
+    @Test
+    fun `las notas grandes tambien se pueden activar desde la seccion Notas`() {
+        ponerConEstado()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_NOTAS_GRANDES).children.first { banco.esPulsable(it) })
+        assertEquals(ToggleableState.On, estadoDe(ETIQUETA_NOTAS_GRANDES))
+    }
+
+    @Test
     fun `las secciones salen en orden, con cabecera, y con vista previa las que la tienen`() {
         ponerConEstado()
-        val claves = listOf("copiloto", "notas", "voz", "mapa", "escucha", "tema", "datos", "acerca")
+        val claves = listOf("copiloto", "notas", "voz", "tramos", "mapa", "escucha", "tema", "datos", "acerca")
         claves.forEach { assertTrue("falta la seccion $it", banco.hay(ETIQUETA_SECCION_PREFIJO + it)) }
-        listOf("copiloto", "notas", "voz", "mapa", "tema").forEach {
+        listOf("copiloto", "notas", "voz", "tramos", "mapa", "tema").forEach {
             assertTrue("falta la vista previa de $it", banco.hay(ETIQUETA_SECCION_PREVISTA_PREFIJO + it))
         }
         listOf("escucha", "datos", "acerca").forEach {
             assertFalse(banco.hay(ETIQUETA_SECCION_PREVISTA_PREFIJO + it))
         }
         val titulos = banco.todosLosTextos()
-        listOf("Copiloto", "Notas", "Volumen de la voz", "Mapa", "Escucha", "Tema", "Datos", "Acerca de").forEach {
+        listOf(
+            "Copiloto",
+            "Notas",
+            "Volumen de la voz",
+            "Tramos",
+            "Mapa",
+            "Escucha",
+            "Tema",
+            "Datos",
+            "Acerca de",
+        ).forEach {
             assertTrue("falta el titulo $it", it in titulos)
         }
     }

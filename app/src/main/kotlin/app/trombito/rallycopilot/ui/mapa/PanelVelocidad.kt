@@ -25,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
@@ -109,13 +110,20 @@ fun PanelVelocidad(
                 }
                 if (enColumna) {
                     Column(
-                        modifier = Modifier.padding(horizontal = Espacio.s, vertical = Espacio.m),
+                        modifier = Modifier.padding(horizontal = Espacio.s, vertical = Espacio.xs),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterVertically),
+                        verticalArrangement = Arrangement.spacedBy(Espacio.xs, Alignment.CenterVertically),
                     ) {
-                        contenido()
-                        rotulo()
-                        pie?.invoke()
+                        // En apaisado bajo, si falta sitio se recorta la placa o el cronómetro, no los botones.
+                        Column(
+                            modifier = Modifier.weight(1f, fill = false).clipToBounds(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(Espacio.xs, Alignment.CenterVertically),
+                        ) {
+                            contenido()
+                            rotulo()
+                            pie?.invoke()
+                        }
                         // Hasta cinco botones de 48 dp por fila; los que sobran pasan a otra fila bajo la velocidad.
                         FilasDeBotones(botonesIzquierda + botonesDerecha)
                     }

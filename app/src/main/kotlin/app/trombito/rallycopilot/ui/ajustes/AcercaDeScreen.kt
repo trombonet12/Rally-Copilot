@@ -86,7 +86,7 @@ private fun Titulo(
     Text(
         text = stringResource(texto),
         style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.secondary,
+        color = MaterialTheme.colorScheme.primary,
         modifier = Modifier.padding(top = Espacio.m).semantics { heading() },
     )
 }

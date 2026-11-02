@@ -21,8 +21,9 @@ import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.mapa.AccionesMapa
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_CAPAS_BOTON
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_CAPAS_PANEL
+import app.trombito.rallycopilot.ui.mapa.ETIQUETA_NOTAS_GRANDES_BOTON
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_ORIENTACION
-import app.trombito.rallycopilot.ui.mapa.ETIQUETA_RAPIDOS_BOTON
+import app.trombito.rallycopilot.ui.mapa.ETIQUETA_RAPIDOS_PANEL
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_VELOCIDAD
 import app.trombito.rallycopilot.ui.mapa.EstadoVistaMapa
 import app.trombito.rallycopilot.ui.mapa.MapaScreen
@@ -110,7 +111,7 @@ abstract class CopilotoEnMapaBase {
         listOf(
             ETIQUETA_CAPAS_BOTON,
             ETIQUETA_MODO_BOTON,
-            ETIQUETA_RAPIDOS_BOTON,
+            ETIQUETA_NOTAS_GRANDES_BOTON,
             ETIQUETA_BUSCAR_GUIANDO,
             ETIQUETA_ORIENTACION,
             ETIQUETA_TERMINAR,
@@ -139,7 +140,10 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
         poner()
         val boton = banco.conEtiqueta(ETIQUETA_MODO_BOTON)
         assertTrue(banco.textos(boton).isEmpty())
-        assertEquals("Modo del copiloto: Completo. Pulsa para cambiarlo", banco.descripcion(boton))
+        assertEquals(
+            "Copiloto: modo Completo. Pulsa para cambiar el modo y los ajustes rápidos",
+            banco.descripcion(boton),
+        )
         assertTrue("Objetivo táctil de 48 dp", boton.size.width >= 48 * 3 && boton.size.height >= 48 * 3)
     }
 
@@ -148,23 +152,28 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
         copiloto = copiloto.copy(modo = ModoCopiloto.SILENCIO)
         poner()
         assertEquals(
-            "Modo del copiloto: Silencio. Pulsa para cambiarlo",
+            "Copiloto: modo Silencio. Pulsa para cambiar el modo y los ajustes rápidos",
             banco.descripcion(banco.conEtiqueta(ETIQUETA_MODO_BOTON)),
         )
         copiloto = copiloto.copy(modo = ModoCopiloto.NOTAS)
         banco.reposo()
         assertEquals(
-            "Modo del copiloto: Notas. Pulsa para cambiarlo",
+            "Copiloto: modo Notas. Pulsa para cambiar el modo y los ajustes rápidos",
             banco.descripcion(banco.conEtiqueta(ETIQUETA_MODO_BOTON)),
         )
     }
 
     @Test
-    fun `tocar el boton abre un menu con los cuatro modos como iconos`() {
+    fun `tocar el boton abre la hoja con los cuatro modos como iconos y el nombre del elegido`() {
         poner()
-        assertFalse(banco.hay(ETIQUETA_MODO_PANEL))
+        assertFalse(banco.hay(ETIQUETA_RAPIDOS_PANEL))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_BOTON))
-        assertTrue(banco.hay(ETIQUETA_MODO_PANEL))
+        assertTrue(banco.hay(ETIQUETA_RAPIDOS_PANEL))
+        assertEquals("Completo", banco.textos(banco.conEtiqueta(ETIQUETA_MODO_SELECTOR)).first())
+        assertEquals(
+            "Todo, con los tiempos y parciales del tramo",
+            banco.textos(banco.conEtiqueta(ETIQUETA_MODO_DETALLE)).single(),
+        )
         val opciones = banco.etiquetas(ETIQUETA_MODO_PREFIJO)
         assertEquals(ModoCopiloto.entries.size, opciones.size)
         val nombres = mutableListOf<String?>()
@@ -188,12 +197,20 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
     }
 
     @Test
-    fun `elegir un modo lo pide y cierra el menu`() {
+    fun `elegir un modo lo pide y la hoja sigue abierta para ajustar el resto`() {
         poner()
         banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_BOTON))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_PREFIJO + "solo_alertas"))
         assertEquals(listOf(ModoCopiloto.SOLO_ALERTAS), modos)
-        assertFalse(banco.hay(ETIQUETA_MODO_PANEL))
+        assertTrue(banco.hay(ETIQUETA_RAPIDOS_PANEL))
+    }
+
+    @Test
+    fun `hay un solo boton para el modo y los ajustes rapidos y uno para las notas grandes`() {
+        poner()
+        assertTrue(banco.hay(ETIQUETA_MODO_BOTON))
+        assertTrue(banco.hay(ETIQUETA_NOTAS_GRANDES_BOTON))
+        assertFalse("ya no hay un boton aparte de ajustes rapidos", banco.hay("mapa-rapidos-boton"))
     }
 
     @Test
@@ -201,21 +218,21 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
         poner()
         banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_BOTON))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_BOTON))
-        assertFalse(banco.hay(ETIQUETA_MODO_PANEL))
+        assertFalse(banco.hay(ETIQUETA_RAPIDOS_PANEL))
         assertTrue(modos.isEmpty())
     }
 
     @Test
-    fun `el menu de modo y el de capas no estan abiertos a la vez`() {
+    fun `la hoja del copiloto y la de capas no estan abiertas a la vez`() {
         poner()
         banco.pulsar(banco.conEtiqueta(ETIQUETA_CAPAS_BOTON))
         assertTrue(banco.hay(ETIQUETA_CAPAS_PANEL))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_BOTON))
-        assertTrue(banco.hay(ETIQUETA_MODO_PANEL))
+        assertTrue(banco.hay(ETIQUETA_RAPIDOS_PANEL))
         assertFalse(banco.hay(ETIQUETA_CAPAS_PANEL))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_CAPAS_BOTON))
         assertTrue(banco.hay(ETIQUETA_CAPAS_PANEL))
-        assertFalse(banco.hay(ETIQUETA_MODO_PANEL))
+        assertFalse(banco.hay(ETIQUETA_RAPIDOS_PANEL))
     }
 
     @Test
@@ -323,7 +340,7 @@ class CopilotoEnMapaHorizontalTest : CopilotoEnMapaBase() {
     fun `en horizontal el selector abre su menu`() {
         poner()
         banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_BOTON))
-        assertTrue(banco.hay(ETIQUETA_MODO_PANEL))
+        assertTrue(banco.hay(ETIQUETA_RAPIDOS_PANEL))
         assertEquals(ModoCopiloto.entries.size, banco.etiquetas(ETIQUETA_MODO_PREFIJO).size)
     }
 }

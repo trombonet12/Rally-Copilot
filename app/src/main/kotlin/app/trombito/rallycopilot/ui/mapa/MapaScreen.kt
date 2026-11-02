@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // la pantalla del mapa agrupa sus zonas (mapa, roadbook, cabecera, pie y avisos)
+
 package app.trombito.rallycopilot.ui.mapa
 
 import androidx.compose.foundation.background
@@ -54,6 +56,7 @@ import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.MantenerPantallaEncendida
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.DialogoVozCopiloto
+import app.trombito.rallycopilot.ui.maniobras.variante
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.BannerParada
 import app.trombito.rallycopilot.ui.navegacion.BusquedaDestino
@@ -149,7 +152,11 @@ fun MapaScreen(
     var abierto by rememberSaveable { mutableStateOf(MenuMapa.NINGUNO) }
     val menu = MenuAbierto(abierto) { abierto = it }
     val botones =
-        if (estado.hayDatos) botonesDelPanel(estado, acciones, navegacion, copiloto, menu) else BotonesPanel()
+        if (estado.hayDatos || copiloto.estado.notasGrandes) {
+            botonesDelPanel(estado, acciones, navegacion, copiloto, menu)
+        } else {
+            BotonesPanel()
+        }
     // Parado planificando (búsqueda, tarjeta de un punto o vista previa) el panel inferior se encoge para ver más mapa.
     val compacto = rememberPanelCompacto(estado.velocidadKmh, navegacion.estado.planificando)
     DialogoVozSiToca(copiloto)
@@ -223,6 +230,19 @@ private fun ZonaMapa(
     mapa: @Composable (String, Modifier) -> Unit,
     modifier: Modifier,
 ) {
+    if (contenido.copiloto.estado.notasGrandes) {
+        RoadbookEnZona(contenido, modifier)
+    } else {
+        ZonaConMapa(contenido, mapa, modifier)
+    }
+}
+
+@Composable
+private fun ZonaConMapa(
+    contenido: ZonaMapaContenido,
+    mapa: @Composable (String, Modifier) -> Unit,
+    modifier: Modifier,
+) {
     val estado = contenido.estado
     val vista = contenido.vista
     val acciones = contenido.acciones
@@ -278,8 +298,54 @@ private fun ZonaMapa(
                 }
                 // Encima de todo y pegado al panel inferior, junto al botón que lo abre.
                 val pegado = Modifier.align(if (vista.horizontal) Alignment.BottomEnd else Alignment.BottomStart)
-                MenuSobreMapa(estado, acciones, contenido.copiloto, contenido.menu, pegado)
+                MenuSobreMapa(estado, acciones, contenido.copiloto, contenido.menu, pegado, vista.horizontal)
             }
+        }
+    }
+}
+
+/**
+ * El modo de notas grandes en lugar del mapa: la tarjeta de permiso si falta, el menú del copiloto sobre ella y,
+ * debajo de todo, el roadbook. Las notas, alertas y el cronómetro son los mismos que en el mapa.
+ */
+@Composable
+private fun RoadbookEnZona(
+    contenido: ZonaMapaContenido,
+    modifier: Modifier,
+) {
+    val vista = contenido.vista
+    val navegacion = contenido.navegacion
+    val lados = if (vista.horizontal) LADOS_MAPA_HORIZONTAL else LADOS_MAPA_VERTICAL
+    Box(modifier) {
+        ZonaRoadbook(
+            ContenidoRoadbook(
+                notas = navegacion.notas,
+                guiando = navegacion.estado.control as? EstadoNavegacion.Guiando,
+                variante = contenido.estado.estiloManiobras.variante(),
+                alertas = contenido.alertas,
+                crono = contenido.crono,
+            ),
+            horizontal = vista.horizontal,
+            modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(lados)),
+        )
+        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(lados)).padding(Espacio.s)) {
+            if (vista.permiso != EstadoPermisoUbicacion.CONCEDIDO) {
+                TarjetaPermiso(
+                    vista.permiso,
+                    contenido.acciones.onPedirPermiso,
+                    contenido.acciones.onAbrirAjustes,
+                    Modifier.align(Alignment.BottomStart),
+                )
+            }
+            val pegado = Modifier.align(if (vista.horizontal) Alignment.BottomEnd else Alignment.BottomStart)
+            MenuSobreMapa(
+                contenido.estado,
+                contenido.acciones,
+                contenido.copiloto,
+                contenido.menu,
+                pegado,
+                vista.horizontal,
+            )
         }
     }
 }
@@ -532,11 +598,12 @@ private fun TarjetaPermiso(
     permiso: EstadoPermisoUbicacion,
     onPedir: () -> Unit,
     onAbrirAjustes: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(OPACIDAD_SUPERFICIE_SOBRE_MAPA),
         shape = MaterialTheme.shapes.medium,
-        modifier = Modifier.fillMaxWidth().testTag(ETIQUETA_PERMISO),
+        modifier = modifier.fillMaxWidth().testTag(ETIQUETA_PERMISO),
     ) {
         Column(Modifier.padding(Espacio.l), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
             Text(

@@ -30,6 +30,7 @@ import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_ANTICIPACION_PREFIJO = "ajustes-anticipacion-"
 const val ETIQUETA_NOTAS_SIMPLIFICADAS = "ajustes-notas-simplificadas"
+const val ETIQUETA_NOTAS_GRANDES = "ajustes-notas-grandes"
 
 /** Anticipación (5 niveles, solo iconos) e interruptor de notas simplificadas, con la vista previa de la nota. */
 @Composable
@@ -55,6 +56,13 @@ internal fun SeccionNotas(
             onCambio = acciones.onNotasSimplificadas,
             etiqueta = ETIQUETA_NOTAS_SIMPLIFICADAS,
             detalle = stringResource(R.string.ajustes_simplificadas_detalle),
+        )
+        FilaInterruptor(
+            titulo = stringResource(R.string.ajustes_notas_grandes),
+            marcado = ajustes.notasGrandes,
+            onCambio = acciones.onNotasGrandes,
+            etiqueta = ETIQUETA_NOTAS_GRANDES,
+            detalle = stringResource(R.string.ajustes_notas_grandes_detalle),
         )
     }
 }

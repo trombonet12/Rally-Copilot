@@ -11,6 +11,7 @@ import app.trombito.rallycopilot.data.datosmapa.URL_MANIFEST
 import app.trombito.rallycopilot.data.db.AjustesMapasDao
 import app.trombito.rallycopilot.data.db.DatosMapaDao
 import app.trombito.rallycopilot.data.db.MIGRATION_10_11
+import app.trombito.rallycopilot.data.db.MIGRATION_11_12
 import app.trombito.rallycopilot.data.db.MIGRATION_1_2
 import app.trombito.rallycopilot.data.db.MIGRATION_2_3
 import app.trombito.rallycopilot.data.db.MIGRATION_3_4
@@ -53,6 +54,7 @@ object DatosMapaModule {
                 MIGRATION_8_9,
                 MIGRATION_9_10,
                 MIGRATION_10_11,
+                MIGRATION_11_12,
             ).build()
 
     @Provides

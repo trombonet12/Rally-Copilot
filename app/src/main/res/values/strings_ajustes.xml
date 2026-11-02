@@ -5,6 +5,8 @@
     <string name="ajustes_seccion_copiloto_detalle">Cuánto habla y con qué voz.</string>
     <string name="ajustes_seccion_notas">Notas</string>
     <string name="ajustes_seccion_notas_detalle">Cuándo te canta cada curva y cómo la dice.</string>
+    <string name="ajustes_seccion_tramos">Tramos</string>
+    <string name="ajustes_seccion_tramos_detalle">Convertir tus trayectos en tramos cronometrados.</string>
     <string name="ajustes_seccion_voz">Volumen de la voz</string>
     <string name="ajustes_seccion_voz_detalle">La fuerza del copiloto, aparte del volumen del móvil.</string>
     <string name="ajustes_seccion_mapa">Mapa</string>
@@ -41,6 +43,16 @@
     <string name="ajustes_prevista_escuchar_descripcion">Escuchar un ejemplo con tu voz y tu volumen</string>
     <string name="ajustes_prevista_mapa">Así se verán tu posición y los avisos</string>
     <string name="ajustes_prevista_mapa_descripcion">Muestra: icono de posición %1$s y avisos con estilo %2$s</string>
+
+    <!-- Tramos y notas grandes -->
+    <string name="ajustes_cronometrar">Cronometrar trayectos</string>
+    <string name="ajustes_cronometrar_detalle">Cada trayecto se guarda como tramo con su cronómetro. Desactivado no se crean tramos ni se detectan los guardados; las notas, los avisos y el guiado siguen.</string>
+    <string name="ajustes_prevista_crono_activo">Cronómetro activo: 1 minuto 23 segundos, 0,4 segundos menos que tu mejor tiempo</string>
+    <string name="ajustes_prevista_crono_inactivo">Sin cronómetro: solo notas y guiado</string>
+    <string name="ajustes_prevista_crono_tiempo">01:23,4</string>
+    <string name="ajustes_prevista_crono_delta">-0,4 s</string>
+    <string name="ajustes_notas_grandes">Notas grandes al conducir</string>
+    <string name="ajustes_notas_grandes_detalle">Pantalla de roadbook: la nota enorme y casi sin mapa. También con el botón del panel.</string>
 
     <!-- Volumen -->
     <string name="ajustes_volumen_valor">%1$d %%</string>

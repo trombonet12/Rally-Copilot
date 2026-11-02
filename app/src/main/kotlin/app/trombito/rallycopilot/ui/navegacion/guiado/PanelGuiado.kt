@@ -161,6 +161,16 @@ internal fun proximaParada(
 
 private const val MS_POR_S = 1_000.0
 
+/** El banner de maniobra del guiado, suelto: lo usa también el modo de notas grandes. */
+@Composable
+internal fun BannerGuiado(
+    estado: EstadoNavegacion.Guiando,
+    variante: VarianteManiobra,
+    compacto: Boolean,
+) {
+    datosBanner(estado)?.let { Banner(it, variante, compacto) }
+}
+
 @Composable
 private fun Banner(
     datos: DatosBanner,

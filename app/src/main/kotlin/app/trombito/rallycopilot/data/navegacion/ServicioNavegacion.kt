@@ -37,6 +37,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -262,6 +263,7 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         alertas = fabricaAlertas.crear(),
         ordenes = control.ordenes,
         crono = fabricaCrono.crear(),
+        cronometrar = { ajustes.ajustes.first().cronometrar },
         ediciones = ediciones,
         tramos = tramos,
     )

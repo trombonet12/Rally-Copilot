@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.tramos
 
 import app.trombito.rallycopilot.data.db.PasadaEntity
 import app.trombito.rallycopilot.data.db.TramoEntity
+import app.trombito.rallycopilot.data.escucha.EdicionesFalsas
 import app.trombito.rallycopilot.data.navegacion.CopilotoVoz
 import app.trombito.rallycopilot.data.navegacion.SesionNavegacion
 import app.trombito.rallycopilot.data.navegacion.SolicitudNavegacion
@@ -299,12 +300,14 @@ class SesionCronoTest {
     private val recorridos = RecorridosEnMemoria { pasadasAlTerminar = tramos.pasadas.size }
     private var idsNuevos = 0
     private val anclado = mutableListOf<String?>()
+    private val ediciones = EdicionesFalsas()
 
     /** Conduce una sesión libre completa con las [fijaciones]; [modo] da voz al copiloto (null: sin copiloto). */
     private suspend fun TestScope.conducir(
         fijaciones: List<Fijacion>,
         modo: ModoCopiloto? = null,
         solicitud: SolicitudNavegacion = SolicitudNavegacion.Libre,
+        cronometrar: Boolean = true,
     ): Conducida {
         val publicados = mutableListOf<CronoEnCurso?>()
         val locutor = LocutorAnotador()
@@ -329,6 +332,8 @@ class SesionCronoTest {
             copiloto = copiloto,
             crono = crono,
             tramos = tramos,
+            cronometrar = { cronometrar },
+            ediciones = ediciones,
         ).correr(solicitud)
         return Conducida(publicados, locutor.dichas)
     }
@@ -566,5 +571,80 @@ class SesionCronoTest {
             assertTrue(tiempos.last() >= 20_000L)
             assertTrue(c.estados.all { it.tramo == null })
             assertNotNull(c.publicados.lastOrNull { it != null })
+        }
+
+    @Test
+    fun `con cronometrar desactivado no se crean tramos ni pasadas ni se publica cronometro`() =
+        runTest {
+            val c = conducir(conduccion(40.0), cronometrar = false)
+
+            assertTrue(tramos.tramos.isEmpty())
+            assertTrue(tramos.pasadas.isEmpty())
+            assertTrue(c.publicados.isEmpty())
+            assertTrue(anclado.isEmpty())
+        }
+
+    @Test
+    fun `con cronometrar desactivado lo dictado sin tramo se descarta al cerrar`() =
+        runTest {
+            conducir(conduccion(40.0), cronometrar = false)
+
+            assertEquals(listOf<String?>(null), ediciones.anclajes)
+        }
+
+    @Test
+    fun `con cronometrar activado lo dictado sin tramo se ancla al tramo nuevo`() =
+        runTest {
+            conducir(conduccion(40.0))
+
+            assertEquals(listOf<String?>("tramo-1"), anclado)
+        }
+
+    @Test
+    fun `con cronometrar desactivado no se detectan los tramos guardados`() =
+        runTest {
+            conducir(conduccion(40.0))
+            val antes = tramos.pasadas.size
+
+            val c = conducir(conduccion(40.0), cronometrar = false)
+
+            assertEquals(1, tramos.tramos.size)
+            assertEquals(antes, tramos.pasadas.size)
+            assertTrue(c.publicados.isEmpty())
+        }
+
+    @Test
+    fun `el cronometro no cuenta el rato parado y empieza al moverse`() =
+        runTest {
+            val parado = (0 until 30).map { Fijacion(CALOBRA.first(), 5_000_000L + it * 1000L, 0.0, null, 5.0) }
+            val movimiento = conduccion(40.0, hastaM = 800.0, base = 5_030_000L)
+            val c = conducir(parado + movimiento)
+
+            // Mientras está parado no hay cronómetro; después cuenta desde el primer movimiento.
+            assertTrue(c.estados.first().transcurridoMs < 5_000L)
+            val duracionMs = (movimiento.size - 1) * 1000L
+            assertEquals(
+                duracionMs.toDouble(),
+                c.estados
+                    .last()
+                    .transcurridoMs
+                    .toDouble(),
+                3_000.0,
+            )
+        }
+
+    @Test
+    fun `el tramo nuevo empieza en la salida y no en el rato parado`() =
+        runTest {
+            val parado = (0 until 40).map { Fijacion(CALOBRA.first(), 5_000_000L + it * 1000L, 0.0, null, 5.0) }
+            val c = conducir(parado + conduccion(40.0, base = 5_040_000L))
+
+            val pasada = checkNotNull(tramos.mejorPasada("tramo-1"))
+            val esperadoMs = (CALOBRA.longitudMetros() - Tramo.META_ANTES_M) / (40.0 / 3.6) * 1000.0
+            assertEquals(esperadoMs, pasada.totalMs.toDouble(), 3_000.0)
+            // El tramo creado arranca donde se empezó a mover, no con cientos de puntos repetidos del aparcamiento.
+            val traza = checkNotNull(tramos.tramo("tramo-1")).traza
+            assertTrue(traza.first().distanciaA(CALOBRA.first()) < 30.0)
+            assertNull(c.publicados.last())
         }
 }

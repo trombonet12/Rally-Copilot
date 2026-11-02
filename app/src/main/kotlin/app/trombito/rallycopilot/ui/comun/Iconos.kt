@@ -167,6 +167,28 @@ object Iconos {
         icono("Descarga", "M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z")
     }
 
+    /** Nota grande (tarjeta con marco) sobre dos pequeñas: el modo roadbook de notas enormes. */
+    val NotasGrandes: ImageVector by lazy {
+        icono(
+            "NotasGrandes",
+            "M3,4 H21 V14 H3Z M5,6 V12 H19 V6Z M3,16 H11 V20 H3Z M13,16 H21 V20 H13Z",
+        )
+    }
+
+    /** Piloto (Material «person»): el perfil. */
+    val Piloto: ImageVector by lazy {
+        icono(
+            "Piloto",
+            "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z" +
+                "m0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+        )
+    }
+
+    /** Chevron a la derecha: una fila que abre otra pantalla. */
+    val Siguiente: ImageVector by lazy {
+        icono("Siguiente", "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z")
+    }
+
     val Notas: ImageVector by lazy {
         icono("Notas", "M3 18h12v-2H3v2zM3 6v2h18V6H3zm0 7h18v-2H3v2z")
     }

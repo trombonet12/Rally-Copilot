@@ -131,4 +131,18 @@ class CopilotoViewModelTest {
             assertEquals(1, ordenes.peticiones)
             assertTrue(vm.uiState.value.escuchando)
         }
+
+    @Test
+    fun `las notas grandes se guardan, se recuerdan en el estado y conservan lo demas`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(modoCopiloto = ModoCopiloto.NOTAS)
+            val vm = crear()
+            assertFalse(vm.uiState.value.notasGrandes)
+
+            vm.onNotasGrandes(true)
+
+            assertTrue(vm.uiState.value.notasGrandes)
+            assertTrue(repositorio.mutable.value.notasGrandes)
+            assertEquals(ModoCopiloto.NOTAS, repositorio.mutable.value.modoCopiloto)
+        }
 }

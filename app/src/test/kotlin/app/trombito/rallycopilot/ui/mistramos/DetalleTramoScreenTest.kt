@@ -73,6 +73,32 @@ class DetalleTramoScreenTest {
     }
 
     @Test
+    fun `reconocer esta junto a editar notas, lo pide y se explica`() {
+        var reconocer = 0
+        var editar = 0
+        banco.poner {
+            RallyCopilotTheme {
+                DetalleTramoScreen(
+                    estado,
+                    AccionesDetalleTramo(onReconocer = { reconocer++ }, onEditarNotas = { editar++ }),
+                )
+            }
+        }
+        val reconocerNodo = banco.conEtiqueta(ETIQUETA_DETALLE_RECONOCER)
+        val editarNodo = banco.conEtiqueta(ETIQUETA_DETALLE_EDITAR)
+        assertTrue("Reconocer" in banco.textos(reconocerNodo))
+        assertTrue("Editar notas" in banco.textos(editarNodo))
+        assertTrue("misma fila", reconocerNodo.boundsInRoot.top == editarNodo.boundsInRoot.top)
+        assertTrue("a la izquierda", reconocerNodo.boundsInRoot.right <= editarNodo.boundsInRoot.left)
+        assertTrue(reconocerNodo.size.height >= 48 * 3)
+        banco.pulsar(reconocerNodo)
+        banco.pulsar(editarNodo)
+        assertEquals(1, reconocer)
+        assertEquals(1, editar)
+        assertTrue(banco.todosLosTextos().any { it.startsWith("Reconocer: el copiloto lee las notas de este tramo") })
+    }
+
+    @Test
     fun `favorito y renombrar estan en la cabecera`() {
         var favoritos = 0
         var renombrar = 0

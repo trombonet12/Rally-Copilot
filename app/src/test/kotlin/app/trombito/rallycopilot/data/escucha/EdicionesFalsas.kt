@@ -38,5 +38,10 @@ class EdicionesFalsas : RepositorioEdiciones {
         visibles.value = visibles.value.filterNot { it.tramoId == tramoId }
     }
 
-    override suspend fun anclarPendientes(tramo: Tramo?) = Unit
+    /** Los tramos a los que se pidió anclar las pendientes (null = descartarlas). */
+    val anclajes = mutableListOf<String?>()
+
+    override suspend fun anclarPendientes(tramo: Tramo?) {
+        anclajes += tramo?.id
+    }
 }

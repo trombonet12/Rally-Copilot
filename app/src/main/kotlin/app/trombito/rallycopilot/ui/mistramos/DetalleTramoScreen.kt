@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,6 +46,7 @@ import app.trombito.rallycopilot.ui.tramos.formatearTiempo
 const val ETIQUETA_DETALLE_CARGANDO = "detalle-cargando"
 const val ETIQUETA_DETALLE_NO_ENCONTRADO = "detalle-no-encontrado"
 const val ETIQUETA_DETALLE_EDITAR = "detalle-editar-notas"
+const val ETIQUETA_DETALLE_RECONOCER = "detalle-reconocer"
 private val ALTO_MINIMO_TACTIL = 48.dp
 const val ETIQUETA_DETALLE_TITULO = "detalle-titulo"
 const val ETIQUETA_DETALLE_FAVORITO = "detalle-favorito"
@@ -65,6 +67,7 @@ data class AccionesDetalleTramo(
     val onCancelarRenombrar: () -> Unit = {},
     val onVerAnalisis: (pasadaId: Long) -> Unit = {},
     val onEditarNotas: () -> Unit = {},
+    val onReconocer: () -> Unit = {},
 )
 
 /** Detalle del tramo: traza dibujada, medidas y las pasadas, cada una con «Ver análisis». */
@@ -161,12 +164,7 @@ private fun ContenidoDetalle(
     ) {
         item { TrazaTramo(estado.traza) }
         item { MedidasTramo(tramo) }
-        item {
-            OutlinedButton(
-                onClick = acciones.onEditarNotas,
-                modifier = Modifier.fillMaxWidth().heightIn(min = ALTO_MINIMO_TACTIL).testTag(ETIQUETA_DETALLE_EDITAR),
-            ) { Text(stringResource(R.string.edicion_editar_notas)) }
-        }
+        item { AccionesNotasTramo(acciones) }
         item {
             Text(
                 text = stringResource(R.string.detalle_pasadas_titulo).uppercase(),
@@ -189,6 +187,33 @@ private fun ContenidoDetalle(
             TarjetaPasada(pasada) { acciones.onVerAnalisis(pasada.id) }
         }
     }
+}
+
+/** «Reconocer» (pasada lenta de reconocimiento de este tramo) junto a «Editar notas». */
+@Composable
+private fun AccionesNotasTramo(acciones: AccionesDetalleTramo) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
+        Button(
+            onClick = acciones.onReconocer,
+            modifier = Modifier.weight(1f).heightIn(min = ALTO_MINIMO_TACTIL).testTag(ETIQUETA_DETALLE_RECONOCER),
+        ) {
+            Icon(Iconos.Empezar, contentDescription = null, modifier = Modifier.padding(end = Espacio.xs))
+            Text(stringResource(R.string.detalle_reconocer))
+        }
+        OutlinedButton(
+            onClick = acciones.onEditarNotas,
+            modifier = Modifier.weight(1f).heightIn(min = ALTO_MINIMO_TACTIL).testTag(ETIQUETA_DETALLE_EDITAR),
+        ) {
+            Icon(Iconos.Editar, contentDescription = null, modifier = Modifier.padding(end = Espacio.xs))
+            Text(stringResource(R.string.edicion_editar_notas))
+        }
+    }
+    Text(
+        text = stringResource(R.string.detalle_reconocer_ayuda),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = Espacio.xs),
+    )
 }
 
 @Composable

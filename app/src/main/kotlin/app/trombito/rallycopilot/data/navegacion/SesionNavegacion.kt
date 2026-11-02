@@ -80,7 +80,7 @@ sealed interface SolicitudNavegacion {
  * y se las suma al copiloto como candidatas. Con [ediciones] aplica a la hoja las notas editadas del tramo activo (y
  * las
  * dictadas sin tramo); en [SolicitudNavegacion.Reconocimiento] la hoja es la del tramo (de [tramos]) y no hay crono.
- * Si hay [crono], cronometra la conducción: detecta los tramos guardados,
+ * Si hay [crono] y [cronometrar] da verdadero al empezar, cronometra la conducción: detecta los tramos guardados,
  * publica el cronómetro, le pasa al copiloto el delta de sectores y meta y, al cerrar, guarda las pasadas y el tramo.
  *
  * Paradas: al alcanzar la próxima (a ≤ 30 m o al pasarla) la siguiente pasa a ser el objetivo y el copiloto lo dice
@@ -102,6 +102,7 @@ class SesionNavegacion(
     private val crono: SesionCrono? = null,
     private val ediciones: RepositorioEdiciones? = null,
     private val tramos: RepositorioTramos? = null,
+    private val cronometrar: suspend () -> Boolean = { true },
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
     suspend fun cerrarHuerfanos() {
@@ -117,7 +118,9 @@ class SesionNavegacion(
             (solicitud as? SolicitudNavegacion.Guiada)?.destino?.nombre
                 ?: NOMBRE_RECONOCIMIENTO.takeIf { solicitud is SolicitudNavegacion.Reconocimiento }
         val id = recorridos.empezar(destinoNombre)
-        val ejecucion = Ejecucion(id, solicitud)
+        // «Cronometrar trayectos» se lee una vez al empezar: sin él, esta conducción no crea ni detecta tramos.
+        val cronometra = crono != null && solicitud !is SolicitudNavegacion.Reconocimiento && cronometrar()
+        val ejecucion = Ejecucion(id, solicitud, crono.takeIf { cronometra })
         try {
             ejecucion.ejecutar()
         } finally {
@@ -127,7 +130,12 @@ class SesionNavegacion(
             withContext(NonCancellable) {
                 ejecucion.volcar()
                 val recorrido = recorridos.terminar(id)
-                if (solicitud !is SolicitudNavegacion.Reconocimiento) crono?.cerrar(recorrido) { recorridos.puntos(id) }
+                if (cronometra) {
+                    crono?.cerrar(recorrido) { recorridos.puntos(id) }
+                } else if (crono != null && solicitud !is SolicitudNavegacion.Reconocimiento) {
+                    // Sin cronometraje no hay tramo al que anclar lo dictado: se descarta.
+                    ediciones?.anclarPendientes(null)
+                }
             }
         }
     }
@@ -136,6 +144,7 @@ class SesionNavegacion(
     private inner class Ejecucion(
         private val id: Long,
         solicitud: SolicitudNavegacion,
+        private val cronometro: SesionCrono?,
     ) {
         private val inicioMs = reloj()
         private val guia: Guia? = (solicitud as? SolicitudNavegacion.Guiada)?.let { Guia(it) }
@@ -143,9 +152,6 @@ class SesionNavegacion(
         private val acumulador = AcumuladorRecorrido()
         private val notas = fabricaNotas?.crear()
         private val reconocimiento = solicitud as? SolicitudNavegacion.Reconocimiento
-
-        /** En reconocimiento no se cronometra: la pasada lenta no cuenta para tiempos. */
-        private val cronometro = if (reconocimiento == null) crono else null
 
         /** Tramo reconocido (cargado al empezar) o, conduciendo, el tramo actual: ahí se anclan las ediciones. */
         private val tramoActivo = MutableStateFlow<Tramo?>(null)

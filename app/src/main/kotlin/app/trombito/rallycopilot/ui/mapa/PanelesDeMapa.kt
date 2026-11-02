@@ -15,7 +15,6 @@ import app.trombito.rallycopilot.ui.copiloto.BotonMicrofono
 import app.trombito.rallycopilot.ui.copiloto.BotonModoCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.DialogoVozCopiloto
-import app.trombito.rallycopilot.ui.copiloto.PanelModoCopiloto
 import app.trombito.rallycopilot.ui.navegacion.BotonBuscarGuiando
 import app.trombito.rallycopilot.ui.navegacion.BotonTerminar
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
@@ -116,7 +115,7 @@ internal fun anchoPanelLateral(botones: BotonesPanel) =
     }
 
 /** Menú desplegado sobre el mapa desde el panel inferior: solo uno a la vez. */
-internal enum class MenuMapa { NINGUNO, CAPAS, MODO, AJUSTES }
+internal enum class MenuMapa { NINGUNO, CAPAS, COPILOTO }
 
 internal class MenuAbierto(
     val actual: MenuMapa,
@@ -127,10 +126,11 @@ internal class MenuAbierto(
 }
 
 /**
- * Izquierda: capas, modo del copiloto, ajustes rápidos (deslizadores) y, mientras se guía, la lupa que abre la
- * búsqueda. Derecha: rumbo/norte y, mientras se guía, la bandera de terminar. Con cuatro botones la velocidad no se
- * tapa: dos a cada lado en vertical y una sola fila en horizontal; con más, el panel lateral se ensancha y los que
- * sobran pasan a otra fila.
+ * Izquierda: capas, el copiloto (un solo botón: modo y ajustes rápidos), notas grandes y, mientras se guía, la lupa
+ * que abre la búsqueda. Derecha: rumbo/norte, el micrófono y, mientras se guía, la bandera de terminar. En el modo de
+ * notas grandes no hay mapa y se quitan las capas y el rumbo/norte. Con cuatro botones la velocidad no se tapa: dos a
+ * cada lado en vertical y una sola fila en horizontal; con más, el panel lateral se ensancha y los que sobran pasan a
+ * otra fila.
  */
 internal fun botonesDelPanel(
     estado: MapaUiState,
@@ -142,6 +142,7 @@ internal fun botonesDelPanel(
     val terminar = navegacion.acciones.onTerminar.takeIf { navegacion.estado.conduciendo }
     val buscar = navegacion.acciones.onAbrirBusqueda.takeIf { navegacion.estado.conduciendo }
     val control = navegacion.estado.control
+    val grandes = copiloto.estado.notasGrandes
     val hablar = control is EstadoNavegacion.Guiando || control is EstadoNavegacion.Libre
     val microfono: (@Composable () -> Unit)? =
         if (hablar) {
@@ -149,53 +150,56 @@ internal fun botonesDelPanel(
         } else {
             null
         }
+    val capas: (@Composable () -> Unit)? =
+        if (grandes) {
+            null
+        } else {
+            { BotonCapas(menu.actual == MenuMapa.CAPAS, { menu.alternar(MenuMapa.CAPAS) }) }
+        }
+    val orientacion: (@Composable () -> Unit)? =
+        if (grandes) {
+            null
+        } else {
+            { BotonOrientacion(estado.orientacion, acciones.onOrientacion) }
+        }
     return BotonesPanel(
         izquierda =
             listOfNotNull(
-                { BotonCapas(menu.actual == MenuMapa.CAPAS, { menu.alternar(MenuMapa.CAPAS) }) },
+                capas,
                 {
-                    val abierto = menu.actual == MenuMapa.MODO
-                    BotonModoCopiloto(copiloto.estado.modo, abierto, { menu.alternar(MenuMapa.MODO) })
+                    val abierto = menu.actual == MenuMapa.COPILOTO
+                    BotonModoCopiloto(copiloto.estado.modo, abierto, { menu.alternar(MenuMapa.COPILOTO) })
                 },
-                { BotonAjustesRapidos(menu.actual == MenuMapa.AJUSTES, { menu.alternar(MenuMapa.AJUSTES) }) },
+                { BotonNotasGrandes(grandes, { copiloto.acciones.onNotasGrandes(!grandes) }) },
                 buscar?.let { alBuscar -> { BotonBuscarGuiando(alBuscar) } },
             ),
         derecha =
             listOfNotNull(
-                { BotonOrientacion(estado.orientacion, acciones.onOrientacion) },
+                orientacion,
                 microfono,
                 terminar?.let { alTerminar -> { BotonTerminar(alTerminar) } },
             ),
     )
 }
 
-/** El menú abierto desde el panel inferior (capas, modo del copiloto o ajustes rápidos), pegado a su botón. */
+/** El menú abierto desde el panel inferior (capas o la hoja del copiloto), pegado a su botón. */
 @Composable
+@Suppress("LongParameterList") // estado, acciones, copiloto, menú, posición y orientación del menú
 internal fun MenuSobreMapa(
     estado: MapaUiState,
     acciones: AccionesMapa,
     copiloto: CopilotoEnMapa,
     menu: MenuAbierto,
     modifier: Modifier,
+    horizontal: Boolean = false,
 ) {
     when (menu.actual) {
         MenuMapa.CAPAS -> {
             PanelCapas(estado, acciones, modifier)
         }
 
-        MenuMapa.MODO -> {
-            PanelModoCopiloto(
-                modo = copiloto.estado.modo,
-                onModo = {
-                    copiloto.acciones.onModo(it)
-                    menu.cambiar(MenuMapa.NINGUNO)
-                },
-                modifier = modifier,
-            )
-        }
-
-        MenuMapa.AJUSTES -> {
-            PanelAjustesRapidos(copiloto.estado, copiloto.acciones, modifier)
+        MenuMapa.COPILOTO -> {
+            PanelAjustesRapidos(copiloto.estado, copiloto.acciones, modifier, horizontal)
         }
 
         MenuMapa.NINGUNO -> {}

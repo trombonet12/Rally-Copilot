@@ -22,7 +22,7 @@ import app.trombito.rallycopilot.ui.mistramos.EditarTramoRoute
 import app.trombito.rallycopilot.ui.mistramos.ImportarViewModel
 import app.trombito.rallycopilot.ui.mistramos.MisTramosRoute
 import app.trombito.rallycopilot.ui.perfil.PerfilRoute
-import app.trombito.rallycopilot.ui.reconocimiento.ReconocimientoRoute
+import app.trombito.rallycopilot.ui.reconocimiento.ReconocimientoViewModel
 
 @Composable
 fun AppNavHost(importacion: ImportarViewModel = hiltViewModel()) {
@@ -64,19 +64,18 @@ fun AppNavHost(importacion: ImportarViewModel = hiltViewModel()) {
             )
         }
         composable<RutaTramo> {
+            val reconocimiento: ReconocimientoViewModel = hiltViewModel()
             DetalleTramoRoute(
                 onVolver = { nav.popBackStack() },
                 onEditarNotas = { nav.navigate(RutaEditarTramo(it)) },
+                onReconocer = {
+                    reconocimiento.empezar(it)
+                    nav.navigate(RutaMapa)
+                },
                 onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
             )
         }
         composable<RutaEditarTramo> { EditarTramoRoute(onVolver = { nav.popBackStack() }) }
-        composable<RutaReconocimiento> {
-            ReconocimientoRoute(
-                onVolver = { nav.popBackStack() },
-                onEmpezado = { nav.navigate(RutaMapa) },
-            )
-        }
         composable<RutaAnalisis> { AnalisisRoute(onVolver = { nav.popBackStack() }) }
         composable<RutaPerfil> { PerfilRoute(onVolver = { nav.popBackStack() }) }
     }
@@ -103,11 +102,8 @@ private fun abrirEntrada(
 ) {
     when (entrada) {
         EntradaInicio.CONDUCIR -> nav.navigate(RutaMapa)
-        EntradaInicio.MAPAS_OFFLINE -> nav.navigate(RutaMapasOffline)
         EntradaInicio.AJUSTES -> nav.navigate(RutaAjustes)
         EntradaInicio.MIS_TRAMOS -> nav.navigate(RutaMisTramos)
-        EntradaInicio.RECONOCIMIENTO -> nav.navigate(RutaReconocimiento)
         EntradaInicio.PERFIL -> nav.navigate(RutaPerfil)
-        else -> Unit
     }
 }

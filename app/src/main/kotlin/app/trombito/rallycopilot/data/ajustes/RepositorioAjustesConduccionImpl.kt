@@ -47,6 +47,8 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         activarConCopiloto = activarConCopiloto,
         volumenVoz = volumenVoz.coerceIn(AjustesConduccion.VOLUMEN_VOZ_MIN, AjustesConduccion.VOLUMEN_VOZ_MAX),
         tema = enumOrNull<Tema>(tema) ?: defecto.tema,
+        cronometrar = cronometrar,
+        notasGrandes = notasGrandes,
     )
 }
 
@@ -65,6 +67,8 @@ internal fun AjustesConduccion.aEntidad() =
         activarConCopiloto = activarConCopiloto,
         volumenVoz = volumenVoz,
         tema = tema.name,
+        cronometrar = cronometrar,
+        notasGrandes = notasGrandes,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

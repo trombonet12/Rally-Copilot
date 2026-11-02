@@ -32,7 +32,9 @@ import java.util.UUID
  * pasada (en segundo plano: hasta entonces no se detecta nada) y en cada fijación ([alFijar]) alimenta al
  * [DetectorTramo], publica un [CronoEnCurso] y devuelve las frases CRONO que tocan (delta acumulado al cerrar cada
  * sector y en meta, solo del tramo más reciente en que se entró y solo si tiene mejor pasada con la que comparar).
- * Sin tramo conocido publica el cronómetro de la conducción desde su inicio. No es concurrente: se usa desde la
+ * Sin tramo conocido publica el cronómetro de la conducción desde la salida (primer movimiento, ver [DetectorSalida]);
+ * hasta entonces no publica nada y el tramo que se crea del recorrido tampoco incluye el rato parado. No es
+ * concurrente: se usa desde la
  * corrutina de la sesión. Nunca registra coordenadas.
  *
  * Cada pasada completada se guarda en cuanto se cruza la meta (en segundo plano, ligada al recorrido de la
@@ -83,7 +85,10 @@ class SesionCrono(
         val parciales: List<ParcialCrono>,
     )
 
-    private val inicioConduccionMs = ahoraMs()
+    private val salida = DetectorSalida()
+
+    /** Epoch de la salida (cuando el coche empieza a moverse); null mientras siga parado. */
+    private var salidaEpochMs: Long? = null
     private var detector: DetectorTramo? = null
     private var catalogo: Map<String, Tramo> = emptyMap()
     private val mejores = HashMap<String, Pasada>()
@@ -124,6 +129,9 @@ class SesionCrono(
     fun alFijar(f: Fijacion): List<Frase> =
         synchronized(cerrojo) {
             ultimaFijacionMs = f.tiempoMs
+            if (salidaEpochMs == null) {
+                salida.alFijar(f)?.let { salidaEpochMs = ahoraMs() - (f.tiempoMs - it) }
+            }
             val frases = ArrayList<Frase>()
             detector?.alFijar(f)?.forEach { procesar(it, f, frases) }
             publicar(estado(f))
@@ -277,14 +285,28 @@ class SesionCrono(
         return pasada.tiempoEn(distanciaM.coerceIn(primera.distanciaM, ultima.distanciaM))
     }
 
-    private fun estado(f: Fijacion): CronoEnCurso {
+    private fun estado(f: Fijacion): CronoEnCurso? {
         val ahora = ahoraMs()
         val activo = vivos.values.lastOrNull()
         val cerrado = terminado
         return when {
-            activo != null -> estadoVivo(activo, f, ahora)
-            cerrado != null -> estadoTerminado(cerrado, ahora)
-            else -> CronoEnCurso(tramo = null, transcurridoMs = ahora - inicioConduccionMs, actualizadoEnMs = ahora)
+            activo != null -> {
+                estadoVivo(activo, f, ahora)
+            }
+
+            cerrado != null -> {
+                estadoTerminado(cerrado, ahora)
+            }
+
+            else -> {
+                salidaEpochMs?.let {
+                    CronoEnCurso(
+                        tramo = null,
+                        transcurridoMs = ahora - it,
+                        actualizadoEnMs = ahora,
+                    )
+                }
+            }
         }
     }
 
@@ -364,8 +386,10 @@ class SesionCrono(
 
     private suspend fun crearTramoNuevo(
         recorridoId: Long,
-        puntos: List<PuntoRecorrido>,
+        todos: List<PuntoRecorrido>,
     ): Tramo? {
+        // El tramo empieza en la salida, no en el rato parado al entrar al mapa.
+        val puntos = salidaEpochMs?.let { desde -> todos.filter { it.tiempoMs >= desde } } ?: todos
         val traza = puntos.map { PuntoGeo(it.lat, it.lon) }
         val repetido =
             completadas.any { c ->
@@ -396,7 +420,8 @@ class SesionCrono(
             if (cronometro.estado == Cronometro.Estado.TERMINADO) break
         }
         val ultimaMs = puntos.lastOrNull()?.tiempoMs ?: return null
-        // Los puntos van en el reloj de las fijaciones: la salida epoch es ahora menos lo que falta hasta el último.
+        // Los puntos van en el reloj de la sesión (el de ahoraMs): la salida epoch es ahora menos lo que falta
+        // hasta el último.
         return cronometro.pasada()?.let { Completada(it, ahoraMs() - (ultimaMs - desdeMs), desdeMs) }
     }
 

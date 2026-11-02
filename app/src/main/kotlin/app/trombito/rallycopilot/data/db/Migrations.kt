@@ -164,3 +164,15 @@ val MIGRATION_10_11: Migration =
             db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `tema` TEXT NOT NULL DEFAULT 'OSCURO'")
         }
     }
+
+/**
+ * v11 -> v12: «Cronometrar trayectos» (activado en la fila existente) y modo de notas grandes (desactivado). El SQL es
+ * el `createSql` de `schemas/.../12.json`.
+ */
+val MIGRATION_11_12: Migration =
+    object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `cronometrar` INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `notasGrandes` INTEGER NOT NULL DEFAULT 0")
+        }
+    }

@@ -12,6 +12,7 @@ import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_AJUSTES_VOLUMEN
 import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_AJUSTES_VOLUMEN_VALOR
 import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_ANTICIPACION_PREFIJO
@@ -24,6 +25,9 @@ import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.CopilotoUiState
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_BOTON
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_DETALLE
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_PREFIJO
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -48,6 +52,7 @@ abstract class AjustesRapidosBase {
 
     private val acciones =
         AccionesCopiloto(
+            onModo = { copiloto = copiloto.copy(modo = it) },
             onAnticipacion = { copiloto = copiloto.copy(anticipacion = it) },
             onNotasSimplificadas = { copiloto = copiloto.copy(notasSimplificadas = it) },
             onVolumenVoz = { copiloto = copiloto.copy(volumenVoz = it) },
@@ -77,7 +82,7 @@ abstract class AjustesRapidosBase {
     protected fun abrir() {
         poner()
         assertFalse(banco.hay(ETIQUETA_RAPIDOS_PANEL))
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_RAPIDOS_BOTON))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_BOTON))
         assertTrue(banco.hay(ETIQUETA_RAPIDOS_PANEL))
     }
 
@@ -108,21 +113,30 @@ abstract class AjustesRapidosBase {
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
 class AjustesRapidosVerticalTest : AjustesRapidosBase() {
     @Test
-    fun `el boton de deslizadores abre la hoja y volver a tocarlo la cierra`() {
+    fun `el boton del copiloto abre la hoja y volver a tocarlo la cierra`() {
         abrir()
-        assertEquals("Ajustes rápidos", banco.descripcion(banco.conEtiqueta(ETIQUETA_RAPIDOS_BOTON)))
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_RAPIDOS_BOTON))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_BOTON))
         assertFalse(banco.hay(ETIQUETA_RAPIDOS_PANEL))
     }
 
     @Test
-    fun `la hoja trae anticipacion de cinco niveles, simplificadas, volumen y la vista previa reducida`() {
+    fun `la hoja trae los cuatro modos, anticipacion de cinco niveles, simplificadas, volumen y la vista previa`() {
         abrir()
+        assertEquals(ModoCopiloto.entries.size, banco.etiquetas(ETIQUETA_MODO_PREFIJO).size)
         assertEquals(NivelAnticipacion.entries.size, banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).size)
         assertTrue(banco.hay(ETIQUETA_NOTAS_SIMPLIFICADAS))
         assertTrue(banco.hay(ETIQUETA_AJUSTES_VOLUMEN))
         assertTrue(banco.hay(ETIQUETA_PREVISTA_NOTA))
         assertEquals("Te la canta 5 s antes (a 90 km/h, a 150 m)", textoDe(ETIQUETA_PREVISTA_ANTICIPACION))
+    }
+
+    @Test
+    fun `elegir un modo en la hoja lo aplica y cambia el nombre que se lee`() {
+        abrir()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_PREFIJO + "silencio"))
+        assertEquals(ModoCopiloto.SILENCIO, copiloto.modo)
+        assertEquals("El copiloto no habla", textoDe(ETIQUETA_MODO_DETALLE))
+        assertTrue("la hoja sigue abierta", banco.hay(ETIQUETA_RAPIDOS_PANEL))
     }
 
     @Test

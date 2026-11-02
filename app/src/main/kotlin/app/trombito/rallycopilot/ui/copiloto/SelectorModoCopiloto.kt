@@ -2,20 +2,18 @@ package app.trombito.rallycopilot.ui.copiloto
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -24,16 +22,15 @@ import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_MODO_BOTON = "copiloto-modo-boton"
-const val ETIQUETA_MODO_PANEL = "copiloto-modo-panel"
 const val ETIQUETA_MODO_PREFIJO = "copiloto-modo-opcion-"
+const val ETIQUETA_MODO_SELECTOR = "copiloto-modo-selector"
+const val ETIQUETA_MODO_DETALLE = "copiloto-modo-detalle"
 
-private const val OPACIDAD_PANEL = 0.88f
-private val RADIO_PANEL = 28.dp
 private val LADO_ICONO = 28.dp
 
 /**
- * Botón del panel negro inferior que muestra el modo actual del copiloto con su icono (sin texto) y abre el menú de
- * [PanelModoCopiloto]. TalkBack lee el nombre del modo y que al pulsarlo se cambia.
+ * El botón del copiloto en el panel negro inferior: muestra el modo actual con su icono (sin texto) y abre la hoja con
+ * el selector de modo y los ajustes rápidos. TalkBack lee el nombre del modo y que al pulsarlo se abre la hoja.
  */
 @Composable
 fun BotonModoCopiloto(
@@ -50,20 +47,18 @@ fun BotonModoCopiloto(
     ) { IconoModo(modo) }
 }
 
-/** Menú pequeño con los cuatro modos como iconos; se pinta sobre el mapa, encima del panel inferior. */
+/**
+ * Los cuatro modos como iconos en una fila (arriba de la hoja del copiloto) y, debajo, el nombre del elegido con lo
+ * que hace: el cambio se ve y se lee al tocar.
+ */
 @Composable
-fun PanelModoCopiloto(
+fun SelectorModoCopiloto(
     modo: ModoCopiloto,
     onModo: (ModoCopiloto) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val descripcion = stringResource(R.string.copiloto_modo_titulo)
-    Surface(
-        shape = RoundedCornerShape(RADIO_PANEL),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(OPACIDAD_PANEL),
-        modifier = modifier.testTag(ETIQUETA_MODO_PANEL).semantics { contentDescription = descripcion },
-    ) {
-        Column(Modifier.padding(Espacio.xs), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+    Column(modifier.testTag(ETIQUETA_MODO_SELECTOR), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s), verticalAlignment = Alignment.CenterVertically) {
             ModoCopiloto.entries.forEach { opcion ->
                 val elegido = opcion == modo
                 BotonIcono(
@@ -79,6 +74,19 @@ fun PanelModoCopiloto(
                 ) { IconoModo(opcion) }
             }
         }
+        val nombre = stringResource(modo.nombre())
+        val detalle = stringResource(modo.detalle())
+        Text(
+            text = nombre,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Text(
+            text = detalle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag(ETIQUETA_MODO_DETALLE),
+        )
     }
 }
 

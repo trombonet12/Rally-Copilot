@@ -201,4 +201,19 @@ class AjustesViewModelTest {
             assertTrue(guardado.relieve)
             assertEquals(2, guardado.nivelZoom)
         }
+
+    @Test
+    fun `cronometrar y notas grandes se guardan sin tocar el resto`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(nivelZoom = 1)
+            val vm = crear()
+            assertTrue(vm.uiState.value.cronometrar)
+            assertFalse(vm.uiState.value.notasGrandes)
+            vm.onCronometrar(false)
+            vm.onNotasGrandes(true)
+            val guardado = repositorio.mutable.value
+            assertFalse(guardado.cronometrar)
+            assertTrue(guardado.notasGrandes)
+            assertEquals(1, guardado.nivelZoom)
+        }
 }

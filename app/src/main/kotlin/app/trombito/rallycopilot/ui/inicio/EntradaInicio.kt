@@ -3,7 +3,10 @@ package app.trombito.rallycopilot.ui.inicio
 import androidx.annotation.StringRes
 import app.trombito.rallycopilot.R
 
-/** Entradas del menú de inicio, en el orden del producto. Cada una se activa en el hito que la implementa. */
+/**
+ * Entradas del menú de inicio, en el orden del producto. «Reconocer» está en el detalle de cada tramo y «Mapas
+ * offline» en Ajustes › Datos.
+ */
 enum class EntradaInicio(
     @param:StringRes val titulo: Int,
     /** Falsa mientras el hito que la implementa no está hecho: se muestra desactivada. */
@@ -11,8 +14,6 @@ enum class EntradaInicio(
 ) {
     CONDUCIR(R.string.inicio_conducir, activa = true),
     MIS_TRAMOS(R.string.inicio_mis_tramos, activa = true),
-    RECONOCIMIENTO(R.string.inicio_reconocimiento, activa = true),
-    MAPAS_OFFLINE(R.string.inicio_mapas_offline, activa = true),
     PERFIL(R.string.inicio_perfil, activa = true),
     AJUSTES(R.string.inicio_ajustes, activa = true),
 }

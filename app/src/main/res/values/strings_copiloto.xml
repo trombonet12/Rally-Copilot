@@ -2,7 +2,12 @@
 <resources>
     <!-- Modo del copiloto: el selector del panel de conducción y la sección de Ajustes -->
     <string name="copiloto_modo_titulo">Modo del copiloto</string>
-    <string name="copiloto_modo_boton">Modo del copiloto: %1$s. Pulsa para cambiarlo</string>
+    <string name="copiloto_modo_boton">Copiloto: modo %1$s. Pulsa para cambiar el modo y los ajustes rápidos</string>
+    <string name="notas_grandes_boton">Notas grandes</string>
+    <string name="notas_grandes_vacio_titulo">Sin notas por delante</string>
+    <string name="notas_grandes_vacio_texto">El copiloto las enseña aquí en cuanto la carretera tenga curvas.</string>
+    <string name="notas_grandes_boton_estado_activo">Activadas</string>
+    <string name="notas_grandes_boton_estado_inactivo">Desactivadas</string>
     <string name="copiloto_modo_silencio">Silencio</string>
     <string name="copiloto_modo_silencio_detalle">El copiloto no habla</string>
     <string name="copiloto_modo_alertas">Solo alertas</string>

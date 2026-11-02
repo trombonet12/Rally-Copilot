@@ -31,6 +31,7 @@
     <string name="edicion_no_encontrado">Este tramo ya no existe.</string>
 
     <!-- Reconocimiento -->
-    <string name="reconocimiento_ayuda">Elige el tramo que vas a reconocer: el copiloto lee sus notas y puedes dictar o corregir las que falten. Esta pasada no cuenta para tiempos.</string>
+    <string name="detalle_reconocer">Reconocer</string>
+    <string name="detalle_reconocer_ayuda">Reconocer: el copiloto lee las notas de este tramo y puedes dictar o corregir las que falten. Esta pasada no cuenta para tiempos.</string>
     <string name="reconocimiento_microfono">Dictar una nota</string>
 </resources>

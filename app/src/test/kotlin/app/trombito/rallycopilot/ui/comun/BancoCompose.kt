@@ -101,6 +101,10 @@ class BancoCompose {
     fun descripcion(nodo: SemanticsNode): String? =
         nodo.config.getOrNull(SemanticsProperties.ContentDescription)?.firstOrNull()
 
+    /** Lo que lee TalkBack como estado (activado/desactivado, seleccionado) del nodo con la [etiqueta]. */
+    fun descripcionEstado(etiqueta: String): String? =
+        conEtiqueta(etiqueta).config.getOrNull(SemanticsProperties.StateDescription)
+
     fun etiquetas(prefijo: String): List<String> =
         nodos()
             .mapNotNull { it.config.getOrNull(SemanticsProperties.TestTag) }

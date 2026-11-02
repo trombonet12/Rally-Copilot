@@ -87,6 +87,17 @@ class RepositorioAjustesConduccionImplTest {
         }
 
     @Test
+    fun `cronometrar trayectos esta activado por defecto, las notas grandes no, y ambos se guardan`() =
+        runBlocking {
+            assertEquals(true, repositorio.ajustes.first().cronometrar)
+            assertEquals(false, repositorio.ajustes.first().notasGrandes)
+
+            val ajustes = repositorio.ajustes.first().copy(cronometrar = false, notasGrandes = true)
+            repositorio.guardar(ajustes)
+            assertEquals(ajustes, repositorio.ajustes.first())
+        }
+
+    @Test
     fun `un volumen fuera de rango o un tema desconocido en disco valen los de por defecto o se acotan`() =
         runBlocking {
             val dao = base.ajustesConduccionDao()

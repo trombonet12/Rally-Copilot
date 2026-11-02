@@ -37,6 +37,8 @@ data class CopilotoUiState(
     val anticipacion: NivelAnticipacion = NivelAnticipacion.NORMAL,
     val notasSimplificadas: Boolean = false,
     val volumenVoz: Int = AjustesConduccion.VOLUMEN_VOZ_NORMAL,
+    /** Modo roadbook: la pantalla de conducción enseña las notas enormes y casi nada de mapa. */
+    val notasGrandes: Boolean = false,
 ) {
     /** Hay que enseñar el diálogo «Elige la voz del copiloto». */
     val pedirVoz: Boolean get() = cargado && voz == null && !vozPospuesta
@@ -44,6 +46,7 @@ data class CopilotoUiState(
 
 /** Presentación del selector de modo y del diálogo de voz del primer uso. */
 @HiltViewModel
+@Suppress("TooManyFunctions") // un método por acción de la hoja del copiloto
 class CopilotoViewModel
     @Inject
     constructor(
@@ -64,6 +67,7 @@ class CopilotoViewModel
                     anticipacion = ajustes.anticipacion,
                     notasSimplificadas = ajustes.notasSimplificadas,
                     volumenVoz = ajustes.volumenVoz,
+                    notasGrandes = ajustes.notasGrandes,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), CopilotoUiState())
 
@@ -104,6 +108,11 @@ class CopilotoViewModel
             val volumen = porcentaje.coerceIn(AjustesConduccion.VOLUMEN_VOZ_MIN, AjustesConduccion.VOLUMEN_VOZ_MAX)
             locutor.usarVolumen(volumen)
             cambiar { it.copy(volumenVoz = volumen) }
+        }
+
+        /** El botón de notas grandes del panel: se recuerda en los ajustes. */
+        fun onNotasGrandes(grandes: Boolean) {
+            cambiar { it.copy(notasGrandes = grandes) }
         }
 
         /** «Escuchar ejemplo» de la hoja rápida, con la voz, el volumen y las simplificadas de los ajustes. */

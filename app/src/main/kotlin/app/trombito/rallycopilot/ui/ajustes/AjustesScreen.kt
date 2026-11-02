@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.ajustes
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -62,11 +64,14 @@ data class AccionesAjustes(
     val onTema: (Tema) -> Unit = {},
     val onCapa: (CapaMapa) -> Unit = {},
     val onRelieve: (Boolean) -> Unit = {},
+    val onCronometrar: (Boolean) -> Unit = {},
+    val onNotasGrandes: (Boolean) -> Unit = {},
 )
 
 /**
  * Ajustes en secciones con cabecera e icono, cada una con su vista previa en vivo arriba: Copiloto (modo y voz),
- * Notas (anticipación y simplificadas), Volumen de la voz, Mapa, Escucha, Tema, Datos y Acerca de.
+ * Notas (anticipación, simplificadas y notas grandes), Volumen de la voz, Tramos (cronometrar), Mapa, Escucha,
+ * Tema, Datos y Acerca de.
  */
 @Composable
 fun AjustesScreen(
@@ -87,6 +92,7 @@ fun AjustesScreen(
             SeccionCopiloto(ajustes, acciones)
             SeccionNotas(ajustes, acciones)
             SeccionVoz(ajustes, acciones)
+            SeccionTramos(ajustes.cronometrar, acciones.onCronometrar)
             SeccionMapa(ajustes, acciones)
             SeccionEscucha(ajustes, acciones)
             SeccionTema(ajustes.tema, acciones.onTema)
@@ -141,23 +147,29 @@ private fun FilaAjuste(
         shape = MaterialTheme.shapes.small,
         modifier = Modifier.fillMaxWidth().testTag(etiqueta),
     ) {
-        Column(
+        Row(
             modifier = Modifier.heightIn(min = 56.dp).padding(horizontal = Espacio.l, vertical = Espacio.m),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.Start,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = titulo,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            if (detalle != null) {
+            Column(
+                Modifier.weight(1f),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.Start,
+            ) {
                 Text(
-                    text = detalle,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = titulo,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
+                if (detalle != null) {
+                    Text(
+                        text = detalle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
+            Icon(Iconos.Siguiente, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

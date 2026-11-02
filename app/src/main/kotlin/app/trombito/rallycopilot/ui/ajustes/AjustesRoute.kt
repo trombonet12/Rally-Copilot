@@ -38,6 +38,8 @@ fun AjustesRoute(
                 onTema = viewModel::onTema,
                 onCapa = viewModel::onCapa,
                 onRelieve = viewModel::onRelieve,
+                onCronometrar = viewModel::onCronometrar,
+                onNotasGrandes = viewModel::onNotasGrandes,
             ),
         modifier = modifier,
     )

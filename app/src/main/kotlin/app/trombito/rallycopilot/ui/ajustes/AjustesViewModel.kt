@@ -98,6 +98,15 @@ class AjustesViewModel
             guardar { it.copy(tema = tema) }
         }
 
+        /** «Cronometrar trayectos»: vale desde la próxima conducción. */
+        fun onCronometrar(cronometrar: Boolean) {
+            guardar { it.copy(cronometrar = cronometrar) }
+        }
+
+        fun onNotasGrandes(grandes: Boolean) {
+            guardar { it.copy(notasGrandes = grandes) }
+        }
+
         fun onCapa(capa: CapaMapa) {
             guardar { it.copy(capa = capa) }
         }
