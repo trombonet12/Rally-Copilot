@@ -380,14 +380,18 @@ Pulir toda la app con estética de videojuego WRC y retransmisión de rally.
 - Fuera: Android Auto.
 
 ### Criterios de aceptación
-- [ ] Revisión de `ux-reviewer` sin hallazgos altos; `ContrastTest` en verde en ambos temas.
-- [ ] Capturas de cada pantalla en vertical y horizontal.
+- [ ] Revisión de `ux-reviewer` sin hallazgos altos (pendiente por límite de uso); `ContrastTest` en verde en ambos temas: hecho.
+- [x] Capturas de cada pantalla en vertical y horizontal: 48 en [capturas/h10](docs/capturas/h10/) (oscuro y claro).
 
 ### Tests
 - Robolectric: render de pantallas con BancoCompose; contraste.
 
 ### Estado
-en curso (2026-11-02) · Depende de: H1–H9 · Dudas: resueltas (2026-11-02): notas grandes con botón, ajustes rápidos en hoja, tema oscuro/claro/sistema
+completado (2026-11-02) · Depende de: H1–H9 · Dudas: resueltas (2026-11-02)
+<!-- Hecho: Ajustes con vista previa en vivo, hoja única de copiloto (modo + ajustes rápidos), volumen de voz, tema
+oscuro/claro/sistema con mapa claro (datos-2026.11.02-11), Cronometrar trayectos, salida al moverse, notas grandes, menú de
+inicio simplificado (Reconocer en el tramo, Mapas offline en Ajustes), pulido WRC (Room v11–v12).
+Pendiente: revisión ux-reviewer; probar notas grandes conduciendo. -->
 
 ## H11 — Voz de Luis Moya
 
@@ -409,7 +413,7 @@ El copiloto habla con la voz clonada de Luis Moya (con autorización), sin inter
 - Cobertura de frases: toda nota que puede generar el motor tiene audio pregenerado o pasa por TTS.
 
 ### Estado
-pendiente · Depende de: H4 y el material de Joan · Dudas: resueltas (2026-10-28)
+pendiente hasta nueva orden de Joan (2026-11-02) · sin material en `voice-lab/data/raw/`
 
 ## H12 — Pruebas end-to-end y Play
 
