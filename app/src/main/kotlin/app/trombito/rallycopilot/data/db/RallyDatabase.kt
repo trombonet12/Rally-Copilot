@@ -16,7 +16,7 @@ import androidx.room.RoomDatabase
             TramoEntity::class,
             PasadaEntity::class,
         ],
-    version = 7,
+    version = 8,
     exportSchema = true,
 )
 abstract class RallyDatabase : RoomDatabase() {

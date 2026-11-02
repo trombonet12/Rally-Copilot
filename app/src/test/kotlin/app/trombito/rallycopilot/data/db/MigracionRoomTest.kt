@@ -20,9 +20,9 @@ import org.robolectric.RobolectricTestRunner
 import java.io.File
 
 /**
- * Migraciones v1 -> v2 -> v3 -> v4 -> v5 -> v6 -> v7. No hay `room-testing` (MigrationTestHelper) en el proyecto: la
- * base antigua se crea con el SQL exportado en `schemas/.../N.json` y Room la abre como v7; al abrir valida el esquema
- * resultante contra `7.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
+ * Migraciones v1 -> ... -> v8. No hay `room-testing` (MigrationTestHelper) en el proyecto: la
+ * base antigua se crea con el SQL exportado en `schemas/.../N.json` y Room la abre como v8; al abrir valida el esquema
+ * resultante contra `8.json` (identity hash y tablas), así que un SQL de migración distinto del esquema falla aquí.
  */
 @RunWith(RobolectricTestRunner::class)
 class MigracionRoomTest {
@@ -63,6 +63,19 @@ class MigracionRoomTest {
                 ),
             )
         }
+        for (entidad in esquemaAntiguo.getValue("entities").jsonArray) {
+            val tabla =
+                entidad.jsonObject
+                    .getValue("tableName")
+                    .jsonPrimitive.content
+            entidad.jsonObject["indices"]?.jsonArray?.forEach { indice ->
+                val sql =
+                    indice.jsonObject
+                        .getValue("createSql")
+                        .jsonPrimitive.content
+                db.execSQL(sql.replace("\${TABLE_NAME}", tabla))
+            }
+        }
         esquemaAntiguo.getValue("setupQueries").jsonArray.forEach { db.execSQL(it.jsonPrimitive.content) }
         db.execSQL("INSERT INTO archivo_instalado VALUES ('mapa', 'mapa.pmtiles', '${"a".repeat(64)}', 123, 'v1')")
         db.execSQL("INSERT INTO ajustes_mapas VALUES (1, 0, 777)")
@@ -79,7 +92,7 @@ class MigracionRoomTest {
     }
 
     @Test
-    fun `de v1 a v7 conserva los datos y crea las tablas nuevas`() =
+    fun `de v1 a v8 conserva los datos y crea las tablas nuevas`() =
         runBlocking {
             crearBase(1)
 
@@ -106,7 +119,7 @@ class MigracionRoomTest {
             nueva.recorridosDao().anadirPuntos(id, listOf(RecorridoPuntoEntity(id, 0, 39.5, 2.9, 10, null)))
             assertEquals(1, nueva.recorridosDao().puntos(id).size)
             assertNotNull(nueva.openHelper.writableDatabase)
-            assertEquals(7, nueva.openHelper.writableDatabase.version)
+            assertEquals(8, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -134,7 +147,7 @@ class MigracionRoomTest {
                 ),
                 fila,
             )
-            assertEquals(7, nueva.openHelper.writableDatabase.version)
+            assertEquals(8, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -173,7 +186,7 @@ class MigracionRoomTest {
                     .first()
                     ?.destinoNombre,
             )
-            assertEquals(7, nueva.openHelper.writableDatabase.version)
+            assertEquals(8, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -223,7 +236,7 @@ class MigracionRoomTest {
                     .first()
                     ?.voz,
             )
-            assertEquals(7, nueva.openHelper.writableDatabase.version)
+            assertEquals(8, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -254,7 +267,7 @@ class MigracionRoomTest {
                     .first()
                     ?.paradas,
             )
-            assertEquals(7, nueva.openHelper.writableDatabase.version)
+            assertEquals(8, nueva.openHelper.writableDatabase.version)
         }
 
     @Test
@@ -282,12 +295,83 @@ class MigracionRoomTest {
             assertEquals(90_000L, nueva.tramosDao().mejorPasada("t1")?.totalMs)
             nueva.tramosDao().borrar("t1")
             assertEquals(null, nueva.tramosDao().mejorPasada("t1"))
-            assertEquals(7, nueva.openHelper.writableDatabase.version)
+            assertEquals(8, nueva.openHelper.writableDatabase.version)
+        }
+
+    private fun abrirV8DesdeV7(): RallyDatabase {
+        val archivo = crearBase(7)
+        SQLiteDatabase.openDatabase(archivo.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("INSERT INTO recorrido VALUES (1, 100, 200, 1500.0, NULL)")
+            db.execSQL("INSERT INTO tramo VALUES ('a', 'Mi tramo', '_p~iF~ps|U', 1500.0, '', '', 5000)")
+            db.execSQL("INSERT INTO tramo VALUES ('b', NULL, '_p~iF~ps|U', 900.0, '', '', 7000)")
+            db.execSQL("INSERT INTO pasada VALUES (1, 'a', 9000, 90000, '0:0;1490000:90000')")
+            db.execSQL("INSERT INTO pasada VALUES (2, 'a', 8000, 95000, '0:0;1490000:95000')")
+            db.execSQL("INSERT INTO pasada VALUES (3, 'b', 10, 60000, '0:0;890000:60000')")
+        }
+        return Room
+            .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+            .addMigrations(*TODAS)
+            .allowMainThreadQueries()
+            .build()
+            .also { base = it }
+    }
+
+    @Test
+    fun `de v7 a v8 conserva tramos y pasadas con su ultimo uso y las pasadas quedan sin recorrido`() =
+        runBlocking {
+            val nueva = abrirV8DesdeV7()
+
+            val a = checkNotNull(nueva.tramosDao().tramo("a"))
+            assertEquals("Mi tramo", a.nombre)
+            assertEquals(null, a.nombreAutomatico)
+            assertEquals(false, a.favorito)
+            // La última pasada manda; si su salida es anterior a la creación (relojes distintos), la creación.
+            assertEquals(9000L, a.ultimoUso)
+            assertEquals(7000L, nueva.tramosDao().tramo("b")?.ultimoUso)
+            val pasadas = nueva.tramosDao().pasadas("a")
+            assertEquals(listOf(1L, 2L), pasadas.map { it.id })
+            assertEquals(listOf(null, null), pasadas.map { it.recorridoId })
+            assertEquals(8, nueva.openHelper.writableDatabase.version)
+        }
+
+    @Test
+    fun `tras v8 una pasada enlaza con su recorrido y al borrarlo el enlace pasa a null sin borrar la pasada`() =
+        runBlocking {
+            val dao = abrirV8DesdeV7().tramosDao()
+            val pasada =
+                PasadaEntity(
+                    tramoId = "a",
+                    inicio = 20_000L,
+                    totalMs = 80_000L,
+                    marcas = "0:0;1490000:80000",
+                    recorridoId = 1L,
+                    puntosDesdeMs = 10L,
+                    puntosHastaMs = 90L,
+                )
+
+            val id = dao.anadirPasada(pasada)
+
+            assertEquals(20_000L, dao.tramo("a")?.ultimoUso)
+            assertEquals(1L, dao.pasadas("a").first { it.id == id }.recorridoId)
+            base?.recorridosDao()?.borrar(1L)
+            val sinEnlace = dao.pasadas("a").first { it.id == id }
+            assertEquals(null, sinEnlace.recorridoId)
+            assertEquals(90L, sinEnlace.puntosHastaMs)
+            dao.borrar("a")
+            assertEquals(emptyList<PasadaEntity>(), dao.pasadas("a"))
         }
 
     private companion object {
         const val NOMBRE = "migracion-test.db"
         val TODAS =
-            arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            arrayOf(
+                MIGRATION_1_2,
+                MIGRATION_2_3,
+                MIGRATION_3_4,
+                MIGRATION_4_5,
+                MIGRATION_5_6,
+                MIGRATION_6_7,
+                MIGRATION_7_8,
+            )
     }
 }

@@ -16,6 +16,7 @@ import app.trombito.rallycopilot.data.db.MIGRATION_3_4
 import app.trombito.rallycopilot.data.db.MIGRATION_4_5
 import app.trombito.rallycopilot.data.db.MIGRATION_5_6
 import app.trombito.rallycopilot.data.db.MIGRATION_6_7
+import app.trombito.rallycopilot.data.db.MIGRATION_7_8
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import dagger.Module
@@ -44,6 +45,7 @@ object DatosMapaModule {
                 MIGRATION_4_5,
                 MIGRATION_5_6,
                 MIGRATION_6_7,
+                MIGRATION_7_8,
             ).build()
 
     @Provides

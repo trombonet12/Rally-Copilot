@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.tramos
 
 import app.trombito.rallycopilot.data.db.PasadaEntity
 import app.trombito.rallycopilot.data.db.TramoEntity
+import app.trombito.rallycopilot.domain.tramos.OrigenPasada
 import app.trombito.rallycopilot.motor.ruta.Polyline6
 import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.Tramo
@@ -23,6 +24,7 @@ internal fun TramoEntity.aTramo(): Tramo? =
 internal fun Tramo.aEntidad(
     nombre: String?,
     creadoEnMs: Long,
+    nombreAutomatico: String? = null,
 ) = TramoEntity(
     id = id,
     nombre = nombre,
@@ -31,6 +33,7 @@ internal fun Tramo.aEntidad(
     sectores = CodecTramos.codificarCortes(sectores),
     microsectores = CodecTramos.codificarCortes(microsectores),
     creadoEn = creadoEnMs,
+    nombreAutomatico = nombreAutomatico,
 )
 
 /** La pasada guardada, o null si la fila no se puede leer. [cortesM]: ver [CodecTramos.decodificarMarcas]. */
@@ -45,11 +48,14 @@ internal fun PasadaEntity.aPasada(cortesM: Collection<Double>): Pasada? =
 internal fun Tramo.cortesExactosM(): List<Double> = sectores + microsectores + metaM
 
 internal fun Pasada.aEntidad(
-    inicioMs: Long,
+    origen: OrigenPasada,
     obligatoriasM: Collection<Double>,
 ) = PasadaEntity(
     tramoId = tramoId,
-    inicio = inicioMs,
+    inicio = origen.inicioMs,
     totalMs = totalMs,
     marcas = CodecTramos.codificarMarcas(CodecTramos.compactar(tiempos, obligatoriasM)),
+    recorridoId = origen.recorridoId,
+    puntosDesdeMs = origen.puntosDesdeMs,
+    puntosHastaMs = origen.puntosHastaMs,
 )

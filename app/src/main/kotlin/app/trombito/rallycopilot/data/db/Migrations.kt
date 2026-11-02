@@ -95,3 +95,28 @@ val MIGRATION_6_7: Migration =
             )
         }
     }
+
+/**
+ * v7 -> v8: tramos con nombre automático, favorito y último uso, y pasadas con el recorrido que las grabó. Las pasadas
+ * existentes quedan sin recorrido (no se pueden recortar sus puntos). El último uso de cada tramo es el mayor entre
+ * su creación y la salida de su última pasada. El SQL es el `createSql` de `schemas/.../8.json`.
+ */
+val MIGRATION_7_8: Migration =
+    object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tramo` ADD COLUMN `nombreAutomatico` TEXT")
+            db.execSQL("ALTER TABLE `tramo` ADD COLUMN `favorito` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `tramo` ADD COLUMN `ultimoUso` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL(
+                "UPDATE `tramo` SET `ultimoUso` = MAX(`creadoEn`, " +
+                    "COALESCE((SELECT MAX(`inicio`) FROM `pasada` WHERE `pasada`.`tramoId` = `tramo`.`id`), 0))",
+            )
+            db.execSQL(
+                "ALTER TABLE `pasada` ADD COLUMN `recorridoId` INTEGER REFERENCES `recorrido`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE SET NULL",
+            )
+            db.execSQL("ALTER TABLE `pasada` ADD COLUMN `puntosDesdeMs` INTEGER")
+            db.execSQL("ALTER TABLE `pasada` ADD COLUMN `puntosHastaMs` INTEGER")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_pasada_recorridoId` ON `pasada` (`recorridoId`)")
+        }
+    }

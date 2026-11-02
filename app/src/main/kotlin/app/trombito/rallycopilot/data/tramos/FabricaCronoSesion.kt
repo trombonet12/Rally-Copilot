@@ -12,12 +12,14 @@ class FabricaCronoSesion
     constructor(
         private val repositorio: RepositorioTramos,
         private val salida: CronoEnVivoImpl,
+        private val nombrador: NombradorTramos,
     ) {
         fun crear(): SesionCrono =
             SesionCrono(
                 repositorio,
                 salida::publicar,
                 System::currentTimeMillis,
+                nombrar = nombrador::nombrar,
                 alFallar = { Log.w("SesionCrono", "Fallo en el cronometraje: ${it.javaClass.simpleName}") },
             )
     }

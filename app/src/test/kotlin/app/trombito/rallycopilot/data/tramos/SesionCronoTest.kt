@@ -13,7 +13,12 @@ import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
+import app.trombito.rallycopilot.domain.tramos.EstadisticasPerfil
+import app.trombito.rallycopilot.domain.tramos.FiltroTramos
+import app.trombito.rallycopilot.domain.tramos.OrigenPasada
+import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
+import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
 import app.trombito.rallycopilot.domain.tramos.TramoGuardado
@@ -179,6 +184,26 @@ private class TramosEnMemoria : RepositorioTramos {
 
     override fun observar(): Flow<List<TramoGuardado>> = emptyFlow()
 
+    override fun observarResumenes(filtro: FiltroTramos): Flow<List<ResumenTramo>> = emptyFlow()
+
+    override fun observarPerfil(): Flow<EstadisticasPerfil> = emptyFlow()
+
+    override suspend fun tramo(tramoId: String): Tramo? = tramos[tramoId]?.aTramo()
+
+    override suspend fun pasadasDetalladas(tramoId: String): List<PasadaDetallada> = emptyList()
+
+    override suspend fun mejorPasadaDetallada(tramoId: String): PasadaDetallada? = null
+
+    override suspend fun renombrar(
+        tramoId: String,
+        nombre: String?,
+    ) = Unit
+
+    override suspend fun marcarFavorito(
+        tramoId: String,
+        favorito: Boolean,
+    ) = Unit
+
     override fun observarMejorPasada(tramoId: String): Flow<Pasada?> = emptyFlow()
 
     override suspend fun cronometrables(): List<TramoCronometrable> =
@@ -192,20 +217,21 @@ private class TramosEnMemoria : RepositorioTramos {
     override suspend fun crear(
         tramo: Tramo,
         nombre: String?,
+        nombreAutomatico: String?,
         creadoEnMs: Long,
         primera: Pasada,
-        inicioMs: Long,
+        origen: OrigenPasada,
     ) {
-        tramos[tramo.id] = tramo.aEntidad(nombre, creadoEnMs)
-        guardarPasada(primera, inicioMs)
+        tramos[tramo.id] = tramo.aEntidad(nombre, creadoEnMs, nombreAutomatico)
+        guardarPasada(primera, origen)
     }
 
     override suspend fun guardarPasada(
         pasada: Pasada,
-        inicioMs: Long,
+        origen: OrigenPasada,
     ): Long {
         val tramo = checkNotNull(tramos[pasada.tramoId]?.aTramo())
-        pasadas += pasada.aEntidad(inicioMs, tramo.cortesExactosM()).copy(id = pasadas.size + 1L)
+        pasadas += pasada.aEntidad(origen, tramo.cortesExactosM()).copy(id = pasadas.size + 1L)
         return pasadas.size.toLong()
     }
 
@@ -255,7 +281,13 @@ class SesionCronoTest {
         val publicados = mutableListOf<CronoEnCurso?>()
         val locutor = LocutorAnotador()
         val crono =
-            SesionCrono(tramos, { publicados += it }, { testScheduler.currentTime }, { "tramo-${++idsNuevos}" })
+            SesionCrono(
+                tramos,
+                { publicados += it },
+                { testScheduler.currentTime },
+                { "tramo-${++idsNuevos}" },
+                nombrar = { "Ma-2141 · Escorca" },
+            )
         val copiloto =
             modo?.let { CopilotoVoz(locutor, flowOf(AjustesConduccion(modoCopiloto = it, voz = VozCopiloto.DAVEFX))) }
         SesionNavegacion(
@@ -285,6 +317,33 @@ class SesionCronoTest {
             assertTrue(c.estados.all { it.tramo == null && !it.hayMejorPasada && it.deltaMs == null })
             assertTrue(c.estados.last().transcurridoMs > 1_000_000L)
             assertNull(c.publicados.last())
+        }
+
+    @Test
+    fun `el tramo nuevo guarda su nombre automatico y cada pasada su recorrido y su intervalo de puntos`() =
+        runTest {
+            conducir(conduccion(40.0))
+            val primera = tramos.pasadas.single()
+            val tramo = checkNotNull(tramos.tramos["tramo-1"])
+
+            assertEquals("Ma-2141 · Escorca", tramo.nombreAutomatico)
+            assertNull(tramo.nombre)
+            assertEquals(1L, primera.recorridoId)
+            val desde = checkNotNull(primera.puntosDesdeMs)
+            val hasta = checkNotNull(primera.puntosHastaMs)
+            assertEquals(primera.totalMs, hasta - desde)
+            val puntos = recorridos.puntos(1L)
+            assertTrue(desde >= puntos.first().tiempoMs && hasta <= puntos.last().tiempoMs)
+            assertTrue(puntos.last().tiempoMs - hasta <= 15_000L)
+
+            // Una segunda pasada (completada en vivo) también guarda de qué conducción sale.
+            conducir(conduccion(60.0, margenM = 100.0, base = 9_000_000L))
+            val segunda = tramos.pasadas.last()
+            assertEquals(2L, segunda.recorridoId)
+            assertEquals(segunda.totalMs, checkNotNull(segunda.puntosHastaMs) - checkNotNull(segunda.puntosDesdeMs))
+            assertTrue(checkNotNull(segunda.puntosDesdeMs) >= 9_000_000L)
+            // Sin crear otro tramo, el nombre del primero no se toca.
+            assertEquals(listOf("tramo-1"), tramos.tramos.keys.toList())
         }
 
     @Test

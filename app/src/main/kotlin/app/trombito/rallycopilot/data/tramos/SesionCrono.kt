@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteException
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.Recorrido
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
+import app.trombito.rallycopilot.domain.tramos.OrigenPasada
 import app.trombito.rallycopilot.domain.tramos.ParcialCrono
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResultadoCrono
@@ -44,6 +45,7 @@ class SesionCrono(
     private val ahoraMs: () -> Long,
     private val nuevoId: () -> String = { UUID.randomUUID().toString() },
     private val alFallar: (Throwable) -> Unit = {},
+    private val nombrar: suspend (List<PuntoGeo>) -> String? = { null },
 ) {
     /** Un tramo en que se ha entrado y aún no se ha completado ni abandonado. */
     private class Vivo(
@@ -56,10 +58,14 @@ class SesionCrono(
         val idPasada: String get() = inicioFijacionMs.toString()
     }
 
+    /** Una pasada hecha: [inicioMs] epoch de su salida y [origen] su intervalo en el reloj de las fijaciones. */
     private class Completada(
         val pasada: Pasada,
         val inicioMs: Long,
-    )
+        val desdeMs: Long,
+    ) {
+        val hastaMs: Long get() = desdeMs + pasada.totalMs
+    }
 
     private class Terminado(
         val tramo: Tramo,
@@ -170,7 +176,7 @@ class SesionCrono(
             val resultado = ResultadoCrono(pasada.totalMs, delta, nuevoMejor, mejor?.totalMs)
             terminado = Terminado(tramo, resultado, vivo.parciales.toList())
             vivos.remove(id)
-            completadas += Completada(pasada, vivo.inicioMs)
+            completadas += Completada(pasada, vivo.inicioMs, vivo.inicioFijacionMs)
         }
         if (mejores[id].let { it == null || pasada.totalMs < it.totalMs }) mejores[id] = pasada
     }
@@ -276,8 +282,9 @@ class SesionCrono(
         puntos: suspend () -> List<PuntoRecorrido>,
     ) {
         publicar(null)
-        for (c in completadas) guardar { repositorio.guardarPasada(c.pasada, c.inicioMs) }
-        if (recorrido != null) guardar { crearTramoNuevo(puntos()) }
+        val recorridoId = recorrido?.id
+        for (c in completadas) guardar { repositorio.guardarPasada(c.pasada, c.origen(recorridoId)) }
+        if (recorrido != null) guardar { crearTramoNuevo(recorrido.id, puntos()) }
     }
 
     private suspend fun guardar(accion: suspend () -> Unit) {
@@ -290,7 +297,13 @@ class SesionCrono(
         }
     }
 
-    private suspend fun crearTramoNuevo(puntos: List<PuntoRecorrido>) {
+    private fun Completada.origen(recorridoId: Long?) =
+        OrigenPasada(inicioMs, recorridoId, recorridoId?.let { desdeMs }, recorridoId?.let { hastaMs })
+
+    private suspend fun crearTramoNuevo(
+        recorridoId: Long,
+        puntos: List<PuntoRecorrido>,
+    ) {
         val traza = puntos.map { PuntoGeo(it.lat, it.lon) }
         val repetido =
             completadas.any { c ->
@@ -300,7 +313,7 @@ class SesionCrono(
         val tramo = if (repetido) null else TramoDesdeRecorrido.crear(nuevoId(), traza)
         val primera = tramo?.let { pasadaDelRecorrido(it, puntos) }
         if (tramo != null && primera != null) {
-            repositorio.crear(tramo, null, ahoraMs(), primera.pasada, primera.inicioMs)
+            repositorio.crear(tramo, null, nombrar(tramo.traza), ahoraMs(), primera.pasada, primera.origen(recorridoId))
         }
     }
 
@@ -311,14 +324,16 @@ class SesionCrono(
     ): Completada? {
         var ahora = 0L
         val cronometro = Cronometro(tramo, reloj = { ahora })
-        var inicioMs = 0L
+        var desdeMs = 0L
         for (p in puntos) {
             ahora = p.tiempoMs
             val eventos = cronometro.alFijar(Fijacion(PuntoGeo(p.lat, p.lon), p.tiempoMs, p.velocidadMs, null, null))
-            eventos.filterIsInstance<EventoCrono.Salida>().forEach { inicioMs = it.tInicioMs }
+            eventos.filterIsInstance<EventoCrono.Salida>().forEach { desdeMs = it.tInicioMs }
             if (cronometro.estado == Cronometro.Estado.TERMINADO) break
         }
-        return cronometro.pasada()?.let { Completada(it, inicioMs) }
+        val ultimaMs = puntos.lastOrNull()?.tiempoMs ?: return null
+        // Los puntos van en el reloj de las fijaciones: la salida epoch es ahora menos lo que falta hasta el último.
+        return cronometro.pasada()?.let { Completada(it, ahoraMs() - (ultimaMs - desdeMs), desdeMs) }
     }
 
     companion object {

@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -7,7 +8,8 @@ import androidx.room.PrimaryKey
 
 /**
  * Tramo cronometrable. [traza] es una polilínea codificada (precisión 1e-6), [sectores] y [microsectores] los cortes en
- * metros separados por comas (vacío si no hay) y [creadoEn] milisegundos epoch.
+ * metros separados por comas (vacío si no hay) y [creadoEn] milisegundos epoch. [nombre] es el que pone el usuario y
+ * [nombreAutomatico] el que se compone al crearlo; [ultimoUso] (epoch) es la salida de la última pasada.
  */
 @Entity(tableName = "tramo")
 data class TramoEntity(
@@ -18,11 +20,16 @@ data class TramoEntity(
     val sectores: String,
     val microsectores: String,
     val creadoEn: Long,
+    val nombreAutomatico: String? = null,
+    @ColumnInfo(defaultValue = "0") val favorito: Boolean = false,
+    @ColumnInfo(defaultValue = "0") val ultimoUso: Long = 0,
 )
 
 /**
  * Pasada completa de un tramo; se borra en cascada con él. [inicio] es el instante epoch de la salida y [marcas] la
- * curva distancia-tiempo codificada (ver `CodecTramos`).
+ * curva distancia-tiempo codificada (ver `CodecTramos`). [recorridoId] es la conducción que la grabó (null si se
+ * borró o no se conserva) y [puntosDesdeMs]..[puntosHastaMs] el intervalo, en el reloj de los puntos de ese recorrido
+ * (`recorrido_punto.tiempoMs`, no epoch), que ocupa la pasada: sirve para recortar sus puntos.
  */
 @Entity(
     tableName = "pasada",
@@ -33,8 +40,14 @@ data class TramoEntity(
             childColumns = ["tramoId"],
             onDelete = ForeignKey.CASCADE,
         ),
+        ForeignKey(
+            entity = RecorridoEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["recorridoId"],
+            onDelete = ForeignKey.SET_NULL,
+        ),
     ],
-    indices = [Index(value = ["tramoId", "totalMs"])],
+    indices = [Index(value = ["tramoId", "totalMs"]), Index(value = ["recorridoId"])],
 )
 data class PasadaEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -42,6 +55,9 @@ data class PasadaEntity(
     val inicio: Long,
     val totalMs: Long,
     val marcas: String,
+    val recorridoId: Long? = null,
+    val puntosDesdeMs: Long? = null,
+    val puntosHastaMs: Long? = null,
 )
 
 /** Resumen de las pasadas de un tramo (consulta, no tabla). */
@@ -49,4 +65,38 @@ data class ResumenPasadas(
     val tramoId: String,
     val pasadas: Int,
     val mejorMs: Long,
+)
+
+/** Fila de la lista de tramos: el tramo con el resumen de sus pasadas (consulta, no tabla). */
+data class FilaResumenTramo(
+    val id: String,
+    val nombre: String?,
+    val nombreAutomatico: String?,
+    val longitudM: Double,
+    val favorito: Boolean,
+    val ultimoUso: Long,
+    val pasadas: Int,
+    val mejorMs: Long?,
+)
+
+/** Punto de un recorrido (consulta de recorte, sin el id del recorrido). */
+data class FilaPuntoPasada(
+    val lat: Double,
+    val lon: Double,
+    val tiempoMs: Long,
+    val velocidadMs: Double?,
+)
+
+/** Totales de los recorridos terminados (consulta, no tabla). */
+data class TotalesRecorridos(
+    val recorridos: Int,
+    val distanciaM: Double,
+    val primeroMs: Long?,
+    val ultimoMs: Long?,
+)
+
+/** Cuántos tramos y pasadas hay (consulta, no tabla). */
+data class ContadoresTramos(
+    val tramos: Int,
+    val pasadas: Int,
 )
