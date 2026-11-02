@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mis tramos -->
+    <string name="mistramos_filtro_todos">Todos</string>
+    <string name="mistramos_filtro_repetidos">Repetidos</string>
+    <string name="mistramos_filtro_favoritos">Favoritos</string>
+    <string name="mistramos_medidas">%1$s · %2$s</string>
+    <plurals name="mistramos_pasadas">
+        <item quantity="one">%1$d pasada</item>
+        <item quantity="other">%1$d pasadas</item>
+    </plurals>
+    <string name="mistramos_mejor">Mejor</string>
+    <string name="mistramos_sin_tiempo">—</string>
+    <string name="mistramos_marcar_favorito">Marcar como favorito</string>
+    <string name="mistramos_quitar_favorito">Quitar de favoritos</string>
+    <string name="mistramos_renombrar">Cambiar el nombre</string>
+    <string name="mistramos_borrar">Borrar</string>
+    <string name="mistramos_borrado_aviso">«%1$s» borrado</string>
+    <string name="mistramos_deshacer">Deshacer</string>
+
+    <!-- Estados vacíos -->
+    <string name="mistramos_vacio_titulo">Aún no tienes tramos</string>
+    <string name="mistramos_vacio_texto">Conduce al menos un kilómetro y el trayecto quedará guardado como tu primer tramo.</string>
+    <string name="mistramos_vacio_repetidos_titulo">Ningún tramo repetido</string>
+    <string name="mistramos_vacio_repetidos_texto">Cuando pases dos veces por el mismo tramo aparecerá aquí para que lo compares.</string>
+    <string name="mistramos_vacio_favoritos_titulo">Sin favoritos</string>
+    <string name="mistramos_vacio_favoritos_texto">Toca la estrella de un tramo para tenerlo siempre a mano.</string>
+
+    <!-- Renombrar -->
+    <string name="mistramos_renombrar_titulo">Nombre del tramo</string>
+    <string name="mistramos_renombrar_campo">Nombre</string>
+    <string name="mistramos_renombrar_ayuda">Déjalo vacío para volver al nombre automático.</string>
+    <string name="mistramos_renombrar_guardar">Guardar</string>
+    <string name="mistramos_renombrar_cancelar">Cancelar</string>
+
+    <!-- Detalle de un tramo -->
+    <string name="detalle_traza_descripcion">Trazado del tramo, con la salida en verde y la meta en rojo</string>
+    <string name="detalle_longitud">Longitud</string>
+    <string name="detalle_pasadas">Pasadas</string>
+    <string name="detalle_pasadas_titulo">Pasadas</string>
+    <string name="detalle_sin_pasadas">Este tramo aún no tiene pasadas.</string>
+    <string name="detalle_ver_analisis">Ver análisis</string>
+    <string name="detalle_no_existe_titulo">Tramo no encontrado</string>
+    <string name="detalle_no_existe_texto">Este tramo ya no existe. Vuelve a la lista para elegir otro.</string>
+
+    <!-- Análisis (marcador hasta que exista la pantalla) -->
+    <string name="analisis_titulo">Análisis</string>
+    <string name="analisis_placeholder_titulo">Análisis en preparación</string>
+    <string name="analisis_placeholder_texto">Muy pronto verás aquí los parciales, la velocidad y el mapa de esta pasada.</string>
+</resources>

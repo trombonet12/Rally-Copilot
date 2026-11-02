@@ -10,9 +10,9 @@ enum class EntradaInicio(
     val activa: Boolean = false,
 ) {
     CONDUCIR(R.string.inicio_conducir, activa = true),
-    MIS_TRAMOS(R.string.inicio_mis_tramos),
+    MIS_TRAMOS(R.string.inicio_mis_tramos, activa = true),
     RECONOCIMIENTO(R.string.inicio_reconocimiento),
     MAPAS_OFFLINE(R.string.inicio_mapas_offline, activa = true),
-    PERFIL(R.string.inicio_perfil),
+    PERFIL(R.string.inicio_perfil, activa = true),
     AJUSTES(R.string.inicio_ajustes, activa = true),
 }

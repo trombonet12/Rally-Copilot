@@ -7,10 +7,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import app.trombito.rallycopilot.ui.ajustes.AcercaDeRoute
 import app.trombito.rallycopilot.ui.ajustes.AjustesRoute
+import app.trombito.rallycopilot.ui.analisis.AnalisisPlaceholder
 import app.trombito.rallycopilot.ui.inicio.EntradaInicio
 import app.trombito.rallycopilot.ui.inicio.InicioScreen
 import app.trombito.rallycopilot.ui.mapa.MapaRoute
 import app.trombito.rallycopilot.ui.mapasoffline.MapasOfflineRoute
+import app.trombito.rallycopilot.ui.mistramos.DetalleTramoRoute
+import app.trombito.rallycopilot.ui.mistramos.MisTramosRoute
+import app.trombito.rallycopilot.ui.perfil.PerfilRoute
 
 @Composable
 fun AppNavHost() {
@@ -30,6 +34,18 @@ fun AppNavHost() {
             )
         }
         composable<RutaAcercaDe> { AcercaDeRoute(onVolver = { nav.popBackStack() }) }
+        composable<RutaMisTramos> {
+            MisTramosRoute(onVolver = { nav.popBackStack() }, onAbrirTramo = { nav.navigate(RutaTramo(it)) })
+        }
+        composable<RutaTramo> {
+            DetalleTramoRoute(
+                onVolver = { nav.popBackStack() },
+                onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
+            )
+        }
+        // Marcador: la pantalla de análisis la sustituye en su lote.
+        composable<RutaAnalisis> { AnalisisPlaceholder(onVolver = { nav.popBackStack() }) }
+        composable<RutaPerfil> { PerfilRoute(onVolver = { nav.popBackStack() }) }
     }
 }
 
@@ -42,6 +58,8 @@ private fun abrirEntrada(
         EntradaInicio.CONDUCIR -> nav.navigate(RutaMapa)
         EntradaInicio.MAPAS_OFFLINE -> nav.navigate(RutaMapasOffline)
         EntradaInicio.AJUSTES -> nav.navigate(RutaAjustes)
+        EntradaInicio.MIS_TRAMOS -> nav.navigate(RutaMisTramos)
+        EntradaInicio.PERFIL -> nav.navigate(RutaPerfil)
         else -> Unit
     }
 }

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="perfil_vacio_titulo">Tu perfil empieza aquí</string>
+    <string name="perfil_vacio_texto">Cuando completes tu primer tramo verás aquí tus kilómetros, tus mejores tiempos y cómo mejoras.</string>
+
+    <string name="perfil_km">Kilómetros</string>
+    <string name="perfil_tramos">Tramos</string>
+    <string name="perfil_pasadas">Pasadas</string>
+    <string name="perfil_velocidad">Velocidad media</string>
+
+    <string name="perfil_mejores_titulo">Mejores tiempos</string>
+    <string name="perfil_mejores_ayuda">Toca un tramo para ver cómo evoluciona.</string>
+    <string name="perfil_sin_tramos">Todavía no has completado ningún tramo.</string>
+
+    <string name="perfil_evolucion_titulo">Evolución</string>
+    <string name="perfil_grafico_descripcion">Evolución del tiempo: %1$d pasadas, mejor tiempo %2$s, %3$d récords</string>
+    <string name="perfil_grafico_leyenda">El punto grande marca un récord: un nuevo mejor tiempo del tramo.</string>
+
+    <string name="perfil_historial_titulo">Historial reciente</string>
+    <string name="perfil_historial_vacio">Aún no hay pasadas en el historial.</string>
+    <string name="perfil_record">Récord</string>
+</resources>

@@ -45,17 +45,28 @@ class InicioScreenTest {
     }
 
     @Test
-    fun `conducir, mapas offline y ajustes son pulsables y navegan`() {
+    fun `conducir, mis tramos, mapas offline, perfil y ajustes son pulsables y navegan`() {
         val abiertas = mutableListOf<EntradaInicio>()
         banco.poner { RallyCopilotTheme { InicioScreen(onEntrada = { abiertas += it }) } }
-        listOf("conducir", "mapas_offline", "ajustes").forEach { banco.pulsar(banco.conEtiqueta("inicio-$it")) }
-        assertEquals(listOf(EntradaInicio.CONDUCIR, EntradaInicio.MAPAS_OFFLINE, EntradaInicio.AJUSTES), abiertas)
+        listOf("conducir", "mis_tramos", "mapas_offline", "perfil", "ajustes").forEach {
+            banco.pulsar(banco.conEtiqueta("inicio-$it"))
+        }
+        assertEquals(
+            listOf(
+                EntradaInicio.CONDUCIR,
+                EntradaInicio.MIS_TRAMOS,
+                EntradaInicio.MAPAS_OFFLINE,
+                EntradaInicio.PERFIL,
+                EntradaInicio.AJUSTES,
+            ),
+            abiertas,
+        )
     }
 
     @Test
-    fun `el resto de entradas sigue desactivado y marcado como proximamente`() {
+    fun `reconocimiento sigue desactivado y marcado como proximamente`() {
         banco.poner { RallyCopilotTheme { InicioScreen() } }
-        listOf("mis_tramos", "reconocimiento", "perfil").forEach {
+        listOf("reconocimiento").forEach {
             val nodo = banco.conEtiqueta("inicio-$it")
             assertFalse("$it no debe ser pulsable", banco.esPulsable(nodo))
             assertFalse(banco.estaHabilitado(nodo))
