@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H10 cerrado (2026-11-02) · H11 pendiente · siguiente: H12 (cierra la v1.0) |
-| Estado | **H10 cerrado**; v0.11 publicada. Queda ~5 % del límite semanal |
+| Hito | H12 cerrado en versión recortada (2026-11-02) · **v1.0.0** · H11 pendiente |
+| Estado | v1.0.0 publicada. Pendientes: E2E en emulador, ux-reviewer de H10, prueba en coche, H11 |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -83,4 +83,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H12 recortado: gate final, ROADMAP/ESTADO y v1.0. Pendiente: batería E2E en emulador, ux-reviewer de H10, prueba en coche (Joan).
+- **Agente:** v1.0 publicada. Siguiente (cuando haya límite de uso): batería E2E instrumentada con las trazas de `docs/rutas/`, revisión `ux-reviewer` de H10 y lo que salga de la prueba en coche de Joan. H11 cuando haya material en `voice-lab/data/raw/`.

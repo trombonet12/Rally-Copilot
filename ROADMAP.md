@@ -429,14 +429,16 @@ Validar la app completa de extremo a extremo. Distribución actual: GitHub Relea
 ### Criterios de aceptación
 - [ ] Batería E2E en verde en el emulador.
 - [ ] Prueba real en coche validada por Joan.
-- [ ] Versión publicada en GitHub e instalada con Obtainium en el móvil de Joan.
+- [x] Versión publicada en GitHub (v1.0.0); instalación con Obtainium en el móvil: Joan.
 - [ ] (Pospuesto) Versión en la pista interna de Play y promocionada a la prueba cerrada.
 
 ### Tests
 - E2E: navegación + notas + voz + cronometraje + análisis sobre las trazas de `docs/rutas/`.
 
 ### Estado
-pendiente · Depende de: H1–H11
+completado en versión recortada (2026-11-02, v1.0.0) por el límite de uso semanal · Depende de: H1–H10 (H11 pendiente)
+<!-- Hecho: gate del CI en verde (v0.11.0), release v1.0.0. Pendiente: batería E2E instrumentada en emulador, revisión
+ux-reviewer de H10, prueba real en coche y en el móvil (Joan), H11 (voz de Moya) cuando haya material. -->
 
 ## Cambios respecto a la propuesta inicial
 - **H1** deja el corredor z17–18 y la zona manual z18–19 para **H9**, porque dependen de rutas y tramos guardados.
