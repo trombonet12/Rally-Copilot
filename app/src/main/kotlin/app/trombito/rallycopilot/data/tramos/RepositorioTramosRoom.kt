@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.tramos
 import app.trombito.rallycopilot.data.db.FilaResumenTramo
 import app.trombito.rallycopilot.data.db.PasadaEntity
 import app.trombito.rallycopilot.data.db.TramosDao
+import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.tramos.EstadisticasPerfil
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.OrigenPasada
@@ -25,6 +26,8 @@ import kotlinx.coroutines.withContext
 class RepositorioTramosRoom(
     private val dao: TramosDao,
     private val dispatcher: CoroutineDispatcher,
+    /** Se avisa al crear un tramo para bajar el satélite de detalle de su corredor. */
+    private val precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
 ) : RepositorioTramos {
     override fun observar(): Flow<List<TramoGuardado>> =
         combine(dao.observarTramos(), dao.observarResumenes()) { tramos, resumenes ->
@@ -107,6 +110,7 @@ class RepositorioTramosRoom(
                 primera.aEntidad(origen, tramo.cortesExactosM()),
             )
         }
+        precarga.precargarTramos()
     }
 
     override suspend fun crearSinPasadas(
@@ -125,6 +129,7 @@ class RepositorioTramosRoom(
                     ).copy(ultimoUso = creadoEnMs),
             )
         }
+        precarga.precargarTramos()
     }
 
     override suspend fun guardarPasada(

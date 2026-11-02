@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.RecorridoEntity
 import app.trombito.rallycopilot.data.db.RecorridoPuntoEntity
+import app.trombito.rallycopilot.data.detalle.FalsaPrecarga
 import app.trombito.rallycopilot.domain.tramos.EstadisticasPerfil
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.OrigenPasada
@@ -40,6 +41,19 @@ class RepositorioTramosRoomTest {
 
     @After
     fun cerrar() = base.close()
+
+    @Test
+    fun `crear un tramo con o sin pasadas encola el detalle de su corredor`() =
+        runBlocking {
+            val precarga = FalsaPrecarga()
+            val conAviso = RepositorioTramosRoom(base.tramosDao(), Dispatchers.Unconfined, precarga)
+            val t = tramo("a")
+
+            conAviso.crear(t, null, null, 5_000L, pasada(t, 100.0), OrigenPasada(4_000L))
+            conAviso.crearSinPasadas(tramo("b"), null, null, 6_000L)
+
+            assertEquals(2, precarga.tramos)
+        }
 
     /** Tramo de unos 1,9 km hacia el norte con cortes por defecto (3 sectores y 1 micro). */
     private fun tramo(id: String = "t1"): Tramo {

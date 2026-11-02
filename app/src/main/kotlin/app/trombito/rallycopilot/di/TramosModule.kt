@@ -6,6 +6,7 @@ import app.trombito.rallycopilot.data.tramos.CronoEnVivoImpl
 import app.trombito.rallycopilot.data.tramos.GuardadorTramos
 import app.trombito.rallycopilot.data.tramos.NombradorTramos
 import app.trombito.rallycopilot.data.tramos.RepositorioTramosRoom
+import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.tramos.GuardaTraza
 import app.trombito.rallycopilot.domain.tramos.NombraTraza
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
@@ -36,6 +37,9 @@ abstract class TramosModule {
 
         @Provides
         @Singleton
-        fun repositorioTramos(dao: TramosDao): RepositorioTramos = RepositorioTramosRoom(dao, Dispatchers.IO)
+        fun repositorioTramos(
+            dao: TramosDao,
+            precarga: PrecargaDetalle,
+        ): RepositorioTramos = RepositorioTramosRoom(dao, Dispatchers.IO, precarga)
     }
 }

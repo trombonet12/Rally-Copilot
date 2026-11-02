@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.mapasoffline
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
+import app.trombito.rallycopilot.domain.datos.EstadoDetalle
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
 
 /** Lo que muestra la pantalla de Mapas offline, deducido de [EstadoDatosMapa]. */
@@ -26,6 +27,8 @@ data class MapasOfflineUiState(
     val ultimoProgreso: ProgresoDescarga? = null,
     /** Bytes de satélite que faltan por bajar según los manifests remotos (0 = todo instalado); null si no se sabe. */
     val bytesSatelite: Long? = null,
+    /** Detalle z18-19 del IGN descargado (corredores y zonas) y su descarga en curso. */
+    val detalle: EstadoDetalle = EstadoDetalle(),
 ) {
     val fase: FaseMapas
         get() =

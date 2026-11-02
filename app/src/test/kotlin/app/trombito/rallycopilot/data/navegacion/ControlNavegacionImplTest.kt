@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.content.ContextWrapper
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
+import app.trombito.rallycopilot.data.detalle.FalsaPrecarga
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.GuiadoPendiente
@@ -180,6 +181,17 @@ class ControlNavegacionImplTest {
 
         assertTrue(control.estado.value is EstadoNavegacion.Error)
         assertEquals(1, paradas)
+    }
+
+    @Test
+    fun `empezar un guiado encola el corredor de la ruta planificada una sola vez`() {
+        val precarga = FalsaPrecarga()
+        val control = ControlNavegacionImpl(app, fuente, guiadoPendiente, alcance, precarga)
+
+        control.empezar(destinoPrueba, PerfilRuta.MAS_RAPIDA, rutaPrueba)
+        control.empezar(destinoPrueba, PerfilRuta.MAS_RAPIDA, rutaPrueba)
+
+        assertEquals(listOf(rutaPrueba.puntos), precarga.rutas)
     }
 
     @Test

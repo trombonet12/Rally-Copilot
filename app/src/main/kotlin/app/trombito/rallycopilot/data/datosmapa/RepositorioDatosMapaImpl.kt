@@ -13,10 +13,12 @@ import androidx.work.workDataOf
 import app.trombito.rallycopilot.data.db.AjustesMapasDao
 import app.trombito.rallycopilot.data.db.DatosMapaDao
 import app.trombito.rallycopilot.data.db.archivos
+import app.trombito.rallycopilot.data.detalle.NOMBRE_DETALLE
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.datos.MotivoError
+import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.motor.datos.ManifestInvalido
 import kotlinx.coroutines.CoroutineDispatcher
@@ -33,6 +35,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /** Datos de Mallorca en `filesDir/mapa/` (estado en Room, descarga en WorkManager). Ver [RepositorioDatosMapa]. */
+@Suppress("LongParameterList") // colaboradores: Room, WorkManager, configuracion, siembra y precarga
 class RepositorioDatosMapaImpl(
     private val dao: DatosMapaDao,
     private val ajustesDao: AjustesMapasDao,
@@ -40,6 +43,8 @@ class RepositorioDatosMapaImpl(
     private val config: ConfigDatosMapa,
     private val dispatcher: CoroutineDispatcher,
     private val siembra: EsperaDatosSembrados = EsperaDatosSembrados.Ninguna,
+    /** Al abrir la app encola la descarga automática del detalle de los tramos que aún no lo tengan. */
+    private val precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
 ) : RepositorioDatosMapa {
     private val alcance = CoroutineScope(SupervisorJob() + dispatcher)
     private val instalador = InstaladorDatos(config)
@@ -66,6 +71,7 @@ class RepositorioDatosMapaImpl(
         alcance.launch {
             siembra.esperar()
             if (dao.archivos().isNotEmpty()) encolar(automatico = true, soloWifi = ajustesDao.soloWifiActual())
+            precarga.precargarTramos()
         }
     }
 
@@ -124,6 +130,7 @@ class RepositorioDatosMapaImpl(
             val raizUrl = "file://" + mapa.absolutePath.replace('\\', '/')
             val satelite = File(mapa, "satelite.json").takeIf { it.isFile && hayTeselasSatelite(mapa) }
             val hayZ17 = File(mapa, NOMBRE_TESELAS_Z17).isFile
+            val detalle = File(mapa, NOMBRE_DETALLE).takeIf { it.isFile }
             val estilos =
                 EstilosMapa(
                     vectorial = vectorial.readText().replace(MARCADOR_DIR, raizUrl),
@@ -131,6 +138,7 @@ class RepositorioDatosMapaImpl(
                         satelite
                             ?.readText()
                             ?.let { if (hayZ17) EstiloSatelite.conZ17(it) else it }
+                            ?.let { if (detalle != null) EstiloSatelite.conDetalle(it, detalle.rutaAbsoluta()) else it }
                             ?.replace(MARCADOR_DIR, raizUrl),
                 )
             val validos =
@@ -181,6 +189,8 @@ class RepositorioDatosMapaImpl(
         const val BACKOFF_SEGUNDOS = 30L
     }
 }
+
+private fun File.rutaAbsoluta() = absolutePath.replace(File.separatorChar, '/')
 
 /** Cualquier `pnoa-mallorca*.pmtiles` instalado vale (z16 o z17): el nombre puede cambiar con el paquete. */
 private suspend fun AjustesMapasDao.soloWifiActual(): Boolean = ajustes()?.soloWifi ?: AjustesMapas().soloWifi

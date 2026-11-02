@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.datosmapa
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
@@ -22,6 +23,9 @@ internal object EstiloSatelite {
     private const val FUENTE_Z16 = "pnoa"
     private const val FUENTE_Z17 = "pnoa-z17"
     private const val NIVEL_Z17 = 17
+    private const val FUENTE_DETALLE = "pnoa-detalle"
+    private const val NIVEL_DETALLE_MIN = 18
+    private const val NIVEL_DETALLE_MAX = 19
     private const val TAMANO_TESELA_POR_DEFECTO = 256
 
     /** El [estilo] con la capa z17; igual que llegó si no se reconoce la estructura (sin fuente `pnoa`, JSON roto). */
@@ -33,6 +37,85 @@ internal object EstiloSatelite {
         } catch (_: IllegalArgumentException) {
             estilo
         }
+
+    /**
+     * Añade la fuente ráster del detalle (`mbtiles://` con [rutaAbsoluta], z18–19) y su capa encima de la del z17 (o de
+     * la del z16 si no hay z17). Sin la fuente `pnoa` o con JSON roto devuelve el [estilo] igual. Es la única forma de
+     * ruta que MapLibre carga para un MBTiles: absoluta y sin `file://`.
+     */
+    fun conDetalle(
+        estilo: String,
+        rutaAbsoluta: String,
+    ): String =
+        try {
+            ampliarDetalle(estilo, rutaAbsoluta)
+        } catch (_: SerializationException) {
+            estilo
+        } catch (_: IllegalArgumentException) {
+            estilo
+        }
+
+    private fun ampliarDetalle(
+        estilo: String,
+        rutaAbsoluta: String,
+    ): String {
+        val raiz = Json.parseToJsonElement(estilo).jsonObject
+        val fuentes = raiz["sources"]?.jsonObject
+        val z16 = fuentes?.get(FUENTE_Z16)?.jsonObject
+        val capas = raiz["layers"]?.jsonArray
+        val indice = capas?.indexOfLast { esCapaDePnoa(it) } ?: -1
+        val aplicable = z16 != null && capas != null && fuentes != null && indice >= 0
+        return if (aplicable && FUENTE_DETALLE !in fuentes) {
+            serializarDetalle(raiz, fuentes, capas, z16, indice, rutaAbsoluta)
+        } else {
+            estilo
+        }
+    }
+
+    /** Capa de la fuente del z16 o del z17. */
+    private fun esCapaDePnoa(capa: JsonElement): Boolean {
+        val fuente = capa.jsonObject["source"]?.jsonPrimitive?.content
+        return fuente == FUENTE_Z17 || fuente == FUENTE_Z16
+    }
+
+    @Suppress("LongParameterList") // las piezas ya leídas del estilo y dónde insertar la capa
+    private fun serializarDetalle(
+        raiz: JsonObject,
+        fuentes: JsonObject,
+        capas: JsonArray,
+        z16: JsonObject,
+        indice: Int,
+        rutaAbsoluta: String,
+    ): String {
+        val fuente =
+            buildJsonObject {
+                put("type", "raster")
+                put("url", "mbtiles://$rutaAbsoluta")
+                put("tileSize", z16["tileSize"]?.jsonPrimitive?.content?.toIntOrNull() ?: TAMANO_TESELA_POR_DEFECTO)
+                put("minzoom", NIVEL_DETALLE_MIN)
+                put("maxzoom", NIVEL_DETALLE_MAX)
+                z16["attribution"]?.let { put("attribution", it) }
+            }
+        val capa =
+            buildJsonObject {
+                put("id", FUENTE_DETALLE)
+                put("type", "raster")
+                put("source", FUENTE_DETALLE)
+                put("minzoom", NIVEL_DETALLE_MIN)
+            }
+        val capasNuevas = capas.toMutableList().apply { add(indice + 1, capa) }
+        val resultado =
+            JsonObject(
+                raiz.mapValues { (clave, valor) ->
+                    when (clave) {
+                        "sources" -> JsonObject(fuentes + (FUENTE_DETALLE to fuente))
+                        "layers" -> JsonArray(capasNuevas)
+                        else -> valor
+                    }
+                },
+            )
+        return Json.encodeToString(JsonObject.serializer(), resultado)
+    }
 
     private fun ampliar(estilo: String): String {
         val raiz = Json.parseToJsonElement(estilo).jsonObject

@@ -20,6 +20,7 @@ import app.trombito.rallycopilot.data.db.MIGRATION_7_8
 import app.trombito.rallycopilot.data.db.MIGRATION_8_9
 import app.trombito.rallycopilot.data.db.MIGRATION_9_10
 import app.trombito.rallycopilot.data.db.RallyDatabase
+import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import dagger.Module
 import dagger.Provides
@@ -82,13 +83,16 @@ object DatosMapaModule {
 
     @Provides
     @Singleton
+    @Suppress("LongParameterList") // proveedor de Hilt: cada colaborador llega inyectado
     fun repositorioDatosMapa(
         dao: DatosMapaDao,
         ajustesDao: AjustesMapasDao,
         workManager: WorkManager,
         config: ConfigDatosMapa,
         sembrador: SembradorDatos,
-    ): RepositorioDatosMapa = RepositorioDatosMapaImpl(dao, ajustesDao, workManager, config, Dispatchers.IO, sembrador)
+        precarga: PrecargaDetalle,
+    ): RepositorioDatosMapa =
+        RepositorioDatosMapaImpl(dao, ajustesDao, workManager, config, Dispatchers.IO, sembrador, precarga)
 
     @Provides
     fun esperaDatosSembrados(sembrador: SembradorDatos): EsperaDatosSembrados = sembrador

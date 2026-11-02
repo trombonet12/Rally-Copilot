@@ -9,6 +9,10 @@ data object RutaMapa
 @Serializable
 data object RutaMapasOffline
 
+/** Elegir una zona del mapa para descargarla a z18-19. */
+@Serializable
+data object RutaZonaDetalle
+
 @Serializable
 data object RutaAjustes
 

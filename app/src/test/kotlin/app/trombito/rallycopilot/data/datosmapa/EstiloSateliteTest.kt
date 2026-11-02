@@ -72,4 +72,52 @@ class EstiloSateliteTest {
         assertEquals("no es json", EstiloSatelite.conZ17("no es json"))
         assertFalse(EstiloSatelite.conZ17(estilo).isEmpty())
     }
+
+    @Test
+    fun `conDetalle anade la fuente mbtiles absoluta z18 a z19 y su capa encima de la del z17`() {
+        val conZ17 = EstiloSatelite.conZ17(estilo)
+
+        val resultado =
+            Json
+                .parseToJsonElement(
+                    EstiloSatelite.conDetalle(conZ17, "/data/files/mapa/satelite-detalle.mbtiles"),
+                ).jsonObject
+
+        assertEquals(listOf("fondo", "pnoa", "pnoa-z17", "pnoa-detalle", "calles"), ids(resultado))
+        val fuente =
+            resultado
+                .getValue("sources")
+                .jsonObject
+                .getValue("pnoa-detalle")
+                .jsonObject
+        assertEquals("raster", fuente.getValue("type").jsonPrimitive.content)
+        assertEquals(
+            "mbtiles:///data/files/mapa/satelite-detalle.mbtiles",
+            fuente.getValue("url").jsonPrimitive.content,
+        )
+        assertEquals(18, fuente.getValue("minzoom").jsonPrimitive.int)
+        assertEquals(19, fuente.getValue("maxzoom").jsonPrimitive.int)
+        assertEquals(512, fuente.getValue("tileSize").jsonPrimitive.int)
+    }
+
+    @Test
+    fun `conDetalle sin z17 va encima de la del z16 y es valido para el validador`() {
+        val resultado = EstiloSatelite.conDetalle(estilo, "/data/files/mapa/satelite-detalle.mbtiles")
+
+        assertEquals(
+            listOf("fondo", "pnoa", "pnoa-detalle", "calles"),
+            ids(Json.parseToJsonElement(resultado).jsonObject),
+        )
+        val limpio = resultado.replace("{{DIR}}", "file:///data/files/mapa")
+        assertTrue(ValidadorEstilo.esValido(limpio, "file:///data/files/mapa"))
+    }
+
+    @Test
+    fun `conDetalle no cambia un estilo sin la fuente pnoa ni uno roto ni lo anade dos veces`() {
+        val sinPnoa = """{"version":8,"sources":{},"layers":[]}"""
+        assertEquals(sinPnoa, EstiloSatelite.conDetalle(sinPnoa, "/x/d.mbtiles"))
+        assertEquals("no es json", EstiloSatelite.conDetalle("no es json", "/x/d.mbtiles"))
+        val una = EstiloSatelite.conDetalle(estilo, "/x/d.mbtiles")
+        assertEquals(una, EstiloSatelite.conDetalle(una, "/x/d.mbtiles"))
+    }
 }

@@ -19,6 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 @Composable
 fun MapasOfflineRoute(
     onVolver: () -> Unit,
+    onDescargarZona: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: MapasOfflineViewModel = hiltViewModel(),
 ) {
@@ -42,6 +43,9 @@ fun MapasOfflineRoute(
                 onBorrar = viewModel::onBorrar,
                 onSoloWifi = viewModel::onSoloWifi,
                 onLimiteGb = viewModel::onLimiteGb,
+                onDescargarZona = onDescargarZona,
+                onBorrarDetalle = viewModel::onBorrarDetalle,
+                onCancelarDetalle = viewModel::onCancelarDetalle,
             ),
         modifier = modifier,
     )

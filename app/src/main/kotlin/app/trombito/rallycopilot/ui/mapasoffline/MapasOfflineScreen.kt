@@ -71,6 +71,9 @@ data class AccionesMapasOffline(
     val onBorrar: () -> Unit = {},
     val onSoloWifi: (Boolean) -> Unit = {},
     val onLimiteGb: (Int) -> Unit = {},
+    val onDescargarZona: () -> Unit = {},
+    val onBorrarDetalle: () -> Unit = {},
+    val onCancelarDetalle: () -> Unit = {},
 )
 
 @StringRes
@@ -152,6 +155,9 @@ private fun ContenidoMapas(
         }
     }
     AjustesDescarga(estado, acciones)
+    if (estado.datos.instalados != null && estado.fase != FaseMapas.DESCARGANDO) {
+        SeccionDetalle(estado.detalle, acciones)
+    }
     if (estado.fase == FaseMapas.INSTALADO && estado.datos.instalados?.conSatelite == true) {
         OutlinedButton(
             onClick = onPedirBorrado,

@@ -146,6 +146,9 @@ class ClienteHttp(
         /** Plazo total por defecto de [flujo] (2 min): un servidor que gotea bytes no puede retener la descarga. */
         const val PLAZO_FLUJO_MS = 120_000L
         const val HTTP_PARCIAL = 206
+
+        /** Plazo total de una tesela (30 s). */
+        private const val PLAZO_TESELA_MS = 30_000L
         const val HTTP_RANGO_NO_SATISFACIBLE = 416
         private const val TIMEOUT_MS = 30_000
         private const val MAX_REDIRECCIONES = 5
@@ -156,6 +159,9 @@ class ClienteHttp(
         /** Cliente para el feed de la DGT: solo `nap.dgt.es`, con gzip y con [PLAZO_FLUJO_MS] de plazo total. */
         fun paraDgt(config: ConfigDatosMapa) =
             ClienteHttp(config, ::esHostDeDgt, aceptarGzip = true, plazoFlujoMs = PLAZO_FLUJO_MS)
+
+        /** Cliente para las teselas PNOA del IGN: solo `tms-pnoa-ma.idee.es`, sin gzip (son JPEG). */
+        fun paraIgn(config: ConfigDatosMapa) = ClienteHttp(config, ::esHostDelIgn, plazoFlujoMs = PLAZO_TESELA_MS)
     }
 }
 
@@ -224,9 +230,13 @@ private const val MAX_PLAZO_MS = 100L * 365 * 24 * 3_600_000
 private const val HOST_GITHUB = "github.com"
 private const val SUFIJO_CDN = ".githubusercontent.com"
 private const val HOST_DGT = "nap.dgt.es"
+private const val HOST_IGN = "tms-pnoa-ma.idee.es"
 
 /** GitHub y su CDN `*.githubusercontent.com`. */
 private fun esHostDeGithub(host: String): Boolean = host == HOST_GITHUB || host.endsWith(SUFIJO_CDN)
 
 /** Solo el NAP de la DGT (incidencias DATEX II). */
 private fun esHostDeDgt(host: String): Boolean = host == HOST_DGT
+
+/** Solo el TMS de PNOA del IGN (satélite de detalle). */
+private fun esHostDelIgn(host: String): Boolean = host == HOST_IGN

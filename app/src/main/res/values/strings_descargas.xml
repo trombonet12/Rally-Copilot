@@ -5,4 +5,6 @@
     <string name="descargas_titulo">Descargando mapas de Mallorca</string>
     <string name="descargas_progreso">%1$s de %2$s</string>
     <string name="descargas_cancelar">Cancelar</string>
+    <string name="detalle_titulo">Descargando satélite de detalle</string>
+    <string name="detalle_progreso">%1$d de %2$d teselas</string>
 </resources>

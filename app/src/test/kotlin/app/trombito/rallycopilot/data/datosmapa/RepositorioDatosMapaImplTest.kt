@@ -179,6 +179,38 @@ class RepositorioDatosMapaImplTest {
     }
 
     @Test
+    fun `con el archivo de detalle el estilo satelite lleva su fuente mbtiles y es valido`() {
+        escribirEstilos(conSatelite = true)
+        escribirEstiloSateliteRealista()
+        File(entorno.mapa, "satelite-detalle.mbtiles").writeText("db")
+
+        val satelite = requireNotNull(runBlocking { repositorio.estilos() }?.satelite)
+
+        val ruta = entorno.mapa.absolutePath.replace(File.separatorChar, '/')
+        val fuente =
+            Json
+                .parseToJsonElement(satelite)
+                .jsonObject
+                .getValue("sources")
+                .jsonObject
+                .getValue("pnoa-detalle")
+                .jsonObject
+        assertEquals("mbtiles://$ruta/satelite-detalle.mbtiles", fuente.getValue("url").jsonPrimitive.content)
+        assertEquals(18, fuente.getValue("minzoom").jsonPrimitive.int)
+        assertEquals(19, fuente.getValue("maxzoom").jsonPrimitive.int)
+    }
+
+    @Test
+    fun `sin el archivo de detalle el estilo satelite no lo menciona`() {
+        escribirEstilos(conSatelite = true)
+        escribirEstiloSateliteRealista()
+
+        val satelite = requireNotNull(runBlocking { repositorio.estilos() }?.satelite)
+
+        assertFalse(satelite.contains("pnoa-detalle"))
+    }
+
+    @Test
     fun `sin el z17 el estilo satelite queda como esta en el paquete`() {
         escribirEstilos(conSatelite = true)
         escribirEstiloSateliteRealista()

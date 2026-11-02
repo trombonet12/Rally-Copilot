@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.mapasoffline
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
+import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +24,7 @@ class MapasOfflineViewModel
     @Inject
     constructor(
         private val repositorio: RepositorioDatosMapa,
+        private val precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
     ) : ViewModel() {
         // Solo lo toca el combine (secuencial). Se olvida al terminar la descarga.
         private var ultimoProgreso: ProgresoDescarga? = null
@@ -40,7 +42,12 @@ class MapasOfflineViewModel
         }
 
         val uiState: StateFlow<MapasOfflineUiState> =
-            combine(repositorio.estado, repositorio.ajustes, bytesSatelite) { datos, ajustes, tamanoSatelite ->
+            combine(
+                repositorio.estado,
+                repositorio.ajustes,
+                bytesSatelite,
+                precarga.estado,
+            ) { datos, ajustes, tamanoSatelite, detalle ->
                 val descarga = datos.descarga
                 ultimoProgreso =
                     when {
@@ -54,12 +61,20 @@ class MapasOfflineViewModel
                     ajustes = ajustes,
                     ultimoProgreso = ultimoProgreso,
                     bytesSatelite = tamanoSatelite,
+                    detalle = detalle,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), MapasOfflineUiState())
 
         fun onDescargar() = repositorio.descargar()
 
         fun onCancelar() = repositorio.cancelar()
+
+        /** Borra el detalle z18-19 (el MBTiles y las rutas pendientes); el satelite z16-17 no se toca. */
+        fun onBorrarDetalle() {
+            viewModelScope.launch { precarga.borrar() }
+        }
+
+        fun onCancelarDetalle() = precarga.cancelar()
 
         /** Borra solo el satélite. */
         fun onBorrar() {

@@ -6,6 +6,7 @@ import android.database.sqlite.SQLiteException
 import android.util.Log
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
@@ -47,13 +48,15 @@ class ControlNavegacionImpl
         private val fuente: FuenteUbicacion,
         private val guiadoPendiente: RepositorioGuiadoPendiente,
         alcance: CoroutineScope,
+        private val precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
     ) : ControlNavegacion {
         @Inject
         constructor(
             @ApplicationContext contexto: Context,
             fuente: FuenteUbicacion,
             guiadoPendiente: RepositorioGuiadoPendiente,
-        ) : this(contexto, fuente, guiadoPendiente, CoroutineScope(SupervisorJob() + Dispatchers.IO))
+            precarga: PrecargaDetalle,
+        ) : this(contexto, fuente, guiadoPendiente, CoroutineScope(SupervisorJob() + Dispatchers.IO), precarga)
 
         private val cola = Channel<suspend () -> Unit>(Channel.UNLIMITED)
 
@@ -125,6 +128,8 @@ class ControlNavegacionImpl
                 ),
             )
             if (!yaGuiando && _estado.value is EstadoNavegacion.Guiando) {
+                // Satélite de detalle del corredor de la ruta planificada (solo se baja con WiFi).
+                precarga.precargarRuta(ruta.puntos)
                 val pendientes = paradas.take(ruta.indicesParadas.size)
                 synchronized(cerrojo) {
                     paradasGuardadas = pendientes

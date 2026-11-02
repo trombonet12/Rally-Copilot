@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
@@ -41,6 +42,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LongParameterList") // colaboradores inyectados del mapa
 class MapaViewModel
     @Inject
     constructor(
@@ -50,6 +52,7 @@ class MapaViewModel
         private val ajustes: RepositorioAjustesConduccion,
         private val navegacion: ControlNavegacion,
         private val guardado: SavedStateHandle,
+        precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
     ) : ViewModel() {
         /** Reloj monótono (ms), el mismo de `Fijacion.tiempoMs`; sustituible en los tests. */
         internal var reloj: () -> Long = { SystemClock.elapsedRealtime() }
@@ -68,9 +71,13 @@ class MapaViewModel
         )
 
         private val estilos =
-            repositorio.estado
-                .map { it.instalados }
-                .distinctUntilChanged()
+            // Se recarga el estilo al cambiar lo instalado o al aparecer/desaparecer el detalle (no con cada tesela).
+            combine(
+                repositorio.estado.map { it.instalados },
+                precarga.estado.map { it.teselas > 0 },
+            ) { datos, detalle ->
+                datos to detalle
+            }.distinctUntilChanged()
                 .map { repositorio.estilos() }
 
         private val lecturas: Flow<Lectura> =
