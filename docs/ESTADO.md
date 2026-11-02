@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H8 cerrado (2026-11-02) · siguiente: H9 — Precarga de rutas y satélite de alta calidad |
-| Estado | **H8 cerrado**; v0.9 publicada al hacer push con `version.properties` |
+| Hito | H9 — Precarga de rutas y satélite de alta calidad (en curso, 2026-11-02) |
+| Estado | H8 cerrado y v0.9.0 publicada. H9: importar/dibujar y luego satélite z18 |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
 
 ## Completado
@@ -81,4 +81,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H8 cerrado y v0.9 publicada. Siguiente: `hito start H9` (precarga GPX/KML y satélite z17–18 en corredor): preguntar a Joan las dudas al empezar. Modo ahorro de tokens (MEMORIA 2026-11-02).
+- **Agente:** H9: (A) GPX/KML + dibujar rutas + tic de «Copiloto»; (B) satélite z18 en corredor y zona manual z18–19.

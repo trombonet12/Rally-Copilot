@@ -8,6 +8,9 @@ se marca como respondida. Ordenadas por el hito que bloquean.
 
 Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
+## Respondidas al cerrar H8 y empezar H9 (2026-11-02, en el chat)
+- **Aviso tras «Copiloto»:** tic corto. **Satélite:** z18 automático con WiFi en corredor + manual z18–19. **Importar:** compartir y botón. **Dibujar:** tocando puntos.
+
 ## Respondidas al empezar H8 (2026-11-02, en el chat)
 - **Hablar:** botón en la app que pausa la música (no el del volante). **Activación:** «Copiloto», desactivada. **Órdenes:** repite, más pronto/tarde, silencio/habla, marca aquí. **Editar en el mapa:** parado o desde el tramo.
 

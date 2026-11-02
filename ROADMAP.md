@@ -347,7 +347,7 @@ Preparar tramos antes de conducirlos y descargar satélite de más detalle donde
 
 ### Alcance
 - Importar GPX/KML, dibujar rutas en el mapa y reutilizar rutas recorridas.
-- Satélite z17–18 automático en un corredor de ~300 m de rutas planificadas, recorridas y tramos guardados.
+- Satélite z18 automático con WiFi en un corredor de ~300 m de rutas planificadas y tramos guardados (z17 ya cubre la isla).
 - Descarga manual de una zona a z18–19.
 - Fuera: exportar.
 
@@ -359,7 +359,7 @@ Preparar tramos antes de conducirlos y descargar satélite de más detalle donde
 - Motor: parseo GPX/KML (variantes reales), cálculo de teselas de un corredor.
 
 ### Estado
-pendiente · Depende de: H1, H6
+en curso (2026-11-02) · Depende de: H1, H6 · Dudas: resueltas (2026-11-02): z18 automático con WiFi, importar por compartir y botón, dibujar tocando puntos
 
 ## H10 — Interfaz completa estilo WRC
 
