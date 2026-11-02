@@ -29,10 +29,18 @@ class MigracionRoomTest {
     private val contexto = ApplicationProvider.getApplicationContext<Context>()
     private var base: RallyDatabase? = null
 
+    /**
+     * Nombre corto a propósito: Robolectric pone la base en un directorio temporal cuyo nombre lleva el del test, y en
+     * Windows la ruta total (más `-journal`) pasaba de MAX_PATH (260) con los tests de nombre largo, dando
+     * SQLITE_CANTOPEN de forma intermitente según los dígitos aleatorios del directorio. Cada test ya tiene el suyo.
+     */
+    private val nombreBase = "m.db"
+
     @After
     fun cerrar() {
         base?.close()
-        contexto.deleteDatabase(NOMBRE)
+        base = null
+        contexto.deleteDatabase(nombreBase)
     }
 
     private fun esquema(version: Int): JsonObject {
@@ -45,7 +53,7 @@ class MigracionRoomTest {
     }
 
     private fun crearBase(version: Int): File {
-        val archivo = contexto.getDatabasePath(NOMBRE)
+        val archivo = contexto.getDatabasePath(nombreBase)
         archivo.parentFile?.mkdirs()
         val db = SQLiteDatabase.openOrCreateDatabase(archivo, null)
         val esquemaAntiguo = esquema(version)
@@ -98,7 +106,7 @@ class MigracionRoomTest {
 
             val nueva =
                 Room
-                    .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+                    .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
                     .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
@@ -129,7 +137,7 @@ class MigracionRoomTest {
 
             val nueva =
                 Room
-                    .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+                    .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
                     .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
@@ -157,7 +165,7 @@ class MigracionRoomTest {
 
             val nueva =
                 Room
-                    .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+                    .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
                     .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
@@ -196,7 +204,7 @@ class MigracionRoomTest {
 
             val nueva =
                 Room
-                    .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+                    .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
                     .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
@@ -249,7 +257,7 @@ class MigracionRoomTest {
 
             val nueva =
                 Room
-                    .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+                    .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
                     .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
@@ -280,7 +288,7 @@ class MigracionRoomTest {
 
             val nueva =
                 Room
-                    .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+                    .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
                     .addMigrations(*TODAS)
                     .allowMainThreadQueries()
                     .build()
@@ -309,7 +317,7 @@ class MigracionRoomTest {
             db.execSQL("INSERT INTO pasada VALUES (3, 'b', 10, 60000, '0:0;890000:60000')")
         }
         return Room
-            .databaseBuilder(contexto, RallyDatabase::class.java, NOMBRE)
+            .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
             .addMigrations(*TODAS)
             .allowMainThreadQueries()
             .build()
@@ -362,7 +370,6 @@ class MigracionRoomTest {
         }
 
     private companion object {
-        const val NOMBRE = "migracion-test.db"
         val TODAS =
             arrayOf(
                 MIGRATION_1_2,

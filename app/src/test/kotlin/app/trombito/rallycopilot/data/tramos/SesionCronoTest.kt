@@ -144,7 +144,9 @@ private object EnrutadorNulo : Enrutador {
 }
 
 /** Recorridos en memoria con la regla real: menos de 1 km se descarta. */
-private class RecorridosEnMemoria : RepositorioRecorridos {
+private class RecorridosEnMemoria(
+    private val alTerminar: () -> Unit = {},
+) : RepositorioRecorridos {
     private val puntosPorId = HashMap<Long, MutableList<PuntoRecorrido>>()
     private var siguiente = 1L
 
@@ -158,6 +160,7 @@ private class RecorridosEnMemoria : RepositorioRecorridos {
     }
 
     override suspend fun terminar(id: Long): Recorrido? {
+        alTerminar()
         val puntos = puntosPorId.getValue(id)
         val distancia = puntos.map { PuntoGeo(it.lat, it.lon) }.distanciaRecorrido()
         return if (distancia < RepositorioRecorridos.DISTANCIA_MINIMA_M) {
@@ -181,6 +184,9 @@ private class RecorridosEnMemoria : RepositorioRecorridos {
 private class TramosEnMemoria : RepositorioTramos {
     val tramos = LinkedHashMap<String, TramoEntity>()
     val pasadas = ArrayList<PasadaEntity>()
+
+    /** Cuántos guardados de pasada fallan aún (simula la base caída). */
+    var fallosDeGuardado = 0
 
     override fun observar(): Flow<List<TramoGuardado>> = emptyFlow()
 
@@ -230,6 +236,10 @@ private class TramosEnMemoria : RepositorioTramos {
         pasada: Pasada,
         origen: OrigenPasada,
     ): Long {
+        if (fallosDeGuardado > 0) {
+            fallosDeGuardado--
+            error("base caída")
+        }
         val tramo = checkNotNull(tramos[pasada.tramoId]?.aTramo())
         pasadas += pasada.aEntidad(origen, tramo.cortesExactosM()).copy(id = pasadas.size + 1L)
         return pasadas.size.toLong()
@@ -270,7 +280,8 @@ private class Conducida(
 
 class SesionCronoTest {
     private val tramos = TramosEnMemoria()
-    private val recorridos = RecorridosEnMemoria()
+    private var pasadasAlTerminar = -1
+    private val recorridos = RecorridosEnMemoria { pasadasAlTerminar = tramos.pasadas.size }
     private var idsNuevos = 0
 
     /** Conduce una sesión libre completa con las [fijaciones]; [modo] da voz al copiloto (null: sin copiloto). */
@@ -344,6 +355,69 @@ class SesionCronoTest {
             assertTrue(checkNotNull(segunda.puntosDesdeMs) >= 9_000_000L)
             // Sin crear otro tramo, el nombre del primero no se toca.
             assertEquals(listOf("tramo-1"), tramos.tramos.keys.toList())
+        }
+
+    @Test
+    fun `al cruzar la meta la pasada queda guardada antes de cerrar y el resultado trae sus ids`() =
+        runTest {
+            conducir(conduccion(40.0))
+
+            val c = conducir(conduccion(60.0, margenM = 100.0, base = 9_000_000L))
+
+            // Al cerrar el recorrido (antes de cerrar el cronómetro) las dos pasadas ya estaban en la base.
+            assertEquals(2, pasadasAlTerminar)
+            val guardada = tramos.pasadas.last()
+            assertEquals(2L, guardada.recorridoId)
+            val resultados = c.estados.mapNotNull { it.resultado }
+            // Primero se publica la meta sin ids y en cuanto se guarda, con ellos.
+            assertNull(resultados.first().pasadaId)
+            val ultimo = resultados.last()
+            assertEquals("tramo-1", ultimo.tramoId)
+            assertEquals(guardada.id, ultimo.pasadaId)
+            assertEquals(guardada.totalMs, ultimo.totalMs)
+        }
+
+    @Test
+    fun `cerrar no duplica la pasada ya guardada al cruzar la meta`() =
+        runTest {
+            conducir(conduccion(40.0))
+
+            conducir(conduccion(60.0, margenM = 100.0, base = 9_000_000L))
+
+            assertEquals(2, tramos.pasadas.size)
+            assertEquals(1, tramos.pasadas.count { it.recorridoId == 2L })
+            val ids = tramos.pasadas.map { it.id }
+            assertEquals(ids.size, ids.toSet().size)
+        }
+
+    @Test
+    fun `si falla el guardado al cruzar la meta el resultado va sin ids, la conduccion sigue y cerrar la reintenta`() =
+        runTest {
+            conducir(conduccion(40.0))
+            tramos.fallosDeGuardado = 1
+
+            val c = conducir(conduccion(60.0, margenM = 100.0, base = 9_000_000L))
+
+            val resultado = checkNotNull(c.estados.last { it.resultado != null }.resultado)
+            assertNull(resultado.tramoId)
+            assertNull(resultado.pasadaId)
+            assertNull(c.publicados.last())
+            assertEquals(1, pasadasAlTerminar)
+            assertEquals(2, tramos.pasadas.size)
+        }
+
+    @Test
+    fun `si la base no se recupera no se guarda la pasada pero la conduccion termina sin ids`() =
+        runTest {
+            conducir(conduccion(40.0))
+            tramos.fallosDeGuardado = 99
+
+            val c = conducir(conduccion(60.0, margenM = 100.0, base = 9_000_000L))
+
+            val resultado = checkNotNull(c.estados.last { it.resultado != null }.resultado)
+            assertNull(resultado.pasadaId)
+            assertEquals(1, tramos.pasadas.size)
+            assertNull(c.publicados.last())
         }
 
     @Test

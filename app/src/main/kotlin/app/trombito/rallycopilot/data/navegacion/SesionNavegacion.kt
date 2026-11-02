@@ -131,7 +131,7 @@ class SesionNavegacion(
                 if (guia != null) notas?.iniciarGuiado(guia.ruta.puntos) else notas?.iniciarLibre()
                 val ajustesCopiloto = copiloto?.let { launch { it.seguirAjustes() } }
                 val datosAlertas = alertas?.arrancar(this, guia?.ruta?.puntos)
-                val cargaTramos = crono?.arrancar(this)
+                val cargaTramos = crono?.arrancar(this, id)
                 val edicion =
                     if (guia != null && ordenes != null) {
                         launch { for (orden in ordenes) editar(guia, orden, this@coroutineScope) }

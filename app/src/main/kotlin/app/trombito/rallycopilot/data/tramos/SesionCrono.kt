@@ -23,6 +23,7 @@ import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.voz.Frase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -34,9 +35,12 @@ import java.util.UUID
  * Sin tramo conocido publica el cronómetro de la conducción desde su inicio. No es concurrente: se usa desde la
  * corrutina de la sesión. Nunca registra coordenadas.
  *
- * Al [cerrar] guarda las pasadas completadas en sus tramos y, si el recorrido mide un kilómetro o más (regla de los
- * recorridos), crea con él un tramo nuevo y su primera pasada, salvo que ya coincida más de [UMBRAL_COINCIDENCIA] con
- * un tramo completado durante la conducción (su pasada ya queda guardada: no se duplica el tramo).
+ * Cada pasada completada se guarda en cuanto se cruza la meta (en segundo plano, ligada al recorrido de la
+ * conducción en curso y a su intervalo de puntos) y el resultado se republica con el `tramoId` y el `pasadaId` para
+ * abrir su análisis; si el guardado falla se queda sin ids y la conducción sigue (al [cerrar] se reintenta). Al
+ * [cerrar] espera a esos guardados y, si el recorrido mide un kilómetro o más (regla de los recorridos), crea con él un
+ * tramo nuevo y su primera pasada, salvo que ya coincida más de [UMBRAL_COINCIDENCIA] con un tramo completado durante
+ * la conducción (su pasada ya queda guardada: no se duplica el tramo).
  */
 @Suppress("TooManyFunctions") // un solo estado por conducción: eventos, parciales, estado publicado y cierre
 class SesionCrono(
@@ -65,9 +69,14 @@ class SesionCrono(
         val desdeMs: Long,
     ) {
         val hastaMs: Long get() = desdeMs + pasada.totalMs
+
+        /** Id de la pasada en la base una vez guardada; null mientras no (o si el guardado falló). */
+        @Volatile var idGuardada: Long? = null
+        var guardado: Job? = null
     }
 
     private class Terminado(
+        val completada: Completada?,
         val tramo: Tramo,
         val resultado: ResultadoCrono,
         val parciales: List<ParcialCrono>,
@@ -79,12 +88,24 @@ class SesionCrono(
     private val mejores = HashMap<String, Pasada>()
     private val vivos = LinkedHashMap<String, Vivo>()
     private val completadas = ArrayList<Completada>()
+    private val cerrojo = Any()
     private var terminado: Terminado? = null
     private var ultimaFijacionMs = 0L
+    private var alcance: CoroutineScope? = null
+    private var recorridoId: Long? = null
 
-    /** Carga los tramos guardados en [alcance] sin bloquear las fijaciones; devuelve el trabajo para cancelarlo. */
-    fun arrancar(alcance: CoroutineScope): Job =
-        alcance.launch {
+    /**
+     * Carga los tramos guardados en [alcance] sin bloquear las fijaciones; devuelve el trabajo para cancelarlo.
+     * [recorridoId] es el recorrido de la conducción en curso (ya abierto en la base): lo usan las pasadas que se
+     * guardan al cruzar la meta.
+     */
+    fun arrancar(
+        alcance: CoroutineScope,
+        recorridoId: Long? = null,
+    ): Job {
+        this.alcance = alcance
+        this.recorridoId = recorridoId
+        return alcance.launch {
             try {
                 val lista = repositorio.cronometrables()
                 catalogo = lista.associate { it.tramo.id to it.tramo }
@@ -96,15 +117,17 @@ class SesionCrono(
                 alFallar(e)
             }
         }
+    }
 
     /** Una fijación válida (en orden temporal). Devuelve las frases CRONO nuevas. */
-    fun alFijar(f: Fijacion): List<Frase> {
-        ultimaFijacionMs = f.tiempoMs
-        val frases = ArrayList<Frase>()
-        detector?.alFijar(f)?.forEach { procesar(it, f, frases) }
-        publicar(estado(f))
-        return frases
-    }
+    fun alFijar(f: Fijacion): List<Frase> =
+        synchronized(cerrojo) {
+            ultimaFijacionMs = f.tiempoMs
+            val frases = ArrayList<Frase>()
+            detector?.alFijar(f)?.forEach { procesar(it, f, frases) }
+            publicar(estado(f))
+            frases
+        }
 
     private fun procesar(
         evento: EventoTramo,
@@ -174,11 +197,38 @@ class SesionCrono(
             val nuevoMejor = mejor == null || pasada.totalMs < mejor.totalMs
             if (delta != null && esReciente(vivo)) frases += Delta.fraseMeta(id, vivo.idPasada, delta)
             val resultado = ResultadoCrono(pasada.totalMs, delta, nuevoMejor, mejor?.totalMs)
-            terminado = Terminado(tramo, resultado, vivo.parciales.toList())
+            val hecha = Completada(pasada, vivo.inicioMs, vivo.inicioFijacionMs)
+            terminado = Terminado(hecha, tramo, resultado, vivo.parciales.toList())
             vivos.remove(id)
-            completadas += Completada(pasada, vivo.inicioMs, vivo.inicioFijacionMs)
+            completadas += hecha
+            guardarYa(hecha)
         }
         if (mejores[id].let { it == null || pasada.totalMs < it.totalMs }) mejores[id] = pasada
+    }
+
+    /** Guarda la pasada ya, sin bloquear las fijaciones, y republica el resultado con sus ids si sale bien. */
+    private fun guardarYa(hecha: Completada) {
+        val alcance = alcance ?: return
+        // Fuera de la cancelación de la conducción: el cierre espera a este trabajo (join) y no se pierde la pasada.
+        hecha.guardado =
+            alcance.launch(NonCancellable) {
+                guardar {
+                    val id = repositorio.guardarPasada(hecha.pasada, hecha.origen(recorridoId))
+                    hecha.idGuardada = id
+                    publicarIds(hecha, id)
+                }
+            }
+    }
+
+    private fun publicarIds(
+        hecha: Completada,
+        id: Long,
+    ) = synchronized(cerrojo) {
+        val actual = terminado?.takeIf { it.completada === hecha } ?: return@synchronized
+        val resultado = actual.resultado.copy(tramoId = hecha.pasada.tramoId, pasadaId = id)
+        val nuevo = Terminado(hecha, actual.tramo, resultado, actual.parciales)
+        terminado = nuevo
+        if (vivos.isEmpty()) publicar(estadoTerminado(nuevo, ahoraMs()))
     }
 
     private fun esReciente(vivo: Vivo): Boolean = vivos.values.lastOrNull() === vivo
@@ -274,16 +324,21 @@ class SesionCrono(
         TramoCronometrado(tramo.id, null, tramo.longitudM, tramo.metaM, tramo.sectores, tramo.microsectores)
 
     /**
-     * Fin de la conducción: deja de publicar, guarda las pasadas completadas y crea el tramo del [recorrido] (null si
-     * no llegó a un kilómetro; [puntos] lo lee solo si hace falta). Un fallo de la base no se propaga.
+     * Fin de la conducción: espera los guardados en curso, deja de publicar, reintenta las pasadas sin guardar y crea
+     * el tramo del [recorrido] (null si no llegó a un kilómetro; [puntos] lo lee solo si hace falta). Un fallo de la
+     * base no se propaga.
      */
     suspend fun cerrar(
         recorrido: Recorrido?,
         puntos: suspend () -> List<PuntoRecorrido>,
     ) {
+        completadas.forEach { it.guardado?.join() }
         publicar(null)
         val recorridoId = recorrido?.id
-        for (c in completadas) guardar { repositorio.guardarPasada(c.pasada, c.origen(recorridoId)) }
+        // Las que no se pudieron guardar al cruzar la meta se reintentan; las ya guardadas no se repiten.
+        for (c in completadas.filter { it.idGuardada == null }) {
+            guardar { repositorio.guardarPasada(c.pasada, c.origen(recorridoId)) }
+        }
         if (recorrido != null) guardar { crearTramoNuevo(recorrido.id, puntos()) }
     }
 
