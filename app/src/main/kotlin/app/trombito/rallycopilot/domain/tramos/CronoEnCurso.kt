@@ -53,6 +53,9 @@ data class ResultadoCrono(
  * sumando `ahora - actualizadoEnMs` mientras [resultado] sea null. [progresoM] es la distancia recorrida del tramo (0
  * sin tramo), [parciales] los sectores y microsectores cerrados por orden de cierre y [ultimaMarca] el último. Al
  * cruzar la meta llega el [resultado] y el cronómetro se queda en el total hasta que se entre en otro tramo.
+ *
+ * [enMarcha] es false mientras la conducción está «lista» (se pulsó Conducir y el coche aún no ha salido): no hay
+ * tiempo que contar y la UI muestra «LISTO» en vez de 00:00.
  */
 data class CronoEnCurso(
     val tramo: TramoCronometrado?,
@@ -64,6 +67,7 @@ data class CronoEnCurso(
     val ultimaMarca: ParcialCrono? = null,
     val hayMejorPasada: Boolean = false,
     val resultado: ResultadoCrono? = null,
+    val enMarcha: Boolean = true,
 )
 
 /** Cronómetro en vivo de la sesión de navegación; null si no hay conducción en curso. */

@@ -33,9 +33,9 @@ import java.util.UUID
  * [DetectorTramo], publica un [CronoEnCurso] y devuelve las frases CRONO que tocan (delta acumulado al cerrar cada
  * sector y en meta, solo del tramo más reciente en que se entró y solo si tiene mejor pasada con la que comparar).
  * Sin tramo conocido publica el cronómetro de la conducción desde la salida (primer movimiento, ver [DetectorSalida]);
- * hasta entonces no publica nada y el tramo que se crea del recorrido tampoco incluye el rato parado. No es
- * concurrente: se usa desde la
- * corrutina de la sesión. Nunca registra coordenadas.
+ * hasta entonces publica el estado «listo» ([CronoEnCurso.enMarcha] false, sin tiempo) y el tramo que se crea del
+ * recorrido tampoco incluye el rato parado. No es concurrente: se usa desde la corrutina de la sesión. Nunca
+ * registra coordenadas.
  *
  * Cada pasada completada se guarda en cuanto se cruza la meta (en segundo plano, ligada al recorrido de la
  * conducción en curso y a su intervalo de puntos) y el resultado se republica con el `tramoId` y el `pasadaId` para
@@ -299,13 +299,13 @@ class SesionCrono(
             }
 
             else -> {
-                salidaEpochMs?.let {
-                    CronoEnCurso(
-                        tramo = null,
-                        transcurridoMs = ahora - it,
-                        actualizadoEnMs = ahora,
-                    )
-                }
+                val salida = salidaEpochMs
+                CronoEnCurso(
+                    tramo = null,
+                    transcurridoMs = if (salida != null) ahora - salida else 0L,
+                    actualizadoEnMs = ahora,
+                    enMarcha = salida != null,
+                )
             }
         }
     }
@@ -388,15 +388,16 @@ class SesionCrono(
         recorridoId: Long,
         todos: List<PuntoRecorrido>,
     ): Tramo? {
-        // El tramo empieza en la salida, no en el rato parado al entrar al mapa.
-        val puntos = salidaEpochMs?.let { desde -> todos.filter { it.tiempoMs >= desde } } ?: todos
+        // El tramo empieza en la salida, no en el rato parado al entrar al mapa; sin salida (solo deriva) no hay tramo.
+        val salida = salidaEpochMs
+        val puntos = if (salida == null) emptyList() else todos.filter { it.tiempoMs >= salida }
         val traza = puntos.map { PuntoGeo(it.lat, it.lon) }
         val repetido =
             completadas.any { c ->
                 val guardado = catalogo[c.pasada.tramoId]
                 guardado != null && Cobertura.fraccion(traza, guardado.traza) > UMBRAL_COINCIDENCIA
             }
-        val tramo = if (repetido) null else TramoDesdeRecorrido.crear(nuevoId(), traza)
+        val tramo = if (repetido || puntos.isEmpty()) null else TramoDesdeRecorrido.crear(nuevoId(), traza)
         val primera = tramo?.let { pasadaDelRecorrido(it, puntos) }
         if (tramo != null && primera != null) {
             repositorio.crear(tramo, null, nombrar(tramo.traza), ahoraMs(), primera.pasada, primera.origen(recorridoId))

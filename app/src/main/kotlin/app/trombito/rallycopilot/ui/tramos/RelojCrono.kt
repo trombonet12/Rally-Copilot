@@ -1,5 +1,10 @@
 package app.trombito.rallycopilot.ui.tramos
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -30,7 +35,7 @@ internal fun rememberTranscurridoMs(
     periodoMs: Long,
 ): Long {
     val relojActual by rememberUpdatedState(reloj)
-    val corriendo = crono.resultado == null
+    val corriendo = crono.resultado == null && crono.enMarcha
     var ahora by remember { mutableLongStateOf(reloj()) }
     LaunchedEffect(corriendo, periodoMs) {
         while (corriendo) {
@@ -46,6 +51,22 @@ internal fun rememberTranscurridoMs(
     } else {
         crono.transcurridoMs
     }
+}
+
+private const val ALFA_LISTO_MIN = 0.45f
+private const val PERIODO_PULSO_LISTO_MS = 900
+
+/** Pulso suave de alfa del texto «LISTO» (entre [ALFA_LISTO_MIN] y 1), infinito y sin tiempo corriendo. */
+@Composable
+internal fun rememberAlfaListo(): Float {
+    val transicion = rememberInfiniteTransition(label = "listo")
+    val alfa by transicion.animateFloat(
+        initialValue = 1f,
+        targetValue = ALFA_LISTO_MIN,
+        animationSpec = infiniteRepeatable(tween(PERIODO_PULSO_LISTO_MS), RepeatMode.Reverse),
+        label = "alfa-listo",
+    )
+    return alfa
 }
 
 /**

@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -148,7 +149,13 @@ fun HudCrono(
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            TiempoYDelta(transcurrido, crono.deltaMs, medidas, if (compacto) Modifier else Modifier.weight(1f))
+            TiempoYDelta(
+                transcurrido,
+                crono.deltaMs,
+                medidas,
+                if (compacto) Modifier else Modifier.weight(1f),
+                listo = !crono.enMarcha,
+            )
             if (compacto) Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { parciales() }
         }
         BarraTramo(crono, medidas)
@@ -163,11 +170,15 @@ private fun TiempoYDelta(
     deltaMs: Long?,
     medidas: MedidasHud,
     modifier: Modifier,
+    listo: Boolean = false,
 ) {
     val recursos = LocalContext.current.resources
     val tiempo = descripcionTiempo(recursos, transcurridoMs)
+    val alfa = if (listo) rememberAlfaListo() else 1f
     val descripcion =
-        if (deltaMs == null) {
+        if (listo) {
+            recursos.getString(R.string.crono_listo_descripcion)
+        } else if (deltaMs == null) {
             recursos.getString(R.string.crono_hud_descripcion_sin_delta, tiempo)
         } else {
             recursos.getString(R.string.crono_hud_descripcion, tiempo, descripcionDelta(recursos, deltaMs))
@@ -178,12 +189,12 @@ private fun TiempoYDelta(
         horizontalArrangement = if (medidas.compacto) Arrangement.spacedBy(10.dp) else Arrangement.SpaceBetween,
     ) {
         Text(
-            text = formatearTiempo(transcurridoMs),
+            text = if (listo) stringResource(R.string.crono_listo) else formatearTiempo(transcurridoMs),
             style = estiloCifras(medidas.tiempo),
             color = ColoresGuiado.Texto,
             maxLines = 1,
             softWrap = false,
-            modifier = Modifier.testTag(ETIQUETA_CRONO_TIEMPO),
+            modifier = Modifier.alpha(alfa).testTag(ETIQUETA_CRONO_TIEMPO),
         )
         PildoraDelta(deltaMs, medidas.delta, medidas.anchoDelta, medidas.sesgo / 2)
     }

@@ -60,6 +60,10 @@ internal fun cronoConocido(
 internal fun cronoSinTramo(transcurridoMs: Long = 95_000L) =
     CronoEnCurso(tramo = null, transcurridoMs = transcurridoMs, actualizadoEnMs = AHORA_PRUEBA_MS)
 
+/** Conducir pulsado y el coche aún sin salir: sin tiempo que contar. */
+internal fun cronoListo() =
+    CronoEnCurso(tramo = null, transcurridoMs = 0L, actualizadoEnMs = AHORA_PRUEBA_MS, enMarcha = false)
+
 /** Tramo guardado pero sin mejor pasada con la que comparar. */
 internal fun cronoSinReferencia() = cronoConocido(deltaMs = null).copy(hayMejorPasada = false)
 

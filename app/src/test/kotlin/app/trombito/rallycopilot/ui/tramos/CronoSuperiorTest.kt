@@ -79,6 +79,26 @@ class CronoSuperiorTest {
     }
 
     @Test
+    fun `listo muestra LISTO en vez de 00 00 y no cuenta tiempo`() {
+        poner(cronoListo())
+        assertTrue(banco.hay(ETIQUETA_CRONO_MINI))
+        assertEquals(listOf("LISTO"), textos(ETIQUETA_CRONO_TIEMPO))
+        ahora += 5_000L
+        banco.esperar(5_000L)
+        assertEquals(listOf("LISTO"), textos(ETIQUETA_CRONO_TIEMPO))
+        val descripcion = checkNotNull(banco.descripcion(banco.conEtiqueta(ETIQUETA_CRONO_MINI)))
+        assertEquals("Cronómetro de la conducción: listo, esperando la salida", descripcion)
+    }
+
+    @Test
+    fun `al salir el cronometro pasa de LISTO a contar`() {
+        poner(cronoListo())
+        crono = cronoSinTramo(2_000L)
+        banco.esperar(100L)
+        assertEquals(listOf("00:02"), textos(ETIQUETA_CRONO_TIEMPO))
+    }
+
+    @Test
     fun `el cronometro sigue contando entre fijaciones`() {
         poner(cronoConocido(transcurridoMs = 150_400L))
         ahora += 2_000L

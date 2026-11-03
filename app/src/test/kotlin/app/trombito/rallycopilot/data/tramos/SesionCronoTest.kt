@@ -622,6 +622,8 @@ class SesionCronoTest {
 
             // Mientras está parado no hay cronómetro; después cuenta desde el primer movimiento.
             assertTrue(c.estados.first().transcurridoMs < 5_000L)
+            assertFalse(c.estados.first().enMarcha)
+            assertTrue(c.estados.last().enMarcha)
             val duracionMs = (movimiento.size - 1) * 1000L
             assertEquals(
                 duracionMs.toDouble(),
@@ -631,6 +633,37 @@ class SesionCronoTest {
                     .toDouble(),
                 3_000.0,
             )
+        }
+
+    @Test
+    fun `parado la sesion publica listo sin tiempo y al salir pasa a en marcha`() =
+        runTest {
+            val parado = (0 until 30).map { Fijacion(CALOBRA.first(), 5_000_000L + it * 1000L, 0.0, null, 5.0) }
+            val c = conducir(parado + conduccion(40.0, hastaM = 800.0, base = 5_030_000L))
+
+            val listos = c.estados.takeWhile { !it.enMarcha }
+            assertTrue(listos.size >= 29)
+            assertTrue(listos.all { it.tramo == null && it.transcurridoMs == 0L && it.resultado == null })
+            assertTrue(c.estados.drop(listos.size).all { it.enMarcha })
+            assertTrue(c.estados.drop(listos.size).isNotEmpty())
+        }
+
+    @Test
+    fun `la deriva del GPS en parado no arranca el cronometro`() =
+        runTest {
+            val deriva =
+                (0 until 60).map {
+                    val punto = puntoA(CALOBRA, if (it % 2 == 0) 0.0 else 30.0)
+                    Fijacion(punto, 5_000_000L + it * 1000L, 8.0 / 3.6, null, 15.0)
+                }
+            val c = conducir(deriva)
+
+            assertTrue(c.estados.isNotEmpty())
+            assertTrue(c.estados.none { it.enMarcha })
+            assertTrue(c.estados.all { it.transcurridoMs == 0L })
+            // Sin salida no se crea tramo ni pasada con la deriva.
+            assertTrue(tramos.tramos.isEmpty())
+            assertTrue(tramos.pasadas.isEmpty())
         }
 
     @Test

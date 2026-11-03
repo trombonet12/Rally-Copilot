@@ -23,6 +23,9 @@
 
     <!-- Cronómetro pequeño (sin tramo conocido) -->
     <string name="crono_mini_descripcion">Cronómetro de la conducción: %1$s</string>
+    <!-- Conducir pulsado y el coche aún sin salir: en vez de 00:00 -->
+    <string name="crono_listo">LISTO</string>
+    <string name="crono_listo_descripcion">Cronómetro de la conducción: listo, esperando la salida</string>
 
     <!-- Tarjeta de meta -->
     <string name="crono_meta_titulo">META</string>

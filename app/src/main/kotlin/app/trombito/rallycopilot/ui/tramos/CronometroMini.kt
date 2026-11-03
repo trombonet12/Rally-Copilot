@@ -10,8 +10,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
@@ -26,7 +28,8 @@ const val ETIQUETA_CRONO_MINI = "crono-mini"
 /**
  * Cronómetro pequeño de la conducción, para tramos nuevos o sin tramo: icono y «mm:ss» (sin décimas, para no competir
  * con las notas). Va en el panel inferior, junto a la velocidad; usa los colores del tema del panel. Sin región viva:
- * TalkBack lo lee solo si se enfoca.
+ * TalkBack lo lee solo si se enfoca. Mientras la conducción está lista (sin salida aún, [CronoEnCurso.enMarcha] false)
+ * muestra «LISTO» con un pulso suave de alfa en vez de 00:00.
  */
 @Composable
 fun CronometroMini(
@@ -36,7 +39,14 @@ fun CronometroMini(
 ) {
     val transcurrido = rememberTranscurridoMs(crono, reloj, PERIODO_MINI_MS)
     val recursos = LocalContext.current.resources
-    val descripcion = recursos.getString(R.string.crono_mini_descripcion, descripcionTiempo(recursos, transcurrido))
+    val listo = !crono.enMarcha
+    val descripcion =
+        if (listo) {
+            recursos.getString(R.string.crono_listo_descripcion)
+        } else {
+            recursos.getString(R.string.crono_mini_descripcion, descripcionTiempo(recursos, transcurrido))
+        }
+    val alfa = if (listo) rememberAlfaListo() else 1f
     Row(
         modifier =
             modifier
@@ -53,7 +63,14 @@ fun CronometroMini(
             modifier = Modifier.size(20.dp),
         )
         Text(
-            text = formatearTiempo(transcurrido, conDecimas = false),
+            text =
+                if (listo) {
+                    stringResource(
+                        R.string.crono_listo,
+                    )
+                } else {
+                    formatearTiempo(transcurrido, conDecimas = false)
+                },
             style =
                 TextStyle(
                     fontSize = MaterialTheme.typography.titleMedium.fontSize,
@@ -63,7 +80,7 @@ fun CronometroMini(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             softWrap = false,
-            modifier = Modifier.testTag(ETIQUETA_CRONO_TIEMPO),
+            modifier = Modifier.alpha(alfa).testTag(ETIQUETA_CRONO_TIEMPO),
         )
     }
 }
