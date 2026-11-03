@@ -440,6 +440,96 @@ completado en versión recortada (2026-11-02, v1.0.0) por el límite de uso sema
 <!-- Hecho: gate del CI en verde (v0.11.0), release v1.0.0. Pendiente: batería E2E instrumentada en emulador, revisión
 ux-reviewer de H10, prueba real en coche y en el móvil (Joan), H11 (voz de Moya) cuando haya material. -->
 
+## H13 · Notas por grados (en curso, 2026-11-03)
+### Objetivo
+Petición de Joan tras sus primeras pruebas con la v1.0: «canta muy poco las curvas». La escala pasa a depender solo del giro total de la curva:
+- 6 = 10–30°, 5 = 30–60°, 4 = 60–90°, 3 = 90–120°, 2 = 120–150°, 1 = 150–180°;
+- «escuadra» para unos 90° cerrados y lentos;
+- «horquilla» por encima de 180°;
+- por debajo de 10° no se canta.
+
+TDD con los límites de cada rango; los goldens de la Ma-2141 y la Ma-10 se regeneran y se revisan a mano.
+
+### Alcance
+Lo descrito en Objetivo.
+
+### Criterios de aceptación
+- Cada rango de grados da su número; escuadra y horquilla se detectan; menos de 10° no se canta.
+- Goldens Ma-2141 y Ma-10 revisados a mano.
+
+### Tests
+- Motor: tabla de límites (9, 10, 30, 60, 90, 120, 150, 180, 181°) y escuadra frente a 4 abierta.
+
+### Estado
+En curso (2026-11-03).
+
+## H14 · Interfaz 1.0 de verdad (pendiente)
+### Objetivo
+Feedback de Joan del 2026-11-02 y 2026-11-03: «se nota que está en pruebas».
+
+**Crono**
+- Salida real: más de 15 km/h durante 3 s, o más de `max(50 m, 2×precisión)` con precisión ≤ 20 m. La deriva del GPS en parado no debe arrancar el crono.
+- Mientras no hay salida, el crono muestra LISTO.
+- Ajuste para elegir salida Automática (por defecto) o Manual. La manual es una cuenta atrás WRC (5 luces y voz).
+
+**Estilo**
+- WRC premium, sin «pegotes» de fondo rojo: el rojo solo como acento.
+- Los paneles (por ejemplo el aviso rojo) van con fondo negro vacío, como las tarjetas de notas, que es el diseño que más le gusta.
+- Componentes `FormaBiselada`, `TarjetaWrc` y `FondoWrc`, con animaciones cortas.
+
+**Ajustes**
+- Rejilla de tarjetas con icono y valor actual.
+- Cada sección tiene su subpantalla, con una vista previa fija en vivo y textos de una línea.
+- Las voces se muestran con su nombre real.
+
+**Mapa conduciendo**
+- Panel flotante translúcido, más pequeño.
+- El icono propio va más abajo, para ver más carretera.
+- Botones más grandes, que se esconden en marcha (igual que la barra «¿A dónde?»).
+- El aviso de mapas actualizados pasa a ser un toast.
+- Inclinar el mapa en satélite cuesta: revisar.
+
+**Conducción libre**
+- Estela roja del recorrido.
+- La ruta, roja en vez de dorada.
+
+**Radares e incidencias**
+- Siempre visibles en el mapa, con un bocadillo al acercarse.
+- Aviso con más antelación, también de los del sentido contrario.
+- En los estáticos, la velocidad a la que se pasó.
+- El tramo de un radar de tramo, dibujado en el mapa.
+
+**Indicaciones**
+- Bug: la 3.ª salida de las rotondas se canta como 2.ª.
+- Sobran cruces en las entradas y salidas de autopista: distinguir los cruces de las salidas.
+- Ajustes para activar o desactivar cruces, salidas de autopista y rotondas.
+- Futuro: indicaciones con el formato de las notas, en carrete (la actual en el centro y la siguiente, aún sin cantar, a la derecha).
+
+**Inicio**
+- CONDUCIR como protagonista.
+- Último tramo con su mini traza.
+- Accesos con icono grande.
+
+**Mis tramos, detalle y perfil**
+- El detalle no muestra el mapa, solo la línea: poner la traza sobre el mapa real.
+- El editor de microsectores está roto: las flechas +/− por km van al revés y no se entiende qué hace.
+- Desde las estadísticas se debe poder volver a abrir el análisis de la pasada.
+- Mini traza en cada fila.
+
+**Verificación al cerrar:** capturas contrastadas punto por punto con esta lista, más el ux-reviewer.
+
+### Alcance
+Lo descrito en Objetivo.
+
+### Criterios de aceptación
+- Cada punto de la lista, verificado con capturas en `docs/capturas/h14/` y revisión ux-reviewer.
+
+### Tests
+- Detector de salida con deriva simulada; numeración de salidas de rotonda; filtros de indicaciones; tests de Compose de los componentes nuevos.
+
+### Estado
+Pendiente (cuando haya límite de uso).
+
 ## Cambios respecto a la propuesta inicial
 - **H1** deja el corredor z17–18 y la zona manual z18–19 para **H9**, porque dependen de rutas y tramos guardados.
 - **H3** incluye una presentación provisional en texto para validar las notas antes de la voz.

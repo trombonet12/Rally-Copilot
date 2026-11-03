@@ -26,6 +26,7 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · alcance · Solo Mallorca, offline por defecto, sin backend, cuentas ni funciones comunitarias · internet solo para descargar mapas y refrescar incidencias.
 
 ## Estilo/UI
+- 2026-11-03 · interfaz · La 1.0 tiene que parecer una app final, no de pruebas; nada de fondos rojos de pegote (el rojo como acento, paneles con fondo negro vacío como las notas) · antes de cerrar algo de interfaz, verificar con capturas punto por punto contra lo pedido.
 - 2026-10-28 · interfaz · Iconos en vez de rótulos de texto en los controles (p. ej. capas Mapa/Satélite) · «no me gusta lo que sea mapa satélite… tienen que ser iconos».
 - 2026-10-28 · interfaz · La estética de las maniobras y avisos sigue los juegos de WRC · petición de Joan.
 - 2026-10-28 · mapa · No quiere el copyright de OpenStreetMap ni ninguna atribución sobre el mapa; las atribuciones van solo en Ajustes > Acerca de · decisión suya aun sabiendo que las licencias piden atribuir en el mapa.

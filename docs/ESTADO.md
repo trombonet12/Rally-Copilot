@@ -83,4 +83,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** v1.0 publicada. Siguiente (cuando haya límite de uso): batería E2E instrumentada con las trazas de `docs/rutas/`, revisión `ux-reviewer` de H10 y lo que salga de la prueba en coche de Joan. H11 cuando haya material en `voice-lab/data/raw/`.
+- **Agente:** H13 en curso (notas por grados, ROADMAP). Orden de Joan: 1) feedback guardado (hecho), 2) dump de los datos del móvil al emulador (fuera del repo; el móvil estaba «unauthorized»), 3) escala por grados con TDD en `motor/.../notas/` y goldens Ma-2141/Ma-10. Después, H14 (interfaz, ROADMAP). Pendiente también: batería E2E, ux-reviewer, H11.

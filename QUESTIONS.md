@@ -256,3 +256,10 @@ Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y
 - **Respondida 2026-10-28:** **más adelante**. Hoy se distribuye solo por GitHub Release + Obtainium; keystore nueva y propia de Rally Copilot.
 - **Pregunta:** ¿usamos la misma cuenta de desarrollador que Sous Chef? ¿Quieres probadores en la prueba cerrada (hacen falta 12 durante 14 días para producción) o te basta con la interna?
 - **Recomendación:** misma cuenta; interna para ti y cerrada solo si piensas publicar en producción.
+
+### Feedback de la v1.0 (respondidas 2026-11-02 y 2026-11-03)
+- **Salida del crono:** automática por defecto, con un ajuste para cambiarla a manual. La salida manual es una cuenta atrás WRC.
+- **Ajustes:** rejilla y vista previa fija.
+- **Pantallas a rehacer a fondo:** Ajustes, Mapa conduciendo, Inicio y Mis tramos/Detalle/Perfil.
+- **Estilo y panel del mapa:** estilo WRC premium sin fondos rojos de pegote, y panel del mapa flotante translúcido.
+- **Escala de curvas:** por grados, con escuadra y horquilla (detalle en ROADMAP H13). El resto del feedback está en ROADMAP H14.
