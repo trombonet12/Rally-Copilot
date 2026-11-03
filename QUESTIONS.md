@@ -263,3 +263,8 @@ Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y
 - **Pantallas a rehacer a fondo:** Ajustes, Mapa conduciendo, Inicio y Mis tramos/Detalle/Perfil.
 - **Estilo y panel del mapa:** estilo WRC premium sin fondos rojos de pegote, y panel del mapa flotante translúcido.
 - **Escala de curvas:** por grados, con escuadra y horquilla (detalle en ROADMAP H13). El resto del feedback está en ROADMAP H14.
+- **H14 (respondidas 2026-11-03):**
+  - **Organización:** tres sub-hitos (a: bugs, b: funciones, c: rediseño).
+  - **Autovía:** sin cruces; con ruta, solo la salida que se toma.
+  - **Radares:** aviso a unos 15 s y a 100 m; también los de sentido contrario; velocidad de paso en el bocadillo.
+  - **Colores:** ruta roja y estela gris.

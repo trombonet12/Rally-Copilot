@@ -521,6 +521,36 @@ Feedback de Joan del 2026-11-02 y 2026-11-03: «se nota que está en pruebas».
 
 **Verificación al cerrar:** capturas contrastadas punto por punto con esta lista, más el ux-reviewer.
 
+**Sub-hitos (2026-11-03), cada uno con su release:**
+- **H14a, bugs (v1.2):**
+  - salida del crono y estado LISTO;
+  - la 3.ª salida de las rotondas;
+  - sin cruces en autovía;
+  - «escuadra» por voz;
+  - Mis tramos: microsectores, detalle con mapa y análisis desde Perfil;
+  - inclinar en satélite.
+- **H14b, funciones (v1.3):**
+  - exportar/importar copia;
+  - filtros de indicaciones;
+  - ruta roja y estela gris;
+  - coche más abajo y botones que se esconden;
+  - salida manual con cuenta atrás;
+  - radares.
+- **H14c, rediseño (v1.4):**
+  - estilo WRC premium;
+  - panel flotante;
+  - Ajustes;
+  - Inicio;
+  - Mis tramos/Perfil.
+
+**Respuestas:**
+- **Autovía:** sin cruces ni incorporaciones; con ruta, solo la salida que se toma.
+- **Radares:**
+  - aviso a unos 15 s y a 100 m;
+  - los de sentido contrario también («radar, sentido contrario»);
+  - bocadillo con la velocidad de paso en verde o rojo.
+- **Colores:** ruta roja y estela gris apagada.
+
 ### Alcance
 Lo descrito en Objetivo.
 
@@ -531,7 +561,7 @@ Lo descrito en Objetivo.
 - Detector de salida con deriva simulada; numeración de salidas de rotonda; filtros de indicaciones; tests de Compose de los componentes nuevos.
 
 ### Estado
-Pendiente (cuando haya límite de uso).
+En curso: H14a (2026-11-03).
 
 ## Cambios respecto a la propuesta inicial
 - **H1** deja el corredor z17–18 y la zona manual z18–19 para **H9**, porque dependen de rutas y tramos guardados.

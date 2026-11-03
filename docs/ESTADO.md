@@ -83,4 +83,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H13 cerrado (v1.1.0, notas por grados). Siguiente: H14 (interfaz, ROADMAP), empezando por «Exportar copia». Dump del móvil en %USERPROFILE%/RallyCopilot-dump/2026-11-03/ (falta cargarlo en el emulador). Pendiente también: batería E2E, ux-reviewer, H11.
+- **Agente:** H14a en curso (bugs, ROADMAP H14): salida del crono, rotondas, cruces en autovía, escuadra por voz, Mis tramos, inclinar en satélite. Dump del móvil en %USERPROFILE%/RallyCopilot-dump/2026-11-03/ (falta cargarlo en el emulador). Pendiente también: batería E2E, ux-reviewer, H11.
