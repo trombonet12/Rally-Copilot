@@ -1,7 +1,7 @@
 package app.trombito.rallycopilot.motor.notas
 
 /** Matiz que se canta tras el grado («larga», «cierra»…). El orden del enum es el orden en que se cantan. */
-enum class Modificador { LARGA, MUY_LARGA, CIERRA, ABRE }
+enum class Modificador { ESCUADRA, LARGA, MUY_LARGA, CIERRA, ABRE }
 
 /** Nota reducida a su categoría gruesa (modo de notas simplificadas). */
 enum class GradoSimplificado { HORQUILLA, MUY_CERRADA, CERRADA, MEDIA, SUAVE }
@@ -26,9 +26,12 @@ data class Nota(
         require(grado == null || grado in 1..6) { "Grado fuera de 1..6: $grado" }
     }
 
-    /** 1 muy cerrada, 2 cerrada, 3–4 media, 5–6 suave; la horquilla se queda como horquilla. */
+    /**
+     * 1 muy cerrada, 2 cerrada, 3–4 media, 5–6 suave; la horquilla se queda como horquilla y la escuadra cuenta como
+     * muy cerrada.
+     */
     fun simplificada(): GradoSimplificado =
-        when (grado) {
+        when (if (Modificador.ESCUADRA in modificadores) 1 else grado) {
             null -> GradoSimplificado.HORQUILLA
             1 -> GradoSimplificado.MUY_CERRADA
             2 -> GradoSimplificado.CERRADA

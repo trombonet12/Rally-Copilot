@@ -15,8 +15,9 @@ object FrasesNota {
         ).split(' ')
 
     /**
-     * «derecha cuatro larga, cincuenta»; la distancia (si hay) va después. Con [simplificada], «derecha media». Si la
-     * nota pide precaución empieza por «cuidado,».
+     * «derecha cuatro larga, cincuenta»; la distancia (si hay) va después. Con [simplificada], «derecha media». Una
+     * escuadra se canta «derecha escuadra» (sin número, también simplificada). Si la nota pide precaución empieza por
+     * «cuidado,».
      */
     fun frase(
         nota: Nota,
@@ -64,9 +65,12 @@ object FrasesNota {
     ): String {
         val direccion = if (nota.direccion == Direccion.IZQUIERDA) "izquierda" else "derecha"
         val modificadores = nota.modificadores.sorted().joinToString("") { " " + palabra(it) }
-        if (nota.grado == null) return "horquilla $direccion$modificadores"
-        val grado = if (simplificada) palabra(nota.simplificada()) else enPalabras(nota.grado)
-        return "$direccion $grado$modificadores"
+        return when {
+            Modificador.ESCUADRA in nota.modificadores -> "$direccion escuadra"
+            nota.grado == null -> "horquilla $direccion$modificadores"
+            simplificada -> "$direccion ${palabra(nota.simplificada())}$modificadores"
+            else -> "$direccion ${enPalabras(nota.grado)}$modificadores"
+        }
     }
 
     private fun palabra(g: GradoSimplificado): String =
@@ -80,6 +84,7 @@ object FrasesNota {
 
     private fun palabra(m: Modificador): String =
         when (m) {
+            Modificador.ESCUADRA -> "escuadra"
             Modificador.LARGA -> "larga"
             Modificador.MUY_LARGA -> "muy larga"
             Modificador.CIERRA -> "cierra"

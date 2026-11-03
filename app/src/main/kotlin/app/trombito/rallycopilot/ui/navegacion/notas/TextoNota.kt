@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.FrasesNota
+import app.trombito.rallycopilot.motor.notas.Modificador
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.notas.NotaVisible
 import kotlin.math.roundToInt
@@ -68,14 +69,17 @@ private fun fraseVisible(
         }
     }
 
-/** En pantalla el grado va en cifra («derecha 4 larga»): cambia solo la palabra del grado de la frase del motor. */
+/**
+ * En pantalla el grado va en cifra («derecha 4 larga»): cambia solo la palabra del grado de la frase del motor. La
+ * escuadra no lleva número: sale «DERECHA ESCUADRA».
+ */
 private fun cifraEnVezDePalabra(
     frase: String,
     nota: Nota,
     simplificada: Boolean,
 ): String {
     val grado = nota.grado
-    if (simplificada || grado == null) return frase
+    if (simplificada || grado == null || Modificador.ESCUADRA in nota.modificadores) return frase
     val direccion = if (nota.direccion == Direccion.IZQUIERDA) "izquierda" else "derecha"
     return frase.replace("$direccion ${FrasesNota.enPalabras(grado)}", "$direccion $grado")
 }

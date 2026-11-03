@@ -138,7 +138,7 @@ class NotasSesionTest {
         }
 
     @Test
-    fun `el limite de la via es siempre el tope y el factor solo escala la velocidad de curva`() =
+    fun `el limite de la via y el factor de calibracion no cambian el grado de la curva`() =
         runTest {
             val traza = trazadoConCurva()
 
@@ -147,7 +147,7 @@ class NotasSesionTest {
                 factor: Double? = null,
             ) = escenario(FuenteFalsa(fijacionesPor(traza)), contextoDe(listOf(via(1, traza, limite))), factor)
             val sinLimite = caso()
-            // Curva de R 60 m (v = 67,6 km/h): los grados son relativos a la referencia (límite, o 90 km/h de primary).
+            // Curva de R 60 m y unos 90 grados: el grado depende solo del ángulo, sea cual sea el límite o el factor.
             val conLimite = caso("40")
             val calibrada = caso("40", 0.4)
             val calibradaSinLimite = caso(factor = 0.4)
@@ -157,14 +157,8 @@ class NotasSesionTest {
             advanceTimeBy(3_500)
 
             val gradoSin = gradoUnico(sinLimite)
-            val gradoLimite = gradoUnico(conLimite)
-            val gradoCalibrado = gradoUnico(calibrada)
-            assertTrue("sin límite: $gradoSin", gradoSin in 2..4)
-            assertEquals(6, gradoLimite)
-            assertTrue("calibrada: $gradoCalibrado", gradoCalibrado < gradoSin)
-            // Con factor calibrado el límite de la vía también topa: la misma curva sin límite sale más abierta.
-            assertTrue("calibrada sin límite: ${gradoUnico(calibradaSinLimite)}", gradoUnico(calibradaSinLimite) < 6)
-            assertEquals(6, gradoUnico(calibradaRapida))
+            assertEquals(4, gradoSin)
+            todos.forEach { assertEquals(gradoSin, gradoUnico(it)) }
             // La calibración llega en segundo plano: antes y después hubo una hoja publicada.
             assertTrue(calibrada.publicadas.size >= 2)
             trabajos.forEach { it.cancel() }

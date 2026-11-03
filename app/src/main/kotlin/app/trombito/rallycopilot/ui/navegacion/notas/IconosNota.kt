@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.GradoSimplificado
+import app.trombito.rallycopilot.motor.notas.Modificador
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.notas.TipoAviso
 
@@ -28,6 +29,9 @@ private val DERECHA =
         R.drawable.ic_nota_der_6,
     )
 
+/** La escuadra se dibuja siempre con el icono del grado 3. */
+private const val GRADO_ICONO_ESCUADRA = 3
+
 /** Grado que dibuja cada categoría gruesa de las notas simplificadas (la más típica de su grupo). */
 private fun gradoRepresentativo(g: GradoSimplificado): Int =
     when (g) {
@@ -38,7 +42,10 @@ private fun gradoRepresentativo(g: GradoSimplificado): Int =
         GradoSimplificado.HORQUILLA -> 1
     }
 
-/** Icono de roadbook de una nota de curva: la forma depende del grado (o de la categoría si va simplificada). */
+/**
+ * Icono de roadbook de una nota de curva: la forma depende del grado (o de la categoría si va simplificada); la
+ * escuadra usa la del grado 3.
+ */
 @DrawableRes
 internal fun iconoCurva(
     nota: Nota,
@@ -47,7 +54,13 @@ internal fun iconoCurva(
     val izquierda = nota.direccion == Direccion.IZQUIERDA
     val gradoNota = nota.grado
     if (gradoNota == null) return if (izquierda) R.drawable.ic_nota_horquilla_izq else R.drawable.ic_nota_horquilla_der
-    val grado = if (simplificada) gradoRepresentativo(nota.simplificada()) else gradoNota
+    val escuadra = Modificador.ESCUADRA in nota.modificadores
+    val grado =
+        when {
+            escuadra -> GRADO_ICONO_ESCUADRA
+            simplificada -> gradoRepresentativo(nota.simplificada())
+            else -> gradoNota
+        }
     return (if (izquierda) IZQUIERDA else DERECHA)[grado - 1]
 }
 

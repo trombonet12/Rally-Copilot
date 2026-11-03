@@ -14,7 +14,7 @@ class GeneradorNotasTest {
         inicio: Double = 0.0,
         arco: Double = 60.0,
         direccion: Direccion = Direccion.DERECHA,
-        angulo: Double = 60.0,
+        angulo: Double = 70.0,
         radio: Double = 100.0,
         entrada: Double = radio,
         salida: Double = radio,
@@ -24,87 +24,135 @@ class GeneradorNotasTest {
 
     @Test
     fun `una curva da su direccion posicion y grado`() {
-        val nota = una(curva(inicio = 120.0, arco = 40.0, direccion = Direccion.IZQUIERDA, radio = 70.0))
+        val nota = una(curva(inicio = 120.0, arco = 40.0, direccion = Direccion.IZQUIERDA, angulo = 100.0))
         assertEquals(Nota(120.0, 160.0, Direccion.IZQUIERDA, 3), nota)
     }
 
     @Test
-    fun `el grado 6 con menos de 20 grados se omite y con 20 o mas se canta`() {
-        assertTrue(generador.generar(listOf(curva(radio = 300.0, angulo = 19.9))).isEmpty())
-        assertEquals(6, una(curva(radio = 300.0, angulo = 20.0)).grado)
-        assertEquals(5, una(curva(radio = 200.0, angulo = 5.0)).grado)
+    fun `el grado depende solo del angulo y no del radio`() {
+        listOf(20.0, 100.0, 300.0).forEach { radio ->
+            assertEquals(6, una(curva(radio = radio, angulo = 20.0)).grado)
+            assertEquals(4, una(curva(radio = radio, angulo = 75.0)).grado)
+            assertEquals(2, una(curva(radio = radio, angulo = 140.0)).grado)
+        }
     }
 
     @Test
-    fun `la velocidad de referencia se consulta en la posicion de cada curva`() {
-        val curvas = listOf(curva(inicio = 0.0, angulo = 10.0), curva(inicio = 1000.0, angulo = 10.0))
-        // R = 100 m: v = 87,3 km/h. A 80 km/h es seis pero no llega al radio de confort (144 m): cinco.
-        val notas = generador.generar(curvas) { pos -> if (pos < 500.0) 80.0 else null }
+    fun `por debajo de 10 grados no hay nota y desde 10 es un seis`() {
+        assertTrue(generador.generar(listOf(curva(radio = 20.0, angulo = 9.9))).isEmpty())
+        assertEquals(6, una(curva(radio = 300.0, angulo = 10.0)).grado)
+        assertEquals(5, una(curva(radio = 300.0, angulo = 30.1)).grado)
+        assertEquals(6, una(curva(radio = 300.0, angulo = 30.0)).grado)
+    }
+
+    @Test
+    fun `la velocidad de referencia ni el factor cambian el grado`() {
+        val c = curva(radio = 40.0, angulo = 90.0)
+        assertEquals(4, generador.generar(listOf(c)) { 50.0 }.single().grado)
+        assertEquals(4, generador.generar(listOf(c)) { 150.0 }.single().grado)
+        assertEquals(4, GeneradorNotas(TablaGrados(factor = 0.7)).generar(listOf(c)) { 90.0 }.single().grado)
+    }
+
+    @Test
+    fun `la velocidad de referencia se consulta en la posicion de cada curva para cierra y abre`() {
+        val curvas =
+            listOf(
+                curva(inicio = 0.0, radio = 100.0, entrada = 100.0, salida = 60.0),
+                curva(inicio = 1000.0, radio = 100.0, entrada = 100.0, salida = 60.0),
+            )
+        // Con 150 km/h R 100 y R 60 son el mismo grado (sin salto); sin referencia son 4 y 3.
+        val notas = generador.generar(curvas) { pos -> if (pos < 500.0) 150.0 else null }
         assertEquals(listOf(0.0, 1000.0), notas.map { it.posicionM })
-        assertEquals(listOf(5, 4), notas.map { it.grado })
+        assertTrue(notas[0].modificadores.isEmpty())
+        assertEquals(setOf(Modificador.CIERRA), notas[1].modificadores)
     }
 
     @Test
-    fun `a 50 km por hora una curva de 40 m no es seis y con factor 0,7 una de 60 m no es uno`() {
-        val lenta = curva(radio = 40.0, angulo = 90.0)
-        assertEquals(5, generador.generar(listOf(lenta)) { 50.0 }.single().grado)
-        val calibrado = GeneradorNotas(TablaGrados(factor = 0.7))
-        val nota = calibrado.generar(listOf(curva(radio = 60.0, angulo = 90.0))) { 90.0 }.single()
-        assertEquals(2, nota.grado)
-    }
-
-    @Test
-    fun `con referencia el seis se omite si gira menos de 20 grados`() {
-        val curvas = listOf(curva(radio = 300.0, angulo = 19.0))
-        assertTrue(generador.generar(curvas) { 90.0 }.isEmpty())
-        assertEquals(5, generador.generar(listOf(curva(radio = 150.0, angulo = 19.0))) { 90.0 }.single().grado)
-    }
-
-    @Test
-    fun `una curva con 140 grados y radio bajo 30 m es horquilla sin grado ni modificadores`() {
-        val nota = una(curva(radio = 15.0, angulo = 180.0, arco = 90.0, entrada = 30.0, salida = 10.0))
+    fun `una curva de mas de 180 grados es horquilla sin grado ni modificadores de tendencia`() {
+        val nota = una(curva(radio = 15.0, angulo = 181.0, arco = 90.0, entrada = 30.0, salida = 10.0))
         assertNull(nota.grado)
         assertTrue(nota.modificadores.isEmpty())
         assertEquals(GradoSimplificado.HORQUILLA, nota.simplificada())
     }
 
     @Test
-    fun `la horquilla es larga desde 200 grados y muy larga desde 240`() {
-        fun mods(angulo: Double) = una(curva(radio = 10.0, angulo = angulo, arco = 90.0)).modificadores
-        assertTrue(mods(199.9).isEmpty())
-        assertEquals(setOf(Modificador.LARGA), mods(200.0))
-        assertEquals(setOf(Modificador.LARGA), mods(239.9))
-        assertEquals(setOf(Modificador.MUY_LARGA), mods(240.0))
+    fun `180 grados todavia es un grado uno y no una horquilla`() {
+        assertEquals(1, una(curva(radio = 15.0, angulo = 180.0, arco = 90.0)).grado)
+        assertNull(una(curva(radio = 100.0, angulo = 180.1, arco = 90.0)).grado)
+    }
+
+    @Test
+    fun `la horquilla es larga desde 100 m de arco y muy larga desde 200`() {
+        fun mods(arco: Double) = una(curva(radio = 10.0, angulo = 200.0, arco = arco)).modificadores
+        assertTrue(mods(99.9).isEmpty())
+        assertEquals(setOf(Modificador.LARGA), mods(100.0))
+        assertEquals(setOf(Modificador.LARGA), mods(199.9))
+        assertEquals(setOf(Modificador.MUY_LARGA), mods(200.0))
         // La corbata de la Ma-2141 (~263 grados).
-        val corbata = una(curva(radio = 10.0, angulo = 263.0, arco = 90.0, entrada = 30.0, salida = 6.0))
+        val corbata = una(curva(radio = 10.0, angulo = 263.0, arco = 250.0, entrada = 30.0, salida = 6.0))
         assertNull(corbata.grado)
         assertEquals(setOf(Modificador.MUY_LARGA), corbata.modificadores)
         assertEquals("horquilla derecha muy larga", FrasesNota.frase(corbata))
     }
 
     @Test
-    fun `una curva cerrada con poco angulo no es horquilla`() {
-        assertEquals(1, una(curva(radio = 15.0, angulo = 90.0)).grado)
+    fun `larga desde 100 m de arco y muy larga desde 200`() {
+        assertTrue(una(curva(arco = 99.9)).modificadores.isEmpty())
+        assertEquals(setOf(Modificador.LARGA), una(curva(arco = 100.0)).modificadores)
+        assertEquals(setOf(Modificador.LARGA), una(curva(arco = 199.0)).modificadores)
+        assertEquals(setOf(Modificador.LARGA), una(curva(arco = 199.9)).modificadores)
+        assertEquals(setOf(Modificador.MUY_LARGA), una(curva(arco = 200.0)).modificadores)
     }
 
     @Test
-    fun `larga desde 100 grados de angulo y muy larga desde 160`() {
-        assertTrue(una(curva(angulo = 99.9)).modificadores.isEmpty())
-        assertEquals(setOf(Modificador.LARGA), una(curva(angulo = 100.0)).modificadores)
-        assertEquals(setOf(Modificador.LARGA), una(curva(angulo = 159.9)).modificadores)
-        assertEquals(setOf(Modificador.MUY_LARGA), una(curva(angulo = 160.0)).modificadores)
-    }
-
-    @Test
-    fun `larga depende del angulo y no del arco`() {
-        assertTrue(una(curva(arco = 400.0, angulo = 60.0)).modificadores.isEmpty())
-        assertEquals(setOf(Modificador.LARGA), una(curva(arco = 30.0, angulo = 100.0)).modificadores)
+    fun `larga depende del arco y no del angulo`() {
+        assertEquals(setOf(Modificador.MUY_LARGA), una(curva(arco = 400.0, angulo = 20.0, radio = 600.0)).modificadores)
+        assertTrue(una(curva(arco = 30.0, angulo = 150.0)).modificadores.isEmpty())
+        assertEquals(setOf(Modificador.MUY_LARGA), una(curva(arco = 400.0, angulo = 60.0)).modificadores)
     }
 
     @Test
     fun `larga se aplica tambien a los grados 5 y 6`() {
-        assertEquals(setOf(Modificador.LARGA), una(curva(radio = 200.0, angulo = 120.0)).modificadores)
-        assertEquals(setOf(Modificador.LARGA), una(curva(radio = 300.0, angulo = 120.0)).modificadores)
+        assertEquals(setOf(Modificador.LARGA), una(curva(arco = 120.0, radio = 200.0, angulo = 40.0)).modificadores)
+        assertEquals(setOf(Modificador.LARGA), una(curva(arco = 120.0, radio = 300.0, angulo = 20.0)).modificadores)
+    }
+
+    @Test
+    fun `una escuadra es un tres con modificador escuadra y sin larga`() {
+        val nota = una(curva(angulo = 90.0, arco = 30.0, radio = 12.0))
+        assertEquals(3, nota.grado)
+        assertEquals(setOf(Modificador.ESCUADRA), nota.modificadores)
+        assertEquals("derecha escuadra", FrasesNota.frase(nota))
+        assertEquals(GradoSimplificado.MUY_CERRADA, nota.simplificada())
+    }
+
+    @Test
+    fun `los limites de la escuadra son 70 a 110 grados, 30 m de arco y 15 m de radio`() {
+        fun escuadra(
+            angulo: Double = 90.0,
+            arco: Double = 30.0,
+            radio: Double = 15.0,
+        ) = Modificador.ESCUADRA in una(curva(angulo = angulo, arco = arco, radio = radio)).modificadores
+        assertTrue(escuadra())
+        assertTrue(escuadra(angulo = 70.0))
+        assertTrue(escuadra(angulo = 110.0))
+        assertFalse(escuadra(angulo = 69.9))
+        assertFalse(escuadra(angulo = 110.1))
+        assertFalse(escuadra(arco = 30.1))
+        assertFalse(escuadra(radio = 15.1))
+    }
+
+    @Test
+    fun `una curva de 90 grados con 60 m de arco es un cuatro y no una escuadra`() {
+        val nota = una(curva(angulo = 90.0, arco = 60.0, radio = 12.0))
+        assertEquals(4, nota.grado)
+        assertTrue(nota.modificadores.isEmpty())
+    }
+
+    @Test
+    fun `la escuadra no lleva larga ni cierra`() {
+        val nota = una(curva(angulo = 100.0, arco = 30.0, radio = 10.0, entrada = 100.0, salida = 10.0))
+        assertEquals(setOf(Modificador.ESCUADRA), nota.modificadores)
     }
 
     @Test
@@ -133,11 +181,11 @@ class GeneradorNotasTest {
 
     @Test
     fun `cierra y abre solo hasta el grado 4`() {
-        // Grado 5 (R central 200 m) con entrada y salida muy distintas.
-        assertTrue(una(curva(radio = 200.0, entrada = 200.0, salida = 100.0)).modificadores.isEmpty())
-        assertTrue(una(curva(radio = 200.0, entrada = 100.0, salida = 250.0)).modificadores.isEmpty())
+        // Grado 5 (30 a 60 grados) con entrada y salida muy distintas.
+        assertTrue(una(curva(angulo = 40.0, radio = 200.0, entrada = 200.0, salida = 100.0)).modificadores.isEmpty())
+        assertTrue(una(curva(angulo = 40.0, radio = 200.0, entrada = 100.0, salida = 250.0)).modificadores.isEmpty())
         // Grado 4 si lo admite.
-        val grado4 = una(curva(radio = 100.0, entrada = 200.0, salida = 100.0))
+        val grado4 = una(curva(angulo = 70.0, radio = 100.0, entrada = 200.0, salida = 100.0))
         assertEquals(setOf(Modificador.CIERRA), grado4.modificadores)
     }
 
@@ -150,7 +198,7 @@ class GeneradorNotasTest {
 
     @Test
     fun `larga y cierra se combinan`() {
-        val nota = una(curva(angulo = 100.0, entrada = 100.0, salida = 50.0))
+        val nota = una(curva(arco = 100.0, entrada = 100.0, salida = 50.0))
         assertEquals(setOf(Modificador.LARGA, Modificador.CIERRA), nota.modificadores)
     }
 
@@ -273,8 +321,8 @@ class GeneradorNotasTest {
     }
 
     @Test
-    fun `la tabla calibrada cambia los grados`() {
-        val nota = GeneradorNotas(TablaGrados(factor = 0.5)).generar(listOf(curva(radio = 100.0))).single()
-        assertEquals(1, nota.grado)
+    fun `la tabla calibrada no cambia el grado de una curva`() {
+        val nota = GeneradorNotas(TablaGrados(factor = 0.5)).generar(listOf(curva(angulo = 75.0))).single()
+        assertEquals(4, nota.grado)
     }
 }

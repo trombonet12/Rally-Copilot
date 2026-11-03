@@ -97,11 +97,35 @@ class TablaGradosTest {
     }
 
     @Test
-    fun `horquilla con angulo desde 140 grados y radio central bajo 30 m`() {
-        assertTrue(tabla.esHorquilla(140.0, 29.9))
-        assertTrue(tabla.esHorquilla(263.0, 10.0))
-        assertFalse(tabla.esHorquilla(139.9, 10.0))
-        assertFalse(tabla.esHorquilla(180.0, 30.0))
+    fun `el grado depende solo del angulo y en el limite exacto gana el numero mayor`() {
+        val esperado =
+            mapOf(
+                9.0 to null,
+                9.99 to null,
+                10.0 to 6,
+                29.0 to 6,
+                30.0 to 6,
+                31.0 to 5,
+                59.0 to 5,
+                60.0 to 5,
+                61.0 to 4,
+                90.0 to 4,
+                91.0 to 3,
+                120.0 to 3,
+                121.0 to 2,
+                150.0 to 2,
+                151.0 to 1,
+                180.0 to 1,
+            )
+        esperado.forEach { (angulo, grado) -> assertEquals("$angulo grados", grado, tabla.gradoPorAngulo(angulo)) }
+    }
+
+    @Test
+    fun `mas de 180 grados es horquilla y 180 todavia es un uno`() {
+        assertTrue(tabla.esHorquilla(181.0))
+        assertTrue(tabla.esHorquilla(263.0))
+        assertFalse(tabla.esHorquilla(180.0))
+        assertFalse(tabla.esHorquilla(90.0))
     }
 
     @Test
@@ -115,6 +139,11 @@ class TablaGradosTest {
     @Test(expected = IllegalArgumentException::class)
     fun `los umbrales deben ser cinco y crecientes`() {
         TablaGrados(umbralesKmh = listOf(45.0, 40.0, 85.0, 110.0, 140.0))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `los limites de angulo deben ser cinco y crecientes`() {
+        TablaGrados(limitesAnguloGrados = listOf(30.0, 60.0, 60.0, 120.0, 150.0))
     }
 
     @Test(expected = IllegalArgumentException::class)

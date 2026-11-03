@@ -95,6 +95,24 @@ class FrasesNotaTest {
     }
 
     @Test
+    fun `la escuadra se canta sin numero ni modificador repetido`() {
+        val escuadra = nota(grado = 3, modificadores = setOf(Modificador.ESCUADRA))
+        assertEquals("derecha escuadra", FrasesNota.frase(escuadra))
+        assertEquals(
+            "izquierda escuadra, cincuenta",
+            FrasesNota.frase(escuadra.copy(direccion = Direccion.IZQUIERDA, distanciaSiguienteM = 50)),
+        )
+        assertEquals("cuidado, derecha escuadra", FrasesNota.frase(escuadra.copy(cuidado = true)))
+    }
+
+    @Test
+    fun `la escuadra simplificada tambien dice escuadra`() {
+        val escuadra = nota(Direccion.IZQUIERDA, 3, setOf(Modificador.ESCUADRA))
+        assertEquals("izquierda escuadra", FrasesNota.frase(escuadra, simplificada = true))
+        assertEquals(GradoSimplificado.MUY_CERRADA, escuadra.simplificada())
+    }
+
+    @Test
     fun `frases simplificadas`() {
         assertEquals("derecha muy cerrada", FrasesNota.frase(nota(grado = 1), simplificada = true))
         assertEquals("derecha cerrada", FrasesNota.frase(nota(grado = 2), simplificada = true))

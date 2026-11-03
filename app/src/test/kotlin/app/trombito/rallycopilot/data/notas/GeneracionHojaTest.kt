@@ -41,17 +41,15 @@ class GeneracionHojaTest {
     }
 
     @Test
-    fun `el grado de una curva es relativo al limite de la via o al de su clase`() {
-        // 90 grados de radio 60 m: v = 67,6 km/h.
+    fun `el grado de una curva depende solo de su angulo y no del limite de la via`() {
+        // Curva de unos 90 grados: grado 4 (60 a 90) o 3 (90 a 120) segun la medida; el limite no lo cambia.
         val medida = RutaMedida(trazadoConCurva())
 
         fun grado(datos: ContextoNotas?) = generarHoja(medida, datos, null).notas.single().grado
 
-        // Sin vías, umbrales absolutos: 67,6 km/h es grado 3.
-        assertEquals(3, grado(null))
-        // Primary sin maxspeed: 90 km/h por defecto, v / vRef = 0,75: grado 4.
-        assertEquals(4, grado(contextoDe(listOf(via(1, trazadoConCurva())))))
-        // Con maxspeed 120: v / vRef = 0,56: grado 2.
-        assertEquals(2, grado(contextoDe(listOf(via(1, trazadoConCurva(), maxspeed = "120")))))
+        val sinVias = grado(null)
+        assertEquals(4, sinVias)
+        assertEquals(sinVias, grado(contextoDe(listOf(via(1, trazadoConCurva())))))
+        assertEquals(sinVias, grado(contextoDe(listOf(via(1, trazadoConCurva(), maxspeed = "120")))))
     }
 }

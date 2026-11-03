@@ -38,6 +38,9 @@ const val ETIQUETA_EDITOR_GRADO_PREFIJO = "editor-nota-grado-"
 /** Grado elegido en el editor: del 1 al 6 o horquilla (`null`). */
 private val GRADOS = listOf(1, 2, 3, 4, 5, 6)
 
+/** Grado de una escuadra. */
+private const val GRADO_ESCUADRA = 3
+
 /**
  * Lo que se está editando de una nota: [direccion], [grado] (`null` = horquilla), [modificadores] y [cuidado]. La nota
  * resultante ([aNota]) no lleva posición: la pone quien la guarda (el tramo conserva la de la automática).
@@ -50,14 +53,18 @@ data class BorradorNota(
 ) {
     fun aNota(): Nota = Nota(0.0, 0.0, direccion, grado, modificadores, cuidado = cuidado)
 
-    /** Pone o quita [modificador]; larga y muy larga se excluyen entre sí, y cierra y abre también. */
+    /**
+     * Pone o quita [modificador]; larga y muy larga se excluyen entre sí, y cierra y abre también. La escuadra es
+     * grado 3 y excluye a los demás (se canta sola, sin número).
+     */
     fun conModificador(modificador: Modificador): BorradorNota {
         val opuestos =
             when (modificador) {
-                Modificador.LARGA -> setOf(Modificador.MUY_LARGA)
-                Modificador.MUY_LARGA -> setOf(Modificador.LARGA)
-                Modificador.CIERRA -> setOf(Modificador.ABRE)
-                Modificador.ABRE -> setOf(Modificador.CIERRA)
+                Modificador.ESCUADRA -> Modificador.entries.toSet() - Modificador.ESCUADRA
+                Modificador.LARGA -> setOf(Modificador.MUY_LARGA, Modificador.ESCUADRA)
+                Modificador.MUY_LARGA -> setOf(Modificador.LARGA, Modificador.ESCUADRA)
+                Modificador.CIERRA -> setOf(Modificador.ABRE, Modificador.ESCUADRA)
+                Modificador.ABRE -> setOf(Modificador.CIERRA, Modificador.ESCUADRA)
             }
         val nuevos =
             if (modificador in
@@ -67,7 +74,7 @@ data class BorradorNota(
             } else {
                 modificadores - opuestos + modificador
             }
-        return copy(modificadores = nuevos)
+        return copy(modificadores = nuevos, grado = if (Modificador.ESCUADRA in nuevos) GRADO_ESCUADRA else grado)
     }
 
     companion object {
@@ -208,6 +215,7 @@ private fun SelectorModificadores(
 
 private fun textoModificador(modificador: Modificador): Int =
     when (modificador) {
+        Modificador.ESCUADRA -> R.string.edicion_escuadra
         Modificador.LARGA -> R.string.edicion_larga
         Modificador.MUY_LARGA -> R.string.edicion_muy_larga
         Modificador.CIERRA -> R.string.edicion_cierra
