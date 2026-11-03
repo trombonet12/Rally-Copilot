@@ -83,4 +83,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H13 en curso (notas por grados, ROADMAP). Orden de Joan: 1) feedback guardado (hecho), 2) dump de los datos del móvil al emulador (fuera del repo; el móvil estaba «unauthorized»), 3) escala por grados con TDD en `motor/.../notas/` y goldens Ma-2141/Ma-10. Después, H14 (interfaz, ROADMAP). Pendiente también: batería E2E, ux-reviewer, H11.
+- **Agente:** H13 en curso (notas por grados, ROADMAP). Orden de Joan: 1) feedback guardado (hecho), 2) dump del móvil: imposible hoy (release no depurable, `allowBackup=false`, sin exportación); hace falta «Ajustes > Exportar copia» (zip de la base Room con CreateDocument) en la próxima versión, Joan exporta y se trae con adb a una carpeta fuera del repo, 3) escala por grados con TDD en `motor/.../notas/` y goldens Ma-2141/Ma-10. Después, H14 (interfaz, ROADMAP). Pendiente también: batería E2E, ux-reviewer, H11.
