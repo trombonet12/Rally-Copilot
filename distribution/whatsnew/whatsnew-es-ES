@@ -1,5 +1,3 @@
-Rally Copilot 1.0
-• Copiloto de rally por voz sin red: notas de la carretera, maniobras, radares e incidencias.
-• Cada trayecto es un tramo cronometrado con sectores, delta y análisis.
-• Mapas, rutas con paradas, buscador y satélite de detalle offline.
-• Corrige notas por voz y prepara tramos en modo reconocimiento.
+Rally Copilot 1.1
+• Las curvas se cantan por grados de giro: 6 la más suave, 1 la más cerrada, más escuadra y horquilla.
+• «Larga» ahora depende de lo que mide la curva.
