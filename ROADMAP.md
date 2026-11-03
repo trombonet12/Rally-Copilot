@@ -510,6 +510,9 @@ Feedback de Joan del 2026-11-02 y 2026-11-03: «se nota que está en pruebas».
 - Último tramo con su mini traza.
 - Accesos con icono grande.
 
+**Datos**
+- Copia de seguridad: «Ajustes > Exportar copia» (zip de la base Room con CreateDocument) e «Importar copia» para restaurarla, para poder guardar los datos y sacarlos del móvil (hoy la release no es depurable y tiene `allowBackup=false`).
+
 **Mis tramos, detalle y perfil**
 - El detalle no muestra el mapa, solo la línea: poner la traza sobre el mapa real.
 - El editor de microsectores está roto: las flechas +/− por km van al revés y no se entiende qué hace.
