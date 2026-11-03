@@ -83,4 +83,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H13 en curso (notas por grados, ROADMAP). Orden de Joan: 1) feedback guardado (hecho), 2) dump del móvil HECHO 2026-11-03 (release depurable temporal con la misma firma, instalada encima y revertida) en %USERPROFILE%/RallyCopilot-dump/2026-11-03/ (rally.db: 2 recorridos, 3274 puntos, 3 tramos, 2 pasadas; fuera del repo por ser datos de ubicación); falta cargarlo en el emulador (build debug .dev + run-as), 3) escala por grados con TDD en `motor/.../notas/` y goldens Ma-2141/Ma-10. Después, H14 (interfaz, ROADMAP). Pendiente también: batería E2E, ux-reviewer, H11.
+- **Agente:** H13 cerrado (v1.1.0, notas por grados). Siguiente: H14 (interfaz, ROADMAP), empezando por «Exportar copia». Dump del móvil en %USERPROFILE%/RallyCopilot-dump/2026-11-03/ (falta cargarlo en el emulador). Pendiente también: batería E2E, ux-reviewer, H11.

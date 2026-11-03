@@ -461,7 +461,7 @@ Lo descrito en Objetivo.
 - Motor: tabla de límites (9, 10, 30, 60, 90, 120, 150, 180, 181°) y escuadra frente a 4 abierta.
 
 ### Estado
-En curso (2026-11-03).
+Completado (2026-11-03, v1.1.0). Pendiente: «escuadra» en las órdenes de voz (InterpreteOrdenes) y prueba en coche.
 
 ## H14 · Interfaz 1.0 de verdad (pendiente)
 ### Objetivo
