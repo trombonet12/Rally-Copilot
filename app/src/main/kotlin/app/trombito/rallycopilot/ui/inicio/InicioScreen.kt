@@ -1,5 +1,7 @@
 package app.trombito.rallycopilot.ui.inicio
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -7,13 +9,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -22,119 +21,250 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.disabled
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.ui.comun.FondoWrc
+import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.TarjetaWrc
+import app.trombito.rallycopilot.ui.mistramos.MiniaturaTraza
+import app.trombito.rallycopilot.ui.theme.Ayuda
 import app.trombito.rallycopilot.ui.theme.Espacio
-import app.trombito.rallycopilot.ui.theme.LocalColoresRally
+import app.trombito.rallycopilot.ui.theme.EtiquetaIcono
+import app.trombito.rallycopilot.ui.theme.Medidas
+import app.trombito.rallycopilot.ui.theme.Movimiento
+import app.trombito.rallycopilot.ui.theme.RojoAcento
+import kotlinx.coroutines.delay
+
+/** Etiqueta de prueba de la línea «Última salida». */
+const val ETIQUETA_ULTIMA_SALIDA = "ultima-salida-inicio"
+
+/** Etiqueta de prueba de la frase de bienvenida (aún sin salidas). */
+const val ETIQUETA_BIENVENIDA = "bienvenida-inicio"
+
+private val ALTO_CONDUCIR = 120.dp
+private val ALTO_TARJETA_MENU = 96.dp
+private val ICONO_CONDUCIR = 56.dp
+private val ICONO_MENU = 32.dp
+private val LADO_MASCOTA = 120.dp
+private val LADO_MINIATURA = 48.dp
+private val ANCHO_FRANJA = 96.dp
+private const val RETARDO_ESCALON_MS = 70L
+private const val DESPLAZAMIENTO_ENTRADA_DP = 24f
+private const val ESCALONES_MAX = 6
 
 /**
- * Pantalla de inicio tipo menú de juego. Las entradas de hitos pendientes salen desactivadas. En vertical la mascota y
- * el título van arriba y el menú debajo; en apaisado, la mascota a la izquierda y el menú a la derecha, para que
- * quepan las cuatro entradas.
+ * Pantalla de inicio sobre el fondo WRC: la mascota y el nombre, CONDUCIR como tarjeta protagonista con la última
+ * salida debajo y el resto del menú en una rejilla. En apaisado, la mascota a la izquierda y el menú a la derecha.
+ * Los elementos entran uno tras otro (fundido y subida corta).
  */
 @Composable
 fun InicioScreen(
     modifier: Modifier = Modifier,
+    estado: InicioUiState = InicioUiState(),
     onEntrada: (EntradaInicio) -> Unit = {},
 ) {
-    BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
-        if (maxWidth > maxHeight) {
-            Row(
-                modifier = Modifier.fillMaxSize().padding(horizontal = Espacio.xl, vertical = Espacio.m),
-                horizontalArrangement = Arrangement.spacedBy(Espacio.xl),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) { CabeceraInicio() }
+    FondoWrc(modifier) {
+        BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
+            if (maxWidth > maxHeight) {
+                Row(
+                    modifier = Modifier.fillMaxSize().padding(horizontal = Espacio.xl, vertical = Espacio.m),
+                    horizontalArrangement = Arrangement.spacedBy(Espacio.xl),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Aparece(0) { CabeceraInicio() }
+                    }
+                    Column(
+                        Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(Espacio.m),
+                    ) { MenuInicio(estado, onEntrada) }
+                }
+            } else {
                 Column(
-                    Modifier.weight(1f).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(Espacio.s),
-                ) { MenuInicio(onEntrada) }
-            }
-        } else {
-            Column(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = Espacio.xl, vertical = Espacio.xl),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                CabeceraInicio()
-                Column(
-                    modifier = Modifier.padding(top = Espacio.xxl).fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(Espacio.s),
-                ) { MenuInicio(onEntrada) }
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = Espacio.xl, vertical = Espacio.xl),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(Espacio.l),
+                ) {
+                    Aparece(0) { CabeceraInicio() }
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(Espacio.m),
+                    ) { MenuInicio(estado, onEntrada) }
+                }
             }
         }
     }
 }
 
+/** Entrada escalonada: aparece con fundido y una subida corta, [indice] × 70 ms después de componerse. */
 @Composable
-private fun MenuInicio(onEntrada: (EntradaInicio) -> Unit) {
-    EntradaInicio.entries.forEach { FilaMenu(it) { onEntrada(it) } }
+private fun Aparece(
+    indice: Int,
+    contenido: @Composable () -> Unit,
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(indice.coerceAtMost(ESCALONES_MAX) * RETARDO_ESCALON_MS)
+        visible = true
+    }
+    val avance by animateFloatAsState(
+        targetValue = if (visible) 1f else 0f,
+        animationSpec = tween(Movimiento.MEDIA),
+        label = "entrada-inicio",
+    )
+    Column(
+        Modifier.fillMaxWidth().graphicsLayer {
+            alpha = avance
+            translationY = (1f - avance) * DESPLAZAMIENTO_ENTRADA_DP * density
+        },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) { contenido() }
 }
 
-/** La mascota, el nombre en cursiva, la franja roja y el lema. */
+@Composable
+private fun MenuInicio(
+    estado: InicioUiState,
+    onEntrada: (EntradaInicio) -> Unit,
+) {
+    Aparece(1) {
+        Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+            TarjetaConducir { onEntrada(EntradaInicio.CONDUCIR) }
+            UltimaSalidaInicio(estado.ultimaSalida)
+        }
+    }
+    Aparece(2) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Espacio.m)) {
+            EntradaInicio.entries
+                .filter { it != EntradaInicio.CONDUCIR }
+                .forEach { TarjetaMenu(it, Modifier.weight(1f)) { onEntrada(it) } }
+        }
+    }
+}
+
+/** La mascota, el nombre en cursiva, una franja roja de acento y el lema. */
 @Composable
 private fun ColumnScope.CabeceraInicio() {
     Image(
         painter = painterResource(R.drawable.mascota_rally),
         contentDescription = stringResource(R.string.inicio_mascota),
-        modifier = Modifier.size(160.dp),
+        modifier = Modifier.size(LADO_MASCOTA),
     )
     Text(
         text = stringResource(R.string.app_name).uppercase(),
-        style = MaterialTheme.typography.displaySmall,
+        style = MaterialTheme.typography.headlineMedium,
+        fontStyle = FontStyle.Italic,
+        fontWeight = FontWeight.Black,
         color = MaterialTheme.colorScheme.primary,
     )
     Box(
         modifier =
             Modifier
                 .padding(vertical = Espacio.s)
-                .width(96.dp)
-                .height(4.dp)
-                .background(LocalColoresRally.current.franja),
+                .width(ANCHO_FRANJA)
+                .height(Medidas.barraAcento)
+                .background(RojoAcento),
     )
     Text(
         text = stringResource(R.string.inicio_lema),
-        style = MaterialTheme.typography.bodyMedium,
+        style = Ayuda,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
 }
 
+/** CONDUCIR: tarjeta de 120 dp con el icono de navegación grande, en ámbar y cursiva. */
 @Composable
-private fun FilaMenu(
-    entrada: EntradaInicio,
-    onClick: () -> Unit,
-) {
-    val modificador = Modifier.fillMaxWidth().testTag("inicio-${entrada.name.lowercase()}")
-    if (entrada.activa) {
-        Surface(
-            onClick = onClick,
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = MaterialTheme.shapes.small,
-            modifier = modificador,
-        ) { ContenidoFila(entrada, proximamente = false) }
-    } else {
-        Surface(
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shape = MaterialTheme.shapes.small,
-            modifier = modificador.semantics { disabled() },
-        ) { ContenidoFila(entrada, proximamente = true) }
+private fun TarjetaConducir(onClick: () -> Unit) {
+    TarjetaWrc(
+        modifier = Modifier.fillMaxWidth().height(ALTO_CONDUCIR).testTag("inicio-conducir"),
+        activa = true,
+        onClick = onClick,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().height(ALTO_CONDUCIR - Espacio.xxl),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Espacio.l),
+        ) {
+            Icon(
+                imageVector = Iconos.Rumbo,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(ICONO_CONDUCIR),
+            )
+            Text(
+                text = stringResource(EntradaInicio.CONDUCIR.titulo).uppercase(),
+                style = MaterialTheme.typography.headlineLarge,
+                fontStyle = FontStyle.Italic,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                imageVector = Iconos.Siguiente,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** «Última salida: tramo · tiempo · mejor tiempo» con la silueta del tramo; sin salidas, una frase de bienvenida. */
+@Composable
+private fun UltimaSalidaInicio(salida: UltimaSalida?) {
+    if (salida == null) {
+        Text(
+            text = stringResource(R.string.inicio_bienvenida),
+            style = Ayuda,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = Espacio.s).testTag(ETIQUETA_BIENVENIDA),
+        )
+        return
+    }
+    val texto =
+        stringResource(
+            R.string.inicio_ultima_salida,
+            salida.nombre,
+            FormatoEs.tiempo(salida.tiempoMs),
+            FormatoEs.tiempo(salida.mejorMs),
+        )
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = Espacio.xs).testTag(ETIQUETA_ULTIMA_SALIDA),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Espacio.m),
+    ) {
+        MiniaturaTraza(salida.traza, LADO_MINIATURA)
+        Text(
+            text = texto,
+            style = Ayuda,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -146,47 +276,37 @@ private fun EntradaInicio.icono(): ImageVector =
         EntradaInicio.AJUSTES -> Iconos.Deslizadores
     }
 
-/** Una entrada del menú: franja roja de la marca, icono latón, título en cursiva y flecha, como un menú de juego. */
+/** Tarjeta de 96 dp del menú: icono de 32 dp en ámbar y etiqueta de 14 sp debajo. */
 @Composable
-private fun ContenidoFila(
+private fun TarjetaMenu(
     entrada: EntradaInicio,
-    proximamente: Boolean,
+    modifier: Modifier,
+    onClick: () -> Unit,
 ) {
-    Row(
-        modifier = Modifier.height(IntrinsicSize.Min).heightIn(min = ALTO_FILA),
-        verticalAlignment = Alignment.CenterVertically,
+    TarjetaWrc(
+        modifier = modifier.height(ALTO_TARJETA_MENU).testTag("inicio-${entrada.name.lowercase()}"),
+        relleno = Espacio.s,
+        onClick = onClick,
     ) {
-        Box(Modifier.width(6.dp).fillMaxHeight().background(LocalColoresRally.current.franja))
-        Icon(
-            imageVector = entrada.icono(),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(horizontal = Espacio.l).size(28.dp),
-        )
-        Text(
-            text = stringResource(entrada.titulo).uppercase(),
-            style = MaterialTheme.typography.titleLarge,
-            fontStyle = FontStyle.Italic,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        if (proximamente) {
-            Text(
-                text = stringResource(R.string.inicio_proximamente),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = Espacio.l),
-            )
-        } else {
+        Column(
+            modifier = Modifier.fillMaxWidth().height(ALTO_TARJETA_MENU - Espacio.l),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
             Icon(
-                imageVector = Iconos.Siguiente,
+                imageVector = entrada.icono(),
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = Espacio.m),
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(ICONO_MENU),
+            )
+            Text(
+                text = stringResource(entrada.titulo),
+                style = EtiquetaIcono.copy(fontSize = 14.sp, lineHeight = 18.sp),
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                modifier = Modifier.padding(top = Espacio.xs),
             )
         }
     }
 }
-
-private val ALTO_FILA = 72.dp

@@ -12,38 +12,52 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.analisis.MapaTramo
 import app.trombito.rallycopilot.ui.comun.BotonVolver
-import app.trombito.rallycopilot.ui.comun.EstadoVacio
+import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.ListaEsqueletoWrc
+import app.trombito.rallycopilot.ui.comun.TarjetaWrc
+import app.trombito.rallycopilot.ui.theme.Ayuda
+import app.trombito.rallycopilot.ui.theme.Cuerpo
 import app.trombito.rallycopilot.ui.theme.Espacio
+import app.trombito.rallycopilot.ui.theme.EtiquetaIcono
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
+import app.trombito.rallycopilot.ui.theme.Radios
+import app.trombito.rallycopilot.ui.theme.Rotulo
+import app.trombito.rallycopilot.ui.theme.Titulo
 import app.trombito.rallycopilot.ui.tramos.colorDelta
 import app.trombito.rallycopilot.ui.tramos.formatearDelta
 import app.trombito.rallycopilot.ui.tramos.formatearTiempo
@@ -52,7 +66,7 @@ const val ETIQUETA_DETALLE_CARGANDO = "detalle-cargando"
 const val ETIQUETA_DETALLE_NO_ENCONTRADO = "detalle-no-encontrado"
 const val ETIQUETA_DETALLE_EDITAR = "detalle-editar-notas"
 const val ETIQUETA_DETALLE_RECONOCER = "detalle-reconocer"
-private val ALTO_MINIMO_TACTIL = 48.dp
+const val ETIQUETA_DETALLE_AYUDA = "detalle-ayuda-reconocer"
 const val ETIQUETA_DETALLE_TITULO = "detalle-titulo"
 const val ETIQUETA_DETALLE_FAVORITO = "detalle-favorito"
 const val ETIQUETA_DETALLE_RENOMBRAR = "detalle-renombrar"
@@ -61,16 +75,22 @@ const val ETIQUETA_ANALISIS_PREFIJO = "pasada-analisis-"
 const val ETIQUETA_PASADAS_VACIAS = "detalle-sin-pasadas"
 const val ETIQUETA_MAPA_TRAMO = "detalle-mapa"
 
-private val LADO_TACTIL = 48.dp
 private val ALTO_CABECERA = 56.dp
 private val ALTO_MAPA = 240.dp
+private val ALTO_FILA_PASADA = 56.dp
+private val TAMANO_TITULO = 20.sp
+private val ALTO_LINEA_TITULO = 26.sp
+
+/** Cifra de un tile o de una pasada: 22 sp, cursiva Black, sin el apretado de las cifras grandes. */
+private val CifraTile = Rotulo.copy(fontSize = 22.sp, lineHeight = 26.sp, letterSpacing = 0.sp)
 
 /** El mapa del detalle: recibe el estilo, la traza del tramo y el modificador (tamaño y forma). */
 typealias MapaDelTramo = @Composable (estiloJson: String, traza: List<PuntoGeo>, modifier: Modifier) -> Unit
 
-/** El mapa real, MapLibre con la traza del tramo en el color de la marca. */
+/** El mapa real, MapLibre con la traza del tramo en el color de la marca y sin la etiqueta de la isla. */
 val MapaTramoReal: MapaDelTramo = { estiloJson, traza, modificador ->
-    MapaTramo(estiloJson, traza, MaterialTheme.colorScheme.primary.toArgb(), modificador)
+    val estilo = remember(estiloJson) { sinEtiquetaDeIslas(estiloJson) }
+    MapaTramo(estilo, traza, MaterialTheme.colorScheme.primary.toArgb(), modificador)
 }
 
 /** Callbacks del detalle de un tramo. */
@@ -87,7 +107,7 @@ data class AccionesDetalleTramo(
 
 /**
  * Detalle del tramo: la traza sobre el mapa ([mapa]; si no hay mapa o aún no hay datos de mapa instalados, el trazo
- * dibujado en un lienzo), medidas y las pasadas, cada una con «Ver análisis».
+ * dibujado en un lienzo), medidas y las pasadas, cada una pulsable para abrir su análisis.
  */
 @Composable
 fun DetalleTramoScreen(
@@ -105,11 +125,12 @@ fun DetalleTramoScreen(
             }
 
             tramo == null -> {
-                EstadoVacio(
+                EstadoVacioWrc(
                     icono = Iconos.Bandera,
                     titulo = stringResource(R.string.detalle_no_existe_titulo),
                     texto = stringResource(R.string.detalle_no_existe_texto),
                     etiqueta = ETIQUETA_DETALLE_NO_ENCONTRADO,
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
 
@@ -126,9 +147,7 @@ fun DetalleTramoScreen(
 
 @Composable
 private fun CargandoDetalle() {
-    Box(Modifier.fillMaxSize().testTag(ETIQUETA_DETALLE_CARGANDO), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
-    }
+    Box(Modifier.fillMaxSize().testTag(ETIQUETA_DETALLE_CARGANDO)) { ListaEsqueletoWrc(filas = 3) }
 }
 
 @Composable
@@ -142,10 +161,10 @@ private fun CabeceraDetalle(
     ) {
         BotonVolver(acciones.onVolver)
         Text(
-            text = tramo?.nombre.orEmpty().uppercase(),
-            style = MaterialTheme.typography.titleLarge,
+            text = tramo?.nombre.orEmpty(),
+            style = Titulo.copy(fontSize = TAMANO_TITULO, lineHeight = ALTO_LINEA_TITULO),
             color = MaterialTheme.colorScheme.primary,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier =
                 Modifier
@@ -180,15 +199,15 @@ private fun ContenidoDetalle(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(Espacio.l),
-        verticalArrangement = Arrangement.spacedBy(Espacio.s),
+        verticalArrangement = Arrangement.spacedBy(Espacio.m),
     ) {
         item { TrazaOMapa(estado, mapa) }
         item { MedidasTramo(tramo) }
         item { AccionesNotasTramo(acciones) }
         item {
             Text(
-                text = stringResource(R.string.detalle_pasadas_titulo).uppercase(),
-                style = MaterialTheme.typography.titleMedium,
+                text = stringResource(R.string.detalle_pasadas_titulo),
+                style = Titulo,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(top = Espacio.s).semantics { heading() },
             )
@@ -197,7 +216,7 @@ private fun ContenidoDetalle(
             item {
                 Text(
                     text = stringResource(R.string.detalle_sin_pasadas),
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = Ayuda,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag(ETIQUETA_PASADAS_VACIAS),
                 )
@@ -223,7 +242,7 @@ private fun TrazaOMapa(
             Modifier
                 .fillMaxWidth()
                 .height(ALTO_MAPA)
-                .clip(MaterialTheme.shapes.medium)
+                .clip(Radios.formaTarjeta)
                 .testTag(ETIQUETA_MAPA_TRAMO),
         ) {
             mapa(estilo, estado.traza, Modifier.fillMaxSize())
@@ -231,101 +250,85 @@ private fun TrazaOMapa(
     }
 }
 
-/** «Reconocer» (pasada lenta de reconocimiento de este tramo) junto a «Editar notas». */
-@Composable
-private fun AccionesNotasTramo(acciones: AccionesDetalleTramo) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
-        Button(
-            onClick = acciones.onReconocer,
-            modifier = Modifier.weight(1f).heightIn(min = ALTO_MINIMO_TACTIL).testTag(ETIQUETA_DETALLE_RECONOCER),
-        ) {
-            Icon(Iconos.Empezar, contentDescription = null, modifier = Modifier.padding(end = Espacio.xs))
-            Text(stringResource(R.string.detalle_reconocer))
-        }
-        OutlinedButton(
-            onClick = acciones.onEditarNotas,
-            modifier = Modifier.weight(1f).heightIn(min = ALTO_MINIMO_TACTIL).testTag(ETIQUETA_DETALLE_EDITAR),
-        ) {
-            Icon(Iconos.Editar, contentDescription = null, modifier = Modifier.padding(end = Espacio.xs))
-            Text(stringResource(R.string.edicion_editar_notas))
-        }
-    }
-    Text(
-        text = stringResource(R.string.detalle_reconocer_ayuda),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = Espacio.xs),
-    )
-}
-
+/** Tres tiles con icono: longitud, número de pasadas (sin repetir la palabra) y mejor tiempo. */
 @Composable
 private fun MedidasTramo(tramo: ResumenTramo) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
-        Medida(stringResource(R.string.detalle_longitud), formatearDistanciaTramo(tramo.longitudM), Modifier.weight(1f))
         Medida(
-            stringResource(R.string.detalle_pasadas),
-            pluralStringResource(R.plurals.mistramos_pasadas, tramo.pasadas, tramo.pasadas),
-            Modifier.weight(1f),
+            icono = Iconos.Curvas,
+            etiqueta = stringResource(R.string.detalle_longitud),
+            valor = formatearDistanciaTramo(tramo.longitudM),
+            modifier = Modifier.weight(1f),
         )
         Medida(
-            stringResource(R.string.mistramos_mejor),
-            tramo.mejorTotalMs?.let { formatearTiempo(it) } ?: stringResource(R.string.mistramos_sin_tiempo),
-            Modifier.weight(1f),
+            icono = Iconos.Bandera,
+            etiqueta = stringResource(R.string.detalle_pasadas),
+            valor = tramo.pasadas.toString(),
+            modifier = Modifier.weight(1f),
+        )
+        Medida(
+            icono = Iconos.Cronometro,
+            etiqueta = stringResource(R.string.mistramos_mejor),
+            valor = tramo.mejorTotalMs?.let { formatearTiempo(it) } ?: stringResource(R.string.mistramos_sin_tiempo),
+            modifier = Modifier.weight(1f),
+            destacado = tramo.mejorTotalMs != null,
         )
     }
 }
 
 @Composable
 private fun Medida(
+    icono: ImageVector,
     etiqueta: String,
     valor: String,
     modifier: Modifier = Modifier,
+    destacado: Boolean = false,
 ) {
-    Surface(modifier, color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.small) {
-        Column(Modifier.padding(Espacio.m), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-            Text(
-                text = etiqueta.uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Text(
-                text = valor,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
+    TarjetaWrc(modifier.semantics(mergeDescendants = true) {}, relleno = Espacio.m) {
+        Icon(icono, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        Text(
+            text = valor,
+            style = CifraTile,
+            color = if (destacado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            modifier = Modifier.padding(top = Espacio.xs),
+        )
+        Text(text = etiqueta, style = EtiquetaIcono, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
+/** La pasada entera es pulsable (56 dp como mínimo) y lleva al análisis; el chevron lo anuncia. */
 @Composable
 private fun TarjetaPasada(
     pasada: FilaPasada,
     onVerAnalisis: () -> Unit,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.small,
-        modifier = Modifier.fillMaxWidth().testTag(ETIQUETA_PASADA_PREFIJO + pasada.id),
+    val verAnalisis = stringResource(R.string.detalle_ver_analisis)
+    TarjetaWrc(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = ALTO_FILA_PASADA)
+                .testTag(ETIQUETA_PASADA_PREFIJO + pasada.id)
+                .semantics(mergeDescendants = true) { onClick(label = verAnalisis, action = null) },
+        relleno = Espacio.m,
+        onClick = onVerAnalisis,
     ) {
-        Row(
-            modifier = Modifier.padding(start = Espacio.m, top = Espacio.xs, bottom = Espacio.xs, end = Espacio.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
                     text = formatearFechaHora(pasada.inicioMs),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = Ayuda,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 TiempoYDiferencia(pasada)
             }
-            TextButton(
-                onClick = onVerAnalisis,
-                modifier = Modifier.heightIn(min = LADO_TACTIL).testTag(ETIQUETA_ANALISIS_PREFIJO + pasada.id),
-            ) {
-                Icon(Iconos.Grafico, contentDescription = null, modifier = Modifier.padding(end = Espacio.xs))
-                Text(stringResource(R.string.detalle_ver_analisis))
-            }
+            Icon(
+                imageVector = Iconos.Siguiente,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag(ETIQUETA_ANALISIS_PREFIJO + pasada.id),
+            )
         }
     }
 }
@@ -335,14 +338,14 @@ private fun TiempoYDiferencia(pasada: FilaPasada) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
         Text(
             text = formatearTiempo(pasada.totalMs),
-            style = MaterialTheme.typography.titleLarge,
+            style = CifraTile,
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (pasada.esMejor) {
             Icon(Iconos.Estrella, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Text(
-                text = stringResource(R.string.mistramos_mejor).uppercase(),
-                style = MaterialTheme.typography.labelMedium,
+                text = stringResource(R.string.mistramos_mejor),
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
         } else {

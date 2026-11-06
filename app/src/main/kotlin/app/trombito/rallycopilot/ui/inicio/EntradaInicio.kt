@@ -9,11 +9,9 @@ import app.trombito.rallycopilot.R
  */
 enum class EntradaInicio(
     @param:StringRes val titulo: Int,
-    /** Falsa mientras el hito que la implementa no está hecho: se muestra desactivada. */
-    val activa: Boolean = false,
 ) {
-    CONDUCIR(R.string.inicio_conducir, activa = true),
-    MIS_TRAMOS(R.string.inicio_mis_tramos, activa = true),
-    PERFIL(R.string.inicio_perfil, activa = true),
-    AJUSTES(R.string.inicio_ajustes, activa = true),
+    CONDUCIR(R.string.inicio_conducir),
+    MIS_TRAMOS(R.string.inicio_mis_tramos),
+    PERFIL(R.string.inicio_perfil),
+    AJUSTES(R.string.inicio_ajustes),
 }

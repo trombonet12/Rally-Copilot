@@ -5,6 +5,7 @@
     <string name="inicio_mis_tramos">Mis tramos</string>
     <string name="inicio_perfil">Perfil del piloto</string>
     <string name="inicio_ajustes">Ajustes</string>
-    <string name="inicio_proximamente">Próximamente</string>
+    <string name="inicio_ultima_salida">Última salida: %1$s · %2$s · mejor %3$s</string>
+    <string name="inicio_bienvenida">Conduce tu primer tramo y aquí verás tu última salida.</string>
     <string name="inicio_mascota">Trombito con casco de rally</string>
 </resources>

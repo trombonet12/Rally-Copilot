@@ -1,6 +1,5 @@
 package app.trombito.rallycopilot.ui.perfil
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,17 +22,26 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.analisis.EntradaHistorial
 import app.trombito.rallycopilot.motor.analisis.PerfilPiloto
+import app.trombito.rallycopilot.ui.comun.ChipIconoWrc
+import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.mistramos.formatearDistanciaTramo
+import app.trombito.rallycopilot.ui.mistramos.formatearFechaCorta
 import app.trombito.rallycopilot.ui.mistramos.formatearFechaHora
 import app.trombito.rallycopilot.ui.mistramos.formatearVelocidadKmh
+import app.trombito.rallycopilot.ui.theme.Ayuda
+import app.trombito.rallycopilot.ui.theme.Cuerpo
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
+import app.trombito.rallycopilot.ui.theme.Rotulo
 import app.trombito.rallycopilot.ui.tramos.colorDelta
 import app.trombito.rallycopilot.ui.tramos.formatearDelta
 import app.trombito.rallycopilot.ui.tramos.formatearTiempo
@@ -43,11 +50,18 @@ import app.trombito.rallycopilot.motor.analisis.ResumenTramo as ResumenTramoPerf
 const val ETIQUETA_MEJOR_PREFIJO = "perfil-mejor-"
 const val ETIQUETA_HISTORIAL_PREFIJO = "perfil-historial-"
 const val ETIQUETA_EVOLUCION_TITULO = "perfil-evolucion-titulo"
+const val ETIQUETA_EVOLUCION_VACIA = "perfil-evolucion-vacia"
+const val ETIQUETA_EVOLUCION_PUNTO = "perfil-evolucion-punto"
 const val ETIQUETA_MEJOR_ANALISIS_PREFIJO = "perfil-analisis-mejor-"
 
+/** Pasadas mínimas de un tramo para que la gráfica de evolución diga algo. */
+private const val PASADAS_PARA_GRAFICO = 3
+
 private val ALTO_FILA = 56.dp
-private val GROSOR_SELECCION = 2.dp
 private val LADO_TACTIL = 48.dp
+
+/** Tiempo de una fila: 20 sp, cursiva Black, sin el apretado de las cifras grandes. */
+private val CifraFila = Rotulo.copy(fontSize = 20.sp, lineHeight = 24.sp, letterSpacing = 0.sp)
 
 /** Filas de «Mejores tiempos»: una por tramo; tocarla elige el tramo de la evolución. */
 internal fun LazyListScope.mejoresTiempos(
@@ -74,37 +88,39 @@ private fun FilaMejor(
     onVerAnalisis: (() -> Unit)?,
 ) {
     val colores = MaterialTheme.colorScheme
-    Surface(
-        onClick = onClick,
-        color = if (seleccionado) colores.primaryContainer else colores.surfaceContainerHigh,
-        border = if (seleccionado) BorderStroke(GROSOR_SELECCION, colores.primary) else null,
-        shape = MaterialTheme.shapes.small,
+    TarjetaWrc(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = ALTO_FILA)
                 .testTag(ETIQUETA_MEJOR_PREFIJO + tramo.tramoId)
                 .semantics { selected = seleccionado },
+        activa = seleccionado,
+        relleno = Espacio.m,
+        onClick = onClick,
     ) {
-        Row(Modifier.padding(Espacio.m), verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
                 Text(
                     text = tramo.nombre,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = Cuerpo.copy(fontWeight = FontWeight.SemiBold),
                     color = colores.onSurface,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = detalleTramo(tramo),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = Ayuda,
                     color = colores.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Text(
                 text = tramo.mejorMs?.let { formatearTiempo(it) }.orEmpty(),
-                style = MaterialTheme.typography.titleMedium,
+                style = CifraFila,
                 color = colores.primary,
+                maxLines = 1,
             )
             if (onVerAnalisis != null) {
                 IconButton(
@@ -129,19 +145,47 @@ private fun detalleTramo(tramo: ResumenTramoPerfil): String {
     return tramo.velMejorKmh?.let { "$base · ${formatearVelocidadKmh(it)}" } ?: base
 }
 
-/** Gráfico de evolución del tramo elegido. */
+/** Evolución del tramo elegido: la gráfica con tres pasadas o más; con menos, un aviso y los puntos que hay. */
 @Composable
 internal fun EvolucionTramo(estado: PerfilUiState) {
     val tramo = estado.seleccionado ?: return
     Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
         Text(
             text = tramo.nombre,
-            style = MaterialTheme.typography.titleSmall,
+            style = Cuerpo.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.testTag(ETIQUETA_EVOLUCION_TITULO),
         )
-        GraficoEvolucion(tramo.evolucion)
-        LeyendaRecords()
+        if (tramo.evolucion.size < PASADAS_PARA_GRAFICO) {
+            EvolucionIncompleta(tramo)
+        } else {
+            GraficoEvolucion(tramo.evolucion)
+            LeyendaRecords()
+        }
+    }
+}
+
+@Composable
+private fun EvolucionIncompleta(tramo: ResumenTramoPerfil) {
+    EstadoVacioWrc(
+        icono = Iconos.Grafico,
+        titulo = stringResource(R.string.perfil_evolucion_vacia_titulo),
+        texto = stringResource(R.string.perfil_evolucion_vacia_texto),
+        etiqueta = ETIQUETA_EVOLUCION_VACIA,
+    )
+    Row(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterHorizontally),
+    ) {
+        tramo.evolucion.forEach { punto ->
+            ChipIconoWrc(
+                icono = if (punto.esRecord) Iconos.Estrella else Iconos.Cronometro,
+                texto = "${formatearTiempo(punto.tiempoMs)} · ${formatearFechaCorta(punto.fechaMs)}",
+                modifier = Modifier.testTag(ETIQUETA_EVOLUCION_PUNTO),
+            )
+        }
     }
 }
 
@@ -165,37 +209,35 @@ private fun FilaHistorial(
     onVerAnalisis: (() -> Unit)?,
 ) {
     val descripcion = stringResource(R.string.perfil_ver_analisis_pasada, entrada.nombre)
-    Surface(
-        onClick = onVerAnalisis ?: {},
-        enabled = onVerAnalisis != null,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.small,
+    TarjetaWrc(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = ALTO_FILA)
                 .testTag(ETIQUETA_HISTORIAL_PREFIJO + entrada.pasadaId)
                 .semantics(mergeDescendants = true) { onClick(label = descripcion, action = null) },
+        relleno = Espacio.m,
+        onClick = onVerAnalisis,
     ) {
-        Row(Modifier.padding(Espacio.m), verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(
                     text = entrada.nombre,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = Cuerpo.copy(fontWeight = FontWeight.SemiBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = formatearFechaHora(entrada.fechaMs),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = Ayuda,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(
                     text = formatearTiempo(entrada.totalMs),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = CifraFila,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 DiferenciaHistorial(entrada)
@@ -204,27 +246,35 @@ private fun FilaHistorial(
     }
 }
 
+/** Un récord se dice una vez (estrella ámbar y «Récord»); el resto, su diferencia con el mejor tiempo. */
 @Composable
 private fun DiferenciaHistorial(entrada: EntradaHistorial) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
         if (entrada.esRecord) {
-            Icon(Iconos.Estrella, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Icon(
+                Iconos.Estrella,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(ICONO_RECORD),
+            )
             Text(
-                text = stringResource(R.string.perfil_record).uppercase(),
-                style = MaterialTheme.typography.labelMedium,
+                text = stringResource(R.string.perfil_record),
+                style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(end = Espacio.s),
+            )
+        } else {
+            Text(
+                text =
+                    if (entrada.deltaMejorMs == 0L) {
+                        stringResource(R.string.mistramos_mejor)
+                    } else {
+                        formatearDelta(entrada.deltaMejorMs)
+                    },
+                style = MaterialTheme.typography.labelLarge,
+                color = colorDelta(entrada.deltaMejorMs, LocalColoresRally.current, MaterialTheme.colorScheme.primary),
             )
         }
-        Text(
-            text =
-                if (entrada.deltaMejorMs == 0L) {
-                    stringResource(R.string.mistramos_mejor).uppercase()
-                } else {
-                    formatearDelta(entrada.deltaMejorMs)
-                },
-            style = MaterialTheme.typography.labelLarge,
-            color = colorDelta(entrada.deltaMejorMs, LocalColoresRally.current, MaterialTheme.colorScheme.primary),
-        )
     }
 }
+
+private val ICONO_RECORD = 18.dp

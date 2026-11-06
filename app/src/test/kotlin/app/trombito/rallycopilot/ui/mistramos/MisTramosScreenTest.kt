@@ -10,7 +10,9 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.text.AnnotatedString
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_ESQUELETO
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.comun.resumenFalso
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
@@ -49,7 +51,7 @@ class MisTramosScreenTest {
         val fila = banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${escorca.id}"))
         assertTrue("Ma-2141 · Escorca" in fila)
         assertTrue("12,4 km · 3 pasadas" in fila)
-        assertTrue("04:12.3" in fila)
+        assertTrue("04:12,3" in fila)
         val otra = banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${valldemossa.id}"))
         assertTrue("850 m · 1 pasada" in otra)
         assertTrue("—" in otra)
@@ -131,18 +133,6 @@ class MisTramosScreenTest {
     }
 
     @Test
-    fun `el lapiz abre el renombrado`() {
-        val renombrados = mutableListOf<String>()
-        banco.poner {
-            RallyCopilotTheme {
-                MisTramosScreen(estado(escorca), AccionesMisTramos(onPedirRenombrar = { renombrados += it.id }))
-            }
-        }
-        banco.pulsar(banco.conEtiqueta("$ETIQUETA_RENOMBRAR_PREFIJO${escorca.id}"))
-        assertEquals(listOf("a"), renombrados)
-    }
-
-    @Test
     fun `estado vacio amable segun el filtro`() {
         var filtro by mutableStateOf(FiltroTramos.TODOS)
         banco.poner {
@@ -153,21 +143,46 @@ class MisTramosScreenTest {
                 )
             }
         }
-        assertTrue("AÚN NO TIENES TRAMOS" in banco.todosLosTextos())
+        assertTrue("Aún no tienes tramos" in banco.todosLosTextos())
         filtro = FiltroTramos.REPETIDOS
         banco.reposo()
-        assertTrue("NINGÚN TRAMO REPETIDO" in banco.todosLosTextos())
+        assertTrue("Ningún tramo repetido" in banco.todosLosTextos())
         filtro = FiltroTramos.FAVORITOS
         banco.reposo()
-        assertTrue("SIN FAVORITOS" in banco.todosLosTextos())
+        assertTrue("Sin favoritos" in banco.todosLosTextos())
         assertTrue(banco.hay(ETIQUETA_TRAMOS_VACIO))
     }
 
     @Test
-    fun `mientras carga se ve el indicador y no la lista`() {
+    fun `mientras carga se ven esqueletos y no la lista`() {
         banco.poner { RallyCopilotTheme { MisTramosScreen(MisTramosUiState(), AccionesMisTramos()) } }
         assertTrue(banco.hay(ETIQUETA_TRAMOS_CARGANDO))
+        assertTrue(banco.hay(ETIQUETA_ESQUELETO))
         assertFalse(banco.hay(ETIQUETA_TRAMOS_LISTA))
+    }
+
+    @Test
+    fun `los chips de filtro llevan la mayuscula inicial y ya no hay lapiz en la fila`() {
+        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(escorca), AccionesMisTramos()) } }
+        val textos = banco.todosLosTextos()
+        listOf("Todos", "Repetidos", "Favoritos").forEach { assertTrue("Falta $it en $textos", it in textos) }
+        assertFalse("TODOS" in textos)
+        assertTrue(banco.etiquetas("tramo-renombrar-").isEmpty())
+    }
+
+    @Test
+    fun `cada fila lleva su miniatura, con la silueta si ya se ha leido`() {
+        val traza = listOf(PuntoGeo(39.80, 2.80), PuntoGeo(39.81, 2.82), PuntoGeo(39.83, 2.81))
+        banco.poner {
+            RallyCopilotTheme {
+                MisTramosScreen(
+                    estado(escorca, valldemossa).copy(trazas = mapOf(escorca.id to traza)),
+                    AccionesMisTramos(),
+                )
+            }
+        }
+        // Una miniatura con silueta (Escorca) y un hueco con la bandera (Valldemossa, aún sin leer).
+        assertEquals(1, banco.nodos().count { it.config.getOrNull(SemanticsProperties.TestTag) == ETIQUETA_MINIATURA })
     }
 
     @Test
@@ -250,7 +265,7 @@ class MisTramosScreenTest {
     fun `los botones tienen al menos 48 dp`() {
         banco.poner { RallyCopilotTheme { MisTramosScreen(estado(escorca), AccionesMisTramos()) } }
         val minimo = 48 * 2.625f
-        listOf("$ETIQUETA_FAVORITO_PREFIJO${escorca.id}", "$ETIQUETA_RENOMBRAR_PREFIJO${escorca.id}").forEach {
+        listOf("$ETIQUETA_FAVORITO_PREFIJO${escorca.id}").forEach {
             val tamano = banco.conEtiqueta(it).size
             assertTrue("$it mide $tamano", tamano.width >= minimo - 1 && tamano.height >= minimo - 1)
         }

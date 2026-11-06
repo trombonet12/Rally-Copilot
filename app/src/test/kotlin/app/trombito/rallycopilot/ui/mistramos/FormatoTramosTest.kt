@@ -16,9 +16,9 @@ class FormatoTramosTest {
     }
 
     @Test
-    fun `kilometros y velocidad con una decimal`() {
+    fun `kilometros con una decimal y velocidad entera`() {
         assertEquals("123,4 km", formatearKilometros(123.44))
-        assertEquals("54,3 km/h", formatearVelocidadKmh(54.28))
+        assertEquals("54 km/h", formatearVelocidadKmh(54.28))
     }
 
     @Test

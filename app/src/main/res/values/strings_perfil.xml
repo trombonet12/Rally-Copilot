@@ -6,7 +6,7 @@
     <string name="perfil_km">Kilómetros</string>
     <string name="perfil_tramos">Tramos</string>
     <string name="perfil_pasadas">Pasadas</string>
-    <string name="perfil_velocidad">Velocidad media</string>
+    <string name="perfil_velocidad">Km/h medios</string>
 
     <string name="perfil_mejores_titulo">Mejores tiempos</string>
     <string name="perfil_mejores_ayuda">Toca un tramo para ver cómo evoluciona, o el icono del gráfico para abrir el análisis de su mejor pasada.</string>
@@ -21,4 +21,6 @@
     <string name="perfil_ver_analisis_mejor">Ver el análisis de la mejor pasada de %1$s</string>
     <string name="perfil_ver_analisis_pasada">Ver el análisis de la pasada de %1$s</string>
     <string name="perfil_record">Récord</string>
+    <string name="perfil_evolucion_vacia_titulo">Aún no hay evolución</string>
+    <string name="perfil_evolucion_vacia_texto">Corre este tramo otra vez para ver cómo evolucionas.</string>
 </resources>

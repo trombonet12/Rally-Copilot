@@ -4,33 +4,44 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.analisis.PerfilPiloto
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
-import app.trombito.rallycopilot.ui.comun.EstadoVacio
+import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.ListaEsqueletoWrc
+import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.mistramos.formatearKilometros
 import app.trombito.rallycopilot.ui.mistramos.formatearVelocidadKmh
+import app.trombito.rallycopilot.ui.theme.Ayuda
 import app.trombito.rallycopilot.ui.theme.Espacio
+import app.trombito.rallycopilot.ui.theme.EtiquetaIcono
+import app.trombito.rallycopilot.ui.theme.Medidas
+import app.trombito.rallycopilot.ui.theme.Rotulo
+import app.trombito.rallycopilot.ui.theme.Titulo
 
 const val ETIQUETA_PERFIL_CARGANDO = "perfil-cargando"
 const val ETIQUETA_PERFIL_VACIO = "perfil-vacio"
@@ -38,6 +49,9 @@ const val ETIQUETA_PERFIL_KM = "perfil-km"
 const val ETIQUETA_PERFIL_TRAMOS = "perfil-tramos"
 const val ETIQUETA_PERFIL_PASADAS = "perfil-pasadas"
 const val ETIQUETA_PERFIL_VELOCIDAD = "perfil-velocidad"
+
+/** Cifra de una tarjeta de totales: 28 sp, cursiva Black, sin el apretado de las cifras grandes. */
+private val CifraTotal = Rotulo.copy(fontSize = 28.sp, lineHeight = 32.sp, letterSpacing = 0.sp)
 
 /** Callbacks del perfil. */
 data class AccionesPerfil(
@@ -58,17 +72,16 @@ fun PerfilScreen(
         val perfil = estado.perfil
         when {
             estado.cargando -> {
-                Box(Modifier.fillMaxSize().testTag(ETIQUETA_PERFIL_CARGANDO), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator()
-                }
+                Box(Modifier.fillMaxSize().testTag(ETIQUETA_PERFIL_CARGANDO)) { ListaEsqueletoWrc(filas = 3) }
             }
 
             estado.vacio || perfil == null -> {
-                EstadoVacio(
+                EstadoVacioWrc(
                     icono = Iconos.Cronometro,
                     titulo = stringResource(R.string.perfil_vacio_titulo),
                     texto = stringResource(R.string.perfil_vacio_texto),
                     etiqueta = ETIQUETA_PERFIL_VACIO,
+                    modifier = Modifier.fillMaxSize(),
                 )
             }
 
@@ -88,100 +101,118 @@ private fun ContenidoPerfil(
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(Espacio.l),
-        verticalArrangement = Arrangement.spacedBy(Espacio.s),
+        verticalArrangement = Arrangement.spacedBy(Espacio.m),
     ) {
         item { TotalesPerfil(perfil) }
-        item { Titulo(R.string.perfil_mejores_titulo) }
+        item { TituloSeccion(R.string.perfil_mejores_titulo) }
         if (estado.mejores.isEmpty()) {
             item { Aviso(R.string.perfil_sin_tramos) }
         } else {
             mejoresTiempos(estado, acciones)
-            item { Titulo(R.string.perfil_evolucion_titulo) }
+            item { TituloSeccion(R.string.perfil_evolucion_titulo) }
             item { EvolucionTramo(estado) }
         }
-        item { Titulo(R.string.perfil_historial_titulo) }
+        item { TituloSeccion(R.string.perfil_historial_titulo) }
         historial(perfil, acciones)
     }
 }
 
 @Composable
-private fun Titulo(texto: Int) {
+private fun TituloSeccion(texto: Int) {
     Text(
-        text = stringResource(texto).uppercase(),
-        style = MaterialTheme.typography.titleMedium,
+        text = stringResource(texto),
+        style = Titulo,
         color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = Espacio.m).semantics { heading() },
+        modifier = Modifier.padding(top = Espacio.s).semantics { heading() },
     )
 }
 
+/** Frase corta en una tarjeta baja: lo que falta para que la sección tenga contenido. */
 @Composable
 internal fun Aviso(texto: Int) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.small,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
+    TarjetaWrc(Modifier.fillMaxWidth(), relleno = Espacio.m) {
         Row(
-            modifier = Modifier.padding(Espacio.m),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Espacio.m),
         ) {
             Icon(Iconos.Bandera, contentDescription = null, tint = MaterialTheme.colorScheme.outline)
             Text(
                 text = stringResource(texto),
-                style = MaterialTheme.typography.bodyMedium,
+                style = Ayuda,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
 }
 
+/** Cuatro tarjetas en fila: icono ámbar de 24 dp, cifra de 28 sp en cursiva y la etiqueta (que ya da la unidad). */
 @Composable
 private fun TotalesPerfil(perfil: PerfilPiloto) {
-    Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
-            Total(R.string.perfil_km, formatearKilometros(perfil.kmTotales), ETIQUETA_PERFIL_KM, Modifier.weight(1f))
-            Total(R.string.perfil_tramos, perfil.numeroTramos.toString(), ETIQUETA_PERFIL_TRAMOS, Modifier.weight(1f))
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
-            Total(
-                R.string.perfil_pasadas,
-                perfil.numeroPasadas.toString(),
-                ETIQUETA_PERFIL_PASADAS,
-                Modifier.weight(1f),
-            )
-            Total(
-                R.string.perfil_velocidad,
-                perfil.velMediaKmh?.let(::formatearVelocidadKmh) ?: stringResource(R.string.mistramos_sin_tiempo),
-                ETIQUETA_PERFIL_VELOCIDAD,
-                Modifier.weight(1f),
-            )
-        }
+    Row(Modifier.height(IntrinsicSize.Max), horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
+        Total(
+            icono = Iconos.Curvas,
+            etiqueta = R.string.perfil_km,
+            valor = formatearKilometros(perfil.kmTotales).removeSuffix(" km"),
+            tag = ETIQUETA_PERFIL_KM,
+            modifier = Modifier.weight(1f),
+        )
+        Total(
+            icono = Iconos.Bandera,
+            etiqueta = R.string.perfil_tramos,
+            valor = perfil.numeroTramos.toString(),
+            tag = ETIQUETA_PERFIL_TRAMOS,
+            modifier = Modifier.weight(1f),
+        )
+        Total(
+            icono = Iconos.Cronometro,
+            etiqueta = R.string.perfil_pasadas,
+            valor = perfil.numeroPasadas.toString(),
+            tag = ETIQUETA_PERFIL_PASADAS,
+            modifier = Modifier.weight(1f),
+        )
+        Total(
+            icono = Iconos.Rayo,
+            etiqueta = R.string.perfil_velocidad,
+            valor =
+                perfil.velMediaKmh?.let { formatearVelocidadKmh(it).removeSuffix(" km/h") }
+                    ?: stringResource(R.string.mistramos_sin_tiempo),
+            tag = ETIQUETA_PERFIL_VELOCIDAD,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
 @Composable
 private fun Total(
+    icono: ImageVector,
     etiqueta: Int,
     valor: String,
     tag: String,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier.testTag(tag).semantics(mergeDescendants = true) {},
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.small,
+    TarjetaWrc(
+        modifier = modifier.fillMaxHeight().testTag(tag).semantics(mergeDescendants = true) {},
+        relleno = Espacio.s,
     ) {
-        Column(Modifier.fillMaxWidth().padding(Espacio.m), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-            Text(
-                text = stringResource(etiqueta).uppercase(),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = icono,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.height(Medidas.iconoLista),
             )
             Text(
                 text = valor,
-                style = MaterialTheme.typography.headlineSmall,
+                style = CifraTotal,
                 color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                modifier = Modifier.padding(top = Espacio.xs),
+            )
+            Text(
+                text = stringResource(etiqueta),
+                style = EtiquetaIcono,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
             )
         }
     }

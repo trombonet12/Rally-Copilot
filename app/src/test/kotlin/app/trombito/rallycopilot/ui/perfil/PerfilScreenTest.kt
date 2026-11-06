@@ -52,12 +52,12 @@ class PerfilScreenTest {
     @Test
     fun `los totales muestran kilometros, tramos, pasadas y velocidad media`() {
         banco.poner { RallyCopilotTheme { PerfilScreen(estado, AccionesPerfil()) } }
-        assertTrue("42,5 km" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_KM)))
+        assertTrue("42,5" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_KM)))
         assertTrue("2" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_TRAMOS)))
         assertTrue("4" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_PASADAS)))
         val velocidad = banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_VELOCIDAD))
-        assertTrue("VELOCIDAD MEDIA" in velocidad)
-        assertTrue(velocidad.any { it.endsWith("km/h") })
+        assertTrue("Km/h medios" in velocidad)
+        assertTrue(velocidad.any { Regex("""\d+""").matches(it) })
     }
 
     @Test
@@ -65,7 +65,7 @@ class PerfilScreenTest {
         banco.poner { RallyCopilotTheme { PerfilScreen(estado, AccionesPerfil()) } }
         assertEquals(listOf("perfil-mejor-a", "perfil-mejor-b"), banco.etiquetas(ETIQUETA_MEJOR_PREFIJO))
         val a = banco.textos(banco.conEtiqueta("${ETIQUETA_MEJOR_PREFIJO}a"))
-        assertTrue("04:00.0" in a)
+        assertTrue("04:00,0" in a)
         assertTrue("Ma-2141 · Escorca" in a)
         assertTrue(a.any { it.contains("3 pasadas") })
     }
@@ -116,7 +116,7 @@ class PerfilScreenTest {
         banco.poner { RallyCopilotTheme { PerfilScreen(estado.copy(seleccionadoId = "a"), AccionesPerfil()) } }
         assertEquals("Ma-2141 · Escorca", banco.textos(banco.conEtiqueta(ETIQUETA_EVOLUCION_TITULO)).single())
         val descripcion = banco.descripcion(banco.conEtiqueta(ETIQUETA_GRAFICO))
-        assertEquals("Evolución del tiempo: 3 pasadas, mejor tiempo 04:00.0, 2 récords", descripcion)
+        assertEquals("Evolución del tiempo: 3 pasadas, mejor tiempo 04:00,0, 2 récords", descripcion)
     }
 
     // Pantalla alta: la lista perezosa solo compone lo que cabe.
@@ -130,11 +130,21 @@ class PerfilScreenTest {
             ultimas,
         )
         val tercera = banco.textos(banco.conEtiqueta("${ETIQUETA_HISTORIAL_PREFIJO}3"))
-        assertTrue("04:05.5" in tercera)
+        assertTrue("04:05,5" in tercera)
         assertTrue("+5,5" in tercera)
         val mejor = banco.textos(banco.conEtiqueta("${ETIQUETA_HISTORIAL_PREFIJO}2"))
-        assertTrue("MEJOR" in mejor)
-        assertTrue("RÉCORD" in mejor)
+        // Un récord se dice una vez: estrella y «Récord», sin «Mejor» al lado.
+        assertTrue("Récord" in mejor)
+        assertFalse("Mejor" in mejor)
+    }
+
+    @Test
+    fun `con menos de tres pasadas la evolucion avisa y muestra el punto en vez de un grafico`() {
+        banco.poner { RallyCopilotTheme { PerfilScreen(estado.copy(seleccionadoId = "b"), AccionesPerfil()) } }
+        assertTrue(banco.hay(ETIQUETA_EVOLUCION_VACIA))
+        assertFalse(banco.hay(ETIQUETA_GRAFICO))
+        assertTrue("Corre este tramo otra vez para ver cómo evolucionas." in banco.todosLosTextos())
+        assertTrue(banco.textos(banco.conEtiqueta(ETIQUETA_EVOLUCION_PUNTO)).any { it.startsWith("08:20,0") })
     }
 
     @Test
@@ -142,7 +152,7 @@ class PerfilScreenTest {
         val vacio = PerfilUiState(cargando = false, perfil = PerfilPiloto.de(emptyList(), emptyList()))
         banco.poner { RallyCopilotTheme { PerfilScreen(vacio, AccionesPerfil()) } }
         assertTrue(banco.hay(ETIQUETA_PERFIL_VACIO))
-        assertTrue("TU PERFIL EMPIEZA AQUÍ" in banco.todosLosTextos())
+        assertTrue("Tu perfil empieza aquí" in banco.todosLosTextos())
         assertFalse(banco.hay(ETIQUETA_PERFIL_KM))
     }
 
@@ -150,7 +160,7 @@ class PerfilScreenTest {
     fun `con kilometros pero sin tramos avisa en vez de dejar huecos`() {
         val soloKm = PerfilPiloto.de(emptyList(), listOf(RecorridoRegistrado(1L, 3_000.0)))
         banco.poner { RallyCopilotTheme { PerfilScreen(PerfilUiState(false, soloKm), AccionesPerfil()) } }
-        assertTrue("3,0 km" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_KM)))
+        assertTrue("3,0" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_KM)))
         assertTrue("Todavía no has completado ningún tramo." in banco.todosLosTextos())
         assertFalse(banco.hay(ETIQUETA_GRAFICO))
     }

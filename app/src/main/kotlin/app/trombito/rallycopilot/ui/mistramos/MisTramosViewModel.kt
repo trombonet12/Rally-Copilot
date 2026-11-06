@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -37,12 +39,16 @@ class MisTramosViewModel
         private val renombrando = MutableStateFlow<String?>(null)
         private val pendiente = MutableStateFlow<BorradoPendiente?>(null)
         private val fallo = MutableStateFlow<String?>(null)
+        private val trazas = MutableStateFlow<Map<String, List<PuntoGeo>>>(emptyMap())
+        private val trazasPedidas = mutableSetOf<String>()
 
         @OptIn(ExperimentalCoroutinesApi::class)
         private val lista =
-            filtro.flatMapLatest { f -> repositorio.observarResumenes(f).map { f to it } }
+            filtro.flatMapLatest { f ->
+                repositorio.observarResumenes(f).map { f to it }.onEach { (_, tramos) -> cargarTrazas(tramos) }
+            }
 
-        val uiState: StateFlow<MisTramosUiState> =
+        private val base =
             combine(
                 lista,
                 ocultos,
@@ -58,7 +64,23 @@ class MisTramosViewModel
                     borradoPendiente = borrado,
                     falloBorrado = error,
                 )
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), MisTramosUiState())
+            }
+
+        val uiState: StateFlow<MisTramosUiState> =
+            combine(base, trazas) { estado, siluetas -> estado.copy(trazas = siluetas) }
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), MisTramosUiState())
+
+        /** Lee, una sola vez por tramo, la silueta para la miniatura (aligerada: solo hace falta la forma). */
+        private fun cargarTrazas(tramos: List<ResumenTramo>) {
+            val nuevos = tramos.map { it.id }.filter { trazasPedidas.add(it) }
+            if (nuevos.isEmpty()) return
+            viewModelScope.launch {
+                nuevos.forEach { id ->
+                    val traza = repositorio.tramo(id)?.traza?.let { aligerar(it, PUNTOS_MINIATURA) } ?: return@forEach
+                    trazas.update { it + (id to traza) }
+                }
+            }
+        }
 
         fun onFiltro(nuevo: FiltroTramos) {
             filtro.value = nuevo
@@ -135,6 +157,7 @@ class MisTramosViewModel
 
         private companion object {
             const val PARADA_MS = 5_000L
+            const val PUNTOS_MINIATURA = 80
             const val ETIQUETA_LOG = "MisTramos"
         }
     }

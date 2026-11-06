@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -32,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -39,9 +38,12 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.importar.MotivoFalloImportar
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
-import app.trombito.rallycopilot.ui.comun.EstadoVacio
+import app.trombito.rallycopilot.ui.comun.ChipIconoWrc
+import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.ListaEsqueletoWrc
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_TRAMOS_LISTA = "tramos-lista"
@@ -97,7 +99,7 @@ fun MisTramosScreen(
             when {
                 estado.cargando -> Cargando()
                 estado.tramos.isEmpty() -> VacioTramos(estado.filtro)
-                else -> ListaTramos(estado.tramos, acciones)
+                else -> ListaTramos(estado.tramos, estado.trazas, acciones)
             }
         }
         SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).padding(Espacio.l))
@@ -144,14 +146,19 @@ private fun FiltrosTramos(
     onFiltro: (FiltroTramos) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = Espacio.l),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = Espacio.l, vertical = Espacio.xs),
         horizontalArrangement = Arrangement.spacedBy(Espacio.s),
     ) {
         FiltroTramos.entries.forEach { filtro ->
-            FilterChip(
-                selected = filtro == actual,
+            ChipIconoWrc(
+                icono = iconoFiltro(filtro),
+                texto = stringResource(textoFiltro(filtro)),
+                seleccionado = filtro == actual,
                 onClick = { onFiltro(filtro) },
-                label = { Text(stringResource(textoFiltro(filtro)).uppercase()) },
                 modifier = Modifier.testTag(ETIQUETA_FILTRO_PREFIJO + filtro.name.lowercase()),
             )
         }
@@ -165,11 +172,17 @@ private fun textoFiltro(filtro: FiltroTramos): Int =
         FiltroTramos.FAVORITOS -> R.string.mistramos_filtro_favoritos
     }
 
+private fun iconoFiltro(filtro: FiltroTramos): ImageVector =
+    when (filtro) {
+        FiltroTramos.TODOS -> Iconos.Capas
+        FiltroTramos.REPETIDOS -> Iconos.Grafico
+        FiltroTramos.FAVORITOS -> Iconos.Estrella
+    }
+
+/** Carga: esqueletos con la silueta de las filas. */
 @Composable
 private fun Cargando() {
-    Box(Modifier.fillMaxSize().testTag(ETIQUETA_TRAMOS_CARGANDO), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
-    }
+    Box(Modifier.fillMaxSize().testTag(ETIQUETA_TRAMOS_CARGANDO)) { ListaEsqueletoWrc() }
 }
 
 @Composable
@@ -188,26 +201,28 @@ private fun VacioTramos(filtro: FiltroTramos) {
                 R.string.mistramos_vacio_favoritos_titulo to R.string.mistramos_vacio_favoritos_texto
             }
         }
-    EstadoVacio(
+    EstadoVacioWrc(
         icono = if (filtro == FiltroTramos.FAVORITOS) Iconos.EstrellaVacia else Iconos.Bandera,
         titulo = stringResource(titulo),
         texto = stringResource(texto),
         etiqueta = ETIQUETA_TRAMOS_VACIO,
+        modifier = Modifier.fillMaxSize(),
     )
 }
 
 @Composable
 private fun ListaTramos(
     tramos: List<ResumenTramo>,
+    trazas: Map<String, List<PuntoGeo>>,
     acciones: AccionesMisTramos,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag(ETIQUETA_TRAMOS_LISTA),
         contentPadding = PaddingValues(Espacio.l),
-        verticalArrangement = Arrangement.spacedBy(Espacio.s),
+        verticalArrangement = Arrangement.spacedBy(Espacio.m),
     ) {
         items(tramos, key = { it.id }) { tramo ->
-            FilaTramoDeslizable(tramo, acciones, Modifier.animateItem())
+            FilaTramoDeslizable(tramo, acciones, Modifier.animateItem(), trazas[tramo.id])
         }
     }
 }

@@ -1,26 +1,21 @@
 package app.trombito.rallycopilot.ui.mistramos
 
+import app.trombito.rallycopilot.ui.comun.FormatoEs
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
 
-private const val METROS_POR_KM = 1000.0
 private val ES = Locale.forLanguageTag("es-ES")
 private val MESES = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
 
-/** «850 m» por debajo del kilómetro y «12,4 km» desde él (coma decimal). */
-fun formatearDistanciaTramo(metros: Double): String =
-    if (metros < METROS_POR_KM) {
-        String.format(ES, "%d m", Math.round(metros.coerceAtLeast(0.0)))
-    } else {
-        formatearKilometros(metros / METROS_POR_KM)
-    }
+/** «850 m» por debajo del kilómetro y «12,4 km» desde él (coma decimal, vía [FormatoEs]). */
+fun formatearDistanciaTramo(metros: Double): String = FormatoEs.distancia(metros)
 
-/** «123,4 km» con una décima y coma decimal. */
-fun formatearKilometros(km: Double): String = String.format(ES, "%.1f km", km.coerceAtLeast(0.0))
+/** «123,4 km» con una décima y coma decimal (vía [FormatoEs]). */
+fun formatearKilometros(km: Double): String = FormatoEs.kilometros(km)
 
-/** «54,3 km/h». */
-fun formatearVelocidadKmh(kmh: Double): String = String.format(ES, "%.1f km/h", kmh.coerceAtLeast(0.0))
+/** «54 km/h»: velocidad entera (vía [FormatoEs]). */
+fun formatearVelocidadKmh(kmh: Double): String = FormatoEs.velocidad(kmh)
 
 /** «2 nov 2026 · 18:42» en la zona dada (la del dispositivo por defecto). */
 fun formatearFechaHora(

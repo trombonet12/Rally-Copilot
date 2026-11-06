@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteException
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
 import app.trombito.rallycopilot.ui.comun.resumenFalso
+import app.trombito.rallycopilot.ui.comun.tramoFalso
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -270,6 +271,22 @@ class MisTramosViewModelTest {
             assertTrue(
                 vm.uiState.value.tramos
                     .isEmpty(),
+            )
+        }
+
+    @Test
+    fun `lee la silueta de cada tramo una sola vez para las miniaturas`() =
+        runTest {
+            val con = FalsoRepositorioTramos(listOf(a, b), trazas = mapOf("a" to tramoFalso("a")))
+            val vm = MisTramosViewModel(con)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+            // Solo hay silueta del tramo que existe en el almacén; el otro sigue sin ella (hueco con la bandera).
+            assertEquals(setOf("a"), vm.uiState.value.trazas.keys)
+            assertEquals(
+                3,
+                vm.uiState.value.trazas
+                    .getValue("a")
+                    .size,
             )
         }
 }
