@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.alertas.AlertasViewModel
 import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
@@ -30,6 +31,7 @@ import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
 import app.trombito.rallycopilot.ui.theme.LocalTemaOscuro
 import app.trombito.rallycopilot.ui.tramos.CronoViewModel
 import app.trombito.rallycopilot.ui.tramos.LocalAbrirAnalisis
+import kotlin.math.floor
 
 /**
  * Une los ViewModels (mapa y navegación), el permiso de ubicación y el mapa real con la pantalla sin lógica.
@@ -60,6 +62,7 @@ fun MapaRoute(
     val alertas by alertasViewModel.uiState.collectAsStateWithLifecycle()
     val crono by cronoViewModel.crono.collectAsStateWithLifecycle()
     val edicion by edicionViewModel.uiState.collectAsStateWithLifecycle()
+    val estela by viewModel.estela.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
     LaunchedEffect(permiso.estado) {
         val concedido = permiso.estado == EstadoPermisoUbicacion.CONCEDIDO
@@ -82,7 +85,7 @@ fun MapaRoute(
                     estiloJson = estiloJson,
                     posicion = estado.posicionMostrada,
                     camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel, edicionViewModel),
-                    preferencias = preferenciasVista(estado, ruta, alertas.marcadores, edicion.marcadores),
+                    preferencias = preferenciasVista(estado, ruta, alertas.marcadores, edicion.marcadores, estela),
                     modifier = modificador,
                 )
             },
@@ -122,6 +125,9 @@ private fun accionesCopiloto(vm: CopilotoViewModel) =
         onVolumenVoz = vm::onVolumenVoz,
         onEscucharEjemplo = vm::onEscucharEjemplo,
         onNotasGrandes = vm::onNotasGrandes,
+        onAvisarCruces = vm::onAvisarCruces,
+        onAvisarSalidasAutopista = vm::onAvisarSalidasAutopista,
+        onAvisarRotondas = vm::onAvisarRotondas,
     )
 
 private fun accionesMapa(
@@ -165,6 +171,7 @@ private fun preferenciasVista(
     ruta: RutaEnMapa?,
     incidencias: List<MarcadorIncidencia>,
     notas: List<MarcadorNota>,
+    estela: List<PuntoGeo>,
 ) = PreferenciasVistaMapa(
     siguiendo = estado.siguiendo,
     relieve = estado.relieve,
@@ -174,6 +181,7 @@ private fun preferenciasVista(
     ruta = ruta,
     incidencias = incidencias,
     notas = notas,
+    estela = estela,
 )
 
 private fun accionesNavegacion(vm: NavegacionViewModel) =
@@ -205,10 +213,27 @@ private fun rutaParaMapa(navegacion: NavegacionUiState): RutaEnMapa? {
     val paradas = navegacion.marcadoresParada
     val elegido = navegacion.puntoElegido?.punto
     val vacia = listOf(ruta, destino, elegido).all { it == null } && paradas.isEmpty()
-    return remember(ruta, destino, encuadrar, paradas, elegido) {
-        if (vacia) null else RutaEnMapa(ruta?.puntos.orEmpty(), encuadrar, destino, paradas, elegido)
+    val recorrido = recorridoDeLaRuta(navegacion.control)
+    return remember(ruta, destino, encuadrar, paradas, elegido, recorrido) {
+        if (vacia) null else RutaEnMapa(ruta?.puntos.orEmpty(), encuadrar, destino, paradas, elegido, recorrido)
     }
 }
+
+/**
+ * Metros recorridos de la ruta guiada, en escalones de [ESCALON_RECORRIDO_M] para no redibujar la línea con cada
+ * fijación; 0 sin guiado o mientras se recalcula (el progreso aún es el de la ruta anterior).
+ */
+internal fun recorridoDeLaRuta(control: EstadoNavegacion): Double {
+    val guiando = control as? EstadoNavegacion.Guiando
+    val progreso = guiando?.progreso?.progresoM
+    return if (guiando == null || progreso == null || guiando.recalculando) {
+        0.0
+    } else {
+        floor(progreso / ESCALON_RECORRIDO_M) * ESCALON_RECORRIDO_M
+    }
+}
+
+private const val ESCALON_RECORRIDO_M = 20.0
 
 /**
  * Durante la vista previa la cámara deja de seguir al coche (encuadra la ruta); al empezar o al cancelar vuelve al

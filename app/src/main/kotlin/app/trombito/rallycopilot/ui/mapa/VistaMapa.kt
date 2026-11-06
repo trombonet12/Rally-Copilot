@@ -102,6 +102,8 @@ data class PreferenciasVistaMapa(
     val incidencias: List<MarcadorIncidencia> = emptyList(),
     /** Notas de la hoja tocables para editarlas (con el coche parado); vacío = ninguna. */
     val notas: List<MarcadorNota> = emptyList(),
+    /** Estela de por dónde se ha pasado en el recorrido en curso (gris, bajo la ruta); vacía = ninguna. */
+    val estela: List<PuntoGeo> = emptyList(),
 )
 
 /**
@@ -386,6 +388,7 @@ private class ControladorMapa(
         val capas = estilo ?: return
         if (nuevas.incidencias != previas.incidencias) CapaIncidencias.actualizar(capas, nuevas.incidencias)
         if (nuevas.notas != previas.notas) CapaNotas.actualizar(capas, nuevas.notas)
+        if (nuevas.estela != previas.estela) CapaEstela.actualizar(capas, nuevas.estela)
     }
 
     private fun aplicarEstilo(json: String) {
@@ -397,7 +400,9 @@ private class ControladorMapa(
         m.setStyle(Style.Builder().fromJson(json)) { cargado ->
             estilo = cargado
             aplicarRelieve(cargado, preferencias.relieve)
-            // Antes de activar la ubicación: la línea de la ruta queda debajo de la flecha de posición.
+            // Antes de activar la ubicación: la línea de la ruta queda debajo de la flecha de posición, y la estela
+            // (que se instala antes) debajo de la ruta.
+            CapaEstela.instalar(cargado, preferencias.estela)
             CapaRuta.instalar(cargado, vista.context, preferencias.ruta)
             CapaIncidencias.instalar(cargado, vista.context, preferencias.incidencias)
             CapaNotas.instalar(cargado, preferencias.notas)

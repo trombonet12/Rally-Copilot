@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.domain.navegacion.EdicionParadas
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.navegacion.MarcadorParada
 import app.trombito.rallycopilot.ui.theme.DarkColors
+import app.trombito.rallycopilot.ui.theme.RojoRuta
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
@@ -36,6 +37,8 @@ data class RutaEnMapa(
     val paradas: List<MarcadorParada> = emptyList(),
     /** Punto elegido manteniendo pulsado el mapa (tarjeta abierta); null = ninguno. */
     val elegido: PuntoGeo? = null,
+    /** Metros ya recorridos de la ruta guiada: esa parte no se pinta en rojo (la cubre la estela); 0 = ruta entera. */
+    val recorridoM: Double = 0.0,
 )
 
 private const val ID_FUENTE = "ruta-fuente"
@@ -91,7 +94,7 @@ internal object CapaRuta {
         contexto: Context,
         ruta: RutaEnMapa?,
     ) {
-        estilo.addSource(GeoJsonSource(ID_FUENTE, lineaGeoJson(ruta?.puntos.orEmpty())))
+        estilo.addSource(GeoJsonSource(ID_FUENTE, lineaGeoJson(puntosPorDelanteDe(ruta))))
         estilo.addSource(GeoJsonSource(ID_FUENTE_DESTINO, puntoGeoJson(ruta?.destino)))
         estilo.addSource(GeoJsonSource(ID_FUENTE_PARADAS, paradasGeoJson(ruta?.paradas.orEmpty())))
         estilo.addSource(GeoJsonSource(ID_FUENTE_ELEGIDO, puntoGeoJson(ruta?.elegido)))
@@ -102,7 +105,7 @@ internal object CapaRuta {
             )
         }
         val borde = capa(ID_BORDE, DarkColors.surfaceContainerLowest.toArgb(), EXTRA_BORDE)
-        val linea = capa(ID_LINEA, DarkColors.primary.toArgb(), 0f)
+        val linea = capa(ID_LINEA, COLOR_RUTA, 0f)
         val etiquetas = estilo.layers.firstOrNull { it is SymbolLayer }?.id
         val halo = capaDestino(ID_DESTINO_HALO, Color.WHITE, RADIO_HALO)
         val punto = capaDestino(ID_DESTINO, DarkColors.tertiary.toArgb(), RADIO_DESTINO)
@@ -150,7 +153,7 @@ internal object CapaRuta {
         estilo: Style,
         ruta: RutaEnMapa?,
     ) {
-        estilo.getSourceAs<GeoJsonSource>(ID_FUENTE)?.setGeoJson(lineaGeoJson(ruta?.puntos.orEmpty()))
+        estilo.getSourceAs<GeoJsonSource>(ID_FUENTE)?.setGeoJson(lineaGeoJson(puntosPorDelanteDe(ruta)))
         estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_DESTINO)?.setGeoJson(puntoGeoJson(ruta?.destino))
         estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_PARADAS)?.setGeoJson(paradasGeoJson(ruta?.paradas.orEmpty()))
         estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_ELEGIDO)?.setGeoJson(puntoGeoJson(ruta?.elegido))
@@ -175,6 +178,46 @@ internal object CapaRuta {
                 ),
             ),
         )
+}
+
+/** Rojo de la marca de la línea de la ruta (distinto del latón de la flecha de posición). */
+internal val COLOR_RUTA: Int = RojoRuta.toArgb()
+
+private fun puntosPorDelanteDe(ruta: RutaEnMapa?): List<PuntoGeo> =
+    ruta?.let { puntosPorDelante(it.puntos, it.recorridoM) }.orEmpty()
+
+/**
+ * La ruta desde [recorridoM] metros del inicio hasta el final (el primer punto es el de corte, interpolado). Con 0 o
+ * menos, la ruta entera; pasado el final, un solo punto (nada que pintar).
+ */
+internal fun puntosPorDelante(
+    puntos: List<PuntoGeo>,
+    recorridoM: Double,
+): List<PuntoGeo> =
+    if (recorridoM <= 0.0 || puntos.size < 2) {
+        puntos
+    } else {
+        cortarEn(puntos, recorridoM) ?: puntos.takeLast(1) // pasado el final no queda nada que pintar
+    }
+
+/** La ruta desde [recorridoM] metros (punto de corte interpolado primero); null si la ruta es más corta. */
+private fun cortarEn(
+    puntos: List<PuntoGeo>,
+    recorridoM: Double,
+): List<PuntoGeo>? {
+    var acumulado = 0.0
+    for (i in 1 until puntos.size) {
+        val a = puntos[i - 1]
+        val b = puntos[i]
+        val tramo = a.distanciaA(b)
+        if (acumulado + tramo > recorridoM) {
+            val fraccion = if (tramo > 0.0) (recorridoM - acumulado) / tramo else 0.0
+            val corte = PuntoGeo(a.lat + (b.lat - a.lat) * fraccion, a.lon + (b.lon - a.lon) * fraccion)
+            return listOf(corte) + puntos.subList(i, puntos.size)
+        }
+        acumulado += tramo
+    }
+    return null
 }
 
 /** Una línea (o nada con menos de dos puntos) lista para un `GeoJsonSource`. */

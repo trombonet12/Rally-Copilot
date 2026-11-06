@@ -110,4 +110,13 @@ val RallyClaro =
         franja = Color(0xFFD8232A),
     )
 
+/**
+ * Línea de la ruta por delante en el mapa: rojo de la marca, vivo, igual en los dos temas y en satélite (el mapa tiene
+ * su propio estilo, no el del tema). Se lee sobre el mapa oscuro, el claro y el satélite gracias al contorno carbón.
+ */
+val RojoRuta = Color(0xFFE02A32)
+
+/** Estela de lo recorrido: gris neutro apagado (se pinta al 70 % de opacidad, ver `CapaEstela`). */
+val GrisEstela = Color(0xFF9AA0A6)
+
 val LocalColoresRally = staticCompositionLocalOf { RallyOscuro }

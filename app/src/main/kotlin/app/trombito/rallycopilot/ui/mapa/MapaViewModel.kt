@@ -14,6 +14,7 @@ import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.vias.ViaActual
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.EstimadorVelocidad
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.velocidad.kmh
@@ -58,6 +59,25 @@ class MapaViewModel
         internal var reloj: () -> Long = { SystemClock.elapsedRealtime() }
 
         private val zoomAutomatico = ZoomAutomatico()
+        private val recorrido = EstelaRecorrido()
+        private val estelaMutable = MutableStateFlow<List<PuntoGeo>>(emptyList())
+
+        /**
+         * Estela de por dónde se ha pasado en el recorrido en curso (las posiciones que pinta el mapa, simplificadas a
+         * pasos de 5 m y con tope de 5.000 puntos); se publica como mucho una vez por segundo y se borra al terminar la
+         * conducción o al cambiar de modo (libre / guiado).
+         */
+        val estela: StateFlow<List<PuntoGeo>> = estelaMutable
+
+        init {
+            viewModelScope.launch {
+                navegacion.estado.map(::claveRecorrido).distinctUntilChanged().collect {
+                    recorrido.limpiar()
+                    estelaMutable.value = emptyList()
+                }
+            }
+        }
+
         private val preferencias = ajustes.ajustes
         private val siguiendo = guardado.getStateFlow(CLAVE_SIGUIENDO, true)
         private val permiso = MutableStateFlow(ubicacion.tienePermiso())
@@ -123,6 +143,11 @@ class MapaViewModel
                                 viaPrevia = vias.viaEn(fijacion)
                                 ultima = lectura(viaPrevia)
                                 send(ultima)
+                                if (precisa) {
+                                    recorrido.registrar((ultima.ajustada ?: fijacion).punto, reloj())?.let {
+                                        estelaMutable.value = it
+                                    }
+                                }
                             }
                         }
                         launch {
