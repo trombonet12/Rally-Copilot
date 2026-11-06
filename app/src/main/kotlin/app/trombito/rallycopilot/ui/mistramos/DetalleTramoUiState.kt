@@ -17,6 +17,8 @@ data class DetalleTramoUiState(
     val cargando: Boolean = true,
     val tramo: ResumenTramo? = null,
     val traza: List<PuntoGeo> = emptyList(),
+    /** Estilo MapLibre offline para dibujar la traza sobre el mapa; null si aún no hay datos de mapa instalados. */
+    val estiloMapaJson: String? = null,
     val pasadas: List<FilaPasada> = emptyList(),
     val renombrando: Boolean = false,
 )

@@ -1,6 +1,8 @@
 package app.trombito.rallycopilot.ui.mistramos
 
 import androidx.lifecycle.SavedStateHandle
+import app.trombito.rallycopilot.domain.datos.EstilosMapa
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
 import app.trombito.rallycopilot.ui.comun.detalladaFalsa
 import app.trombito.rallycopilot.ui.comun.resumenFalso
@@ -42,6 +44,8 @@ class DetalleTramoViewModelTest {
             trazas = mapOf("t1" to tramoFalso("t1")),
         )
 
+    private val datosMapa = FalsoRepositorioDatosMapa(estilosDisponibles = EstilosMapa("{}", null))
+
     @Before
     fun preparar() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -53,7 +57,7 @@ class DetalleTramoViewModelTest {
     }
 
     private fun TestScope.crear(id: String = "t1"): DetalleTramoViewModel {
-        val vm = DetalleTramoViewModel(SavedStateHandle(mapOf("tramoId" to id)), repositorio)
+        val vm = DetalleTramoViewModel(SavedStateHandle(mapOf("tramoId" to id)), repositorio, datosMapa)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -71,6 +75,14 @@ class DetalleTramoViewModelTest {
             assertEquals(listOf(false, true, false), estado.pasadas.map { it.esMejor })
             assertEquals(105_000L, estado.pasadas.first().totalMs)
             assertEquals(3_000L, estado.pasadas.first().inicioMs)
+        }
+
+    @Test
+    fun `el detalle trae el estilo del mapa para dibujar la traza y sin datos de mapa no lo trae`() =
+        runTest {
+            assertEquals("{}", crear().uiState.value.estiloMapaJson)
+            datosMapa.estilosDisponibles = null
+            assertNull(crear().uiState.value.estiloMapaJson)
         }
 
     @Test

@@ -77,7 +77,12 @@ fun AppNavHost(importacion: ImportarViewModel = hiltViewModel()) {
         }
         composable<RutaEditarTramo> { EditarTramoRoute(onVolver = { nav.popBackStack() }) }
         composable<RutaAnalisis> { AnalisisRoute(onVolver = { nav.popBackStack() }) }
-        composable<RutaPerfil> { PerfilRoute(onVolver = { nav.popBackStack() }) }
+        composable<RutaPerfil> {
+            PerfilRoute(
+                onVolver = { nav.popBackStack() },
+                onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
+            )
+        }
     }
 }
 

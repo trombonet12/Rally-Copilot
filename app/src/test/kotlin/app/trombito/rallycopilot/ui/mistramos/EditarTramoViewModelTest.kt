@@ -27,6 +27,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -152,6 +153,31 @@ class EditarTramoViewModelTest {
         vm.onRestaurar()
 
         assertEquals(true, editor.restaurado)
+    }
+
+    @Test
+    fun `mas sube los microsectores por kilometro y menos los baja, sin salirse de 0 a 4`() {
+        assertEquals(2, microsectoresTrasPulsar(1, masMicrosectores = true))
+        assertEquals(0, microsectoresTrasPulsar(1, masMicrosectores = false))
+        assertEquals(4, microsectoresTrasPulsar(4, masMicrosectores = true))
+        assertEquals(0, microsectoresTrasPulsar(0, masMicrosectores = false))
+        assertEquals(1000, separacionMicrosectoresM(1))
+        assertEquals(250, separacionMicrosectoresM(4))
+        assertNull(separacionMicrosectoresM(0))
+    }
+
+    @Test
+    fun `subir los microsectores pone mas puntos en el trazo en vivo y bajarlos, menos`() {
+        val vm = viewModel()
+        val recogida = vm.uiState.collectAhora()
+        vm.onMicrosectores(1)
+        val con1 = recogida().microsectoresM.size
+        vm.onMicrosectores(microsectoresTrasPulsar(recogida().microsectoresPorKm, masMicrosectores = true))
+        val con2 = recogida().microsectoresM.size
+        assertEquals(2, recogida().microsectoresPorKm)
+        assertTrue("más por km, más puntos ($con1 -> $con2)", con2 > con1)
+        vm.onMicrosectores(microsectoresTrasPulsar(recogida().microsectoresPorKm, masMicrosectores = false))
+        assertEquals(con1, recogida().microsectoresM.size)
     }
 
     @Test

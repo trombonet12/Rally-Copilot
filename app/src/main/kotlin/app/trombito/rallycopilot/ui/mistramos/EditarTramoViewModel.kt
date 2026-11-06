@@ -42,6 +42,7 @@ data class EditarTramoUiState(
     val datos: TramoEditable? = null,
     val sectoresM: List<Double> = emptyList(),
     val microsectoresPorKm: Int = 0,
+    val microsectoresM: List<Double> = emptyList(),
     val editor: EditorDeTramo? = null,
     val simplificadas: Boolean = false,
 )
@@ -84,6 +85,9 @@ class EditarTramoViewModel
                     sectoresM = sectores ?: datos?.tramo?.sectores.orEmpty(),
                     microsectoresPorKm =
                         micro ?: datos?.let { CortesTramo.porKmDe(it.tramo.longitudM, it.tramo.microsectores) } ?: 0,
+                    microsectoresM =
+                        micro?.let { CortesTramo.microsectoresPorKm(datos?.tramo?.longitudM ?: 0.0, it) }
+                            ?: datos?.tramo?.microsectores.orEmpty(),
                     editor = abierto,
                     simplificadas = preferencias.notasSimplificadas,
                 )

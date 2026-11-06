@@ -22,8 +22,11 @@
     <string name="edicion_ayuda">Toca una nota para editarla o un punto del trazo para añadir una. Arrastra los cortes para mover los sectores.</string>
     <string name="edicion_restaurar">Restaurar las notas automáticas</string>
     <string name="edicion_sectores">Sectores</string>
-    <string name="edicion_microsectores">Microsectores por kilómetro</string>
-    <string name="edicion_microsectores_valor">%1$d</string>
+    <string name="edicion_microsectores">Microsectores</string>
+    <string name="edicion_microsectores_ayuda">Parciales cortos dentro del tramo (los puntitos del trazo). «+» pone más y «−» pone menos.</string>
+    <string name="edicion_microsectores_valor">%1$d por km</string>
+    <string name="edicion_microsectores_ninguno">Sin microsectores</string>
+    <string name="edicion_microsectores_cada">cada %1$d m</string>
     <string name="edicion_menos">Menos microsectores</string>
     <string name="edicion_mas">Más microsectores</string>
     <string name="edicion_marcas">Marcas: %1$d</string>

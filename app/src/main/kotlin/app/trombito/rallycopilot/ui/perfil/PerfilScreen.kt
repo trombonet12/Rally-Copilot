@@ -43,6 +43,7 @@ const val ETIQUETA_PERFIL_VELOCIDAD = "perfil-velocidad"
 data class AccionesPerfil(
     val onVolver: () -> Unit = {},
     val onSeleccionar: (tramoId: String) -> Unit = {},
+    val onVerAnalisis: (tramoId: String, pasadaId: Long) -> Unit = { _, _ -> },
 )
 
 /** Perfil del piloto: totales, mejores tiempos por tramo, evolución del tramo elegido e historial reciente. */
@@ -99,7 +100,7 @@ private fun ContenidoPerfil(
             item { EvolucionTramo(estado) }
         }
         item { Titulo(R.string.perfil_historial_titulo) }
-        historial(perfil)
+        historial(perfil, acciones)
     }
 }
 

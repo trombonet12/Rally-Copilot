@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
@@ -24,16 +25,18 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/** Detalle de un tramo: traza, pasadas con su diferencia contra la mejor, favorito y nombre. */
+/** Detalle de un tramo: traza, estilo del mapa para dibujarla, pasadas contra la mejor, favorito y nombre. */
 @HiltViewModel
 class DetalleTramoViewModel
     @Inject
     constructor(
         guardado: SavedStateHandle,
         private val repositorio: RepositorioTramos,
+        private val datosMapa: RepositorioDatosMapa,
     ) : ViewModel() {
         private val tramoId = guardado.toRoute<RutaTramo>().tramoId
         private val renombrando = MutableStateFlow(false)
+        private val estiloMapa = MutableStateFlow<String?>(null)
 
         private class Carga(
             val traza: List<PuntoGeo>,
@@ -57,15 +60,20 @@ class DetalleTramoViewModel
                 }
 
         val uiState: StateFlow<DetalleTramoUiState> =
-            combine(resumen, carga, renombrando) { tramo, datos, editando ->
+            combine(resumen, carga, renombrando, estiloMapa) { tramo, datos, editando, estilo ->
                 DetalleTramoUiState(
                     cargando = false,
                     tramo = tramo,
                     traza = datos.traza,
+                    estiloMapaJson = estilo,
                     pasadas = datos.pasadas,
                     renombrando = editando && tramo != null,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), DetalleTramoUiState())
+
+        init {
+            viewModelScope.launch { estiloMapa.value = datosMapa.estilos()?.vectorial }
+        }
 
         fun onFavorito() {
             val tramo = uiState.value.tramo ?: return

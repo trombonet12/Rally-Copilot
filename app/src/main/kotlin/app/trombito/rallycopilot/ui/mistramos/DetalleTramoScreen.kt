@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -25,6 +26,8 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -34,6 +37,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.ui.analisis.MapaTramo
 import app.trombito.rallycopilot.ui.comun.BotonVolver
 import app.trombito.rallycopilot.ui.comun.EstadoVacio
 import app.trombito.rallycopilot.ui.comun.Iconos
@@ -54,9 +59,19 @@ const val ETIQUETA_DETALLE_RENOMBRAR = "detalle-renombrar"
 const val ETIQUETA_PASADA_PREFIJO = "pasada-"
 const val ETIQUETA_ANALISIS_PREFIJO = "pasada-analisis-"
 const val ETIQUETA_PASADAS_VACIAS = "detalle-sin-pasadas"
+const val ETIQUETA_MAPA_TRAMO = "detalle-mapa"
 
 private val LADO_TACTIL = 48.dp
 private val ALTO_CABECERA = 56.dp
+private val ALTO_MAPA = 240.dp
+
+/** El mapa del detalle: recibe el estilo, la traza del tramo y el modificador (tamaño y forma). */
+typealias MapaDelTramo = @Composable (estiloJson: String, traza: List<PuntoGeo>, modifier: Modifier) -> Unit
+
+/** El mapa real, MapLibre con la traza del tramo en el color de la marca. */
+val MapaTramoReal: MapaDelTramo = { estiloJson, traza, modificador ->
+    MapaTramo(estiloJson, traza, MaterialTheme.colorScheme.primary.toArgb(), modificador)
+}
 
 /** Callbacks del detalle de un tramo. */
 data class AccionesDetalleTramo(
@@ -70,12 +85,16 @@ data class AccionesDetalleTramo(
     val onReconocer: () -> Unit = {},
 )
 
-/** Detalle del tramo: traza dibujada, medidas y las pasadas, cada una con «Ver análisis». */
+/**
+ * Detalle del tramo: la traza sobre el mapa ([mapa]; si no hay mapa o aún no hay datos de mapa instalados, el trazo
+ * dibujado en un lienzo), medidas y las pasadas, cada una con «Ver análisis».
+ */
 @Composable
 fun DetalleTramoScreen(
     estado: DetalleTramoUiState,
     acciones: AccionesDetalleTramo,
     modifier: Modifier = Modifier,
+    mapa: MapaDelTramo? = null,
 ) {
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         CabeceraDetalle(estado.tramo, acciones)
@@ -95,7 +114,7 @@ fun DetalleTramoScreen(
             }
 
             else -> {
-                ContenidoDetalle(tramo, estado, acciones)
+                ContenidoDetalle(tramo, estado, acciones, mapa)
             }
         }
     }
@@ -156,13 +175,14 @@ private fun ContenidoDetalle(
     tramo: ResumenTramo,
     estado: DetalleTramoUiState,
     acciones: AccionesDetalleTramo,
+    mapa: MapaDelTramo?,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(Espacio.l),
         verticalArrangement = Arrangement.spacedBy(Espacio.s),
     ) {
-        item { TrazaTramo(estado.traza) }
+        item { TrazaOMapa(estado, mapa) }
         item { MedidasTramo(tramo) }
         item { AccionesNotasTramo(acciones) }
         item {
@@ -185,6 +205,28 @@ private fun ContenidoDetalle(
         }
         items(estado.pasadas, key = { it.id }) { pasada ->
             TarjetaPasada(pasada) { acciones.onVerAnalisis(pasada.id) }
+        }
+    }
+}
+
+/** La traza sobre el mapa real; sin mapa o sin datos de mapa, el trazo en un lienzo. */
+@Composable
+private fun TrazaOMapa(
+    estado: DetalleTramoUiState,
+    mapa: MapaDelTramo?,
+) {
+    val estilo = estado.estiloMapaJson
+    if (mapa == null || estilo == null || estado.traza.size < 2) {
+        TrazaTramo(estado.traza)
+    } else {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(ALTO_MAPA)
+                .clip(MaterialTheme.shapes.medium)
+                .testTag(ETIQUETA_MAPA_TRAMO),
+        ) {
+            mapa(estilo, estado.traza, Modifier.fillMaxSize())
         }
     }
 }

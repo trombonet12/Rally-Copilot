@@ -13,12 +13,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,6 +38,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -49,6 +52,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.edicion.TramoEditable
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.tramos.CortesTramo
+import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.edicion.EditorNota
@@ -57,8 +61,6 @@ import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 
 const val ETIQUETA_EDITAR_LIENZO = "editar-tramo-lienzo"
 const val ETIQUETA_EDITAR_RESTAURAR = "editar-tramo-restaurar"
-const val ETIQUETA_EDITAR_MICRO_MAS = "editar-tramo-micro-mas"
-const val ETIQUETA_EDITAR_MICRO_MENOS = "editar-tramo-micro-menos"
 
 private val ALTO_LIENZO = 360.dp
 private const val MARGEN_PX = 48f
@@ -66,7 +68,7 @@ private const val GROSOR_PX = 7f
 private const val RADIO_NOTA_PX = 13f
 private const val RADIO_CORTE_PX = 15f
 private const val RADIO_MARCA_PX = 9f
-private const val RADIO_MICRO_PX = 4f
+private const val RADIO_MICRO_PX = 5f
 private const val RELACION_BORDE = 1.6f
 private const val TOQUE_NOTA_PX = 44f
 private const val TOQUE_CORTE_PX = 56f
@@ -145,7 +147,7 @@ private fun ContenidoEdicion(
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        LienzoEdicion(datos, estado.sectoresM, acciones)
+        LienzoEdicion(datos, estado.sectoresM, estado.microsectoresM, acciones)
         Text(
             text = stringResource(R.string.edicion_marcas, datos.marcas.size),
             style = MaterialTheme.typography.bodyMedium,
@@ -160,34 +162,10 @@ private fun ContenidoEdicion(
 }
 
 @Composable
-private fun SelectorMicrosectores(
-    porKm: Int,
-    alCambiar: (Int) -> Unit,
-) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
-        Text(
-            text = stringResource(R.string.edicion_microsectores),
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f).semantics { heading() },
-        )
-        IconButton(
-            onClick = { alCambiar(porKm - 1) },
-            enabled = porKm > 0,
-            modifier = Modifier.testTag(ETIQUETA_EDITAR_MICRO_MENOS),
-        ) { Icon(Iconos.ExpandirMenos, stringResource(R.string.edicion_menos)) }
-        Text(stringResource(R.string.edicion_microsectores_valor, porKm), style = MaterialTheme.typography.titleMedium)
-        IconButton(
-            onClick = { alCambiar(porKm + 1) },
-            enabled = porKm < CortesTramo.MICROSECTORES_POR_KM_MAX,
-            modifier = Modifier.testTag(ETIQUETA_EDITAR_MICRO_MAS),
-        ) { Icon(Iconos.ExpandirMas, stringResource(R.string.edicion_mas)) }
-    }
-}
-
-@Composable
 private fun LienzoEdicion(
     datos: TramoEditable,
     sectoresM: List<Double>,
+    microsectoresM: List<Double>,
     acciones: AccionesEditarTramo,
 ) {
     val colorTrazo = MaterialTheme.colorScheme.primary
@@ -243,9 +221,15 @@ private fun LienzoEdicion(
     ) {
         if (lienzo.trazo.size < 2) return@Canvas
         val colores = ColoresEdicion(colorTrazo, colorSalida, colorMeta, colorCorte)
-        dibujarEdicion(lienzo, datos, sectoresM, arrastrando, colores, densidad)
+        dibujarEdicion(lienzo, datos, Cortes(sectoresM, microsectoresM), arrastrando, colores, densidad)
     }
 }
+
+/** Los cortes que se dibujan: los de sector (se arrastran) y los microsectores (puntitos). */
+private class Cortes(
+    val sectoresM: List<Double>,
+    val microsectoresM: List<Double>,
+)
 
 /** Los colores con que se dibuja el lienzo de edición. */
 private class ColoresEdicion(
@@ -259,14 +243,16 @@ private class ColoresEdicion(
 private fun DrawScope.dibujarEdicion(
     lienzo: LienzoTramo,
     datos: TramoEditable,
-    sectoresM: List<Double>,
+    cortes: Cortes,
     arrastrando: Int?,
     colores: ColoresEdicion,
     densidad: Float,
 ) {
     dibujarTrazo(lienzo, colores.trazo)
-    datos.tramo.microsectores.forEach {
-        drawCircle(colores.corte.copy(alpha = 0.6f), RADIO_MICRO_PX * densidad, lienzo.pixelEn(it))
+    cortes.microsectoresM.forEach {
+        val centro = lienzo.pixelEn(it)
+        drawCircle(Color.Black, (RADIO_MICRO_PX + 2f) * densidad, centro)
+        drawCircle(colores.corte, RADIO_MICRO_PX * densidad, centro)
     }
     datos.marcas.forEach { m ->
         val centro = lienzo.pixelEn(m.marca.posicionM)
@@ -281,7 +267,7 @@ private fun DrawScope.dibujarEdicion(
             cuadrado(RADIO_MARCA_PX, densidad),
         )
     }
-    sectoresM.forEachIndexed { i, m ->
+    cortes.sectoresM.forEachIndexed { i, m ->
         val centro = lienzo.pixelEn(m)
         drawCircle(Color.White, (RADIO_CORTE_PX + 3f) * densidad, centro)
         drawCircle(if (arrastrando == i) colores.trazo else colores.corte, RADIO_CORTE_PX * densidad, centro)

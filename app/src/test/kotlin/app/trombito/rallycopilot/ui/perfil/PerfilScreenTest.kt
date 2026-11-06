@@ -79,6 +79,39 @@ class PerfilScreenTest {
     }
 
     @Test
+    fun `el icono del analisis de un tramo abre su mejor pasada y no cambia la evolucion`() {
+        val abiertas = mutableListOf<Pair<String, Long>>()
+        val elegidos = mutableListOf<String>()
+        banco.poner {
+            RallyCopilotTheme {
+                PerfilScreen(
+                    estado,
+                    AccionesPerfil(onSeleccionar = { elegidos += it }, onVerAnalisis = { t, p -> abiertas += t to p }),
+                )
+            }
+        }
+        banco.pulsar(banco.conEtiqueta("${ETIQUETA_MEJOR_ANALISIS_PREFIJO}a"))
+        banco.pulsar(banco.conEtiqueta("${ETIQUETA_MEJOR_ANALISIS_PREFIJO}b"))
+        assertEquals(listOf("a" to 2L, "b" to 4L), abiertas)
+        assertTrue(elegidos.isEmpty())
+    }
+
+    // Pantalla alta: la lista perezosa solo compone lo que cabe.
+    @Test
+    @Config(qualifiers = "w411dp-h2400dp-xxhdpi")
+    fun `tocar una pasada del historial abre su analisis`() {
+        val abiertas = mutableListOf<Pair<String, Long>>()
+        banco.poner {
+            RallyCopilotTheme {
+                PerfilScreen(estado, AccionesPerfil(onVerAnalisis = { t, p -> abiertas += t to p }))
+            }
+        }
+        banco.pulsar(banco.conEtiqueta("${ETIQUETA_HISTORIAL_PREFIJO}3"))
+        banco.pulsar(banco.conEtiqueta("${ETIQUETA_HISTORIAL_PREFIJO}4"))
+        assertEquals(listOf("a" to 3L, "b" to 4L), abiertas)
+    }
+
+    @Test
     fun `la evolucion es la del tramo elegido y el grafico se describe`() {
         banco.poner { RallyCopilotTheme { PerfilScreen(estado.copy(seleccionadoId = "a"), AccionesPerfil()) } }
         assertEquals("Ma-2141 · Escorca", banco.textos(banco.conEtiqueta(ETIQUETA_EVOLUCION_TITULO)).single())

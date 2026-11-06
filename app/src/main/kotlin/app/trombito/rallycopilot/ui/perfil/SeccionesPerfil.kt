@@ -7,9 +7,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -19,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,9 +43,11 @@ import app.trombito.rallycopilot.motor.analisis.ResumenTramo as ResumenTramoPerf
 const val ETIQUETA_MEJOR_PREFIJO = "perfil-mejor-"
 const val ETIQUETA_HISTORIAL_PREFIJO = "perfil-historial-"
 const val ETIQUETA_EVOLUCION_TITULO = "perfil-evolucion-titulo"
+const val ETIQUETA_MEJOR_ANALISIS_PREFIJO = "perfil-analisis-mejor-"
 
 private val ALTO_FILA = 56.dp
 private val GROSOR_SELECCION = 2.dp
+private val LADO_TACTIL = 48.dp
 
 /** Filas de «Mejores tiempos»: una por tramo; tocarla elige el tramo de la evolución. */
 internal fun LazyListScope.mejoresTiempos(
@@ -51,7 +56,13 @@ internal fun LazyListScope.mejoresTiempos(
 ) {
     item { Aviso(R.string.perfil_mejores_ayuda) }
     items(estado.mejores, key = { it.tramoId }) { tramo ->
-        FilaMejor(tramo, tramo.tramoId == estado.seleccionado?.tramoId) { acciones.onSeleccionar(tramo.tramoId) }
+        val pasadaId = tramo.mejorPasadaId?.toLongOrNull()
+        FilaMejor(
+            tramo = tramo,
+            seleccionado = tramo.tramoId == estado.seleccionado?.tramoId,
+            onClick = { acciones.onSeleccionar(tramo.tramoId) },
+            onVerAnalisis = pasadaId?.let { id -> { acciones.onVerAnalisis(tramo.tramoId, id) } },
+        )
     }
 }
 
@@ -60,6 +71,7 @@ private fun FilaMejor(
     tramo: ResumenTramoPerfil,
     seleccionado: Boolean,
     onClick: () -> Unit,
+    onVerAnalisis: (() -> Unit)?,
 ) {
     val colores = MaterialTheme.colorScheme
     Surface(
@@ -94,6 +106,18 @@ private fun FilaMejor(
                 style = MaterialTheme.typography.titleMedium,
                 color = colores.primary,
             )
+            if (onVerAnalisis != null) {
+                IconButton(
+                    onClick = onVerAnalisis,
+                    modifier = Modifier.size(LADO_TACTIL).testTag(ETIQUETA_MEJOR_ANALISIS_PREFIJO + tramo.tramoId),
+                ) {
+                    Icon(
+                        Iconos.Grafico,
+                        contentDescription = stringResource(R.string.perfil_ver_analisis_mejor, tramo.nombre),
+                        tint = colores.primary,
+                    )
+                }
+            }
         }
     }
 }
@@ -122,19 +146,36 @@ internal fun EvolucionTramo(estado: PerfilUiState) {
 }
 
 /** Historial reciente: tiempo y diferencia contra el mejor tiempo del tramo. */
-internal fun LazyListScope.historial(perfil: PerfilPiloto) {
+internal fun LazyListScope.historial(
+    perfil: PerfilPiloto,
+    acciones: AccionesPerfil,
+) {
     if (perfil.historial.isEmpty()) {
         item { Aviso(R.string.perfil_historial_vacio) }
     }
-    items(perfil.historial, key = { it.pasadaId }) { FilaHistorial(it) }
+    items(perfil.historial, key = { it.pasadaId }) { entrada ->
+        val pasadaId = entrada.pasadaId.toLongOrNull()
+        FilaHistorial(entrada, pasadaId?.let { id -> { acciones.onVerAnalisis(entrada.tramoId, id) } })
+    }
 }
 
 @Composable
-private fun FilaHistorial(entrada: EntradaHistorial) {
+private fun FilaHistorial(
+    entrada: EntradaHistorial,
+    onVerAnalisis: (() -> Unit)?,
+) {
+    val descripcion = stringResource(R.string.perfil_ver_analisis_pasada, entrada.nombre)
     Surface(
+        onClick = onVerAnalisis ?: {},
+        enabled = onVerAnalisis != null,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = MaterialTheme.shapes.small,
-        modifier = Modifier.fillMaxWidth().testTag(ETIQUETA_HISTORIAL_PREFIJO + entrada.pasadaId),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = ALTO_FILA)
+                .testTag(ETIQUETA_HISTORIAL_PREFIJO + entrada.pasadaId)
+                .semantics(mergeDescendants = true) { onClick(label = descripcion, action = null) },
     ) {
         Row(Modifier.padding(Espacio.m), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {

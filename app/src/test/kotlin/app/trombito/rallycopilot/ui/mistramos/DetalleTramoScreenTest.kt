@@ -47,6 +47,35 @@ class DetalleTramoScreenTest {
     }
 
     @Test
+    fun `con datos de mapa la traza sale sobre el mapa y sin ellos, en el lienzo`() {
+        val dibujadas = mutableListOf<Int>()
+        val mapaFalso: MapaDelTramo = { _, traza, modificador ->
+            dibujadas += traza.size
+            androidx.compose.foundation.layout
+                .Box(modificador)
+        }
+        banco.poner {
+            RallyCopilotTheme {
+                DetalleTramoScreen(estado.copy(estiloMapaJson = "{}"), AccionesDetalleTramo(), mapa = mapaFalso)
+            }
+        }
+        assertTrue(banco.hay(ETIQUETA_MAPA_TRAMO))
+        assertFalse(banco.hay(ETIQUETA_TRAZA))
+        assertEquals(listOf(estado.traza.size), dibujadas.distinct())
+    }
+
+    @Test
+    fun `sin estilo de mapa instalado la traza se dibuja en el lienzo`() {
+        val mapaFalso: MapaDelTramo = { _, _, modificador ->
+            androidx.compose.foundation.layout
+                .Box(modificador)
+        }
+        banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado, AccionesDetalleTramo(), mapa = mapaFalso) } }
+        assertTrue(banco.hay(ETIQUETA_TRAZA))
+        assertFalse(banco.hay(ETIQUETA_MAPA_TRAMO))
+    }
+
+    @Test
     fun `cada pasada trae fecha, tiempo y su diferencia, y la mejor va marcada`() {
         banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado, AccionesDetalleTramo()) } }
         val peor = banco.textos(banco.conEtiqueta("${ETIQUETA_PASADA_PREFIJO}3"))

@@ -71,6 +71,7 @@ private const val DURACION_ENCUADRE_MS = 600
 private const val ENCUADRE_ARRIBA_DP = 72f
 private const val ENCUADRE_ABAJO_DP = 150f
 private const val ENCUADRE_LATERAL_DP = 36f
+private const val ENCUADRE_COMPACTO_DP = 36f
 private const val ENCUADRE_MAXIMO_ARRIBA = 0.22f
 private const val ENCUADRE_MAXIMO_ABAJO = 0.4f
 
@@ -92,6 +93,59 @@ fun MapaAnalisis(
     marcador: PuntoGeo?,
     modifier: Modifier = Modifier,
 ) {
+    MapaMapLibre(estiloJson, ContenidoMapa(segmentos, escala, marcador), OpcionesMapa(), modifier)
+}
+
+/**
+ * Mapa estático del detalle de un tramo: la [traza] de un solo color ([colorTraza], ARGB) sobre el mismo estilo
+ * offline que el análisis, con la salida en verde y la meta en rojo y la cámara ajustada a la traza. Sin gestos: va
+ * dentro de una lista que se desplaza y no debe robarle el arrastre.
+ */
+@Composable
+fun MapaTramo(
+    estiloJson: String,
+    traza: List<PuntoGeo>,
+    colorTraza: Int,
+    modifier: Modifier = Modifier,
+) {
+    val contenido =
+        remember(traza) {
+            ContenidoMapa(listOf(SegmentoMapa(traza, 0.0, 0.0, 0.0)), EscalaVelocidad.de(listOf(0.0)), null)
+        }
+    val opciones =
+        remember(colorTraza) {
+            OpcionesMapa(
+                colorUnico = colorTraza,
+                interactivo = false,
+                compacto = true,
+                descripcion = R.string.detalle_mapa_descripcion,
+            )
+        }
+    MapaMapLibre(estiloJson, contenido, opciones, modifier)
+}
+
+/** Lo que se pinta en el mapa: la traza por segmentos con su escala de color y el marcador (si hay). */
+private class ContenidoMapa(
+    val segmentos: List<SegmentoMapa>,
+    val escala: EscalaVelocidad,
+    val marcador: PuntoGeo?,
+)
+
+/** Cómo se comporta el mapa: color único de la traza (null = por velocidad), gestos, encuadre y descripción. */
+private class OpcionesMapa(
+    val colorUnico: Int? = null,
+    val interactivo: Boolean = true,
+    val compacto: Boolean = false,
+    val descripcion: Int = R.string.analisis_mapa_descripcion,
+)
+
+@Composable
+private fun MapaMapLibre(
+    estiloJson: String,
+    contenido: ContenidoMapa,
+    opciones: OpcionesMapa,
+    modifier: Modifier,
+) {
     val contexto = LocalContext.current
     val ciclo = LocalLifecycleOwner.current
     val vista =
@@ -100,7 +154,7 @@ fun MapaAnalisis(
             MapLibre.setConnected(false)
             MapView(contexto)
         }
-    val controlador = remember(vista) { ControladorMapaAnalisis(vista) }
+    val controlador = remember(vista) { ControladorMapaAnalisis(vista, opciones) }
     DisposableEffect(vista, ciclo) {
         val puente = PuenteCicloVida(vista) { }
         ciclo.lifecycle.addObserver(puente)
@@ -111,15 +165,18 @@ fun MapaAnalisis(
         }
     }
     LaunchedEffect(controlador, estiloJson) { controlador.cambiarEstilo(estiloJson) }
-    LaunchedEffect(controlador, segmentos, escala) { controlador.traza(segmentos, escala) }
-    LaunchedEffect(controlador, marcador) { controlador.marcador(marcador) }
-    val descripcion = stringResource(R.string.analisis_mapa_descripcion)
+    LaunchedEffect(controlador, contenido.segmentos, contenido.escala) {
+        controlador.traza(contenido.segmentos, contenido.escala)
+    }
+    LaunchedEffect(controlador, contenido.marcador) { controlador.marcador(contenido.marcador) }
+    val descripcion = stringResource(opciones.descripcion)
     AndroidView(factory = { vista }, modifier = modifier.semantics { contentDescription = descripcion })
 }
 
 /** Estado imperativo del mapa del análisis: estilo, capas de la traza y del marcador y encuadre. */
 private class ControladorMapaAnalisis(
     private val vista: MapView,
+    private val opciones: OpcionesMapa,
 ) {
     private var mapa: MapLibreMap? = null
     private var estilo: Style? = null
@@ -138,6 +195,7 @@ private class ControladorMapaAnalisis(
                 isAttributionEnabled = false
                 isCompassEnabled = false
                 isTiltGesturesEnabled = false
+                if (!opciones.interactivo) setAllGesturesEnabled(false)
             }
             m.moveCamera(
                 CameraUpdateFactory.newCameraPosition(
@@ -200,7 +258,7 @@ private class ControladorMapaAnalisis(
         val capas =
             listOf(
                 linea(ID_BORDE, EXTRA_BORDE).withProperties(PropertyFactory.lineColor(CARBON)),
-                linea(ID_LINEA, 0f).withProperties(PropertyFactory.lineColor(colorPorVelocidad())),
+                linea(ID_LINEA, 0f).withProperties(PropertyFactory.lineColor(colorDeLaTraza())),
                 circulo(ID_EXTREMOS_HALO, ID_FUENTE_EXTREMOS, RADIO_HALO_EXTREMO, Expression.color(Color.WHITE)),
                 circulo(ID_EXTREMOS, ID_FUENTE_EXTREMOS, RADIO_EXTREMO, colorExtremo()),
             )
@@ -215,6 +273,8 @@ private class ControladorMapaAnalisis(
             ),
         )
     }
+
+    private fun colorDeLaTraza(): Expression = opciones.colorUnico?.let { Expression.color(it) } ?: colorPorVelocidad()
 
     private fun pintarTraza(cargado: Style) {
         val actual = escala ?: return
@@ -250,8 +310,11 @@ private class ControladorMapaAnalisis(
         encuadrePendiente = false
         val densidad = vista.resources.displayMetrics.density
         val alto = vista.height.toFloat()
-        val arriba = minOf(ENCUADRE_ARRIBA_DP * densidad, alto * ENCUADRE_MAXIMO_ARRIBA).toInt()
-        val abajo = minOf(ENCUADRE_ABAJO_DP * densidad, alto * ENCUADRE_MAXIMO_ABAJO).toInt()
+        val compacto = (ENCUADRE_COMPACTO_DP * densidad).toInt()
+        val holguraArriba = minOf(ENCUADRE_ARRIBA_DP * densidad, alto * ENCUADRE_MAXIMO_ARRIBA).toInt()
+        val holguraAbajo = minOf(ENCUADRE_ABAJO_DP * densidad, alto * ENCUADRE_MAXIMO_ABAJO).toInt()
+        val arriba = if (opciones.compacto) compacto else holguraArriba
+        val abajo = if (opciones.compacto) compacto else holguraAbajo
         val lado = (ENCUADRE_LATERAL_DP * densidad).toInt()
         m.easeCamera(
             CameraUpdateFactory.newLatLngBounds(limites, lado, arriba, lado, abajo),

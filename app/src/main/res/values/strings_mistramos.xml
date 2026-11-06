@@ -64,6 +64,7 @@
 
     <!-- Detalle de un tramo -->
     <string name="detalle_traza_descripcion">Trazado del tramo, con la salida en verde y la meta en rojo</string>
+    <string name="detalle_mapa_descripcion">Mapa con el trazado del tramo, la salida en verde y la meta en rojo</string>
     <string name="detalle_longitud">Longitud</string>
     <string name="detalle_pasadas">Pasadas</string>
     <string name="detalle_pasadas_titulo">Pasadas</string>

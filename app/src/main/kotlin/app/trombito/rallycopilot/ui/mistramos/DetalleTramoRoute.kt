@@ -32,5 +32,6 @@ fun DetalleTramoRoute(
                 onReconocer = { estado.tramo?.let { onReconocer(it.id) } },
             ),
         modifier = modifier,
+        mapa = MapaTramoReal,
     )
 }
