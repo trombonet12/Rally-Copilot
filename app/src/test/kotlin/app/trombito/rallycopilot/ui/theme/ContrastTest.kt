@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import app.trombito.rallycopilot.ui.comun.TipoPlaca
 import app.trombito.rallycopilot.ui.comun.colores
 import org.junit.Assert.assertEquals
@@ -141,6 +142,55 @@ class ContrastTest {
                 }
             }
         assertTrue("Contraste < $MIN_AA: $failures", failures.isEmpty())
+    }
+
+    /** El carbón translúcido compuesto sobre el mapa más claro posible: texto, secundario y ámbar siguen en AA. */
+    @Test
+    fun carbonTranslucido_sobreMapaClaro_meetAA() {
+        val mapas = mapOf("blanco" to Color.White, "mapa claro" to Color(0xFFF2EFE9), "calle" to Color(0xFFFFFFFF))
+        val failures =
+            mapas.flatMap { (nombre, mapa) ->
+                val fondo = CarbonTranslucido.compositeOver(mapa)
+                mapOf(
+                    "TextoSobreCarbon" to TextoSobreCarbon,
+                    "TextoSecundarioSobreCarbon" to TextoSecundarioSobreCarbon,
+                    "AmbarSobreCarbon" to AmbarSobreCarbon,
+                    "deltaPeor" to RallyOscuro.deltaPeor,
+                    "deltaMejor" to RallyOscuro.deltaMejor,
+                    "aviso" to RallyOscuro.aviso,
+                ).mapNotNull { (k, c) ->
+                    val r = ratio(c, fondo)
+                    if (r < MIN_AA) "$nombre $k = ${"%.2f".format(r)}" else null
+                }
+            }
+        assertTrue("Contraste < $MIN_AA: $failures", failures.isEmpty())
+    }
+
+    /** El ámbar del tema claro (títulos y activos) sobre blanco roto y sobre las tarjetas opacas. */
+    @Test
+    fun ambarClaro_sobreBlancoRoto_meetAA() {
+        val fondos =
+            mapOf(
+                "blanco roto" to Color(0xFFF3F2EE),
+                "blanco" to Color.White,
+                "surfaceContainerHigh" to LightColors.surfaceContainerHigh,
+            )
+        val failures =
+            fondos.mapNotNull { (k, f) ->
+                val r = ratio(LightColors.primary, f)
+                if (r < MIN_AA) "$k = ${"%.2f".format(r)}" else null
+            }
+        assertTrue("Contraste < $MIN_AA: $failures", failures.isEmpty())
+    }
+
+    /** Tarjeta opaca: título ámbar, texto y ayuda sobre surfaceContainerHigh en los dos temas. */
+    @Test
+    fun tarjetaOpaca_meetAA() {
+        listOf("oscuro" to DarkColors, "claro" to LightColors).forEach { (nombre, s) ->
+            val fondo = s.surfaceContainerHigh
+            listOf("primary" to s.primary, "onSurface" to s.onSurface, "onSurfaceVariant" to s.onSurfaceVariant)
+                .forEach { (k, c) -> assertTrue("$nombre $k", ratio(c, fondo) >= MIN_AA) }
+        }
     }
 
     private companion object {
