@@ -268,3 +268,15 @@ Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y
   - **Autovía:** sin cruces; con ruta, solo la salida que se toma.
   - **Radares:** aviso a unos 15 s y a 100 m; también los de sentido contrario; velocidad de paso en el bocadillo.
   - **Colores:** ruta roja y estela gris.
+- **H14 (respondidas 2026-11-06):**
+  - **Mapa conduciendo:** distribución tipo Google Maps con estética WRC.
+    - Arriba: maniobra y, debajo, un carrete de notas.
+    - Píldora de velocidad abajo a la izquierda.
+    - Botones: tres fijos en marcha; el resto aparece al tocar.
+    - Hoja inferior: en libre, crono y carretera; con ruta, minutos, km y hora.
+  - **Voz:** se añaden todas las órdenes nuevas (preguntas de ruta, control del copiloto, navegación, mapa y crono). La palabra «Copiloto» va activada por defecto.
+  - **Tutorial:** bienvenida, pistas en contexto y Ayuda.
+  - **Orden de trabajo:** bugs → funciones → interfaz → voz → tutorial.
+  - **Cierre:** una sola revisión final en el emulador con los datos de Joan, y después push y release.
+  - **Curvas:** casi todo lo que mueva el volante se canta.
+  - **Puentes:** una vía que pasa por encima o por debajo no cuenta como cruce ni como vía actual.

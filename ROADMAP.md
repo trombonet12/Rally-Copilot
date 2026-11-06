@@ -551,6 +551,13 @@ Feedback de Joan del 2026-11-02 y 2026-11-03: «se nota que está en pruebas».
   - bocadillo con la velocidad de paso en verde o rojo.
 - **Colores:** ruta roja y estela gris apagada.
 
+**Ampliación (2026-11-06):**
+- **H14a (bugs):** suma la sensibilidad de las curvas (cantar casi todo giro de 10° o más; feedback «no lo pilla nada bien») y los puentes y pasos a distinto nivel.
+- **H14c:** empieza por una revisión extensa de toda la interfaz con capturas y ux-reviewer. La distribución del mapa sigue la referencia de Google Maps con estética WRC; incluye el coche más abajo y los botones.
+- **H14d:** voz ampliada (preguntas de ruta, control del copiloto, navegación, mapa y crono), con «Copiloto» activado por defecto y una chuleta de voz.
+- **H14e:** tutorial (bienvenida, pistas en contexto y Ajustes > Ayuda).
+- **Cierre único:** revisión en el emulador con el dump de Joan y capturas; después, push y release v1.2.0.
+
 ### Alcance
 Lo descrito en Objetivo.
 
