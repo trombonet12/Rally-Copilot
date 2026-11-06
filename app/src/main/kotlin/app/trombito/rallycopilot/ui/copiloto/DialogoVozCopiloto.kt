@@ -77,8 +77,8 @@ fun DialogoVozCopiloto(
 }
 
 /**
- * Una voz: radio con su nombre amable («Voz 1») y, aparte, el botón ▶ que la prueba. Probar no la elige. Lo
- * comparten el diálogo del primer uso y Ajustes.
+ * Una voz: radio con su nombre del catálogo («Dave (davefx)») y, aparte, el botón ▶ que la prueba. Probar no la
+ * elige. Lo comparten el diálogo del primer uso y Ajustes.
  */
 @Composable
 fun FilaVozCopiloto(

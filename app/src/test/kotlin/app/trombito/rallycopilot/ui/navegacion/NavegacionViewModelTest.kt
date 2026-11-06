@@ -70,7 +70,10 @@ class NavegacionViewModelTest {
             assertTrue(buscador.consultas.isEmpty())
             advanceTimeBy(100)
             assertEquals(listOf("Sól" to PALMA), buscador.consultas)
-            assertEquals(BusquedaDestino.Resultados(listOf(soller)), vm.uiState.value.busqueda)
+            assertEquals(
+                BusquedaDestino.Resultados(listOf(soller), listOf(PALMA.distanciaA(soller.punto))),
+                vm.uiState.value.busqueda,
+            )
         }
 
     @Test

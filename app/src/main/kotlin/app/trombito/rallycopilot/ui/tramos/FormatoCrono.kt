@@ -7,18 +7,16 @@ import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.domain.tramos.ParcialCrono
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrado
+import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.navegacion.guiado.ColoresGuiado
 import app.trombito.rallycopilot.ui.theme.ColoresRally
 import app.trombito.rallycopilot.ui.theme.RallyOscuro
-import java.util.Locale
 import kotlin.math.abs
 
 private const val MS_DECIMA = 100L
 private const val DECIMAS_SEGUNDO = 10L
 private const val SEGUNDOS_MINUTO = 60L
-private const val MINUTOS_HORA = 60L
 private const val DECIMAS_MINUTO = DECIMAS_SEGUNDO * SEGUNDOS_MINUTO
-private const val DECIMAS_HORA = DECIMAS_MINUTO * MINUTOS_HORA
 private const val MENOS = '−'
 
 /** Cuánto se queda la tarjeta de meta en pantalla. */
@@ -79,36 +77,19 @@ internal fun colorParcial(
     neutro: Color = ColoresGuiado.Texto,
 ): Color = colorDelta(diferenciaMs, colores, neutro)
 
-/**
- * «mm:ss.d» (décimas truncadas, como un cronómetro) y «h:mm:ss.d» pasada la hora. Con [conDecimas] falso, «mm:ss».
- */
+/** «mm:ss,d» (décimas truncadas, como un cronómetro) y «h:mm:ss,d» pasada la hora. Con [conDecimas] falso, «mm:ss». */
 internal fun formatearTiempo(
     ms: Long,
     conDecimas: Boolean = true,
-): String {
-    val d = ms.coerceAtLeast(0L) / MS_DECIMA
-    val dec = d % DECIMAS_SEGUNDO
-    val s = d / DECIMAS_SEGUNDO % SEGUNDOS_MINUTO
-    val m = d / DECIMAS_MINUTO % MINUTOS_HORA
-    val h = d / DECIMAS_HORA
-    val base =
-        if (h > 0) {
-            String.format(Locale.ROOT, "%d:%02d:%02d", h, m, s)
-        } else {
-            String.format(Locale.ROOT, "%02d:%02d", m, s)
-        }
-    return if (conDecimas) "$base.$dec" else base
-}
+): String = FormatoEs.tiempo(ms, conDecimas)
 
 /** Valor absoluto de un delta: «1,2» y, desde el minuto, «1:05,3». */
 private fun cuerpoDelta(ms: Long): String {
     val d = decimas(ms)
-    val dec = d % DECIMAS_SEGUNDO
-    val s = d / DECIMAS_SEGUNDO
-    return if (s >= SEGUNDOS_MINUTO) {
-        String.format(Locale.ROOT, "%d:%02d,%d", s / SEGUNDOS_MINUTO, s % SEGUNDOS_MINUTO, dec)
+    return if (d >= DECIMAS_MINUTO) {
+        FormatoEs.tiempo(d * MS_DECIMA).removePrefix("0")
     } else {
-        String.format(Locale.ROOT, "%d,%d", s, dec)
+        FormatoEs.decimal(d / DECIMAS_SEGUNDO.toDouble())
     }
 }
 
@@ -118,4 +99,12 @@ internal fun formatearDelta(ms: Long): String =
         SignoDelta.MEJOR -> "$MENOS${cuerpoDelta(ms)}"
         SignoDelta.PEOR -> "+${cuerpoDelta(ms)}"
         SignoDelta.IGUAL -> cuerpoDelta(0L)
+    }
+
+/** Flecha del delta: ▼ si ganas tiempo, ▲ si lo pierdes, vacía si va igual. */
+internal fun flechaDelta(ms: Long): String =
+    when (signoDelta(ms)) {
+        SignoDelta.MEJOR -> "▼"
+        SignoDelta.PEOR -> "▲"
+        SignoDelta.IGUAL -> ""
     }

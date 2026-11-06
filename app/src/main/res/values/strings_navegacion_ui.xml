@@ -55,4 +55,10 @@
     <string name="navegacion_ui_ruta_rapida_titulo">Rápida</string>
     <string name="navegacion_ui_ruta_sinuosa_titulo">Con curvas</string>
     <string name="navegacion_ui_ir">IR</string>
+    <string name="navegacion_ui_sin_ruta">No hay una ruta posible hasta ese punto con los mapas instalados.</string>
+    <string name="navegacion_ui_probar_otra_vez">Probar otra vez</string>
+    <string name="navegacion_ui_resultado_ir_texto">Ir</string>
+    <string name="navegacion_ui_parada_anadir_texto">+ Parada</string>
+    <string name="navegacion_ui_resultado_con_distancia">%1$s · %2$s</string>
+    <string name="navegacion_ui_sin_resultados_ayuda">Prueba con otro nombre, o pega unas coordenadas o un enlace de Google Maps.</string>
 </resources>

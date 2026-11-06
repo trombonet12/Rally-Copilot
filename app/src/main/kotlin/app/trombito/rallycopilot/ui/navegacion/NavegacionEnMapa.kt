@@ -19,6 +19,8 @@ data class AccionesNavegacion(
     val onCancelar: () -> Unit = {},
     val onPerfil: (PerfilRuta) -> Unit = {},
     val onEmpezar: () -> Unit = {},
+    /** «Probar otra vez» cuando ninguna ruta se pudo calcular. */
+    val onReintentar: () -> Unit = {},
     val onTerminar: () -> Unit = {},
     /** Toca «Seguir a <destino>»: recalcula desde la posición actual y empieza el guiado. */
     val onSeguir: () -> Unit = {},

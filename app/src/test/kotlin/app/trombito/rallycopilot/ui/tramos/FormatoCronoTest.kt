@@ -17,11 +17,11 @@ class FormatoCronoTest {
 
     @Test
     fun `el cronometro se escribe mm ss punto d`() {
-        assertEquals("02:30.4", formatearTiempo(150_400L))
-        assertEquals("00:00.0", formatearTiempo(0L))
-        assertEquals("00:59.9", formatearTiempo(59_999L))
-        assertEquals("1:02:30.0", formatearTiempo(3_750_000L))
-        assertEquals("00:00.0", formatearTiempo(-50L))
+        assertEquals("02:30,4", formatearTiempo(150_400L))
+        assertEquals("00:00,0", formatearTiempo(0L))
+        assertEquals("00:59,9", formatearTiempo(59_999L))
+        assertEquals("1:02:30,0", formatearTiempo(3_750_000L))
+        assertEquals("00:00,0", formatearTiempo(-50L))
     }
 
     @Test
@@ -35,6 +35,13 @@ class FormatoCronoTest {
         assertEquals("+1,2", formatearDelta(1_200L))
         assertEquals("+1:05,3", formatearDelta(65_300L))
         assertEquals("−12,0", formatearDelta(-12_000L))
+    }
+
+    @Test
+    fun `la flecha del delta baja si ganas tiempo y sube si lo pierdes`() {
+        assertEquals("▼", flechaDelta(-300L))
+        assertEquals("▲", flechaDelta(1_200L))
+        assertEquals("", flechaDelta(20L))
     }
 
     @Test

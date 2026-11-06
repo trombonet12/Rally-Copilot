@@ -5,6 +5,8 @@
     <string name="guiado_pie_descripcion">Llegada a las %1$s. Quedan %2$s y %3$s.</string>
     <string name="guiado_recalculando">Recalculando</string>
     <string name="guiado_llegada_titulo">Has llegado</string>
+    <string name="guiado_llegada_destino_generico">Destino</string>
+    <string name="guiado_llegada_resumen">%1$s · %2$s</string>
     <string name="guiado_llegada_cerrar">Cerrar</string>
     <string name="guiado_pie_parada_descripcion">Próxima parada: llegada a las %1$s. Quedan %2$s y %3$s. Al final: llegada a las %4$s, quedan %5$s y %6$s.</string>
     <string name="guiado_pie_final_etiqueta">Final</string>

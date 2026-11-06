@@ -34,10 +34,10 @@ fun ModoCopiloto.detalle(): Int =
         ModoCopiloto.COMPLETO -> R.string.copiloto_modo_completo_detalle
     }
 
-/** Nombre amable de la voz: el usuario no ve «davefx» ni «sharvard». */
+/** Nombre de la voz como en el catálogo de Ajustes: «Dave (davefx)» y «Sharvard». */
 @StringRes
 fun VozCopiloto.nombre(): Int =
     when (this) {
-        VozCopiloto.DAVEFX -> R.string.copiloto_voz_1
-        VozCopiloto.SHARVARD -> R.string.copiloto_voz_2
+        VozCopiloto.DAVEFX -> R.string.ajustes_voz_davefx
+        VozCopiloto.SHARVARD -> R.string.ajustes_voz_sharvard
     }

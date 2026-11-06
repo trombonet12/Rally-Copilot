@@ -70,7 +70,6 @@ private const val OPACIDAD_MICRO = 0.55f
 private const val OPACIDAD_ETIQUETA = 0.85f
 private const val ESCALA_DESTACADO = 1.12f
 private const val PORCENTAJE = 100
-private val NEUTRO_PILDORA = Color(0xFF3A3D43)
 private val FONDO_PARCIAL = Color(0xFF22252A)
 
 /** Medidas del HUD en vertical y en horizontal compacto. */
@@ -82,7 +81,7 @@ private class MedidasHud(
     val sesgo: Dp,
     val compacto: Boolean,
 ) {
-    val anchoDelta: Dp get() = if (compacto) 64.dp else 84.dp
+    val anchoDelta: Dp get() = if (compacto) 76.dp else 104.dp
 }
 
 private val NORMAL =
@@ -200,7 +199,10 @@ private fun TiempoYDelta(
     }
 }
 
-/** El delta sobre una pastilla de color sólido (verde a favor, rojo en contra) con la cifra en carbón. */
+/**
+ * El delta como texto con signo y flecha (▼ a favor, ▲ en contra), en verde o rojo sin relleno; solo un borde fino del
+ * mismo color. Sin delta, un guion neutro.
+ */
 @Composable
 internal fun PildoraDelta(
     deltaMs: Long?,
@@ -209,21 +211,27 @@ internal fun PildoraDelta(
     sesgo: Dp,
     etiqueta: String = ETIQUETA_CRONO_DELTA,
 ) {
-    val fondo = if (deltaMs == null) NEUTRO_PILDORA else colorDelta(deltaMs)
-    val texto = if (deltaMs == null) ColoresGuiado.Texto else ColoresGuiado.Carbon
+    val color = if (deltaMs == null) ColoresGuiado.Texto.copy(alpha = OPACIDAD_ETIQUETA) else colorDelta(deltaMs)
+    val forma = ParalelogramoShape(sesgo)
+    val texto =
+        if (deltaMs == null) {
+            stringResource(R.string.crono_sin_delta)
+        } else {
+            "${flechaDelta(deltaMs)} ${formatearDelta(deltaMs)}".trim()
+        }
     Box(
         contentAlignment = Alignment.Center,
         modifier =
             Modifier
                 .defaultMinSize(minWidth = anchoMinimo)
-                .background(fondo, ParalelogramoShape(sesgo))
+                .border(1.dp, color.copy(OPACIDAD_BORDE), forma)
                 .padding(horizontal = 12.dp, vertical = 2.dp)
                 .testTag(etiqueta),
     ) {
         Text(
-            text = deltaMs?.let(::formatearDelta) ?: stringResource(R.string.crono_sin_delta),
+            text = texto,
             style = estiloCifras(tamano),
-            color = texto,
+            color = color,
             maxLines = 1,
             softWrap = false,
         )

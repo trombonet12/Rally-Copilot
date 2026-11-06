@@ -52,7 +52,6 @@ fun BusquedaGuiando(
             onElegir = acciones.onElegirDestino,
             horizontal = horizontal,
             anadirParada = acciones.onAnadirParada.takeUnless { estado.paradasLlenas },
-            irAqui = true,
         )
     }
 }

@@ -65,7 +65,7 @@ fun PanelInferiorNavegacion(
         }
 
         is EstadoNavegacion.Llegada -> {
-            TarjetaLlegada(control.destino, acciones.onTerminar, modifier)
+            TarjetaLlegada(control.destino, acciones.onTerminar, modifier, estado.resumenLlegada)
         }
 
         is EstadoNavegacion.Error -> {

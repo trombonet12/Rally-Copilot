@@ -58,8 +58,8 @@ class CronoSuperiorTest {
         poner(cronoConocido())
         assertTrue(banco.hay(ETIQUETA_CRONO_HUD))
         assertFalse(banco.hay(ETIQUETA_CRONO_MINI))
-        assertEquals(listOf("02:30.4"), textos(ETIQUETA_CRONO_TIEMPO))
-        assertEquals(listOf("+1,2"), textos(ETIQUETA_CRONO_DELTA))
+        assertEquals(listOf("02:30,4"), textos(ETIQUETA_CRONO_TIEMPO))
+        assertEquals(listOf("▲ +1,2"), textos(ETIQUETA_CRONO_DELTA))
     }
 
     @Test
@@ -103,7 +103,7 @@ class CronoSuperiorTest {
         poner(cronoConocido(transcurridoMs = 150_400L))
         ahora += 2_000L
         banco.esperar(2_000L)
-        assertEquals(listOf("02:32.4"), textos(ETIQUETA_CRONO_TIEMPO))
+        assertEquals(listOf("02:32,4"), textos(ETIQUETA_CRONO_TIEMPO))
     }
 
     @Test
@@ -111,13 +111,13 @@ class CronoSuperiorTest {
         poner(cronoConocido(transcurridoMs = 150_400L))
         crono = cronoConocido(transcurridoMs = 160_000L).copy(actualizadoEnMs = AHORA_PRUEBA_MS)
         banco.esperar(100L)
-        assertEquals(listOf("02:40.0"), textos(ETIQUETA_CRONO_TIEMPO))
+        assertEquals(listOf("02:40,0"), textos(ETIQUETA_CRONO_TIEMPO))
     }
 
     @Test
     fun `el delta a favor lleva menos y el nodo dice menos segundos`() {
         poner(cronoConocido(deltaMs = -2_300L))
-        assertEquals(listOf("−2,3"), textos(ETIQUETA_CRONO_DELTA))
+        assertEquals(listOf("▼ −2,3"), textos(ETIQUETA_CRONO_DELTA))
         val hud = checkNotNull(banco.descripcion(banco.nodos().first { hasDescripcionDeHud(it) }))
         assertEquals(
             "Cronómetro del tramo: 2 minutos 30,4 segundos. Respecto a tu mejor tiempo: menos 2,3 segundos",
@@ -195,10 +195,10 @@ class CronoSuperiorTest {
         assertTrue(banco.hay(ETIQUETA_CRONO_META))
         assertFalse("la tarjeta sustituye al HUD", banco.hay(ETIQUETA_CRONO_HUD))
         assertFalse(banco.hay(ETIQUETA_CRONO_MINI))
-        assertEquals(listOf("02:28.1"), textos(ETIQUETA_CRONO_META_TOTAL))
-        assertEquals(listOf("−2,3"), textos(ETIQUETA_CRONO_META_DELTA))
+        assertEquals(listOf("02:28,1"), textos(ETIQUETA_CRONO_META_TOTAL))
+        assertEquals(listOf("▼ −2,3"), textos(ETIQUETA_CRONO_META_DELTA))
         assertEquals(listOf("NUEVO MEJOR"), textos(ETIQUETA_CRONO_NUEVO_MEJOR))
-        assertEquals(listOf("Mejor anterior 02:30.4"), textos(ETIQUETA_CRONO_META_MEJOR_ANTERIOR))
+        assertEquals(listOf("Mejor anterior 02:30,4"), textos(ETIQUETA_CRONO_META_MEJOR_ANTERIOR))
         val meta = banco.conEtiqueta(ETIQUETA_CRONO_META)
         assertEquals(LiveRegionMode.Polite, meta.config.getOrNull(SemanticsProperties.LiveRegion))
         assertEquals(
@@ -215,7 +215,7 @@ class CronoSuperiorTest {
     fun `una pasada peor no dice nuevo mejor y el delta va en rojo`() {
         poner(cronoTerminado(ResultadoCrono(152_000L, 1_600L, nuevoMejor = false, mejorAnteriorMs = 150_400L)))
         assertFalse(banco.hay(ETIQUETA_CRONO_NUEVO_MEJOR))
-        assertEquals(listOf("+1,6"), textos(ETIQUETA_CRONO_META_DELTA))
+        assertEquals(listOf("▲ +1,6"), textos(ETIQUETA_CRONO_META_DELTA))
         assertEquals(
             "Meta. Tiempo: 2 minutos 32,0 segundos. Respecto a tu mejor tiempo: más 1,6 segundos.",
             banco.descripcion(banco.conEtiqueta(ETIQUETA_CRONO_META)),
@@ -236,7 +236,7 @@ class CronoSuperiorTest {
         poner(cronoTerminado(ResultadoCrono(148_100L, -2_300L, nuevoMejor = true, mejorAnteriorMs = 150_400L)))
         ahora += 3_000L
         banco.esperar(3_000L)
-        assertEquals(listOf("02:28.1"), textos(ETIQUETA_CRONO_META_TOTAL))
+        assertEquals(listOf("02:28,1"), textos(ETIQUETA_CRONO_META_TOTAL))
     }
 
     @Test

@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.navegacion.guiado
 
+import app.trombito.rallycopilot.ui.comun.FormatoEs
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -36,9 +37,9 @@ internal fun formatearDistanciaRestante(metros: Double): String {
     val m = metros.coerceAtLeast(0.0)
     if (m < UN_KM) {
         val redondeado = (m / PASO_M).roundToInt() * PASO_M
-        if (redondeado < UN_KM) return "$redondeado m"
+        if (redondeado < UN_KM) return FormatoEs.distancia(redondeado.toDouble())
     }
-    return String.format(ES, "%.1f km", m / UN_KM)
+    return FormatoEs.kilometrosDesdeMetros(m)
 }
 
 /**

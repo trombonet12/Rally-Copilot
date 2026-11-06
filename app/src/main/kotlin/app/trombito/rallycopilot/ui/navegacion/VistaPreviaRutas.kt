@@ -16,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,14 +24,17 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.LADO_TACTIL
 import app.trombito.rallycopilot.ui.maniobras.formatearDistanciaManiobra
 import app.trombito.rallycopilot.ui.theme.Espacio
 
@@ -38,9 +42,12 @@ const val ETIQUETA_VISTA_PREVIA = "nav-vista-previa"
 const val ETIQUETA_RUTA_RAPIDA = "nav-ruta-rapida"
 const val ETIQUETA_RUTA_SINUOSA = "nav-ruta-sinuosa"
 const val ETIQUETA_SIN_POSICION = "nav-sin-posicion"
+const val ETIQUETA_SIN_RUTA = "nav-sin-ruta"
+const val ETIQUETA_REINTENTAR_RUTA = "nav-reintentar-ruta"
 
 private const val OPACIDAD_SOBRE_MAPA = 0.94f
 private const val OPACIDAD_NO_DISPONIBLE = 0.6f
+private const val OPACIDAD_ICONO_TENUE = 0.6f
 private val ALTO_OPCION = 64.dp
 private val ANCHO_MAXIMO_PANEL = 520.dp
 private val GROSOR_SELECCION = 2.dp
@@ -75,14 +82,14 @@ fun PanelVistaPrevia(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     BotonCancelarRuta(acciones.onCancelar)
-                    Opciones(vista, acciones.onPerfil, Modifier.weight(1f))
+                    Opciones(vista, acciones, Modifier.weight(1f))
                     BotonEmpezar(acciones.onEmpezar, habilitado = vista.puedeEmpezar)
                 }
             }
         } else {
             Column(Modifier.padding(Espacio.s), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
                 ParadasDeLaVistaPrevia(vista, acciones, horizontal = false)
-                Opciones(vista, acciones.onPerfil, Modifier.fillMaxWidth())
+                Opciones(vista, acciones, Modifier.fillMaxWidth())
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -110,7 +117,7 @@ private fun ParadasDeLaVistaPrevia(
 @Composable
 private fun Opciones(
     vista: VistaPrevia,
-    onPerfil: (PerfilRuta) -> Unit,
+    acciones: AccionesNavegacion,
     modifier: Modifier = Modifier,
 ) {
     if (vista.sinPosicion) {
@@ -122,15 +129,47 @@ private fun Opciones(
         )
         return
     }
+    if (vista.opciones.values.none { it is OpcionRuta.Lista || it is OpcionRuta.Cargando }) {
+        SinRutaPosible(acciones.onReintentar, modifier)
+        return
+    }
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
         PerfilRuta.entries.forEach { perfil ->
             OpcionRutaTarjeta(
                 perfil = perfil,
                 opcion = vista.opciones[perfil] ?: OpcionRuta.Cargando,
                 seleccionada = vista.perfil == perfil,
-                onClick = { onPerfil(perfil) },
+                onClick = { acciones.onPerfil(perfil) },
                 modifier = Modifier.weight(1f),
             )
+        }
+    }
+}
+
+/** Ninguna ruta se pudo calcular (sin datos o con error): icono, mensaje y «Probar otra vez». */
+@Composable
+private fun SinRutaPosible(
+    onReintentar: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colores = MaterialTheme.colorScheme
+    Row(
+        modifier = modifier.heightIn(min = ALTO_OPCION).testTag(ETIQUETA_SIN_RUTA),
+        horizontalArrangement = Arrangement.spacedBy(Espacio.s),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Iconos.Direcciones, contentDescription = null, tint = colores.primary.copy(alpha = OPACIDAD_ICONO_TENUE))
+        Text(
+            text = stringResource(R.string.navegacion_ui_sin_ruta),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colores.onSurface,
+            modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite },
+        )
+        TextButton(
+            onClick = onReintentar,
+            modifier = Modifier.heightIn(min = LADO_TACTIL).testTag(ETIQUETA_REINTENTAR_RUTA),
+        ) {
+            Text(text = stringResource(R.string.navegacion_ui_probar_otra_vez), maxLines = 1, softWrap = false)
         }
     }
 }

@@ -6,6 +6,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.comun.BotonRedondoMapa
@@ -41,7 +44,7 @@ fun BotonSilencio(
         descripcion =
             stringResource(if (silenciado) R.string.copiloto_silencio_activo else R.string.copiloto_silenciar),
         onClick = onClick,
-        modifier = modifier.testTag(ETIQUETA_SILENCIO_BOTON),
+        modifier = modifier.testTag(ETIQUETA_SILENCIO_BOTON).semantics { liveRegion = LiveRegionMode.Polite },
         activo = silenciado,
         descripcionEstado = if (silenciado) stringResource(R.string.copiloto_silencio_estado) else null,
     ) {

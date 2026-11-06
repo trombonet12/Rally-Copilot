@@ -76,7 +76,7 @@ const val PASO_CUENTA_ATRAS_MS = 1_000L
 /** Cuánto se queda el «¡YA!» en verde antes de retirarse la superposición. */
 const val DURACION_YA_MS = 900L
 
-private const val OPACIDAD_FONDO = 0.55f
+private const val OPACIDAD_FONDO = 0.75f
 private const val OPACIDAD_PANEL = 0.96f
 private const val OPACIDAD_BORDE_PANEL = 0.7f
 private const val OPACIDAD_BORDE_LUZ_ENCENDIDA = 0.35f
@@ -231,7 +231,7 @@ private fun Mensaje(
         spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "ya-escala",
     )
-    val estilo = TextStyle(fontSize = 48.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
+    val estilo = TextStyle(fontSize = 96.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic)
     if (ya) {
         Text(
             text = stringResource(R.string.cuenta_atras_ya),

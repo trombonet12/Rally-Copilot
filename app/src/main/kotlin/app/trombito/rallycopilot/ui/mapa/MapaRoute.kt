@@ -229,6 +229,7 @@ private fun accionesNavegacion(vm: NavegacionViewModel) =
         onCerrarBusqueda = vm::cerrarBusquedaGuiando,
         onCerrarPunto = vm::cerrarPunto,
         onAnadirParada = vm::anadirParada,
+        onReintentar = vm::reintentarRutas,
         onQuitarParada = vm::quitarParada,
         onMoverParada = vm::moverParada,
     )

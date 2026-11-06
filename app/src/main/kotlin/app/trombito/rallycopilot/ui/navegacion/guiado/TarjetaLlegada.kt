@@ -28,23 +28,38 @@ import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.ui.comun.BotonIcono
+import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.navegacion.ResumenTrayecto
 
 const val ETIQUETA_TARJETA_LLEGADA = "tarjeta_llegada"
 const val ETIQUETA_LLEGADA_TITULO = "tarjeta_llegada_titulo"
 const val ETIQUETA_LLEGADA_DESTINO = "tarjeta_llegada_destino"
 const val ETIQUETA_LLEGADA_CERRAR = "tarjeta_llegada_cerrar"
+const val ETIQUETA_LLEGADA_RESUMEN = "tarjeta_llegada_resumen"
+
+private val COORDENADAS = Regex("""^-?\d+[.,]\d+\s*,\s*-?\d+[.,]\d+$""")
 
 private val FORMA = RoundedCornerShape(14.dp)
+private const val OPACIDAD_RESUMEN = 0.8f
 
-/** Tarjeta de fin de tramo (EstadoNavegacion.Llegada): bandera, «Has llegado», el destino y un botón para cerrar. */
+/** El nombre del destino, o null si está vacío o es solo un par de coordenadas. */
+internal fun nombreLegible(nombre: String): String? =
+    nombre.trim().takeIf { it.isNotEmpty() && !COORDENADAS.matches(it) }
+
+/**
+ * Tarjeta de fin de tramo (EstadoNavegacion.Llegada): bandera, «Has llegado», el nombre del destino (nunca las
+ * coordenadas: sin nombre, «Destino»), tiempo y kilómetros del trayecto si se conocen y un botón para cerrar.
+ */
 @Composable
 fun TarjetaLlegada(
     destino: Destino,
     onCerrar: () -> Unit,
     modifier: Modifier = Modifier,
+    resumen: ResumenTrayecto? = null,
 ) {
     val titulo = stringResource(R.string.guiado_llegada_titulo)
+    val nombre = nombreLegible(destino.nombre) ?: stringResource(R.string.guiado_llegada_destino_generico)
     Row(
         modifier =
             modifier
@@ -76,13 +91,14 @@ fun TarjetaLlegada(
                     ),
             )
             Text(
-                text = destino.nombre,
+                text = nombre,
                 modifier = Modifier.testTag(ETIQUETA_LLEGADA_DESTINO),
                 color = ColoresGuiado.Texto,
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (resumen != null) ResumenLlegada(resumen)
         }
         BotonIcono(
             descripcion = stringResource(R.string.guiado_llegada_cerrar),
@@ -92,4 +108,20 @@ fun TarjetaLlegada(
             Icon(imageVector = Iconos.Cerrar, contentDescription = null)
         }
     }
+}
+
+/** «25 min · 31,9 km»: lo que se ha tardado y recorrido. */
+@Composable
+private fun ResumenLlegada(resumen: ResumenTrayecto) {
+    Text(
+        text =
+            stringResource(
+                R.string.guiado_llegada_resumen,
+                formatearTiempoRestante(resumen.tiempoS),
+                FormatoEs.distancia(resumen.distanciaM),
+            ),
+        modifier = Modifier.testTag(ETIQUETA_LLEGADA_RESUMEN),
+        color = ColoresGuiado.Texto.copy(alpha = OPACIDAD_RESUMEN),
+        style = MaterialTheme.typography.bodyLarge,
+    )
 }

@@ -17,6 +17,8 @@ sealed interface BusquedaDestino {
     /** Resultados del índice offline; vacío = sin coincidencias. */
     data class Resultados(
         val items: List<ResultadoBusqueda>,
+        /** Distancia en línea recta (m) de cada resultado a la posición del usuario; vacía si no hay fijación. */
+        val distanciasM: List<Double> = emptyList(),
     ) : BusquedaDestino
 
     /** El texto es un enlace o unas coordenadas: ese punto es el destino. */
@@ -130,6 +132,12 @@ data class OfertaSeguir(
     val fase: FaseSeguir = FaseSeguir.LISTA,
 )
 
+/** Lo que se ha tardado y recorrido en un trayecto guiado, para la tarjeta de llegada. */
+data class ResumenTrayecto(
+    val tiempoS: Double,
+    val distanciaM: Double,
+)
+
 /** Estado inmutable de la navegación sobre el mapa (búsqueda, vista previa y conducción). */
 data class NavegacionUiState(
     /** Texto del campo «¿A dónde?». */
@@ -144,6 +152,8 @@ data class NavegacionUiState(
     val seguir: OfertaSeguir? = null,
     /** El punto elegido manteniendo pulsado el mapa (tarjeta «Ir aquí» / «Añadir parada»). */
     val puntoElegido: PuntoElegido? = null,
+    /** Tiempo y kilómetros del trayecto recién acabado (solo con el aviso de llegada). */
+    val resumenLlegada: ResumenTrayecto? = null,
 ) {
     /** Sin destino en marcha (parado o en modo libre): se puede buscar destino y ver rutas. */
     val enReposo: Boolean get() = control is EstadoNavegacion.Inactiva || control is EstadoNavegacion.Libre

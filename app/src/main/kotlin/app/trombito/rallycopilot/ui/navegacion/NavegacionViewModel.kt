@@ -35,6 +35,7 @@ import javax.inject.Inject
 
 private const val ESPERA_BUSQUEDA_MS = 250L
 private const val PARADA_MS = 5_000L
+private const val MS_SEGUNDO = 1_000.0
 private const val LONGITUD_MINIMA_BUSQUEDA = 2
 
 /**
@@ -72,8 +73,12 @@ class NavegacionViewModel
                 pendiente?.let { OfertaSeguir(it.destino, fase) }
             }
 
-        private val seguirYPunto: Flow<Pair<OfertaSeguir?, PuntoElegido?>> =
-            combine(ofertaSeguir, puntoElegido) { oferta, punto -> oferta to punto }
+        private val resumenLlegada = MutableStateFlow<ResumenTrayecto?>(null)
+
+        private val seguirYPunto: Flow<Triple<OfertaSeguir?, PuntoElegido?, ResumenTrayecto?>> =
+            combine(ofertaSeguir, puntoElegido, resumenLlegada) { oferta, punto, resumen ->
+                Triple(oferta, punto, resumen)
+            }
 
         /** La búsqueda abierta con la lupa del panel mientras se guía. */
         private val buscandoGuiando = MutableStateFlow(false)
@@ -84,7 +89,7 @@ class NavegacionViewModel
         val uiState: StateFlow<NavegacionUiState> =
             combine(texto, busquedaYLupa, vistaPrevia, control.estado, seguirYPunto) { t, busc, v, c, extra ->
                 val (b, lupa) = busc
-                val (oferta, punto) = extra
+                val (oferta, punto, resumen) = extra
                 // Guiando (o con su aviso final) no hay vista previa; la búsqueda solo si se abrió con la lupa.
                 val reposo = c is EstadoNavegacion.Inactiva || c is EstadoNavegacion.Libre
                 val buscando = lupa && c is EstadoNavegacion.Guiando
@@ -100,10 +105,12 @@ class NavegacionViewModel
                     seguir = oferta.takeIf { reposo && previaVisible == null && !hayBusqueda },
                     // La tarjeta del punto se ve en reposo y guiando; el aviso de llegada o de error la cierra.
                     puntoElegido = punto.takeIf { reposo || c is EstadoNavegacion.Guiando },
+                    resumenLlegada = resumen.takeIf { c is EstadoNavegacion.Llegada },
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), NavegacionUiState())
 
         init {
+            viewModelScope.launch { seguirTrayecto() }
             viewModelScope.launch {
                 consulta.debounce(ESPERA_BUSQUEDA_MS).collectLatest { escrito ->
                     val enlace = EnlaceUbicacion.leer(escrito.trim())
@@ -114,6 +121,38 @@ class NavegacionViewModel
                         resolucion = viewModelScope.launch { busqueda.value = resolverEnlace(resolvedor, enlace.url) }
                     } else {
                         busqueda.value = interpretar(buscador, escrito, posicion)
+                    }
+                }
+            }
+        }
+
+        /**
+         * Anota cuándo empieza un guiado y qué longitud tenía la ruta inicial, para dar el tiempo y los kilómetros
+         * en la tarjeta de llegada (el estado de llegada solo trae el destino).
+         */
+        private suspend fun seguirTrayecto() {
+            var inicioMs: Long? = null
+            var distanciaM = 0.0
+            control.estado.collect { estado ->
+                when (estado) {
+                    is EstadoNavegacion.Guiando -> {
+                        if (inicioMs == null) {
+                            inicioMs = System.currentTimeMillis()
+                            distanciaM = estado.ruta.longitudM
+                        }
+                    }
+
+                    is EstadoNavegacion.Llegada -> {
+                        inicioMs?.let {
+                            val tiempoS = (System.currentTimeMillis() - it) / MS_SEGUNDO
+                            resumenLlegada.value = ResumenTrayecto(tiempoS, distanciaM)
+                        }
+                        inicioMs = null
+                    }
+
+                    else -> {
+                        inicioMs = null
+                        resumenLlegada.value = null
                     }
                 }
             }
@@ -336,6 +375,11 @@ class NavegacionViewModel
             busqueda.value = BusquedaDestino.Inactiva
         }
 
+        /** «Probar otra vez»: repite el cálculo de las rutas de la vista previa abierta (misma parada y perfil). */
+        fun reintentarRutas() {
+            vistaPrevia.value?.let { calcular(it.destino, it.paradas, it.perfil) }
+        }
+
         /** Calcula las dos rutas hacia [destino] pasando por [paradas] (en ese orden) desde la última fijación. */
         private fun calcular(
             destino: Destino,
@@ -378,7 +422,8 @@ private suspend fun interpretar(
         }
 
         ResultadoEnlace.NoReconocido -> {
-            BusquedaDestino.Resultados(buscador.buscar(limpio, cerca))
+            val items = buscador.buscar(limpio, cerca)
+            BusquedaDestino.Resultados(items, cerca?.let { yo -> items.map { yo.distanciaA(it.punto) } }.orEmpty())
         }
     }
 }

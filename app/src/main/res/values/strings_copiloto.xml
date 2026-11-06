@@ -19,8 +19,6 @@
 
     <!-- Voz del copiloto -->
     <string name="copiloto_voz_titulo">Voz del copiloto</string>
-    <string name="copiloto_voz_1">Voz 1</string>
-    <string name="copiloto_voz_2">Voz 2</string>
     <string name="copiloto_voz_probar">Probar %1$s</string>
     <string name="copiloto_voz_sin_elegir">Todavía no has elegido voz: el copiloto no hablará hasta que la elijas.</string>
     <string name="copiloto_voz_dialogo_titulo">Elige la voz del copiloto</string>

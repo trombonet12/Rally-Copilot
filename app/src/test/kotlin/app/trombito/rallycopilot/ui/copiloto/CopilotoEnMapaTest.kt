@@ -276,9 +276,8 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
         assertTrue(banco.hay(ETIQUETA_VOZ_DIALOGO))
         val textos = banco.todosLosTextos()
         assertTrue("Elige la voz del copiloto" in textos)
-        assertTrue("Voz 1" in textos)
-        assertTrue("Voz 2" in textos)
-        assertFalse(textos.any { "davefx" in it.lowercase() || "sharvard" in it.lowercase() })
+        assertTrue("Dave (davefx)" in textos)
+        assertTrue("Sharvard" in textos)
         assertEquals(VozCopiloto.entries.size, banco.etiquetas(ETIQUETA_VOZ_OPCION_PREFIJO).size)
     }
 
@@ -304,7 +303,7 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
         copiloto = copiloto.copy(voz = null)
         poner()
         val probar = banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + "sharvard")
-        assertEquals("Probar Voz 2", banco.descripcion(probar))
+        assertEquals("Probar Sharvard", banco.descripcion(probar))
         assertTrue(banco.textos(probar).isEmpty())
         banco.pulsar(probar)
         banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + "davefx"))

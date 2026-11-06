@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -20,6 +21,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -45,6 +47,8 @@ import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
 import app.trombito.rallycopilot.domain.navegacion.Destino
+import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
+import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.LADO_TACTIL
 import app.trombito.rallycopilot.ui.theme.Espacio
@@ -160,19 +164,16 @@ private fun AccionFinal(
 
 /**
  * Lista bajo la barra: resultados del índice, la ubicación de un enlace o el aviso de enlace corto. Con una ruta en
- * vista previa ([anadirParada] no es null) cada resultado lleva además un botón «Añadir como parada». Con [irAqui]
- * (guiando) lleva también un botón «Ir aquí» explícito: cambia el destino y conserva las paradas; tocar la fila hace lo
- * mismo.
+ * vista previa o guiando ([anadirParada] no es null) cada resultado lleva «+ Parada»; todos llevan «Ir» (cambia el
+ * destino y, guiando, conserva las paradas; tocar la fila hace lo mismo) y la distancia a ti.
  */
 @Composable
-@Suppress("LongParameterList") // resultados, acciones de la fila y presentación de la lista
 fun ListaDestinos(
     busqueda: BusquedaDestino,
     onElegir: (Destino) -> Unit,
     horizontal: Boolean,
     modifier: Modifier = Modifier,
     anadirParada: ((Destino) -> Unit)? = null,
-    irAqui: Boolean = false,
 ) {
     if (busqueda is BusquedaDestino.Inactiva) return
     val cerrarTeclado = cerrarTeclado()
@@ -196,7 +197,7 @@ fun ListaDestinos(
         val alto: Dp = if (horizontal) ALTO_LISTA_HORIZONTAL else ALTO_LISTA_VERTICAL
         when (busqueda) {
             is BusquedaDestino.Resultados -> {
-                FilasResultados(busqueda.items, AccionesFila(elegir, anadir, irAqui), Modifier.heightIn(max = alto))
+                FilasResultados(busqueda, AccionesFila(elegir, anadir), Modifier.heightIn(max = alto))
             }
 
             is BusquedaDestino.Ubicacion -> {
@@ -211,7 +212,7 @@ fun ListaDestinos(
                     modifier = Modifier.testTag(ETIQUETA_RESULTADO + "0"),
                     alAnadirParada = anadir?.let { alAnadir -> { alAnadir(d) } },
                     etiquetaParada = ETIQUETA_RESULTADO_PARADA + "0",
-                    alIr = { elegir(d) }.takeIf { irAqui },
+                    alIr = { elegir(d) },
                     etiquetaIr = ETIQUETA_RESULTADO_IR + "0",
                 )
             }
@@ -233,26 +234,31 @@ fun ListaDestinos(
     }
 }
 
-/** Lo que se puede hacer con un resultado: elegirlo, añadirlo como parada y si se ofrece «Ir aquí» explícito. */
+/** Lo que se puede hacer con un resultado: elegirlo («Ir») y añadirlo como parada. */
 private class AccionesFila(
     val elegir: (Destino) -> Unit,
     val anadir: ((Destino) -> Unit)?,
-    val irAqui: Boolean,
 )
 
 @Composable
 private fun FilasResultados(
-    items: List<ResultadoBusqueda>,
+    busqueda: BusquedaDestino.Resultados,
     acciones: AccionesFila,
     modifier: Modifier = Modifier,
 ) {
+    val items = busqueda.items
     if (items.isEmpty()) {
-        MensajeLista(R.string.navegacion_ui_sin_resultados, Modifier.testTag(ETIQUETA_SIN_RESULTADOS))
+        EstadoVacioWrc(
+            icono = Iconos.Lupa,
+            titulo = stringResource(R.string.navegacion_ui_sin_resultados),
+            texto = stringResource(R.string.navegacion_ui_sin_resultados_ayuda),
+            etiqueta = ETIQUETA_SIN_RESULTADOS,
+        )
         return
     }
     LazyColumn(modifier) {
         itemsIndexed(items) { indice, item ->
-            val detalle = detalleResultado(item)
+            val detalle = detalleResultado(item, busqueda.distanciasM.getOrNull(indice))
             FilaDestino(
                 titulo = item.nombre,
                 detalle = detalle,
@@ -262,18 +268,28 @@ private fun FilasResultados(
                     acciones.anadir?.let { alAnadir -> { alAnadir(Destino(item.nombre, item.punto)) } },
                 etiquetaParada = ETIQUETA_RESULTADO_PARADA + indice,
                 nombreParada = item.nombre,
-                alIr = { acciones.elegir(Destino(item.nombre, item.punto)) }.takeIf { acciones.irAqui },
+                alIr = { acciones.elegir(Destino(item.nombre, item.punto)) },
                 etiquetaIr = ETIQUETA_RESULTADO_IR + indice,
             )
         }
     }
 }
 
-/** «categoría · municipio» (o solo la categoría si no se conoce el municipio). */
+/** «categoría · municipio · 12 km» (sin el municipio o sin la distancia si no se conocen). */
 @Composable
-private fun detalleResultado(item: ResultadoBusqueda): String =
-    item.municipio?.let { stringResource(R.string.navegacion_ui_resultado_detalle, item.categoria, it) }
-        ?: item.categoria
+private fun detalleResultado(
+    item: ResultadoBusqueda,
+    distanciaM: Double?,
+): String {
+    val base =
+        item.municipio?.let { stringResource(R.string.navegacion_ui_resultado_detalle, item.categoria, it) }
+            ?: item.categoria
+    return if (distanciaM == null) {
+        base
+    } else {
+        stringResource(R.string.navegacion_ui_resultado_con_distancia, base, FormatoEs.distancia(distanciaM))
+    }
+}
 
 @Composable
 @Suppress("LongParameterList") // fila con su acción opcional de añadir parada
@@ -322,23 +338,42 @@ private fun FilaDestino(
             }
         }
         if (alIr != null) {
-            IconButton(onClick = alIr, modifier = Modifier.size(LADO_TACTIL).testTag(etiquetaIr)) {
-                Icon(
-                    imageVector = Iconos.Direcciones,
-                    contentDescription = stringResource(R.string.navegacion_ui_resultado_ir, nombreParada),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
+            AccionTexto(
+                texto = stringResource(R.string.navegacion_ui_resultado_ir_texto),
+                descripcion = stringResource(R.string.navegacion_ui_resultado_ir, nombreParada),
+                onClick = alIr,
+                etiqueta = etiquetaIr,
+            )
         }
         if (alAnadirParada != null) {
-            IconButton(onClick = alAnadirParada, modifier = Modifier.size(LADO_TACTIL).testTag(etiquetaParada)) {
-                Icon(
-                    imageVector = Iconos.AnadirLugar,
-                    contentDescription = stringResource(R.string.navegacion_ui_parada_anadir_resultado, nombreParada),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-            }
+            AccionTexto(
+                texto = stringResource(R.string.navegacion_ui_parada_anadir_texto),
+                descripcion = stringResource(R.string.navegacion_ui_parada_anadir_resultado, nombreParada),
+                onClick = alAnadirParada,
+                etiqueta = etiquetaParada,
+            )
         }
+    }
+}
+
+/** Botón de texto de una fila de resultado («Ir», «+ Parada»): 48 dp de alto y descripción completa para TalkBack. */
+@Composable
+private fun AccionTexto(
+    texto: String,
+    descripcion: String,
+    onClick: () -> Unit,
+    etiqueta: String,
+) {
+    TextButton(
+        onClick = onClick,
+        modifier =
+            Modifier
+                .heightIn(min = LADO_TACTIL)
+                .testTag(etiqueta)
+                .semantics { contentDescription = descripcion },
+        contentPadding = PaddingValues(horizontal = Espacio.s),
+    ) {
+        Text(text = texto, style = MaterialTheme.typography.labelLarge, maxLines = 1, softWrap = false)
     }
 }
 

@@ -30,6 +30,7 @@ import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.notas.NotaVisible
 import app.trombito.rallycopilot.ui.comun.BotonIcono
+import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.LADO_TACTIL
 import app.trombito.rallycopilot.ui.navegacion.notas.FilaNota
@@ -80,7 +81,7 @@ internal fun segundosEscritos(nivel: NivelAnticipacion): String =
     if (nivel.segundos % 1.0 == 0.0) {
         nivel.segundos.toInt().toString()
     } else {
-        String.format(Locale.forLanguageTag("es-ES"), "%.1f", nivel.segundos)
+        FormatoEs.decimal(nivel.segundos)
     }
 
 /** Línea «Te la canta 5 s antes (a 90 km/h, a 150 m)» del nivel elegido. */

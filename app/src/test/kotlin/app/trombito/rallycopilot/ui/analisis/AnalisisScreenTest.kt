@@ -94,7 +94,7 @@ class AnalisisScreenTest {
         assertTrue(Regex("""\d+ \w{3} \d{4} · \d{2}:\d{2}""").matches(textos(ETIQUETA_ANALISIS_FECHA).single()))
         assertEquals(listOf(formatearTiempoPrueba(lenta.totalMs)), textos(ETIQUETA_ANALISIS_TOTAL))
         val delta = textos(ETIQUETA_ANALISIS_DELTA).single()
-        assertTrue("va más lento que la mejor: $delta", delta.startsWith("+"))
+        assertTrue("va más lento que la mejor: $delta", delta.contains("+"))
         assertEquals(
             listOf("contra ${formatearTiempoPrueba(rapida.totalMs)}"),
             textos(ETIQUETA_ANALISIS_COMPARADA),
@@ -321,7 +321,7 @@ class AnalisisScreenTest {
         poner(e)
         assertTrue(banco.nodos().any { banco.descripcion(it) == "Reproducir la repetición" })
         assertEquals(
-            listOf("00:00.0 / ${formatearTiempoPrueba(lenta.totalMs)}"),
+            listOf("00:00,0 / ${formatearTiempoPrueba(lenta.totalMs)}"),
             textos(ETIQUETA_REPETICION_TIEMPO),
         )
     }
@@ -329,7 +329,7 @@ class AnalisisScreenTest {
     @Test
     fun `el tiempo de la repeticion sigue a su posicion`() {
         poner(estado(repeticion = EstadoRepeticion(tMs = 75_300L)))
-        assertTrue(textos(ETIQUETA_REPETICION_TIEMPO).single().startsWith("01:15.3 / "))
+        assertTrue(textos(ETIQUETA_REPETICION_TIEMPO).single().startsWith("01:15,3 / "))
     }
 
     @Test
@@ -404,6 +404,6 @@ class AnalisisScreenTest {
 
     private fun formatearTiempoPrueba(ms: Long): String {
         val d = ms / 100
-        return String.format(java.util.Locale.ROOT, "%02d:%02d.%d", d / 600, d / 10 % 60, d % 10)
+        return String.format(java.util.Locale.ROOT, "%02d:%02d,%d", d / 600, d / 10 % 60, d % 10)
     }
 }

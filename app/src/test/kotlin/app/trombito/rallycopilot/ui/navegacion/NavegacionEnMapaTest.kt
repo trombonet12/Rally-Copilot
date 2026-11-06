@@ -150,6 +150,29 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     }
 
     @Test
+    fun `cada resultado lleva su distancia y las acciones Ir y Parada con texto`() {
+        val items = listOf(ResultadoBusqueda("Sóller", "pueblo", "Sóller", SOLLER))
+        val estado = NavegacionUiState(texto = "S", busqueda = BusquedaDestino.Resultados(items, listOf(12_400.0)))
+        poner(estado)
+        val textos = banco.textos(banco.conEtiqueta(ETIQUETA_RESULTADOS))
+        assertTrue("pueblo · Sóller · 12,4 km" in textos)
+        assertEquals(listOf("Ir"), banco.textos(banco.conEtiqueta(ETIQUETA_RESULTADO_IR + "0")))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_RESULTADO_IR + "0"))
+        assertEquals(listOf(Destino("Sóller", SOLLER)), elegidos)
+    }
+
+    @Test
+    fun `sin ruta posible la vista previa lo dice y ofrece probar otra vez`() {
+        poner(vistaPrevia(PerfilRuta.MAS_RAPIDA to OpcionRuta.SinDatos, PerfilRuta.SINUOSA to OpcionRuta.Error("x")))
+        assertTrue(banco.hay(ETIQUETA_SIN_RUTA))
+        assertEquals(
+            listOf("Probar otra vez"),
+            banco.textos(banco.conEtiqueta(ETIQUETA_REINTENTAR_RUTA)),
+        )
+        assertFalse(banco.hay(ETIQUETA_RUTA_RAPIDA))
+    }
+
+    @Test
     fun `con texto aparece borrar y cancela`() {
         poner(NavegacionUiState(texto = "Sól"))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_LIMPIAR))
@@ -253,8 +276,8 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     @Test
     fun `una ruta sin datos o con error lo dice y no se puede elegir`() {
         poner(vistaPrevia(PerfilRuta.MAS_RAPIDA to OpcionRuta.SinDatos, PerfilRuta.SINUOSA to OpcionRuta.Error("x")))
-        assertTrue("Sin datos de rutas" in banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA)))
-        assertTrue("No se pudo calcular" in banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA)))
+        assertTrue(banco.hay(ETIQUETA_SIN_RUTA))
+        assertFalse(banco.hay(ETIQUETA_RUTA_RAPIDA))
         assertFalse(banco.estaHabilitado(banco.conEtiqueta(ETIQUETA_EMPEZAR)))
     }
 

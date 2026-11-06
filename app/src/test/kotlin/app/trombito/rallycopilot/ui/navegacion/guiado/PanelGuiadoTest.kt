@@ -21,6 +21,7 @@ import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_DISTANCIA
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_FRASE
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_SIGUIENTE
+import app.trombito.rallycopilot.ui.navegacion.ResumenTrayecto
 import app.trombito.rallycopilot.ui.navegacion.notas.ETIQUETA_FRANJA_NOTAS
 import app.trombito.rallycopilot.ui.navegacion.notas.ETIQUETA_NOTA_PREFIJO
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
@@ -209,6 +210,22 @@ class PanelGuiadoTest {
         assertEquals("Cerrar", banco.descripcion(boton))
         banco.pulsar(boton)
         assertTrue(cerrada)
+    }
+
+    @Test
+    fun `la llegada sin nombre no ensena coordenadas y da tiempo y kilometros`() {
+        val sinNombre = Destino("39.8213, 2.8196", PuntoGeo(39.8213, 2.8196))
+        banco.poner {
+            RallyCopilotTheme {
+                TarjetaLlegada(
+                    sinNombre,
+                    onCerrar = {},
+                    resumen = ResumenTrayecto(tiempoS = 1_500.0, distanciaM = 31_900.0),
+                )
+            }
+        }
+        assertEquals(listOf("Destino"), textosDe(ETIQUETA_LLEGADA_DESTINO))
+        assertEquals(listOf("25 min · 31,9 km"), textosDe(ETIQUETA_LLEGADA_RESUMEN))
     }
 
     @Test

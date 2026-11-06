@@ -17,7 +17,7 @@ import app.trombito.rallycopilot.ui.ajustes.AjustesSeccionRoute
 import app.trombito.rallycopilot.ui.ajustes.SeccionAjustes
 import app.trombito.rallycopilot.ui.analisis.AnalisisRoute
 import app.trombito.rallycopilot.ui.inicio.EntradaInicio
-import app.trombito.rallycopilot.ui.inicio.InicioScreen
+import app.trombito.rallycopilot.ui.inicio.InicioRoute
 import app.trombito.rallycopilot.ui.mapa.MapaRoute
 import app.trombito.rallycopilot.ui.mapasoffline.MapasOfflineRoute
 import app.trombito.rallycopilot.ui.mapasoffline.ZonaDetalleRoute
@@ -44,7 +44,7 @@ fun AppNavHost(importacion: ImportarViewModel = hiltViewModel()) {
     val nav = rememberNavController()
     NavegarAlImportarDeFuera(importacion, nav)
     NavHost(navController = nav, startDestination = RutaInicio) {
-        composable<RutaInicio> { InicioScreen(onEntrada = { abrirEntrada(nav, it) }) }
+        composable<RutaInicio> { InicioRoute(onEntrada = { abrirEntrada(nav, it) }) }
         composable<RutaMapa> { DestinoMapa(nav) }
         composable<RutaMapasOffline> {
             MapasOfflineRoute(onVolver = { nav.popBackStack() }, onDescargarZona = { nav.navigate(RutaZonaDetalle) })
