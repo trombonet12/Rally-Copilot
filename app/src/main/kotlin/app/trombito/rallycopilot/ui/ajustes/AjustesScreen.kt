@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -66,6 +67,8 @@ data class AccionesAjustes(
     val onRelieve: (Boolean) -> Unit = {},
     val onCronometrar: (Boolean) -> Unit = {},
     val onNotasGrandes: (Boolean) -> Unit = {},
+    val onExportarCopia: () -> Unit = {},
+    val onImportarCopia: () -> Unit = {},
 )
 
 /**
@@ -78,6 +81,7 @@ fun AjustesScreen(
     ajustes: AjustesConduccion,
     acciones: AccionesAjustes,
     modifier: Modifier = Modifier,
+    copiaEnCurso: Boolean = false,
 ) {
     Column(modifier.fillMaxSize().safeDrawingPadding()) {
         BarraSuperior(stringResource(R.string.ajustes_titulo), acciones.onVolver)
@@ -96,19 +100,7 @@ fun AjustesScreen(
             SeccionMapa(ajustes, acciones)
             SeccionEscucha(ajustes, acciones)
             SeccionTema(ajustes.tema, acciones.onTema)
-            TarjetaSeccion(
-                clave = "datos",
-                icono = Iconos.Descarga,
-                titulo = R.string.ajustes_seccion_datos,
-                detalle = R.string.ajustes_seccion_datos_detalle,
-            ) {
-                FilaAjuste(
-                    stringResource(R.string.ajustes_mapas_offline),
-                    stringResource(R.string.ajustes_mapas_offline_detalle),
-                    ETIQUETA_AJUSTES_MAPAS,
-                    acciones.onMapasOffline,
-                )
-            }
+            SeccionDatos(acciones, copiaEnCurso)
             TarjetaSeccion(
                 clave = "acerca",
                 icono = Iconos.Informacion,
@@ -134,15 +126,20 @@ internal fun estadoSeleccion(seleccionado: Boolean) =
         rol = Role.RadioButton,
     )
 
+/** Una fila que lleva a otra pantalla o lanza una acción; [icono] va a la izquierda si lo hay. */
 @Composable
-private fun FilaAjuste(
+@Suppress("LongParameterList") // título, detalle, etiqueta de pruebas, clic, icono y estado de la fila
+internal fun FilaAjuste(
     titulo: String,
     detalle: String?,
     etiqueta: String,
     onClick: () -> Unit,
+    icono: ImageVector? = null,
+    habilitada: Boolean = true,
 ) {
     Surface(
         onClick = onClick,
+        enabled = habilitada,
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shape = MaterialTheme.shapes.small,
         modifier = Modifier.fillMaxWidth().testTag(etiqueta),
@@ -150,7 +147,11 @@ private fun FilaAjuste(
         Row(
             modifier = Modifier.heightIn(min = 56.dp).padding(horizontal = Espacio.l, vertical = Espacio.m),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Espacio.m),
         ) {
+            if (icono != null) {
+                Icon(icono, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            }
             Column(
                 Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center,
@@ -169,7 +170,9 @@ private fun FilaAjuste(
                     )
                 }
             }
-            Icon(Iconos.Siguiente, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (icono == null) {
+                Icon(Iconos.Siguiente, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

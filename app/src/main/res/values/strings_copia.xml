@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Copia de seguridad (Ajustes > Datos) -->
+    <string name="copia_exportar">Exportar copia</string>
+    <string name="copia_exportar_detalle">Guarda tus tramos, recorridos y ajustes en un archivo zip.</string>
+    <string name="copia_importar">Importar copia</string>
+    <string name="copia_importar_detalle">Recupera tus datos desde un archivo de copia.</string>
+    <string name="copia_progreso">Un momento…</string>
+    <string name="copia_confirmar_titulo">¿Importar la copia?</string>
+    <string name="copia_confirmar_texto">Se sustituirán tus tramos, recorridos y ajustes por los de la copia. La aplicación se reiniciará. Los mapas y las voces no cambian.</string>
+    <string name="copia_confirmar_aceptar">Elegir copia</string>
+    <string name="copia_cancelar">Cancelar</string>
+    <string name="copia_exportada">Copia guardada.</string>
+    <string name="copia_importada">Copia importada. Reiniciando la aplicación…</string>
+    <string name="copia_fallo_abrir">No se pudo leer o escribir el archivo.</string>
+    <string name="copia_fallo_invalido">Ese archivo no es una copia de Rally Copilot.</string>
+    <string name="copia_fallo_grande">El archivo es demasiado grande para ser una copia.</string>
+    <string name="copia_fallo_futuro">La copia es de una versión más nueva de la aplicación. Actualiza e inténtalo otra vez.</string>
+    <string name="copia_fallo_danada">La copia está estropeada. Tus datos actuales no se han tocado.</string>
+    <string name="copia_fallo_incompatible">La copia no es compatible con esta versión. Tus datos actuales no se han tocado.</string>
+</resources>
