@@ -1,31 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Secciones de Ajustes: título y una línea que explica para qué sirve -->
+    <!-- Portada de Ajustes: una tarjeta por sección con su valor actual -->
     <string name="ajustes_seccion_copiloto">Copiloto</string>
-    <string name="ajustes_seccion_copiloto_detalle">Cuánto habla y con qué voz.</string>
     <string name="ajustes_seccion_notas">Notas</string>
-    <string name="ajustes_seccion_notas_detalle">Cuándo te canta cada curva y cómo la dice.</string>
+    <string name="ajustes_seccion_voz">Voz</string>
+    <string name="ajustes_seccion_indicaciones">Indicaciones</string>
     <string name="ajustes_seccion_tramos">Tramos</string>
-    <string name="ajustes_seccion_tramos_detalle">Convertir tus trayectos en tramos cronometrados.</string>
-    <string name="ajustes_seccion_voz">Volumen de la voz</string>
-    <string name="ajustes_seccion_voz_detalle">La fuerza del copiloto, aparte del volumen del móvil.</string>
     <string name="ajustes_seccion_mapa">Mapa</string>
-    <string name="ajustes_seccion_mapa_detalle">Cómo se ve el mapa mientras conduces.</string>
     <string name="ajustes_seccion_escucha">Escucha</string>
-    <string name="ajustes_seccion_escucha_detalle">Hablar con el copiloto sin tocar el móvil.</string>
     <string name="ajustes_seccion_tema">Tema</string>
-    <string name="ajustes_seccion_tema_detalle">Colores de la aplicación.</string>
     <string name="ajustes_seccion_datos">Datos</string>
-    <string name="ajustes_seccion_datos_detalle">Lo que se guarda en el móvil para funcionar sin internet.</string>
     <string name="ajustes_seccion_acerca">Acerca de</string>
-    <string name="ajustes_seccion_acerca_detalle">Versión, licencia y de dónde salen los datos.</string>
-    <string name="ajustes_mapas_offline_detalle">Mapa de Mallorca y satélite descargados.</string>
+    <string name="ajustes_valor_notas">Anticipación %1$s s</string>
+    <string name="ajustes_valor_voz">%1$s · %2$d %%</string>
+    <string name="ajustes_valor_voz_sin_elegir">Sin elegir · %1$d %%</string>
+    <string name="ajustes_valor_indicaciones_todas">Todas activas</string>
+    <string name="ajustes_valor_indicaciones_algunas">%1$d de 3 activas</string>
+    <string name="ajustes_valor_indicaciones_ninguna">Ninguna activa</string>
+    <string name="ajustes_valor_tramos_automatica">Salida automática</string>
+    <string name="ajustes_valor_tramos_manual">Salida manual</string>
+    <string name="ajustes_valor_tramos_sin">Sin cronómetro</string>
+    <string name="ajustes_valor_mapa">%1$s · %2$s</string>
+    <string name="ajustes_valor_mapa_normal">Mapa</string>
+    <string name="ajustes_valor_escucha_si">«Copiloto» activado</string>
+    <string name="ajustes_valor_escucha_no">Desactivada</string>
+    <string name="ajustes_valor_datos">Copia y mapas offline</string>
+    <string name="ajustes_valor_acerca">Versión y licencias</string>
 
-    <!-- Una línea de explicación por opción -->
+    <!-- Nombre de cada voz: el del catálogo -->
+    <string name="ajustes_voz_davefx">Dave (davefx)</string>
+    <string name="ajustes_voz_sharvard">Sharvard</string>
+
+    <!-- Una línea de explicación por opción: va dentro del botón ⓘ -->
+    <string name="ajustes_info_boton">Más información sobre %1$s</string>
     <string name="ajustes_modo_detalle">Elige cuánto te habla el copiloto.</string>
     <string name="ajustes_voz_detalle">Toca el triángulo de una voz para oírla.</string>
     <string name="ajustes_anticipacion_detalle">Cuántos segundos antes de la curva te canta la nota.</string>
     <string name="ajustes_simplificadas_detalle">Dice «media» o «suave» en vez del número de cada curva.</string>
+    <string name="ajustes_simplificadas_corto">«Media» o «suave» en vez del número.</string>
     <string name="ajustes_zoom_detalle">Cuánto de cerca ves el mapa al conducir.</string>
     <string name="ajustes_icono_detalle">El dibujo que te representa en el mapa.</string>
     <string name="ajustes_orientacion_detalle">Rumbo arriba gira el mapa contigo; norte arriba lo deja fijo.</string>
@@ -35,27 +47,63 @@
     <string name="ajustes_capa_satelite">Satélite</string>
     <string name="ajustes_relieve">Relieve y curvas de nivel</string>
     <string name="ajustes_relieve_detalle">Dibuja las montañas para ver mejor las subidas.</string>
+    <string name="ajustes_relieve_corto">Dibuja las montañas.</string>
+    <string name="ajustes_copiloto_palabra_corto">Di «Copiloto» y da una orden.</string>
+
+    <!-- Etiquetas de 12 sp bajo los iconos que no se explican solos -->
+    <string name="ajustes_segundos_etiqueta">%1$s s</string>
+    <string name="ajustes_zoom_corto_muy_lejos">Muy lejos</string>
+    <string name="ajustes_zoom_corto_lejos">Lejos</string>
+    <string name="ajustes_zoom_corto_normal">Normal</string>
+    <string name="ajustes_zoom_corto_cerca">Cerca</string>
+    <string name="ajustes_zoom_corto_muy_cerca">Muy cerca</string>
+    <string name="ajustes_icono_corto_flecha">Flecha</string>
+    <string name="ajustes_icono_corto_flecha_wrc">Rally</string>
+    <string name="ajustes_icono_corto_coche">Coche</string>
+    <string name="ajustes_icono_corto_casco">Casco</string>
 
     <!-- Vista previa en vivo -->
     <string name="ajustes_prevista_anticipacion">Te la canta %1$s s antes (a 90 km/h, a %2$d m)</string>
     <string name="ajustes_prevista_escuchar">Escuchar ejemplo</string>
     <string name="ajustes_prevista_escuchar_descripcion">Escuchar un ejemplo con tu voz y tu volumen</string>
-    <string name="ajustes_prevista_mapa">Así se verán tu posición y los avisos</string>
-    <string name="ajustes_prevista_mapa_descripcion">Muestra: icono de posición %1$s y flecha de aviso</string>
+    <string name="ajustes_prevista_curva">Curva</string>
+    <string name="ajustes_prevista_aviso">Aviso</string>
+    <string name="ajustes_prevista_distancia_descripcion">La nota suena a %1$d metros de la curva</string>
+    <string name="ajustes_prevista_voz_volumen">Volumen %1$d %%</string>
+    <string name="ajustes_prevista_voz_descripcion">Voz %1$s al %2$d por ciento</string>
+    <string name="ajustes_prevista_voz_sin_elegir">Elige una voz para que hable</string>
+    <string name="ajustes_prevista_indicaciones_si">%1$s: avisa</string>
+    <string name="ajustes_prevista_indicaciones_no">%1$s: no avisa</string>
+    <string name="ajustes_prevista_cruces">Cruces</string>
+    <string name="ajustes_prevista_salidas">Salidas</string>
+    <string name="ajustes_prevista_rotondas">Rotondas</string>
+    <string name="ajustes_prevista_mapa_descripcion">Mapa de ejemplo: %1$s, %2$s, icono %3$s</string>
+    <string name="ajustes_prevista_escucha_si">Escuchando «Copiloto»…</string>
+    <string name="ajustes_prevista_escucha_no">Micrófono apagado</string>
+    <string name="ajustes_prevista_escucha_si_descripcion">Escucha la palabra Copiloto mientras conduces</string>
+    <string name="ajustes_prevista_escucha_no_descripcion">No escucha: usa el botón del micrófono</string>
 
-    <!-- Tramos y notas grandes -->
+    <!-- Tramos -->
     <string name="ajustes_cronometrar">Cronometrar trayectos</string>
+    <string name="ajustes_cronometrar_corto">Cada trayecto es un tramo con su crono.</string>
     <string name="ajustes_cronometrar_detalle">Cada trayecto se guarda como tramo con su cronómetro. Desactivado no se crean tramos ni se detectan los guardados; las notas, los avisos y el guiado siguen.</string>
     <string name="ajustes_salida_manual">Salida manual</string>
+    <string name="ajustes_salida_manual_corto">Tú das la salida con una cuenta atrás.</string>
     <string name="ajustes_salida_manual_detalle">Tú das la salida con el botón SALIDA y una cuenta atrás de cinco luces. Desactivada, el cronómetro arranca solo al moverte.</string>
     <string name="ajustes_prevista_crono_activo">Cronómetro activo: 1 minuto 23 segundos, 0,4 segundos menos que tu mejor tiempo</string>
+    <string name="ajustes_prevista_crono_manual">Cronómetro listo: la salida es manual, con cuenta atrás de cinco luces</string>
     <string name="ajustes_prevista_crono_inactivo">Sin cronómetro: solo notas y guiado</string>
     <string name="ajustes_prevista_crono_tiempo">01:23,4</string>
     <string name="ajustes_prevista_crono_delta">-0,4 s</string>
+    <string name="ajustes_prevista_crono_listo">LISTO</string>
+    <string name="ajustes_prevista_crono_pie_manual">Pulsas SALIDA y empieza la cuenta atrás</string>
+    <string name="ajustes_prevista_crono_pie_auto">El cronómetro arranca solo al moverte</string>
     <string name="ajustes_notas_grandes">Notas grandes al conducir</string>
+    <string name="ajustes_notas_grandes_corto">Roadbook: la nota enorme y casi sin mapa.</string>
     <string name="ajustes_notas_grandes_detalle">Pantalla de roadbook: la nota enorme y casi sin mapa. También con el botón del panel.</string>
 
     <!-- Volumen -->
+    <string name="ajustes_volumen_titulo">Volumen del copiloto</string>
     <string name="ajustes_volumen_valor">%1$d %%</string>
     <string name="ajustes_volumen_descripcion">Volumen de la voz del copiloto</string>
     <string name="ajustes_volumen_estado">%1$d por ciento</string>
@@ -64,14 +112,36 @@
     <!-- Tema -->
     <string name="ajustes_tema_oscuro">Oscuro</string>
     <string name="ajustes_tema_claro">Claro</string>
-    <string name="ajustes_tema_sistema">Como el móvil</string>
-    <string name="ajustes_tema_detalle">Oscuro es el de siempre; «Como el móvil» sigue el modo del teléfono.</string>
-    <string name="ajustes_tema_muestra">Así se verá la app</string>
+    <string name="ajustes_tema_sistema">Automático</string>
+    <string name="ajustes_tema_detalle">Automático sigue el modo claro u oscuro del teléfono.</string>
     <string name="ajustes_tema_muestra_descripcion">Muestra del tema %1$s</string>
     <string name="ajustes_tema_muestra_velocidad">87</string>
-    <string name="ajustes_tema_muestra_unidad">km/h</string>
     <string name="ajustes_tema_muestra_delta">-0,4 s</string>
-    <string name="ajustes_tema_muestra_titulo">Botón</string>
+
+    <!-- Datos -->
+    <string name="ajustes_mapas_offline_detalle">Mapa de Mallorca y satélite descargados.</string>
+    <string name="ajustes_datos_copia_titulo">Copia de seguridad</string>
+
+    <!-- Acerca de -->
+    <string name="acerca_licencia_corta">GPL-3.0</string>
+    <string name="acerca_mascota">Trombito, la mascota de Rally Copilot, con casco de rally</string>
+    <string name="acerca_expandir">Mostrar detalle de %1$s</string>
+    <string name="acerca_t_osm">OpenStreetMap · ODbL</string>
+    <string name="acerca_t_pnoa">Ortofotos IGN · CC BY 4.0</string>
+    <string name="acerca_t_dgt">DGT · radares e incidencias</string>
+    <string name="acerca_t_protomaps">Protomaps · BSD-3 y CC0</string>
+    <string name="acerca_t_noto">Noto Sans · OFL</string>
+    <string name="acerca_t_maplibre">MapLibre Native · BSD-2</string>
+    <string name="acerca_t_sherpa">sherpa-onnx · Apache-2.0</string>
+    <string name="acerca_t_vosk">Vosk · Apache-2.0</string>
+    <string name="acerca_t_espeak">espeak-ng · GPL-3.0</string>
+    <string name="acerca_t_sharvard">Voz Sharvard · CC BY 3.0</string>
+    <string name="acerca_dgt">DGT (radares e incidencias): datos abiertos de la Dirección General de Tráfico, usados según sus condiciones de reutilización</string>
+
+    <!-- Mapas offline -->
+    <string name="mapas_uso">%1$s de %2$s</string>
+    <string name="mapas_detalle_borrar_titulo">¿Borrar el detalle?</string>
+    <string name="mapas_detalle_borrar_texto">Se eliminarán las imágenes de detalle descargadas. Podrás volver a descargarlas con WiFi.</string>
 
     <!-- Ajustes rápidos en el mapa -->
     <string name="rapidos_boton">Ajustes rápidos</string>

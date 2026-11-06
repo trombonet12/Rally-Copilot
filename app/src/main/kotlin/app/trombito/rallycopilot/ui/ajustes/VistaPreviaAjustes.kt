@@ -42,7 +42,6 @@ import kotlin.math.roundToInt
 const val ETIQUETA_PREVISTA_NOTA = "prevista-nota"
 const val ETIQUETA_PREVISTA_ANTICIPACION = "prevista-anticipacion"
 const val ETIQUETA_PREVISTA_ESCUCHAR = "prevista-escuchar"
-const val ETIQUETA_PREVISTA_VOLUMEN = "prevista-volumen"
 
 /** Posición de la tarjeta de ejemplo: lejos de los índices 0..2 de la franja de notas del mapa. */
 private const val INDICE_EJEMPLO = 90
@@ -139,26 +138,7 @@ internal fun BotonEscucharEjemplo(
     }
 }
 
-/**
- * Vista previa de las notas: la tarjeta de ejemplo, cuánto antes se canta con el nivel elegido y ▶ para oírla con la
- * voz y el volumen de los ajustes. Cambia al tocar la anticipación o «notas simplificadas».
- */
-@Composable
-internal fun VistaPreviaNotas(
-    anticipacion: NivelAnticipacion,
-    simplificadas: Boolean,
-    onEscuchar: () -> Unit,
-    modifier: Modifier = Modifier,
-    mostrarAnticipacion: Boolean = true,
-) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
-        TarjetaNotaEjemplo(simplificadas, Modifier.fillMaxWidth())
-        if (mostrarAnticipacion) TextoAnticipacion(anticipacion)
-        BotonEscucharEjemplo(onEscuchar)
-    }
-}
-
-/** La misma vista previa en pequeño para la hoja del mapa: tarjeta reducida, línea de anticipación y ▶ de icono. */
+/** Vista previa en pequeño para la hoja del mapa: tarjeta reducida, línea de anticipación y ▶ de icono. */
 @Composable
 internal fun VistaPreviaNotasReducida(
     anticipacion: NivelAnticipacion,

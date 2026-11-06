@@ -134,14 +134,10 @@ class CopiaAjustesPantallaTest {
     fun `datos ofrece exportar e importar con icono`() {
         var exportar = 0
         var importar = 0
-        banco.poner {
-            RallyCopilotTheme {
-                AjustesScreen(
-                    ajustes = AjustesConduccion(),
-                    acciones = AccionesAjustes(onExportarCopia = { exportar++ }, onImportarCopia = { importar++ }),
-                )
-            }
-        }
+        banco.ponerAjustes(
+            seccion = SeccionAjustes.DATOS,
+            acciones = AccionesAjustes(onExportarCopia = { exportar++ }, onImportarCopia = { importar++ }),
+        )
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AJUSTES_EXPORTAR))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AJUSTES_IMPORTAR))
         assertEquals(1, exportar)
@@ -154,15 +150,11 @@ class CopiaAjustesPantallaTest {
     @Test
     fun `con una copia en curso las filas no responden`() {
         var toques = 0
-        banco.poner {
-            RallyCopilotTheme {
-                AjustesScreen(
-                    ajustes = AjustesConduccion(),
-                    acciones = AccionesAjustes(onExportarCopia = { toques++ }, onImportarCopia = { toques++ }),
-                    copiaEnCurso = true,
-                )
-            }
-        }
+        banco.ponerAjustes(
+            seccion = SeccionAjustes.DATOS,
+            acciones = AccionesAjustes(onExportarCopia = { toques++ }, onImportarCopia = { toques++ }),
+            copiaEnCurso = true,
+        )
         assertTrue(!banco.estaHabilitado(banco.conEtiqueta(ETIQUETA_AJUSTES_EXPORTAR)))
         assertTrue(!banco.estaHabilitado(banco.conEtiqueta(ETIQUETA_AJUSTES_IMPORTAR)))
         assertTrue(banco.hay(ETIQUETA_COPIA_PROGRESO))

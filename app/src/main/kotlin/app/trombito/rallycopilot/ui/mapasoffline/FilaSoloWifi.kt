@@ -22,8 +22,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.ui.theme.Ayuda
+import app.trombito.rallycopilot.ui.theme.Cuerpo
 
 const val ETIQUETA_SOLO_WIFI = "mapas-solo-wifi"
 const val ETIQUETA_DATOS_CONFIRMAR = "mapas-datos-confirmar"
@@ -54,10 +57,10 @@ internal fun FilaSoloWifi(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(stringResource(R.string.mapas_solo_wifi), style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.mapas_solo_wifi), style = Cuerpo, fontWeight = FontWeight.SemiBold)
             Text(
                 text = stringResource(R.string.mapas_solo_wifi_detalle),
-                style = MaterialTheme.typography.bodySmall,
+                style = Ayuda,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }

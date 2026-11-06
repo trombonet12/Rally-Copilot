@@ -165,13 +165,19 @@ private fun OpcionRutaTarjeta(
                     estado?.let { stateDescription = it }
                 },
     ) {
-        Row(
+        Column(
             modifier = Modifier.padding(horizontal = Espacio.m, vertical = Espacio.s),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Espacio.s),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Espacio.xs),
         ) {
             val icono: ImageVector = if (rapida) Iconos.Rayo else Iconos.Curvas
             Icon(icono, contentDescription = null, tint = if (seleccionada) colores.primary else colores.onSurface)
+            Text(
+                text = stringResource(tituloRuta(rapida)),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (seleccionada) colores.primary else colores.onSurface,
+                maxLines = 1,
+            )
             ContenidoOpcion(opcion)
         }
     }
@@ -185,7 +191,7 @@ private fun ContenidoOpcion(opcion: OpcionRuta) {
         }
 
         is OpcionRuta.Lista -> {
-            Column {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     text = formatearDuracionRuta(opcion.tiempoS),
                     style = MaterialTheme.typography.titleMedium,
@@ -246,3 +252,8 @@ private fun resumenOpcion(opcion: OpcionRuta): String =
             stringResource(R.string.navegacion_ui_ruta_error)
         }
     }
+
+/** El título corto bajo el icono de cada ruta. */
+@StringRes
+private fun tituloRuta(rapida: Boolean): Int =
+    if (rapida) R.string.navegacion_ui_ruta_rapida_titulo else R.string.navegacion_ui_ruta_sinuosa_titulo

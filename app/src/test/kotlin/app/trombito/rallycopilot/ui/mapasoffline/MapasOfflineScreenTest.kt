@@ -5,6 +5,7 @@ import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
+import app.trombito.rallycopilot.domain.datos.EstadoDetalle
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
 import app.trombito.rallycopilot.ui.comun.BancoCompose
@@ -79,10 +80,64 @@ class MapasOfflineScreenTest {
         assertTrue(banco.hay("mapas-fase-instalado"))
         assertTrue("Versión 2026.10.1" in textos())
         assertTrue("Incluye satélite" in textos())
-        assertTrue(textos().any { it.startsWith("Ocupan ") })
+        assertTrue(textos().any { it.startsWith("1,4 GB de ") && it.endsWith(" GB") })
         assertFalse(banco.hay(ETIQUETA_DESCARGAR))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_BORRAR))
         assertEquals("el borrado pide confirmación antes de ejecutarse", 0, borrados)
+    }
+
+    @Test
+    fun `la barra de uso enseña lo que ocupan los mapas frente al limite elegido`() {
+        poner(
+            EstadoDatosMapa(instalados = instalados),
+            AjustesMapas(limiteBytes = 8L * BYTES_POR_GB),
+        )
+        assertEquals(listOf("1,4 GB de 8 GB"), banco.textos(banco.conEtiqueta(ETIQUETA_USO)))
+    }
+
+    @Test
+    fun `el borrado del satelite pide confirmacion y al aceptar borra`() {
+        var borrados = 0
+        poner(EstadoDatosMapa(instalados = instalados), acciones = AccionesMapasOffline(onBorrar = { borrados++ }))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_BORRAR))
+        assertTrue(banco.hay(ETIQUETA_BORRAR_CONFIRMAR))
+        assertTrue("¿Borrar el satélite?" in banco.todosLosTextos())
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_BORRAR_CONFIRMAR))
+        assertEquals(1, borrados)
+        assertFalse(banco.hay(ETIQUETA_BORRAR_CONFIRMAR))
+    }
+
+    @Test
+    fun `el borrado del detalle tambien pide confirmacion`() {
+        var borrados = 0
+        val estado =
+            MapasOfflineUiState(
+                cargando = false,
+                datos = EstadoDatosMapa(instalados = instalados),
+                detalle = EstadoDetalle(bytes = 50_000_000, teselas = 1_200),
+            )
+        ponerEstado(estado, AccionesMapasOffline(onBorrarDetalle = { borrados++ }))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_DETALLE_BORRAR))
+        assertEquals("sin confirmar no se borra", 0, borrados)
+        assertTrue("¿Borrar el detalle?" in banco.todosLosTextos())
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_DETALLE_BORRAR_CONFIRMAR))
+        assertEquals(1, borrados)
+    }
+
+    @Test
+    fun `cancelar el borrado del detalle no borra`() {
+        var borrados = 0
+        val estado =
+            MapasOfflineUiState(
+                cargando = false,
+                datos = EstadoDatosMapa(instalados = instalados),
+                detalle = EstadoDetalle(bytes = 50_000_000, teselas = 1_200),
+            )
+        ponerEstado(estado, AccionesMapasOffline(onBorrarDetalle = { borrados++ }))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_DETALLE_BORRAR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_BORRAR_CANCELAR))
+        assertEquals(0, borrados)
+        assertFalse(banco.hay(ETIQUETA_DETALLE_BORRAR_CONFIRMAR))
     }
 
     @Test

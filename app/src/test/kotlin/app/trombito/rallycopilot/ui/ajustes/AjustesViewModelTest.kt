@@ -203,4 +203,21 @@ class AjustesViewModelTest {
             assertTrue(guardado.notasGrandes)
             assertEquals(1, guardado.nivelZoom)
         }
+
+    @Test
+    fun `las indicaciones se guardan una a una y conservan el resto`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(nivelZoom = 1)
+            val vm = crear()
+            vm.onAvisarCruces(false)
+            assertEquals(false, repositorio.mutable.value.avisarCruces)
+            assertTrue(repositorio.mutable.value.avisarSalidasAutopista)
+            vm.onAvisarSalidasAutopista(false)
+            vm.onAvisarRotondas(false)
+            val guardado = repositorio.mutable.value
+            assertFalse(guardado.avisarCruces || guardado.avisarSalidasAutopista || guardado.avisarRotondas)
+            assertEquals(1, guardado.nivelZoom)
+            vm.onAvisarRotondas(true)
+            assertTrue(repositorio.mutable.value.avisarRotondas)
+        }
 }

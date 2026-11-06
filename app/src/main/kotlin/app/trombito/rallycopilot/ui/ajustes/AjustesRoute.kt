@@ -24,12 +24,28 @@ private const val TIPO_ZIP = "application/zip"
 /** Algunos proveedores (descargas, Windows) dan al zip otro tipo; la validación del contenido hace de filtro. */
 private val TIPOS_COPIA = arrayOf(TIPO_ZIP, "application/x-zip-compressed", "application/octet-stream")
 
-/** Une el ViewModel de ajustes con la pantalla sin lógica; la copia usa el selector de archivos del sistema. */
+/** Une el ViewModel de ajustes con la portada, sin lógica: cada tarjeta lleva a su subpantalla. */
 @Composable
-@Suppress("LongParameterList") // navegación, modificador y los dos ViewModel de Hilt
 fun AjustesRoute(
+    onSeccion: (SeccionAjustes) -> Unit,
+    onVolver: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: AjustesViewModel = hiltViewModel(),
+) {
+    val ajustes by viewModel.uiState.collectAsStateWithLifecycle()
+    AjustesScreen(
+        ajustes = ajustes,
+        acciones = AccionesAjustes(onVolver = onVolver, onSeccion = onSeccion),
+        modifier = modifier,
+    )
+}
+
+/** Une los ViewModel con una subpantalla; la copia usa el selector de archivos del sistema. */
+@Composable
+@Suppress("LongParameterList") // sección, navegación, modificador y los dos ViewModel de Hilt
+fun AjustesSeccionRoute(
+    seccion: SeccionAjustes,
     onMapasOffline: () -> Unit,
-    onAcercaDe: () -> Unit,
     onVolver: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AjustesViewModel = hiltViewModel(),
@@ -49,30 +65,12 @@ fun AjustesRoute(
             if (uri != null) copia.importar { contexto.contentResolver.openInputStream(uri) }
         }
     Box(modifier) {
-        AjustesScreen(
+        AjustesSeccionScreen(
+            seccion = seccion,
             ajustes = ajustes,
             acciones =
-                AccionesAjustes(
-                    onVolver = onVolver,
+                accionesDe(viewModel, onVolver).copy(
                     onMapasOffline = onMapasOffline,
-                    onAcercaDe = onAcercaDe,
-                    onNivelZoom = viewModel::onNivelZoom,
-                    onIcono = viewModel::onIcono,
-                    onOrientacion = viewModel::onOrientacion,
-                    onAnticipacion = viewModel::onAnticipacion,
-                    onNotasSimplificadas = viewModel::onNotasSimplificadas,
-                    onModoCopiloto = viewModel::onModoCopiloto,
-                    onVozCopiloto = viewModel::onVozCopiloto,
-                    onProbarVoz = viewModel::onProbarVoz,
-                    onActivarConCopiloto = viewModel::onActivarConCopiloto,
-                    onVolumenVoz = viewModel::onVolumenVoz,
-                    onEscucharEjemplo = viewModel::onEscucharEjemplo,
-                    onTema = viewModel::onTema,
-                    onCapa = viewModel::onCapa,
-                    onRelieve = viewModel::onRelieve,
-                    onCronometrar = viewModel::onCronometrar,
-                    onSalidaManual = viewModel::onSalidaManual,
-                    onNotasGrandes = viewModel::onNotasGrandes,
                     onExportarCopia = { guardarCopia.launch(nombreArchivoCopia()) },
                     onImportarCopia = { confirmando = true },
                 ),
@@ -91,3 +89,31 @@ fun AjustesRoute(
     }
     AvisoCopia(estadoCopia, avisos, copia::avisoVisto)
 }
+
+/** Los callbacks de ajustes que son un método del ViewModel. */
+private fun accionesDe(
+    viewModel: AjustesViewModel,
+    onVolver: () -> Unit,
+) = AccionesAjustes(
+    onVolver = onVolver,
+    onNivelZoom = viewModel::onNivelZoom,
+    onIcono = viewModel::onIcono,
+    onOrientacion = viewModel::onOrientacion,
+    onAnticipacion = viewModel::onAnticipacion,
+    onNotasSimplificadas = viewModel::onNotasSimplificadas,
+    onModoCopiloto = viewModel::onModoCopiloto,
+    onVozCopiloto = viewModel::onVozCopiloto,
+    onProbarVoz = viewModel::onProbarVoz,
+    onActivarConCopiloto = viewModel::onActivarConCopiloto,
+    onVolumenVoz = viewModel::onVolumenVoz,
+    onEscucharEjemplo = viewModel::onEscucharEjemplo,
+    onTema = viewModel::onTema,
+    onCapa = viewModel::onCapa,
+    onRelieve = viewModel::onRelieve,
+    onCronometrar = viewModel::onCronometrar,
+    onSalidaManual = viewModel::onSalidaManual,
+    onNotasGrandes = viewModel::onNotasGrandes,
+    onAvisarCruces = viewModel::onAvisarCruces,
+    onAvisarSalidasAutopista = viewModel::onAvisarSalidasAutopista,
+    onAvisarRotondas = viewModel::onAvisarRotondas,
+)

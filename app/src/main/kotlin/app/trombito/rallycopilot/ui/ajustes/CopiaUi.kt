@@ -1,5 +1,7 @@
 package app.trombito.rallycopilot.ui.ajustes
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
@@ -15,6 +17,8 @@ import androidx.compose.ui.res.stringResource
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.copia.MotivoCopiaInvalida
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.theme.Ayuda
+import app.trombito.rallycopilot.ui.theme.Espacio
 import java.time.LocalDate
 
 const val ETIQUETA_AJUSTES_EXPORTAR = "ajustes-copia-exportar"
@@ -26,43 +30,42 @@ const val ETIQUETA_COPIA_CANCELAR = "ajustes-copia-cancelar"
 /** Nombre propuesto al guardar la copia: `rally-copilot-AAAA-MM-DD.zip`. */
 fun nombreArchivoCopia(fecha: LocalDate = LocalDate.now()): String = "rally-copilot-$fecha.zip"
 
-/** Sección «Datos»: mapas offline, exportar e importar la copia de seguridad (con progreso mientras trabaja). */
+/** Datos: Mapas offline y, bajo «Copia de seguridad», exportar e importar (con progreso mientras trabaja). */
 @Composable
-internal fun SeccionDatos(
+internal fun ControlesDatos(
     acciones: AccionesAjustes,
     copiaEnCurso: Boolean,
 ) {
-    TarjetaSeccion(
-        clave = "datos",
-        icono = Iconos.Descarga,
-        titulo = R.string.ajustes_seccion_datos,
-        detalle = R.string.ajustes_seccion_datos_detalle,
-    ) {
-        FilaAjuste(
-            titulo = stringResource(R.string.ajustes_mapas_offline),
-            detalle = stringResource(R.string.ajustes_mapas_offline_detalle),
-            etiqueta = ETIQUETA_AJUSTES_MAPAS,
-            onClick = acciones.onMapasOffline,
-        )
-        FilaAjuste(
-            titulo = stringResource(R.string.copia_exportar),
-            detalle = stringResource(R.string.copia_exportar_detalle),
-            etiqueta = ETIQUETA_AJUSTES_EXPORTAR,
-            onClick = acciones.onExportarCopia,
-            icono = Iconos.Descarga,
-            habilitada = !copiaEnCurso,
-        )
-        FilaAjuste(
-            titulo = stringResource(R.string.copia_importar),
-            detalle = stringResource(R.string.copia_importar_detalle),
-            etiqueta = ETIQUETA_AJUSTES_IMPORTAR,
-            onClick = acciones.onImportarCopia,
-            icono = Iconos.Importar,
-            habilitada = !copiaEnCurso,
-        )
-        if (copiaEnCurso) {
-            LinearProgressIndicator(Modifier.fillMaxWidth().testTag(ETIQUETA_COPIA_PROGRESO))
-            Text(stringResource(R.string.copia_progreso))
+    FilaAccion(
+        titulo = stringResource(R.string.ajustes_mapas_offline),
+        detalle = stringResource(R.string.ajustes_mapas_offline_detalle),
+        etiqueta = ETIQUETA_AJUSTES_MAPAS,
+        onClick = acciones.onMapasOffline,
+        icono = Iconos.Mapa,
+        navega = true,
+    )
+    Opcion(R.string.ajustes_datos_copia_titulo, null) {
+        Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+            FilaAccion(
+                titulo = stringResource(R.string.copia_exportar),
+                detalle = stringResource(R.string.copia_exportar_detalle),
+                etiqueta = ETIQUETA_AJUSTES_EXPORTAR,
+                onClick = acciones.onExportarCopia,
+                icono = Iconos.Descarga,
+                habilitada = !copiaEnCurso,
+            )
+            FilaAccion(
+                titulo = stringResource(R.string.copia_importar),
+                detalle = stringResource(R.string.copia_importar_detalle),
+                etiqueta = ETIQUETA_AJUSTES_IMPORTAR,
+                onClick = acciones.onImportarCopia,
+                icono = Iconos.Importar,
+                habilitada = !copiaEnCurso,
+            )
+            if (copiaEnCurso) {
+                LinearProgressIndicator(Modifier.fillMaxWidth().testTag(ETIQUETA_COPIA_PROGRESO))
+                Text(stringResource(R.string.copia_progreso), style = Ayuda)
+            }
         }
     }
 }

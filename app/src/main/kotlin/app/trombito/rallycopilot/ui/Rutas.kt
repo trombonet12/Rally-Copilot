@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui
 
+import app.trombito.rallycopilot.ui.ajustes.SeccionAjustes
 import kotlinx.serialization.Serializable
 
 /** Pantalla de mapa (modo libre provisional hasta que existan los tramos). */
@@ -13,8 +14,15 @@ data object RutaMapasOffline
 @Serializable
 data object RutaZonaDetalle
 
+/** Portada de Ajustes: una tarjeta por sección con su valor actual. */
 @Serializable
 data object RutaAjustes
+
+/** Subpantalla de una sección de Ajustes: vista previa fija arriba y los controles debajo. */
+@Serializable
+data class RutaAjustesSeccion(
+    val seccion: SeccionAjustes,
+)
 
 @Serializable
 data object RutaAcercaDe

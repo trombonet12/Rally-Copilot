@@ -32,16 +32,19 @@ class AjustesConduccionScreenTest {
     private val banco = BancoCompose()
 
     private fun poner(
+        seccion: SeccionAjustes,
         ajustes: AjustesConduccion = AjustesConduccion(),
         acciones: AccionesAjustes = AccionesAjustes(),
-    ) = banco.poner { RallyCopilotTheme { AjustesScreen(ajustes, acciones) } }
+    ) = banco.ponerAjustes(ajustes, seccion, acciones)
 
     @Test
-    fun `el zoom ofrece cinco niveles con icono y sin texto y marca el elegido`() {
-        poner(AjustesConduccion(nivelZoom = 1))
+    fun `el zoom ofrece cinco niveles con icono y etiqueta bajo el boton y marca el elegido`() {
+        poner(SeccionAjustes.MAPA, AjustesConduccion(nivelZoom = 1))
         val etiquetas = banco.etiquetas(ETIQUETA_ZOOM_PREFIJO)
         assertEquals(5, etiquetas.size)
         etiquetas.forEach { assertTrue(banco.textos(banco.conEtiqueta(it)).isEmpty()) }
+        val visibles = banco.textos(banco.raiz())
+        listOf("Muy lejos", "Lejos", "Normal", "Cerca", "Muy cerca").forEach { assertTrue("Falta $it", it in visibles) }
         assertEquals("Mucho más lejos", banco.descripcion(banco.conEtiqueta(ETIQUETA_ZOOM_PREFIJO + -2)))
         assertEquals("Mucho más cerca", banco.descripcion(banco.conEtiqueta(ETIQUETA_ZOOM_PREFIJO + 2)))
     }
@@ -49,7 +52,7 @@ class AjustesConduccionScreenTest {
     @Test
     fun `elegir un nivel de zoom lo pide`() {
         val pedidos = mutableListOf<Int>()
-        poner(acciones = AccionesAjustes(onNivelZoom = { pedidos += it }))
+        poner(SeccionAjustes.MAPA, acciones = AccionesAjustes(onNivelZoom = { pedidos += it }))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_ZOOM_PREFIJO + -2))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_ZOOM_PREFIJO + 2))
         assertEquals(listOf(-2, 2), pedidos)
@@ -58,7 +61,7 @@ class AjustesConduccionScreenTest {
     @Test
     fun `hay una miniatura por icono de posicion y se puede elegir`() {
         val pedidos = mutableListOf<IconoPosicion>()
-        poner(acciones = AccionesAjustes(onIcono = { pedidos += it }))
+        poner(SeccionAjustes.MAPA, acciones = AccionesAjustes(onIcono = { pedidos += it }))
         assertEquals(IconoPosicion.entries.size, banco.etiquetas(ETIQUETA_ICONO_PREFIJO).size)
         IconoPosicion.entries.forEach { icono ->
             val nodo = banco.conEtiqueta(ETIQUETA_ICONO_PREFIJO + icono.name.lowercase())
@@ -72,23 +75,25 @@ class AjustesConduccionScreenTest {
 
     @Test
     fun `ya no hay selector del estilo de maniobras`() {
-        poner()
+        poner(SeccionAjustes.MAPA)
         assertTrue(banco.etiquetas("ajustes-maniobras-").isEmpty())
     }
 
     @Test
     fun `la orientacion se elige con dos iconos`() {
         val pedidas = mutableListOf<Orientacion>()
-        poner(acciones = AccionesAjustes(onOrientacion = { pedidas += it }))
+        poner(SeccionAjustes.MAPA, acciones = AccionesAjustes(onOrientacion = { pedidas += it }))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_ORIENTACION_NORTE))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_ORIENTACION_RUMBO))
         assertEquals(listOf(Orientacion.NORTE, Orientacion.RUMBO), pedidas)
         assertTrue(banco.textos(banco.conEtiqueta(ETIQUETA_ORIENTACION_NORTE)).isEmpty())
+        val visibles = banco.textos(banco.raiz())
+        assertTrue("Rumbo arriba" in visibles && "Norte arriba" in visibles)
     }
 
     @Test
-    fun `la anticipacion ofrece cinco niveles con icono y sin texto y marca el elegido`() {
-        poner(AjustesConduccion(anticipacion = NivelAnticipacion.TARDE))
+    fun `la anticipacion ofrece cinco niveles con icono y los segundos debajo y marca el elegido`() {
+        poner(SeccionAjustes.NOTAS, AjustesConduccion(anticipacion = NivelAnticipacion.TARDE))
         val etiquetas = banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO)
         assertEquals(NivelAnticipacion.entries.size, etiquetas.size)
         etiquetas.forEach {
@@ -98,6 +103,8 @@ class AjustesConduccionScreenTest {
             assertTrue("$it >= 48 dp", nodo.size.width >= 48 * 3 && nodo.size.height >= 48 * 3)
         }
         assertEquals("Muy pronto", banco.descripcion(banco.conEtiqueta(ETIQUETA_ANTICIPACION_PREFIJO + "muy_pronto")))
+        val visibles = banco.textos(banco.raiz())
+        listOf("8 s", "6,5 s", "5 s", "3,5 s", "2,5 s").forEach { assertTrue("Falta $it", it in visibles) }
         val elegido = banco.conEtiqueta(ETIQUETA_ANTICIPACION_PREFIJO + "tarde")
         assertEquals("Seleccionado", elegido.config.getOrNull(SemanticsProperties.StateDescription))
         val otro = banco.conEtiqueta(ETIQUETA_ANTICIPACION_PREFIJO + "normal")
@@ -107,7 +114,7 @@ class AjustesConduccionScreenTest {
     @Test
     fun `elegir un nivel de anticipacion lo pide`() {
         val pedidos = mutableListOf<NivelAnticipacion>()
-        poner(acciones = AccionesAjustes(onAnticipacion = { pedidos += it }))
+        poner(SeccionAjustes.NOTAS, acciones = AccionesAjustes(onAnticipacion = { pedidos += it }))
         NivelAnticipacion.entries.forEach {
             banco.pulsar(banco.conEtiqueta(ETIQUETA_ANTICIPACION_PREFIJO + it.name.lowercase()))
         }
@@ -117,7 +124,7 @@ class AjustesConduccionScreenTest {
     @Test
     fun `las notas simplificadas son un interruptor que pide el cambio`() {
         val cambios = mutableListOf<Boolean>()
-        poner(acciones = AccionesAjustes(onNotasSimplificadas = { cambios += it }))
+        poner(SeccionAjustes.NOTAS, acciones = AccionesAjustes(onNotasSimplificadas = { cambios += it }))
         val fila = banco.conEtiqueta(ETIQUETA_NOTAS_SIMPLIFICADAS)
         assertTrue("Notas simplificadas" in banco.textos(fila))
         banco.pulsar(fila.children.first { banco.esPulsable(it) })
@@ -126,7 +133,7 @@ class AjustesConduccionScreenTest {
 
     @Test
     fun `el copiloto ofrece cuatro modos con icono y texto y marca el elegido`() {
-        poner(AjustesConduccion(modoCopiloto = ModoCopiloto.NOTAS))
+        poner(SeccionAjustes.COPILOTO, AjustesConduccion(modoCopiloto = ModoCopiloto.NOTAS))
         val etiquetas = banco.etiquetas(ETIQUETA_AJUSTES_MODO_PREFIJO)
         assertEquals(ModoCopiloto.entries.size, etiquetas.size)
         val textos = banco.textos(banco.raiz())
@@ -141,7 +148,7 @@ class AjustesConduccionScreenTest {
     @Test
     fun `elegir un modo en ajustes lo pide`() {
         val pedidos = mutableListOf<ModoCopiloto>()
-        poner(acciones = AccionesAjustes(onModoCopiloto = { pedidos += it }))
+        poner(SeccionAjustes.COPILOTO, acciones = AccionesAjustes(onModoCopiloto = { pedidos += it }))
         ModoCopiloto.entries.forEach {
             banco.pulsar(banco.conEtiqueta(ETIQUETA_AJUSTES_MODO_PREFIJO + it.name.lowercase()))
         }
@@ -150,11 +157,12 @@ class AjustesConduccionScreenTest {
 
     @Test
     fun `la voz ofrece dos opciones con probar y avisa si no hay ninguna elegida`() {
-        poner(AjustesConduccion(voz = null))
+        poner(SeccionAjustes.VOZ, AjustesConduccion(voz = null))
         assertEquals(VozCopiloto.entries.size, banco.etiquetas(ETIQUETA_VOZ_OPCION_PREFIJO).size)
         assertTrue(banco.hay(ETIQUETA_AJUSTES_VOZ_SIN_ELEGIR))
         val textos = banco.textos(banco.raiz())
-        assertTrue("Voz 1" in textos && "Voz 2" in textos)
+        assertTrue("Dave (davefx)" in textos && "Sharvard" in textos)
+        assertFalse("Voz 1" in textos || "Voz 2" in textos)
         VozCopiloto.entries.forEach {
             val probar = banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + it.name.lowercase())
             assertTrue(banco.textos(probar).isEmpty())
@@ -164,7 +172,7 @@ class AjustesConduccionScreenTest {
 
     @Test
     fun `con voz elegida no sale el aviso y se marca la elegida`() {
-        poner(AjustesConduccion(voz = VozCopiloto.SHARVARD))
+        poner(SeccionAjustes.VOZ, AjustesConduccion(voz = VozCopiloto.SHARVARD))
         assertFalse(banco.hay(ETIQUETA_AJUSTES_VOZ_SIN_ELEGIR))
         val elegida = banco.conEtiqueta(ETIQUETA_VOZ_OPCION_PREFIJO + "sharvard")
         assertEquals(true, elegida.config.getOrNull(SemanticsProperties.Selected))
@@ -176,7 +184,10 @@ class AjustesConduccionScreenTest {
     fun `elegir y probar una voz en ajustes llaman a sus acciones`() {
         val elegidas = mutableListOf<VozCopiloto>()
         val probadas = mutableListOf<VozCopiloto>()
-        poner(acciones = AccionesAjustes(onVozCopiloto = { elegidas += it }, onProbarVoz = { probadas += it }))
+        poner(
+            SeccionAjustes.VOZ,
+            acciones = AccionesAjustes(onVozCopiloto = { elegidas += it }, onProbarVoz = { probadas += it }),
+        )
         banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_OPCION_PREFIJO + "sharvard"))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + "davefx"))
         assertEquals(listOf(VozCopiloto.SHARVARD), elegidas)
@@ -185,7 +196,7 @@ class AjustesConduccionScreenTest {
 
     @Test
     fun `el interruptor de notas simplificadas refleja el ajuste`() {
-        poner(AjustesConduccion(notasSimplificadas = true))
+        poner(SeccionAjustes.NOTAS, AjustesConduccion(notasSimplificadas = true))
         val estados =
             banco.conEtiqueta(ETIQUETA_NOTAS_SIMPLIFICADAS).children.mapNotNull {
                 it.config.getOrNull(SemanticsProperties.ToggleableState)
