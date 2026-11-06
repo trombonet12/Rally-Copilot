@@ -37,7 +37,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import java.time.ZoneId
 
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
@@ -89,7 +88,7 @@ class PanelGuiadoTest {
         estado: EstadoNavegacion.Guiando,
         notas: NotasUiState = NotasUiState(),
     ) = banco.poner {
-        RallyCopilotTheme { PanelGuiado(estado, Modifier.fillMaxSize(), ZoneId.of("UTC"), notas) }
+        RallyCopilotTheme { PanelGuiado(estado, Modifier.fillMaxSize(), notas) }
     }
 
     private fun placas() = banco.nodos().filter { it.config.getOrNull(SemanticsProperties.TestTag) == ETIQUETA_PLACA }
@@ -135,24 +134,19 @@ class PanelGuiadoTest {
     }
 
     @Test
-    fun `el pie muestra llegada, tiempo y kilometros formateados`() {
-        poner(estado(progreso()))
-        assertEquals(listOf("22:13"), textosDe(ETIQUETA_PIE_HORA))
-        assertEquals(listOf("1 h 05 min"), textosDe(ETIQUETA_PIE_TIEMPO))
-        assertEquals(listOf("12,4 km"), textosDe(ETIQUETA_PIE_DISTANCIA))
-        assertEquals(
-            "Llegada a las 22:13. Quedan 1 h 05 min y 12,4 km.",
-            banco.descripcion(banco.conEtiqueta(ETIQUETA_PIE_GUIADO)),
-        )
-    }
-
-    @Test
     fun `sin progreso el banner salta la salida y enseña el primer giro a la distancia desde el inicio`() {
         poner(estado(null))
         assertEquals(listOf("120 m"), textosDe(ETIQUETA_BANNER_DISTANCIA))
         assertEquals(listOf("cruce, izquierda"), textosDe(ETIQUETA_BANNER_FRASE))
         assertEquals(listOf("Luego", "recto"), textosDe(ETIQUETA_BANNER_SIGUIENTE))
         assertFalse(banco.hay(ETIQUETA_PIE_GUIADO))
+    }
+
+    @Test
+    fun `la llegada y los kilometros ya no flotan en el panel porque estan en la hoja`() {
+        poner(estado(progreso()))
+        assertFalse(banco.hay(ETIQUETA_PIE_GUIADO))
+        assertFalse(banco.hay(ETIQUETA_PIE_HORA))
     }
 
     @Test
@@ -219,21 +213,7 @@ class PanelGuiadoTest {
 
     @Test
     @Config(qualifiers = "w891dp-h411dp-xxhdpi")
-    fun `en horizontal el banner ocupa el ancho y el pie va abajo sin tapar el centro`() {
-        poner(estado(progreso()))
-        val banner = banco.conEtiqueta(ETIQUETA_BANNER).boundsInRoot
-        val pie = banco.conEtiqueta(ETIQUETA_PIE_GUIADO).boundsInRoot
-        val raiz = banco.raiz().boundsInRoot
-        val centroX = raiz.width / 2
-        assertTrue("banner a todo el ancho: $banner", banner.width > raiz.width * 0.9f)
-        assertTrue("banner arriba: $banner", banner.top < raiz.height / 4)
-        assertTrue("pie abajo: $pie", pie.bottom > raiz.height * 3 / 4)
-        assertTrue("pie sin tapar el centro: $pie", pie.right < centroX)
-    }
-
-    @Test
-    @Config(qualifiers = "w891dp-h411dp-xxhdpi")
-    fun `en horizontal el banner es de una linea, el carrete bajo y el pie no se solapa`() {
+    fun `en horizontal el banner es de una linea y el carrete va bajo`() {
         val notas =
             NotasUiState(
                 listOf(visible(deNota(nota(4))), visible(deNota(nota(2))), visible(deNota(nota(5)))),
@@ -241,26 +221,13 @@ class PanelGuiadoTest {
         poner(estado(progreso()), notas = notas)
         val banner = banco.conEtiqueta(ETIQUETA_BANNER).boundsInRoot
         val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
-        val pie = banco.conEtiqueta(ETIQUETA_PIE_GUIADO).boundsInRoot
         val raiz = banco.raiz().boundsInRoot
         assertTrue("banner bajo (<= 60 dp): $banner", banner.height <= 60 * 3f)
         assertFalse("sin fila de luego", banco.hay(ETIQUETA_BANNER_SIGUIENTE))
         assertTrue("franja bajo el banner: $franja", franja.top >= banner.bottom)
         assertTrue("franja de una fila (<= 56 dp): $franja", franja.height <= 56 * 3f)
         assertFalse("sin tercera nota", banco.hay(ETIQUETA_NOTA_PREFIJO + 2))
-        assertTrue("el pie no se solapa con la franja: $pie vs $franja", pie.top >= franja.bottom)
         assertTrue("banner + franja dejan libre el centro: $franja", franja.bottom < raiz.height * 0.4f)
-    }
-
-    @Test
-    fun `en vertical el banner ocupa el ancho y el pie va centrado abajo`() {
-        poner(estado(progreso()))
-        val banner = banco.conEtiqueta(ETIQUETA_BANNER).boundsInRoot
-        val pie = banco.conEtiqueta(ETIQUETA_PIE_GUIADO).boundsInRoot
-        val raiz = banco.raiz().boundsInRoot
-        assertTrue("banner $banner raiz $raiz", banner.width > raiz.width * 0.8f)
-        assertTrue(pie.bottom > raiz.height * 3 / 4)
-        assertEquals(raiz.center.x, pie.center.x, 2f)
     }
 
     @Test

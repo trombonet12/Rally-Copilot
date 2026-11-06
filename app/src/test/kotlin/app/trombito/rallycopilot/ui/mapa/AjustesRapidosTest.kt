@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -94,12 +95,30 @@ abstract class AjustesRapidosBase {
     protected fun textoDe(etiqueta: String) = banco.textos(banco.conEtiqueta(etiqueta)).joinToString(" ")
 
     /** La hoja suelta (en la pantalla real Robolectric no mide los menús): cabe y sus botones miden 48 dp. */
-    protected fun comprobarQueLaHojaEntraEnPantalla() {
-        banco.poner { RallyCopilotTheme { PanelAjustesRapidos(copiloto, AccionesCopiloto()) } }
-        val raiz = banco.raiz().boundsInRoot
+    protected fun comprobarQueLaHojaEntraEnPantalla(horizontal: Boolean = false) {
+        // La hoja es una ventana aparte: la pantalla se mide con el tamaño del qualifier (411 x 891 dp a xxhdpi).
+        val pantalla = if (horizontal) Rect(0f, 0f, 891 * 3f, 411 * 3f) else Rect(0f, 0f, 411 * 3f, 891 * 3f)
+        banco.poner {
+            RallyCopilotTheme {
+                PanelAjustesRapidos(
+                    copiloto,
+                    AccionesCopiloto(),
+                    onCerrar = {},
+                    horizontal = horizontal,
+                )
+            }
+        }
         val hoja = banco.conEtiqueta(ETIQUETA_RAPIDOS_PANEL).boundsInRoot
-        assertTrue("La hoja $hoja sale de la pantalla $raiz", hoja.left >= raiz.left && hoja.right <= raiz.right)
-        assertTrue("La hoja $hoja sale de la pantalla $raiz", hoja.top >= raiz.top && hoja.bottom <= raiz.bottom)
+        assertTrue(
+            "La hoja $hoja sale de la pantalla $pantalla",
+            hoja.left >= pantalla.left && hoja.right <= pantalla.right,
+        )
+        assertTrue(
+            "La hoja $hoja sale de la pantalla $pantalla",
+            hoja.top >= pantalla.top && hoja.bottom <= pantalla.bottom,
+        )
+        assertTrue("Como mucho el 60 % del alto: ${hoja.height}", hoja.height <= pantalla.height * 0.6f + 1f)
+        assertEquals("A todo el ancho", pantalla.width, hoja.width, 1f)
         assertEquals(NivelAnticipacion.entries.size, banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).size)
         listOf(
             ETIQUETA_AVISAR_CRUCES,
@@ -264,6 +283,6 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
 class AjustesRapidosHorizontalTest : AjustesRapidosBase() {
     @Test
     fun `en horizontal la hoja entra en pantalla con objetivos de 48 dp`() {
-        comprobarQueLaHojaEntraEnPantalla()
+        comprobarQueLaHojaEntraEnPantalla(horizontal = true)
     }
 }

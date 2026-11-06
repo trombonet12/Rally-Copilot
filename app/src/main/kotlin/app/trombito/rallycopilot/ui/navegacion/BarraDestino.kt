@@ -22,9 +22,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalFocusManager
@@ -73,9 +77,18 @@ fun BarraDestino(
     modifier: Modifier = Modifier,
     onFoco: (Boolean) -> Unit = {},
     onCerrar: (() -> Unit)? = null,
+    pedirFoco: Boolean = false,
+    onFocoPedido: () -> Unit = {},
 ) {
     val colores = MaterialTheme.colorScheme
     DisposableEffect(Unit) { onDispose { onFoco(false) } }
+    val foco = remember { FocusRequester() }
+    LaunchedEffect(pedirFoco) {
+        if (pedirFoco) {
+            foco.requestFocus()
+            onFocoPedido()
+        }
+    }
     val cerrarTeclado = cerrarTeclado()
     Surface(
         shape = Radios.formaPildora,
@@ -105,6 +118,7 @@ fun BarraDestino(
                     modifier =
                         Modifier
                             .fillMaxWidth()
+                            .focusRequester(foco)
                             .onFocusChanged { onFoco(it.isFocused) }
                             .testTag(ETIQUETA_BUSCADOR),
                     decorationBox = { campo ->

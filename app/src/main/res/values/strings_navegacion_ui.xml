@@ -52,4 +52,7 @@
     <string name="navegacion_ui_buscar_guiando_panel">Búsqueda de un lugar durante la ruta</string>
     <string name="navegacion_ui_buscar_guiando_cerrar">Cerrar la búsqueda</string>
     <string name="navegacion_ui_resultado_ir">Ir a %1$s y conservar las paradas</string>
+    <string name="navegacion_ui_ruta_rapida_titulo">Rápida</string>
+    <string name="navegacion_ui_ruta_sinuosa_titulo">Con curvas</string>
+    <string name="navegacion_ui_ir">IR</string>
 </resources>

@@ -20,6 +20,8 @@ import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.comun.fijacion
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_BOTON
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_SILENCIO_BOTON
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -332,25 +334,37 @@ class MapaScreenTest {
     }
 
     @Test
-    fun `capas y orientacion van en el panel inferior a los lados de la velocidad`() {
+    fun `los botones redondos van a la derecha sobre la hoja y la pildora a la izquierda`() {
         poner(conDatos { copy(velocidadKmh = 72) })
-        val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
-        val velocidad = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
-        val capas = banco.conEtiqueta(ETIQUETA_CAPAS_BOTON).boundsInRoot
-        val orientacion = banco.conEtiqueta(ETIQUETA_ORIENTACION).boundsInRoot
-        assertTrue("capas dentro del panel: $capas vs $panel", capas.top >= panel.top && capas.bottom <= panel.bottom)
-        assertTrue("capas a la izquierda de la velocidad", capas.right <= velocidad.left)
-        assertTrue("orientacion dentro del panel", orientacion.top >= panel.top && orientacion.bottom <= panel.bottom)
-        assertTrue("orientacion a la derecha de la velocidad", orientacion.left >= velocidad.right)
+        val hoja = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
+        val raiz = banco.raiz().boundsInRoot
+        val pildora = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
+        listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION, ETIQUETA_MODO_BOTON, ETIQUETA_SILENCIO_BOTON).forEach {
+            val boton = banco.conEtiqueta(it).boundsInRoot
+            assertTrue("$it sobre la hoja: $boton vs $hoja", boton.bottom <= hoja.top + 1)
+            assertTrue("$it a la derecha: $boton", boton.left > raiz.width / 2)
+            assertFalse("$it no pisa la pildora", boton.overlaps(pildora))
+        }
+        assertTrue("la pildora sobre la hoja: $pildora vs $hoja", pildora.bottom <= hoja.top + 1)
+        assertTrue("la pildora a la izquierda: $pildora", pildora.left < raiz.width / 4)
     }
 
     @Test
-    fun `el menu de capas se abre sobre el mapa y no dentro del panel`() {
+    fun `la columna de botones tiene objetivos de 48 dp separados 12 dp`() {
+        poner(conDatos())
+        val fijos = listOf(ETIQUETA_MODO_BOTON, ETIQUETA_SILENCIO_BOTON, ETIQUETA_ORIENTACION)
+        val cajas = fijos.map { banco.conEtiqueta(it).boundsInRoot }.sortedBy { it.top }
+        cajas.forEach { assertTrue("$it < 48 dp", it.width >= 48 * 3f - 1 && it.height >= 48 * 3f - 1) }
+        cajas.zipWithNext().forEach { (a, b) -> assertEquals("hueco de 12 dp", 12 * 3f, b.top - a.bottom, 1f) }
+    }
+
+    @Test
+    fun `el menu de capas se abre sobre el mapa y no dentro de la hoja`() {
         poner(conDatos())
         abrirCapas()
         val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
         val menu = banco.conEtiqueta(ETIQUETA_CAPAS_PANEL).boundsInRoot
-        assertTrue("el menu queda encima del panel: $menu vs $panel", menu.bottom <= panel.top + 1)
+        assertTrue("el menu queda encima de la hoja: $menu vs $panel", menu.bottom <= panel.top + 1)
     }
 
     @Test
@@ -366,11 +380,15 @@ class MapaScreenTest {
     }
 
     @Test
-    fun `en vertical el panel va debajo del mapa`() {
+    fun `en vertical el mapa ocupa toda la pantalla y la hoja se ancla abajo con 112 dp como mucho`() {
         poner(conDatos())
         val mapa = banco.conEtiqueta(ETIQUETA_MAPA_FALSO).boundsInRoot
-        val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
-        assertTrue("El panel debe quedar bajo el mapa: $panel vs $mapa", panel.top >= mapa.bottom - 1)
+        val hoja = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
+        val raiz = banco.raiz().boundsInRoot
+        assertEquals("el mapa a pantalla completa", raiz.height, mapa.height, 1f)
+        assertEquals("la hoja abajo del todo", raiz.bottom, hoja.bottom, 1f)
+        assertEquals("la hoja a todo el ancho", raiz.width, hoja.width, 1f)
+        assertTrue("hoja compacta: ${hoja.height}", hoja.height <= (112 + 48) * 3f)
     }
 }
 
@@ -381,8 +399,7 @@ class MapaScreenHorizontalTest {
 
     private val banco = BancoCompose()
 
-    @Test
-    fun `en horizontal el panel va a la derecha del mapa`() {
+    private fun poner(velocidadKmh: Int? = 50) {
         val datos = EstadoDatosMapa(instalados = DatosInstalados("1", 1, conSatelite = false))
         banco.poner {
             RallyCopilotTheme {
@@ -392,7 +409,7 @@ class MapaScreenHorizontalTest {
                             cargando = false,
                             datos = datos,
                             estilos = EstilosMapa("{}", null),
-                            velocidadKmh = 50,
+                            velocidadKmh = velocidadKmh,
                         ),
                     vista = EstadoVistaMapa(),
                     acciones = AccionesMapa(),
@@ -400,32 +417,35 @@ class MapaScreenHorizontalTest {
                 )
             }
         }
+    }
+
+    @Test
+    fun `en horizontal el mapa va a pantalla completa y la hoja abajo a la izquierda de 320 dp`() {
+        poner()
         val mapa = banco.conEtiqueta(ETIQUETA_MAPA_FALSO).boundsInRoot
-        val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
-        assertTrue("El panel debe quedar a la derecha del mapa: $panel vs $mapa", panel.left >= mapa.right - 1)
+        val hoja = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
+        val raiz = banco.raiz().boundsInRoot
+        assertEquals("el mapa a pantalla completa", raiz.width, mapa.width, 1f)
+        assertEquals("la hoja abajo", raiz.bottom, hoja.bottom, 1f)
+        assertEquals("la hoja a la izquierda", raiz.left, hoja.left, 1f)
+        assertEquals("la hoja de 320 dp", 320 * 3f, hoja.width, 1f)
         assertFalse(banco.textos(banco.raiz()).any { "OpenStreetMap" in it || "PNOA" in it })
         assertTrue(banco.hay(ETIQUETA_VELOCIDAD))
     }
 
     @Test
-    fun `en horizontal los botones van dentro del panel lateral y no hay flecha de volver`() {
-        val datos = EstadoDatosMapa(instalados = DatosInstalados("1", 1, conSatelite = false))
-        banco.poner {
-            RallyCopilotTheme {
-                MapaScreen(
-                    estado = MapaUiState(cargando = false, datos = datos, estilos = EstilosMapa("{}", null)),
-                    vista = EstadoVistaMapa(),
-                    acciones = AccionesMapa(),
-                    mapa = { _, m -> Box(m.testTag(ETIQUETA_MAPA_FALSO)) },
-                )
-            }
-        }
-        val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
+    fun `en horizontal la columna de botones va a la derecha y la pildora sobre la hoja`() {
+        poner()
+        val raiz = banco.raiz().boundsInRoot
+        val hoja = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
+        val pildora = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
         listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION).forEach {
             val boton = banco.conEtiqueta(it).boundsInRoot
-            assertTrue("$it dentro del panel: $boton vs $panel", boton.left >= panel.left && boton.right <= panel.right)
-            assertTrue("$it dentro del panel en vertical", boton.top >= panel.top && boton.bottom <= panel.bottom)
+            assertTrue("$it a la derecha: $boton", boton.left > raiz.width * 0.7f)
+            assertTrue("$it dentro de la pantalla: $boton", boton.top >= raiz.top && boton.bottom <= raiz.bottom)
         }
+        assertTrue("la pildora sobre la hoja: $pildora vs $hoja", pildora.bottom <= hoja.top + 1)
+        assertTrue("la pildora encima de la hoja de 320 dp", pildora.right <= hoja.right + 1)
         assertFalse(banco.hay(ETIQUETA_VOLVER))
     }
 }

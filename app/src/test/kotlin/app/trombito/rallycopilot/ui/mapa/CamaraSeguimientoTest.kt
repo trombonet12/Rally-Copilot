@@ -15,17 +15,17 @@ class CamaraSeguimientoTest {
     }
 
     @Test
-    fun `en vertical el marcador queda hacia el 72 por ciento de la altura`() {
+    fun `en vertical el marcador queda hacia el 80 por ciento de la altura`() {
         val alto = 2000
         val relleno = rellenoSuperiorSeguimiento(anchoPx = 1080, altoPx = alto)
-        assertEquals(0.72, centroVisible(relleno, alto), 0.001)
+        assertEquals(0.80, centroVisible(relleno, alto), 0.001)
     }
 
     @Test
     fun `en horizontal baja menos que en vertical`() {
         val alto = 1080
         val horizontal = rellenoSuperiorSeguimiento(anchoPx = 2000, altoPx = alto)
-        assertEquals(0.62, centroVisible(horizontal, alto), 0.001)
+        assertEquals(0.70, centroVisible(horizontal, alto), 0.001)
         assertTrue(horizontal.toDouble() / alto < rellenoSuperiorSeguimiento(1080, 2000).toDouble() / 2000)
     }
 

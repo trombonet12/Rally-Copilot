@@ -130,4 +130,19 @@
     <string name="acerca_protomaps">Protomaps basemaps: BSD-3 y CC0</string>
     <string name="acerca_noto">Noto Sans: SIL Open Font License (OFL)</string>
     <string name="acerca_maplibre">MapLibre Native: BSD-2</string>
+
+    <!-- Hoja de conducción, columna de botones y banda de GPS -->
+    <string name="mapa_sin_gps">Sin señal GPS</string>
+    <string name="mapa_buscar_destino">Buscar un destino</string>
+    <string name="hoja_km_recorridos">%1$s recorridos</string>
+    <string name="hoja_crono_en_pausa">Cronómetro en pausa: sin señal GPS</string>
+    <!-- Hoja del copiloto -->
+    <string name="rapidos_seccion_modo">Modo</string>
+    <string name="rapidos_seccion_anticipacion">Anticipación: %1$s s</string>
+    <string name="rapidos_seccion_indicaciones">Indicaciones</string>
+    <string name="rapidos_seccion_salida">Salida</string>
+    <string name="rapidos_seccion_volumen">Volumen</string>
+    <string name="rapidos_indicacion_cruces">Cruces</string>
+    <string name="rapidos_indicacion_autopista">Autopista</string>
+    <string name="rapidos_indicacion_rotondas">Rotondas</string>
 </resources>

@@ -1,9 +1,11 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -19,6 +21,7 @@ import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.CopilotoViewModel
 import app.trombito.rallycopilot.ui.edicion.AccionesEdicionMapa
 import app.trombito.rallycopilot.ui.edicion.EdicionEnMapa
+import app.trombito.rallycopilot.ui.edicion.EdicionMapaUiState
 import app.trombito.rallycopilot.ui.edicion.EdicionMapaViewModel
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
@@ -45,6 +48,7 @@ fun MapaRoute(
     onAbrirMapasOffline: () -> Unit,
     modifier: Modifier = Modifier,
     onVerAnalisis: ((tramoId: String, pasadaId: Long) -> Unit)? = null,
+    onSalir: () -> Unit = {},
     panelGuiado: PanelGuiado? = null,
     viewModel: MapaViewModel = hiltViewModel(),
     navegacionViewModel: NavegacionViewModel = hiltViewModel(),
@@ -73,6 +77,10 @@ fun MapaRoute(
     }
     LaunchedEffect(estado.posicion) { navegacionViewModel.onPosicion(estado.posicion?.punto) }
     SeguimientoSegunVistaPrevia(navegacion.encuadrar, viewModel)
+    // Con un punto elegido la cámara lo centra sobre su tarjeta: deja de seguir al coche (recentrar lo vuelve a pedir).
+    val hayPunto = navegacion.puntoElegido != null
+    LaunchedEffect(hayPunto) { if (hayPunto) viewModel.onSeguimientoPerdido() }
+    var reservaPuntoPx by remember { mutableIntStateOf(0) }
     val ruta = rutaParaMapa(navegacion)
     val panel = panelGuiado ?: remember { panelGuiadoMapa() }
 
@@ -81,13 +89,20 @@ fun MapaRoute(
         MapaScreen(
             estado = estado,
             vista = EstadoVistaMapa(permiso = permiso.estado, siguiendo = estado.siguiendo),
-            acciones = accionesMapa(viewModel, permiso, onAbrirMapasOffline, alertasViewModel),
+            acciones =
+                accionesMapa(viewModel, permiso, alertasViewModel).copy(
+                    onAbrirMapasOffline = onAbrirMapasOffline,
+                    onSalir = onSalir,
+                    onReservaInferiorPunto = { reservaPuntoPx = it },
+                ),
             mapa = { estiloJson, modificador ->
                 VistaMapa(
                     estiloJson = estiloJson,
                     posicion = estado.posicionMostrada,
                     camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel, edicionViewModel),
-                    preferencias = preferenciasVista(estado, ruta, alertas, edicion.marcadores, estela),
+                    preferencias =
+                        preferenciasVista(estado, ruta, alertas, edicion.marcadores, estela)
+                            .copy(reservaPuntoPx = reservaPuntoPx),
                     modifier = modificador,
                 )
             },
@@ -97,22 +112,33 @@ fun MapaRoute(
             alertas = alertas,
             crono = crono,
             superposicion = {
-                val control = navegacion.control
-                EdicionEnMapa(
-                    estado = edicion,
-                    acciones =
-                        AccionesEdicionMapa(
-                            onAplicar = edicionViewModel::onAplicar,
-                            onQuitar = edicionViewModel::onQuitar,
-                            onCerrar = edicionViewModel::onCerrar,
-                        ),
-                    reconocimiento = control is EstadoNavegacion.Libre && control.reconocimientoTramoId != null,
-                    escuchando = copiloto.escuchando,
-                    onEscuchar = copilotoViewModel::onEscuchar,
-                )
+                EdicionSobreMapa(edicion, navegacion.control, copiloto.escuchando, edicionViewModel, copilotoViewModel)
             },
         )
     }
+}
+
+/** El editor de notas y el micrófono grande del reconocimiento, encima de todo lo demás. */
+@Composable
+private fun BoxScope.EdicionSobreMapa(
+    edicion: EdicionMapaUiState,
+    control: EstadoNavegacion,
+    escuchando: Boolean,
+    edicionViewModel: EdicionMapaViewModel,
+    copilotoViewModel: CopilotoViewModel,
+) {
+    EdicionEnMapa(
+        estado = edicion,
+        acciones =
+            AccionesEdicionMapa(
+                onAplicar = edicionViewModel::onAplicar,
+                onQuitar = edicionViewModel::onQuitar,
+                onCerrar = edicionViewModel::onCerrar,
+            ),
+        reconocimiento = control is EstadoNavegacion.Libre && control.reconocimientoTramoId != null,
+        escuchando = escuchando,
+        onEscuchar = copilotoViewModel::onEscuchar,
+    )
 }
 
 private fun accionesCopiloto(vm: CopilotoViewModel) =
@@ -136,7 +162,6 @@ private fun accionesCopiloto(vm: CopilotoViewModel) =
 private fun accionesMapa(
     viewModel: MapaViewModel,
     permiso: PermisoUbicacionUi,
-    onAbrirMapasOffline: () -> Unit,
     alertas: AlertasViewModel,
 ) = AccionesMapa(
     onCapa = viewModel::onCapa,
@@ -146,7 +171,6 @@ private fun accionesMapa(
     onPedirPermiso = permiso.pedir,
     onAbrirAjustes = permiso.abrirAjustes,
     onDescartarAviso = viewModel::onDescartarAviso,
-    onAbrirMapasOffline = onAbrirMapasOffline,
     onCerrarIncidencia = { alertas.onSeleccionar(null) },
 )
 
@@ -174,7 +198,7 @@ private fun preferenciasVista(
     ruta: RutaEnMapa?,
     alertas: AlertasUiState,
     notas: List<MarcadorNota>,
-    estela: List<PuntoGeo>,
+    estela: List<List<PuntoGeo>>,
 ) = PreferenciasVistaMapa(
     siguiendo = estado.siguiendo,
     relieve = estado.relieve,

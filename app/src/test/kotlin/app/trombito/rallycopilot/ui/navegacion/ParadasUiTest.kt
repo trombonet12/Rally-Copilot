@@ -17,6 +17,8 @@ import app.trombito.rallycopilot.motor.ruta.EstadoRuta
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.mapa.AccionesMapa
+import app.trombito.rallycopilot.ui.mapa.ETIQUETA_LIMITE
+import app.trombito.rallycopilot.ui.mapa.ETIQUETA_VELOCIDAD
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_VIA
 import app.trombito.rallycopilot.ui.mapa.EstadoVistaMapa
 import app.trombito.rallycopilot.ui.mapa.MapaScreen
@@ -305,7 +307,7 @@ class ParadasUiTest {
         assertEquals(listOf("22:13"), banco.textos(banco.conEtiqueta(ETIQUETA_PIE_HORA)))
     }
 
-    // --- Panel inferior compacto ---
+    // --- Hoja inferior y tarjetas que la sustituyen ---
 
     private val conVia = mapa.copy(velocidadKmh = 0, via = ViaActual("Carretera", "Ma-1110", 50))
 
@@ -316,35 +318,38 @@ class ParadasUiTest {
     }
 
     @Test
-    fun `parado con la tarjeta de un punto el panel se encoge`() {
+    fun `con la tarjeta de un punto la tarjeta sustituye a la hoja y la pildora sigue`() {
         ponerMapa(NavegacionUiState(puntoElegido = PuntoElegido(SOLLER, "Sóller")), conVia)
-        assertFalse(banco.hay(ETIQUETA_VIA))
-        assertTrue(banco.hay("panel-velocidad"))
-        assertTrue(banco.hay("panel-limite"))
+        assertFalse(banco.hay("panel"))
+        assertTrue(banco.hay(ETIQUETA_TARJETA_PUNTO))
+        assertTrue(banco.hay(ETIQUETA_VELOCIDAD))
+        assertTrue(banco.hay(ETIQUETA_LIMITE))
     }
 
     @Test
-    fun `parado con la vista previa el panel se encoge`() {
+    fun `con la vista previa la hoja se retira y se ve la vista previa`() {
         ponerMapa(previaConParadas(), conVia)
-        assertFalse(banco.hay(ETIQUETA_VIA))
+        assertFalse(banco.hay("panel"))
+        assertTrue(banco.hay(ETIQUETA_VISTA_PREVIA))
     }
 
     @Test
-    fun `parado con la busqueda abierta el panel se encoge`() {
+    fun `con la busqueda abierta la hoja sigue abajo`() {
         ponerMapa(NavegacionUiState(texto = "Sól", busqueda = BusquedaDestino.Resultados(emptyList())), conVia)
+        assertTrue(banco.hay("panel"))
+        assertTrue(banco.hay(ETIQUETA_VIA))
+    }
+
+    @Test
+    fun `la placa de la via solo sale si la via coincide con el camino de la posicion`() {
+        ponerMapa(NavegacionUiState(), conVia.copy(viaCoincide = false))
         assertFalse(banco.hay(ETIQUETA_VIA))
     }
 
     @Test
-    fun `en marcha planificando el panel se amplia`() {
-        ponerMapa(previaConParadas(), conVia.copy(velocidadKmh = 40))
-        assertTrue(banco.hay(ETIQUETA_VIA))
-    }
-
-    @Test
-    fun `al empezar la ruta el panel vuelve a ser el completo`() {
+    fun `al empezar la ruta la hoja es la del guiado y lleva la X de terminar`() {
         ponerMapa(guiandoConParadas(0, valldemossa), conVia)
-        assertTrue(banco.hay(ETIQUETA_VIA))
         assertNotNull(banco.conEtiqueta("panel"))
+        assertTrue(banco.hay(ETIQUETA_TERMINAR))
     }
 }

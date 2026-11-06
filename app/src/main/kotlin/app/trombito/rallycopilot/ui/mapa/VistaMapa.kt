@@ -105,9 +105,14 @@ data class PreferenciasVistaMapa(
     /** Notas de la hoja tocables para editarlas (con el coche parado); vacío = ninguna. */
     val notas: List<MarcadorNota> = emptyList(),
     /** Estela de por dónde se ha pasado en el recorrido en curso (gris, bajo la ruta); vacía = ninguna. */
-    val estela: List<PuntoGeo> = emptyList(),
+    val estela: List<List<PuntoGeo>> = emptyList(),
     /** Todos los radares y los segmentos de tramo, siempre visibles; vacío = ninguno. */
     val radares: RadaresUi = RadaresUi(),
+    /**
+     * Píxeles que tapa por abajo la tarjeta del punto elegido (su alto más 24 dp); 0 = sin tarjeta. Con un punto
+     * elegido la cámara lo centra en lo que queda libre, sobre la tarjeta.
+     */
+    val reservaPuntoPx: Int = 0,
     /** Bocadillo de lo que se acerca o se acaba de pasar, anclado a su marcador; null = ninguno. */
     val bocadillo: BocadilloMapa? = null,
 )
@@ -373,6 +378,7 @@ private class ControladorMapa(
         val componente = mapa?.locationComponent?.takeIf { ubicacionActivada }
         if (nuevas.relieve != previas.relieve) estilo?.let { aplicarRelieve(it, nuevas.relieve) }
         aplicarRuta(previas.ruta, nuevas.ruta)
+        centrarPuntoElegido(previas, nuevas)
         actualizarMarcadores(previas, nuevas)
         if (componente != null && nuevas.icono != previas.icono) {
             componente.applyStyle(opcionesUbicacion(vista.context, nuevas.icono))
@@ -437,6 +443,31 @@ private class ControladorMapa(
             // La vista previa encuadra la ruta entera: sin el relleno del seguimiento (vuelve al recentrar).
             m.moveCamera(CameraUpdateFactory.paddingTo(0.0, 0.0, 0.0, 0.0))
             m.encuadrarRuta(nueva.puntos, vista.resources.displayMetrics.density, vista.height, nueva.paradas.size)
+        }
+    }
+
+    /**
+     * Al elegir un punto (mantener pulsado) la tarjeta ocupa el pie del mapa: la cámara lo centra con un relleno
+     * inferior igual a la tarjeta más 24 dp, para que el pin no quede debajo. Deja de seguir al coche.
+     */
+    private fun centrarPuntoElegido(
+        previas: PreferenciasVistaMapa,
+        nuevas: PreferenciasVistaMapa,
+    ) {
+        val punto = nuevas.ruta?.elegido ?: return
+        val m = mapa ?: return
+        val reserva = nuevas.reservaPuntoPx
+        val cambio = punto != previas.ruta?.elegido || reserva != previas.reservaPuntoPx
+        val encuadrando = nuevas.ruta?.encuadrar == true
+        if (reserva > 0 && cambio && !encuadrando) {
+            if (ubicacionActivada) m.locationComponent.cameraMode = CameraMode.NONE
+            val posicionCamara =
+                CameraPosition
+                    .Builder()
+                    .target(LatLng(punto.lat, punto.lon))
+                    .padding(0.0, 0.0, 0.0, reserva.toDouble())
+                    .build()
+            m.easeCamera(CameraUpdateFactory.newCameraPosition(posicionCamara), DURACION_ENCUADRE_MS)
         }
     }
 

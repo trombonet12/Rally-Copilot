@@ -14,6 +14,7 @@ import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.vias.ViaActual
+import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.EstimadorVelocidad
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
@@ -53,21 +54,23 @@ class MapaViewModel
         private val ajustes: RepositorioAjustesConduccion,
         private val navegacion: ControlNavegacion,
         private val guardado: SavedStateHandle,
+        private val locutor: Locutor,
         precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
     ) : ViewModel() {
         /** Reloj monótono (ms), el mismo de `Fijacion.tiempoMs`; sustituible en los tests. */
         internal var reloj: () -> Long = { SystemClock.elapsedRealtime() }
 
         private val zoomAutomatico = ZoomAutomatico()
+        private val avisador = AvisadorSenalGps(navegacion, ajustes, locutor)
         private val recorrido = EstelaRecorrido()
-        private val estelaMutable = MutableStateFlow<List<PuntoGeo>>(emptyList())
+        private val estelaMutable = MutableStateFlow<List<List<PuntoGeo>>>(emptyList())
 
         /**
          * Estela de por dónde se ha pasado en el recorrido en curso (las posiciones que pinta el mapa, simplificadas a
          * pasos de 5 m y con tope de 5.000 puntos); se publica como mucho una vez por segundo y se borra al terminar la
          * conducción o al cambiar de modo (libre / guiado).
          */
-        val estela: StateFlow<List<PuntoGeo>> = estelaMutable
+        val estela: StateFlow<List<List<PuntoGeo>>> = estelaMutable
 
         init {
             viewModelScope.launch {
@@ -82,12 +85,16 @@ class MapaViewModel
         private val siguiendo = guardado.getStateFlow(CLAVE_SIGUIENDO, true)
         private val permiso = MutableStateFlow(ubicacion.tienePermiso())
 
-        private class Lectura(
+        private data class Lectura(
             val posicion: Fijacion?,
             val velocidadKmh: Int?,
             val via: ViaActual?,
             /** [posicion] ajustada al camino; es la que pinta el mapa. */
             val ajustada: Fijacion? = posicion,
+            /** Se perdió el GPS (más de 5 s sin fijación buena tras haberla tenido). */
+            val sinSenal: Boolean = false,
+            /** [via] es el camino al que se ajustó la posición: si no, la placa del panel no es fiable. */
+            val viaCoincide: Boolean = true,
         )
 
         private val estilos =
@@ -107,14 +114,27 @@ class MapaViewModel
                 } else {
                     val estimador = EstimadorVelocidad()
                     val sobreCamino = PosicionSobreCamino(navegacion)
+                    val detector = DetectorSenalGps()
+                    var sinSenal = false
                     var viaPrevia: ViaActual? = null
                     var ultima = LECTURA_VACIA
+
+                    // Devuelve si cambió el estado de la señal; el copiloto lo dice una sola vez por cambio.
+                    suspend fun refrescarSenal(ahoraMs: Long): Boolean {
+                        val nueva = detector.sinSenal(ahoraMs)
+                        if (nueva == sinSenal) return false
+                        sinSenal = nueva
+                        avisador.avisar(nueva)
+                        return true
+                    }
                     // Sin fijaciones (túnel, GPS perdido) la velocidad caduca por el reloj, no por una fijación nueva.
                     // Ambas corrutinas corren en el hilo del colector; solo se recoge con la pantalla visible.
                     channelFlow {
                         send(LECTURA_VACIA)
                         launch {
                             ubicacion.fijaciones().collect { fijacion ->
+                                detector.fijacion(fijacion)
+                                refrescarSenal(fijacion.tiempoMs)
                                 // La posición aproximada de interior (fused/red) salta decenas de metros: se pinta,
                                 // pero no alimenta la velocidad derivada de la posición.
                                 val precisa = (fijacion.precisionM ?: 0.0) <= PRECISION_VELOCIDAD_M
@@ -135,8 +155,11 @@ class MapaViewModel
                                         rumboGrados = fijacion.rumboGrados ?: estimador.rumbo(),
                                     )
 
-                                fun lectura(via: ViaActual?) =
-                                    Lectura(fijacion, velocidad, via, sobreCamino.ajustar(conVelocidad, via))
+                                fun lectura(via: ViaActual?): Lectura {
+                                    val ajustada = sobreCamino.ajustar(conVelocidad, via)
+                                    val coincide = viaCoincide(ajustada.punto, via)
+                                    return Lectura(fijacion, velocidad, via, ajustada, sinSenal, coincide)
+                                }
                                 // Primero la velocidad: la vía puede tardar (carga perezosa del archivo de vías).
                                 ultima = lectura(viaPrevia)
                                 send(ultima)
@@ -153,8 +176,14 @@ class MapaViewModel
                         launch {
                             while (true) {
                                 delay(TICK_CADUCIDAD_MS)
-                                if (ultima.velocidadKmh != null && estimador.vigente(reloj()) == null) {
-                                    ultima = Lectura(ultima.posicion, null, ultima.via, ultima.ajustada)
+                                val cambioSenal = refrescarSenal(reloj())
+                                val caduca = ultima.velocidadKmh != null && estimador.vigente(reloj()) == null
+                                if (cambioSenal || caduca) {
+                                    ultima =
+                                        ultima.copy(
+                                            velocidadKmh = if (caduca) null else ultima.velocidadKmh,
+                                            sinSenal = sinSenal,
+                                        )
                                     send(ultima)
                                 }
                             }
@@ -174,6 +203,8 @@ class MapaViewModel
                     posicionAjustada = lect.ajustada,
                     velocidadKmh = lect.velocidadKmh,
                     via = lect.via,
+                    viaCoincide = lect.viaCoincide,
+                    sinSenalGps = lect.sinSenal,
                     siguiendo = sigue,
                     relieve = pref.relieve,
                     orientacion = pref.orientacion,

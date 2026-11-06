@@ -75,6 +75,67 @@ class EstelaRecorridoTest {
         assertEquals(1, publicada.size)
     }
 
+    @Test
+    fun `un salto de mas de 150 m abre un segmento nuevo en vez de unir con una recta`() {
+        val estela = EstelaRecorrido()
+        val antes = hacia(3, pasoM = 20.0)
+        antes.forEach(estela::anadir)
+        val despues = hacia(3, pasoM = 20.0).map { PuntoGeo(it.lat, it.lon + 400.0 / METROS_POR_GRADO_LON) }
+        despues.forEach(estela::anadir)
+        assertEquals(listOf(antes, despues), estela.segmentos())
+        assertEquals(6, estela.puntos().size)
+    }
+
+    @Test
+    fun `140 m todavia se unen`() {
+        val estela = EstelaRecorrido()
+        estela.anadir(PuntoGeo(39.70, 2.90))
+        estela.anadir(PuntoGeo(39.70, 2.90 + 140.0 / METROS_POR_GRADO_LON))
+        assertEquals(1, estela.segmentos().size)
+    }
+
+    @Test
+    fun `mas de 10 s sin fijaciones corta la estela aunque el salto sea corto`() {
+        val estela = EstelaRecorrido()
+        estela.registrar(PuntoGeo(39.70, 2.90), ahoraMs = 0)
+        estela.registrar(PuntoGeo(39.70, 2.90 + 30.0 / METROS_POR_GRADO_LON), ahoraMs = 1_000)
+        estela.registrar(PuntoGeo(39.70, 2.90 + 60.0 / METROS_POR_GRADO_LON), ahoraMs = 12_500)
+        estela.registrar(PuntoGeo(39.70, 2.90 + 90.0 / METROS_POR_GRADO_LON), ahoraMs = 13_500)
+        assertEquals(listOf(2, 2), estela.segmentos().map { it.size })
+    }
+
+    @Test
+    fun `parado mas de 10 s sin moverse no corta la estela`() {
+        val estela = EstelaRecorrido()
+        estela.registrar(PuntoGeo(39.70, 2.90), ahoraMs = 0)
+        // Fijaciones cada segundo en el mismo sitio (no se guardan) y luego sale.
+        (1..30).forEach { estela.registrar(PuntoGeo(39.70, 2.90), ahoraMs = it * 1_000L) }
+        estela.registrar(PuntoGeo(39.70, 2.90 + 30.0 / METROS_POR_GRADO_LON), ahoraMs = 31_000)
+        assertEquals(listOf(2), estela.segmentos().map { it.size })
+    }
+
+    @Test
+    fun `el tope de puntos descarta los antiguos y no deja segmentos vacios`() {
+        val estela = EstelaRecorrido(maximo = 4)
+        val primero = hacia(3, pasoM = 20.0)
+        primero.forEach(estela::anadir)
+        val segundo = hacia(3, pasoM = 20.0).map { PuntoGeo(it.lat, it.lon + 1_000.0 / METROS_POR_GRADO_LON) }
+        segundo.forEach(estela::anadir)
+        assertEquals(listOf(primero.takeLast(1), segundo), estela.segmentos())
+        listOf(PuntoGeo(39.7, 2.99), PuntoGeo(39.7, 2.9901)).forEach(estela::anadir)
+        assertTrue(estela.segmentos().none { it.isEmpty() })
+        assertEquals(4, estela.puntos().size)
+    }
+
+    @Test
+    fun `el geojson de la estela lleva una linea por segmento y descarta los de un solo punto`() {
+        val a = hacia(3, pasoM = 20.0)
+        val b = hacia(2, pasoM = 20.0)
+        val c = listOf(PuntoGeo(39.9, 2.9))
+        assertEquals(2, estelaGeoJson(listOf(a, c, b)).features()?.size)
+        assertEquals(0, estelaGeoJson(emptyList()).features()?.size)
+    }
+
     private val destino = Destino("Destino", PuntoGeo(39.71, 2.90))
     private val ruta = Ruta(hacia(3, 100.0), maniobras = emptyList(), longitudM = 200.0, tiempoS = 20.0)
 

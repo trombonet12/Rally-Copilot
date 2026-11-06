@@ -65,6 +65,7 @@ fun CronoMiniEnPanel(
     crono: CronoEnCurso?,
     modifier: Modifier = Modifier,
     reloj: () -> Long = System::currentTimeMillis,
+    escala: EscalaCronoMini = EscalaCronoMini.NORMAL,
 ) {
     if (crono != null && crono.resultado == null && vistaCrono(crono) == VistaCrono.MINI) {
         val acciones = LocalAccionesSalidaCrono.current
@@ -74,6 +75,7 @@ fun CronoMiniEnPanel(
             modifier,
             reloj,
             onSalida = acciones?.let { { contando = true } },
+            escala = escala,
         )
         if (contando && acciones != null) {
             CuentaAtras(onDecir = acciones.onDecir, onYa = acciones.onSalida, onCerrar = { contando = false })

@@ -215,8 +215,8 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         poner(vistaPrevia(*dosRutas))
         val rapida = banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA))
         val sinuosa = banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA))
-        assertEquals(listOf("23 min", "18,4 km"), rapida)
-        assertEquals(listOf("1 h 15 min", "24,0 km"), sinuosa)
+        assertEquals(listOf("Rápida", "23 min", "18,4 km"), rapida)
+        assertEquals(listOf("Con curvas", "1 h 15 min", "24,0 km"), sinuosa)
     }
 
     @Test
@@ -281,16 +281,15 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     }
 
     @Test
-    fun `la bandera de terminar va en el panel inferior a la derecha de la velocidad`() {
+    fun `la X de terminar va en la hoja a la izquierda y sin relleno rojo`() {
         poner(guiando())
-        val panel = banco.conEtiqueta("panel").boundsInRoot
-        val bandera = banco.conEtiqueta(ETIQUETA_TERMINAR).boundsInRoot
-        val velocidad = banco.conEtiqueta("panel-velocidad").boundsInRoot
+        val hoja = banco.conEtiqueta("panel").boundsInRoot
+        val terminar = banco.conEtiqueta(ETIQUETA_TERMINAR).boundsInRoot
         assertTrue(
-            "bandera dentro del panel: $bandera vs $panel",
-            bandera.top >= panel.top && bandera.bottom <= panel.bottom,
+            "la X dentro de la hoja: $terminar vs $hoja",
+            terminar.top >= hoja.top && terminar.bottom <= hoja.bottom && terminar.left >= hoja.left,
         )
-        assertTrue("bandera a la derecha de la velocidad", bandera.left >= velocidad.right)
+        assertTrue("la X a la izquierda: $terminar vs $hoja", terminar.right <= hoja.center.x)
     }
 
     @Test
@@ -526,13 +525,13 @@ class NavegacionEnMapaHorizontalTest : NavegacionEnMapaBase() {
     }
 
     @Test
-    fun `en horizontal guiando tambien hay terminar en el panel lateral y el hueco del panel`() {
+    fun `en horizontal guiando tambien hay terminar en la hoja y el hueco del panel`() {
         poner(guiando())
         assertTrue(banco.hay(ETIQUETA_PANEL_GUIADO))
         val panel = banco.conEtiqueta("panel").boundsInRoot
         val bandera = banco.conEtiqueta(ETIQUETA_TERMINAR).boundsInRoot
         assertTrue(
-            "bandera dentro del panel: $bandera vs $panel",
+            "la X dentro de la hoja: $bandera vs $panel",
             bandera.left >= panel.left && bandera.right <= panel.right,
         )
     }

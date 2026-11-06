@@ -30,6 +30,10 @@ data class MapaUiState(
     /** Null cuando no se conoce (sin permiso, sin fijación o velocidad caducada). */
     val velocidadKmh: Int? = null,
     val via: ViaActual? = null,
+    /** [via] es el camino al que se ajustó la posición; si no coincide, el panel no enseña su placa. */
+    val viaCoincide: Boolean = true,
+    /** Tras 5 s sin fijación buena (o con más de 50 m de error): banda «Sin señal GPS» y velocidad «—». */
+    val sinSenalGps: Boolean = false,
     /** La cámara sigue al coche (se pierde al mover el mapa; sobrevive al giro de pantalla). */
     val siguiendo: Boolean = true,
     /** Interruptor de relieve y curvas de nivel (persistido en los ajustes de conducción). */
@@ -68,6 +72,9 @@ data class MapaUiState(
                 !temaOscuro -> estilos?.vectorialClaro ?: estilos?.vectorial
                 else -> estilos?.vectorial
             }
+
+    /** La vía que enseña el panel (placa y nombre): solo si coincide con el camino al que se ajustó la posición. */
+    val viaDelPanel: ViaActual? get() = via.takeIf { viaCoincide }
 
     /** Sin `maxspeed` en OSM no hay límite que mostrar. */
     val limiteKmh: Int? get() = via?.limiteKmh

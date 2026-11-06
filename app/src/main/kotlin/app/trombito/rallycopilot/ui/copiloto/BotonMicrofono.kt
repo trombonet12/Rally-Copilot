@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.ui.comun.BotonIcono
+import app.trombito.rallycopilot.ui.comun.BotonRedondoMapa
 import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
 
 const val ETIQUETA_MICROFONO_BOTON = "copiloto-microfono-boton"
@@ -65,16 +66,29 @@ fun BotonMicrofono(
         } else {
             1f
         }
-    BotonIcono(
-        descripcion = stringResource(if (escuchando) R.string.microfono_escuchando else R.string.microfono_boton),
-        onClick = { if (!escuchando) solicitar() },
-        modifier = (if (grande) modifier.size(LADO_GRANDE) else modifier).testTag(ETIQUETA_MICROFONO_BOTON),
-        estado = EstadoBotonIcono(seleccionado = escuchando),
-    ) {
+    val descripcion = stringResource(if (escuchando) R.string.microfono_escuchando else R.string.microfono_boton)
+    val icono: @Composable () -> Unit = {
         Icon(
             painterResource(R.drawable.ic_microfono),
             contentDescription = null,
             modifier = Modifier.size(if (grande) LADO_ICONO_GRANDE else LADO_ICONO).alpha(alfa),
+        )
+    }
+    if (grande) {
+        BotonIcono(
+            descripcion = descripcion,
+            onClick = { if (!escuchando) solicitar() },
+            modifier = modifier.size(LADO_GRANDE).testTag(ETIQUETA_MICROFONO_BOTON),
+            estado = EstadoBotonIcono(seleccionado = escuchando),
+            contenido = icono,
+        )
+    } else {
+        BotonRedondoMapa(
+            descripcion = descripcion,
+            onClick = { if (!escuchando) solicitar() },
+            modifier = modifier.testTag(ETIQUETA_MICROFONO_BOTON),
+            activo = escuchando,
+            contenido = icono,
         )
     }
 }

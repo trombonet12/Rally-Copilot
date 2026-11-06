@@ -70,11 +70,11 @@ private const val ANCHO_LINEA_MINIMO = 3f
 private const val ANCHO_LINEA_MEDIO = 6f
 private const val ANCHO_LINEA_MAXIMO = 12f
 private const val EXTRA_BORDE = 4f
-private const val DURACION_ENCUADRE_MS = 800
+internal const val DURACION_ENCUADRE_MS = 800
 
 // Margen del encuadre: deja sitio a la barra de arriba y al panel de abajo (dp, con tope relativo al alto del mapa).
 private const val ENCUADRE_ARRIBA_DP = 128f
-private const val ENCUADRE_ABAJO_DP = 220f
+private const val ENCUADRE_ABAJO_DP = 260f
 private const val ENCUADRE_LATERAL_DP = 40f
 private const val ENCUADRE_MAXIMO_ARRIBA = 0.25f
 private const val ENCUADRE_MAXIMO_ABAJO = 0.4f

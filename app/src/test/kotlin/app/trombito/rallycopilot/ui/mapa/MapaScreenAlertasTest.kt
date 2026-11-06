@@ -94,17 +94,19 @@ abstract class MapaScreenAlertasBase {
 
     protected fun banner() = banco.conEtiqueta(ETIQUETA_ALERTA_BANNER).boundsInRoot
 
-    /** Con exceso, la pastilla roja y los botones del panel caben en el panel y no se pisan entre si. */
-    protected fun comprobarPastillaDeExcesoEnElPanel() {
+    /** Con exceso, el borde pulsa en la píldora (sin relleno) y los botones redondos no la pisan. */
+    protected fun comprobarExcesoEnLaPildora() {
         poner(guiando(), AlertasUiState(panel = AlertasPanel(rojo = true, exceso = true)), velocidad = 148)
-        val panel = banco.conEtiqueta("panel").boundsInRoot
+        val raiz = banco.raiz().boundsInRoot
+        val hoja = banco.conEtiqueta("panel").boundsInRoot
         val pastilla = banco.conEtiqueta(ETIQUETA_EXCESO).boundsInRoot
         val velocidad = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
-        assertTrue("pastilla dentro del panel: $pastilla vs $panel", pastilla.dentroDe(panel))
+        assertTrue("la pastilla dentro de la pantalla: $pastilla vs $raiz", pastilla.dentroDe(raiz))
+        assertTrue("la pastilla sobre la hoja: $pastilla vs $hoja", pastilla.bottom <= hoja.top + 1)
         assertTrue("velocidad dentro de la pastilla: $velocidad vs $pastilla", velocidad.dentroDe(pastilla))
         listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION).forEach {
             val boton = banco.conEtiqueta(it).boundsInRoot
-            assertTrue("$it dentro del panel: $boton", boton.dentroDe(panel))
+            assertTrue("$it dentro de la pantalla: $boton", boton.dentroDe(raiz))
             assertFalse("$it no pisa la pastilla", boton.overlaps(pastilla))
         }
     }
@@ -160,8 +162,7 @@ class MapaScreenAlertasVerticalTest : MapaScreenAlertasBase() {
     }
 
     @Test
-    fun `en vertical la pastilla de exceso cabe en el panel junto a los botones`() =
-        comprobarPastillaDeExcesoEnElPanel()
+    fun `en vertical el exceso se ve en la pildora junto a los botones`() = comprobarExcesoEnLaPildora()
 
     @Test
     fun `la incidencia tocada abre su tarjeta y se cierra desde la X`() {
@@ -187,13 +188,13 @@ class MapaScreenAlertasHorizontalTest : MapaScreenAlertasBase() {
     fun `en horizontal el banner compacto cabe en la zona del mapa`() {
         poner(libre, radar, notas)
         val b = banner()
-        val panel = banco.conEtiqueta("panel").boundsInRoot
-        assertTrue("no pasa al panel lateral: $b vs $panel", b.right <= panel.left)
+        val raiz = banco.raiz().boundsInRoot
+        assertTrue("cabe en la pantalla: $b vs $raiz", b.right <= raiz.right)
         assertTrue("es bajo: $b", b.height < 411 * 3 * 0.25f)
     }
 
     @Test
-    fun `en horizontal la pastilla de exceso cabe en el panel lateral`() = comprobarPastillaDeExcesoEnElPanel()
+    fun `en horizontal el exceso cabe en la pildora`() = comprobarExcesoEnLaPildora()
 
     @Test
     fun `guiando en horizontal el banner sale bajo la franja`() {

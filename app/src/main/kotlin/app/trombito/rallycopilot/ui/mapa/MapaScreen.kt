@@ -9,15 +9,20 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -26,10 +31,10 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +45,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -50,16 +57,18 @@ import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
 import app.trombito.rallycopilot.ui.alertas.TarjetaIncidencia
+import app.trombito.rallycopilot.ui.comun.BandaSinGps
 import app.trombito.rallycopilot.ui.comun.DegradadoSuperiorMapa
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.LocalSinSenalGps
 import app.trombito.rallycopilot.ui.comun.MantenerPantallaEncendida
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.comun.VarianteTarjeta
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
-import app.trombito.rallycopilot.ui.copiloto.DialogoVozCopiloto
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.BannerParada
 import app.trombito.rallycopilot.ui.navegacion.BusquedaDestino
@@ -68,6 +77,7 @@ import app.trombito.rallycopilot.ui.navegacion.CabeceraBusqueda
 import app.trombito.rallycopilot.ui.navegacion.ListaDestinos
 import app.trombito.rallycopilot.ui.navegacion.ListaParadas
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
+import app.trombito.rallycopilot.ui.navegacion.NavegacionUiState
 import app.trombito.rallycopilot.ui.navegacion.OpcionesPunto
 import app.trombito.rallycopilot.ui.navegacion.PanelInferiorNavegacion
 import app.trombito.rallycopilot.ui.navegacion.TarjetaPunto
@@ -94,23 +104,21 @@ const val ETIQUETA_PERMISO_AJUSTES = "mapa-permiso-ajustes"
 private const val OPACIDAD_SUPERFICIE_SOBRE_MAPA = 0.88f
 private val ALTO_MINIMO_TACTIL = 48.dp
 private const val DURACION_AVISO_MS = 4_000L
-private val ANCHO_BANNER_PARADA = 520.dp
+internal val ANCHO_BANNER_PARADA = 520.dp
 
-// Altura del pie del guiado (una fila; con paradas, dos) más su margen: lo que queda por encima es de la tarjeta.
-private val RESERVA_PIE_GUIADO = 72.dp
-private val RESERVA_PIE_GUIADO_PARADAS = 104.dp
-
-// Lados de los insets del sistema que respeta cada zona.
-private val LADOS_PANEL_LATERAL = WindowInsetsSides.End + WindowInsetsSides.Vertical
-private val LADOS_PANEL_INFERIOR = WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal
-private val LADOS_MAPA_HORIZONTAL = WindowInsetsSides.Start + WindowInsetsSides.Vertical
+// Lados de los insets del sistema que respeta cada zona. Nunca el teclado: solo la búsqueda es consciente de él.
+private val LADOS_MAPA_HORIZONTAL = WindowInsetsSides.Top + WindowInsetsSides.Horizontal
 private val LADOS_MAPA_VERTICAL = WindowInsetsSides.Top + WindowInsetsSides.Horizontal
+
+/** Insets del sistema (barras y recorte de pantalla) sin el teclado: la hoja de abajo no sube con él. */
+@Composable
+internal fun insetsSinTeclado(): WindowInsets = WindowInsets.systemBars.union(WindowInsets.displayCutout)
 
 /** Estado de la vista del mapa que no sale del ViewModel: permiso de ubicación y si la cámara sigue al coche. */
 data class EstadoVistaMapa(
     val permiso: EstadoPermisoUbicacion = EstadoPermisoUbicacion.CONCEDIDO,
     val siguiendo: Boolean = true,
-    /** Pantalla apaisada: el panel va a la derecha. Lo fija [MapaScreen] según el espacio disponible. */
+    /** Pantalla apaisada: la hoja va abajo a la izquierda y los botones a la derecha. Lo fija [MapaScreen]. */
     val horizontal: Boolean = false,
 )
 
@@ -126,18 +134,24 @@ data class AccionesMapa(
     val onAbrirMapasOffline: () -> Unit = {},
     /** Cierra la tarjeta de la incidencia tocada en el mapa. */
     val onCerrarIncidencia: () -> Unit = {},
+    /** La ✕ de la hoja en modo libre: sale del mapa. */
+    val onSalir: () -> Unit = {},
+    /** Píxeles que tapa la tarjeta del punto elegido (su alto más el margen; 0 sin tarjeta): el mapa los reserva. */
+    val onReservaInferiorPunto: (Int) -> Unit = {},
 )
 
 /**
- * Mapa a pantalla completa con el panel negro de velocidad: abajo en vertical, a la derecha en horizontal. Los botones
- * (capas, modo del copiloto, rumbo/norte y terminar) van en ese panel, a los lados de la velocidad; no hay flecha de
- * volver (se usa el atrás del sistema). El mapa en sí lo pone [mapa] (en producción [VistaMapa]) para poder probar la
- * pantalla sin MapLibre. [navegacion] trae la barra «¿A dónde?», la vista previa de rutas, el botón de terminar y el
- * hueco del panel de guiado (banner a todo el ancho arriba). [copiloto] trae el modo (selector en el panel) y el
- * diálogo de la voz del primer uso. [alertas] trae el banner de radar o incidencia, la velocidad en rojo, la media
- * del radar de tramo y la tarjeta de la incidencia tocada en el mapa. [crono] trae el cronómetro: el HUD arriba si el
- * tramo es conocido y la tarjeta de meta; con un tramo nuevo o sin tramo, un cronómetro pequeño en el panel.
- * [superposicion] pinta encima de todo lo demás (editor de notas y micrófono grande del reconocimiento).
+ * Mapa a pantalla completa con la hoja de conducción abajo (96-112 dp; en horizontal, abajo a la izquierda, 320 dp).
+ * Sobre la hoja van la píldora de velocidad y límite (a la izquierda) y la columna de botones redondos (a la
+ * derecha): fijos el copiloto, silenciar y la brújula; al tocar el mapa aparecen capas, notas grandes y micrófono,
+ * que en marcha se esconden a los 6 s. No hay flecha de volver (se usa el atrás del sistema). El mapa en sí lo pone
+ * [mapa] (en producción
+ * [VistaMapa]) para poder probar la pantalla sin MapLibre. [navegacion] trae la barra «¿A dónde?», la vista previa de
+ * rutas y el hueco del panel de guiado (banner a todo el ancho arriba). [copiloto] trae el modo y el diálogo de la voz
+ * del primer uso. [alertas] trae el banner de radar o incidencia, la velocidad pasada de límite, la media del radar de
+ * tramo y la tarjeta de la incidencia tocada en el mapa. [crono] trae el cronómetro: el HUD arriba si el tramo es
+ * conocido y la tarjeta de meta; con un tramo nuevo o sin tramo, un cronómetro en la hoja. [superposicion] pinta encima
+ * de todo lo demás (editor de notas y micrófono grande del reconocimiento).
  */
 @Composable
 @Suppress("LongParameterList") // estado, vista, acciones, mapa y navegación son los bloques de la pantalla
@@ -156,56 +170,42 @@ fun MapaScreen(
     MantenerPantallaEncendida()
     var abierto by rememberSaveable { mutableStateOf(MenuMapa.NINGUNO) }
     val menu = MenuAbierto(abierto) { abierto = it }
+    DialogoVozSiToca(copiloto)
+    val modoAnterior = rememberModoAnterior(copiloto.estado.modo)
+    val tocados = remember { EstadoBarraDestino() }
+    val enMarcha = (estado.velocidadKmh ?: 0) >= VELOCIDAD_EN_MARCHA_KMH
+    // Al ponerse en marcha los botones secundarios siguen a la vista unos segundos y se esconden solos.
+    LaunchedEffect(enMarcha) { if (enMarcha) tocados.tocar() }
+    OcultarBarraTrasInactividad(tocados, enMarcha && tocados.reclamada, RETARDO_OCULTAR_BOTONES_MS)
     val botones =
         if (estado.hayDatos || copiloto.estado.notasGrandes) {
-            botonesDelPanel(estado, acciones, navegacion, copiloto, menu)
+            botonesDeLaColumna(estado, vista, acciones, navegacion, copiloto, menu, modoAnterior)
         } else {
-            BotonesPanel()
+            BotonesMapa()
         }
-    // Parado planificando (búsqueda, tarjeta de un punto o vista previa) el panel inferior se encoge para ver más mapa.
-    val compacto = rememberPanelCompacto(estado.velocidadKmh, navegacion.estado.planificando)
-    DialogoVozSiToca(copiloto)
-    val zona = ZonaMapaContenido(estado, vista, acciones, navegacion, menu, copiloto, alertas, crono)
-    BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-        val horizontal = maxWidth > maxHeight
-        if (horizontal) {
-            Row(Modifier.fillMaxSize()) {
-                ZonaMapa(
-                    zona.orientada(horizontal = true),
-                    mapa,
-                    Modifier.weight(1f).fillMaxHeight(),
-                )
-                PanelDeVelocidad(
-                    PanelEnMapa(estado, botones, alertas, enColumna = true, compacto = compacto, crono = crono),
-                    Modifier
-                        .width(anchoPanelLateral(botones))
-                        .fillMaxHeight()
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(LADOS_PANEL_LATERAL)),
-                )
-            }
-        } else {
-            Column(Modifier.fillMaxSize()) {
-                ZonaMapa(
-                    zona.orientada(horizontal = false),
-                    mapa,
-                    Modifier.weight(1f).fillMaxWidth(),
-                )
-                PanelDeVelocidad(
-                    PanelEnMapa(estado, botones, alertas, enColumna = false, compacto = compacto, crono = crono),
-                    Modifier
-                        .fillMaxWidth()
-                        .windowInsetsPadding(WindowInsets.safeDrawing.only(LADOS_PANEL_INFERIOR)),
-                )
-            }
+    val zona = ZonaMapaContenido(estado, vista, acciones, navegacion, menu, copiloto, alertas, crono, botones)
+    val tactilesVisibles = botonesTactilesVisibles(enMarcha, tocados.reclamada) || copiloto.estado.notasGrandes
+    CompositionLocalProvider(LocalSinSenalGps provides estado.sinSenalGps) {
+        BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+            val horizontal = maxWidth > maxHeight
+            ZonaMapa(zona.orientada(horizontal, tocados, tactilesVisibles), mapa, Modifier.fillMaxSize())
+            // Encima de todo: el editor de notas (parado) y el micrófono grande del reconocimiento.
+            superposicion()
         }
-        // Encima de todo: el editor de notas (parado) y el micrófono grande del reconocimiento.
-        superposicion()
     }
+}
+
+/** El último modo del copiloto con voz: al quitar el silencio se vuelve a él. */
+@Composable
+private fun rememberModoAnterior(modo: ModoCopiloto): ModoCopiloto {
+    var anterior by rememberSaveable { mutableStateOf(ModoCopiloto.POR_DEFECTO) }
+    if (modo != ModoCopiloto.SILENCIO && modo != anterior) anterior = modo
+    return anterior
 }
 
 /** Lo que pinta la zona del mapa, agrupado. */
 @Suppress("LongParameterList") // los bloques de la pantalla, agrupados para no pasarlos uno a uno
-private class ZonaMapaContenido(
+internal class ZonaMapaContenido(
     val estado: MapaUiState,
     val vista: EstadoVistaMapa,
     val acciones: AccionesMapa,
@@ -214,19 +214,29 @@ private class ZonaMapaContenido(
     val copiloto: CopilotoEnMapa,
     val alertas: AlertasUiState,
     val crono: CronoEnCurso?,
+    val botones: BotonesMapa,
+    /** Toques al mapa: gobiernan los botones secundarios. */
+    val tocados: EstadoBarraDestino = EstadoBarraDestino(),
+    val tactilesVisibles: Boolean = true,
 ) {
     /** El mismo contenido con la zona en vertical o en apaisado. */
-    fun orientada(horizontal: Boolean) =
-        ZonaMapaContenido(
-            estado,
-            vista.copy(horizontal = horizontal),
-            acciones,
-            navegacion,
-            menu,
-            copiloto,
-            alertas,
-            crono,
-        )
+    fun orientada(
+        horizontal: Boolean,
+        tocados: EstadoBarraDestino,
+        tactilesVisibles: Boolean,
+    ) = ZonaMapaContenido(
+        estado,
+        vista.copy(horizontal = horizontal),
+        acciones,
+        navegacion,
+        menu,
+        copiloto,
+        alertas,
+        crono,
+        botones,
+        tocados,
+        tactilesVisibles,
+    )
 }
 
 @Composable
@@ -255,7 +265,11 @@ private fun ZonaConMapa(
     val lados = if (vista.horizontal) LADOS_MAPA_HORIZONTAL else LADOS_MAPA_VERTICAL
     val barra = remember { EstadoBarraDestino() }
     val buscar by rememberUpdatedState(estado.hayDatos && navegacion.estado.enReposo)
-    Box(modifier.alTocar(barra) { if (buscar) barra.tocar() }) {
+    val tocados = contenido.tocados
+    // Sin tarjeta de punto el mapa no reserva nada por abajo.
+    val sinPunto = navegacion.estado.puntoElegido == null
+    LaunchedEffect(sinPunto) { if (sinPunto) acciones.onReservaInferiorPunto(0) }
+    Box(modifier.alTocar(barra) { if (buscar) barra.tocar() }.alTocar(tocados) { tocados.tocar() }) {
         val json = estado.estiloJson
         when {
             estado.cargando -> {
@@ -272,7 +286,7 @@ private fun ZonaConMapa(
                 DegradadoSuperiorMapa(Modifier.align(Alignment.TopCenter))
             }
         }
-        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(lados)).padding(Espacio.s)) {
+        Box(Modifier.fillMaxSize().windowInsetsPadding(insetsSinTeclado().only(lados)).padding(Espacio.s)) {
             CabeceraMapa(
                 ContenidoCabecera(estado, acciones, navegacion, contenido.alertas, contenido.crono),
                 barra,
@@ -280,10 +294,6 @@ private fun ZonaConMapa(
                 Modifier.align(Alignment.TopStart),
             )
             if (estado.hayDatos) {
-                PieMapa(
-                    ContenidoPie(estado, vista, acciones, navegacion, contenido.alertas),
-                    Modifier.align(Alignment.BottomStart),
-                )
                 (navegacion.estado.control as? EstadoNavegacion.Guiando)?.let {
                     navegacion.panelGuiado(
                         this,
@@ -303,17 +313,17 @@ private fun ZonaConMapa(
                         Modifier.align(Alignment.TopStart),
                     )
                 }
-                // Encima de todo y pegado al panel inferior, junto al botón que lo abre.
-                val pegado = Modifier.align(if (vista.horizontal) Alignment.BottomEnd else Alignment.BottomStart)
-                MenuSobreMapa(estado, acciones, contenido.copiloto, contenido.menu, pegado, vista.horizontal)
             }
         }
+        ZonaInferior(contenido, barra)
+        MenuSobreMapa(contenido.copiloto, contenido.menu, vista.horizontal)
     }
 }
 
 /**
  * El modo de notas grandes en lugar del mapa: la tarjeta de permiso si falta, el menú del copiloto sobre ella y,
- * debajo de todo, el roadbook. Las notas, alertas y el cronómetro son los mismos que en el mapa.
+ * debajo de todo, el roadbook. Las notas, alertas y el cronómetro son los mismos que en el mapa. La hoja de abajo y la
+ * columna de botones son las del mapa: el roadbook les deja sitio.
  */
 @Composable
 private fun RoadbookEnZona(
@@ -332,29 +342,176 @@ private fun RoadbookEnZona(
                 crono = contenido.crono,
             ),
             horizontal = vista.horizontal,
-            modifier = Modifier.windowInsetsPadding(WindowInsets.safeDrawing.only(lados)),
+            modifier = Modifier.windowInsetsPadding(insetsSinTeclado().only(lados)),
         )
-        Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(lados)).padding(Espacio.s)) {
-            if (vista.permiso != EstadoPermisoUbicacion.CONCEDIDO) {
-                TarjetaPermiso(
-                    vista.permiso,
-                    contenido.acciones.onPedirPermiso,
-                    contenido.acciones.onAbrirAjustes,
-                    Modifier.align(Alignment.BottomStart),
-                )
+        ZonaInferior(contenido, barra = null)
+        MenuSobreMapa(contenido.copiloto, contenido.menu, vista.horizontal)
+    }
+}
+
+// Zona de abajo: avisos, píldora de velocidad, columna de botones y hoja de conducción (o la tarjeta de la fase).
+
+private val ANCHO_HOJA_LATERAL = 320.dp
+private val ANCHO_FASE_LATERAL = 440.dp
+
+/** Hay una tarjeta de planificación o de fin (punto elegido, vista previa, llegada o error) que sustituye a la hoja. */
+internal fun hayFaseInferior(nav: NavegacionUiState): Boolean =
+    nav.puntoElegido != null ||
+        nav.control is EstadoNavegacion.Llegada ||
+        nav.control is EstadoNavegacion.Error ||
+        (nav.enReposo && nav.vistaPrevia != null)
+
+/**
+ * Abajo del mapa. En vertical: avisos, la fila de la píldora (izquierda) y los botones (derecha) y, debajo, la hoja a
+ * todo el ancho. En horizontal: la hoja de 320 dp abajo a la izquierda con la píldora y los avisos encima y los botones
+ * a la derecha. Cuando hay una tarjeta de punto, vista previa, llegada o error, ella ocupa el sitio de la hoja.
+ * [barra] es el campo «¿A dónde?» (null en el modo de notas grandes, que no lo tiene).
+ */
+@Composable
+private fun BoxScope.ZonaInferior(
+    contenido: ZonaMapaContenido,
+    barra: EstadoBarraDestino?,
+) {
+    val vista = contenido.vista
+    val estado = contenido.estado
+    val nav = contenido.navegacion.estado
+    val hoja = !hayFaseInferior(nav)
+    val avisos: @Composable () -> Unit = { if (estado.hayDatos) AvisosDelPie(contenido) }
+    val pildora: @Composable () -> Unit = {
+        PildoraConduccion(
+            velocidadKmh = estado.velocidadKmh,
+            limiteKmh = estado.limiteKmh,
+            alertas = contenido.alertas.panel,
+            sinSenal = estado.sinSenalGps,
+        )
+    }
+    val fase: @Composable () -> Unit = { if (estado.hayDatos) FaseInferior(contenido) }
+    val laHoja: @Composable (Modifier) -> Unit = { HojaDeLaZona(contenido, barra, it) }
+    val laterales = insetsSinTeclado().only(WindowInsetsSides.Horizontal)
+    if (vista.horizontal) {
+        Row(Modifier.fillMaxSize().windowInsetsPadding(laterales), verticalAlignment = Alignment.Bottom) {
+            Column(Modifier.width(if (hoja) ANCHO_HOJA_LATERAL else ANCHO_FASE_LATERAL)) {
+                Column(
+                    Modifier.padding(horizontal = Espacio.s),
+                    verticalArrangement = Arrangement.spacedBy(Espacio.s),
+                ) {
+                    avisos()
+                    pildora()
+                    if (!hoja) Box(Modifier.navigationBarsPadding().padding(bottom = Espacio.s)) { Column { fase() } }
+                }
+                if (hoja) {
+                    Spacer(Modifier.height(Espacio.s))
+                    laHoja(Modifier)
+                }
             }
-            val pegado = Modifier.align(if (vista.horizontal) Alignment.BottomEnd else Alignment.BottomStart)
-            MenuSobreMapa(
-                contenido.estado,
-                contenido.acciones,
-                contenido.copiloto,
-                contenido.menu,
-                pegado,
-                vista.horizontal,
-            )
+            Spacer(Modifier.weight(1f))
+            GrupoDerecho(contenido, Modifier.navigationBarsPadding().padding(end = Espacio.s, bottom = Espacio.s))
+        }
+    } else {
+        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(laterales)) {
+            Column(Modifier.padding(horizontal = Espacio.s), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+                avisos()
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                    Box(Modifier.weight(1f)) { pildora() }
+                    GrupoDerecho(contenido, Modifier)
+                }
+                if (!hoja) Box(Modifier.navigationBarsPadding().padding(bottom = Espacio.s)) { Column { fase() } }
+            }
+            if (hoja) {
+                Spacer(Modifier.height(Espacio.s))
+                laHoja(Modifier)
+            }
         }
     }
 }
+
+/** La hoja de conducción con lo que hace cada uno de sus botones. */
+@Composable
+private fun HojaDeLaZona(
+    contenido: ZonaMapaContenido,
+    barra: EstadoBarraDestino?,
+    modifier: Modifier,
+) {
+    val nav = contenido.navegacion.estado
+    HojaConduccion(
+        DatosHoja(contenido.estado, nav.control, contenido.crono),
+        AccionesHoja(
+            onSalir = contenido.acciones.onSalir,
+            onTerminar = contenido.navegacion.acciones.onTerminar,
+            onBuscarDestino = barra?.let { { it.pedirFoco() } },
+            onBuscarGuiando = contenido.navegacion.acciones.onAbrirBusqueda,
+        ),
+        modifier,
+    )
+}
+
+/** El panel de capas (si está abierto) a la izquierda de la columna de botones redondos. */
+@Composable
+private fun GrupoDerecho(
+    contenido: ZonaMapaContenido,
+    modifier: Modifier,
+) {
+    val botones = contenido.botones
+    if (botones.fijos.isEmpty() && botones.tactiles.isEmpty()) return
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(Espacio.s), verticalAlignment = Alignment.Bottom) {
+        if (contenido.menu.actual == MenuMapa.CAPAS) PanelCapas(contenido.estado, contenido.acciones)
+        ColumnaBotonesMapa(botones, contenido.tactilesVisibles, contenido.vista.horizontal)
+    }
+}
+
+/**
+ * Lo que flota sobre la píldora: la tarjeta de la incidencia tocada, el permiso de ubicación si falta, las paradas del
+ * guiado y el aviso de mapas actualizados. Las atribuciones están solo en Ajustes > Acerca de.
+ */
+@Composable
+private fun AvisosDelPie(contenido: ZonaMapaContenido) {
+    val vista = contenido.vista
+    val acciones = contenido.acciones
+    val navegacion = contenido.navegacion
+    val nav = navegacion.estado
+    val guiando = nav.control as? EstadoNavegacion.Guiando
+    var paradasAbiertas by rememberSaveable { mutableStateOf(false) }
+    contenido.alertas.seleccionada?.let {
+        TarjetaIncidencia(it, contenido.alertas.frescura, acciones.onCerrarIncidencia)
+    }
+    if (vista.permiso != EstadoPermisoUbicacion.CONCEDIDO) {
+        TarjetaPermiso(vista.permiso, acciones.onPedirPermiso, acciones.onAbrirAjustes)
+    }
+    if (guiando != null && guiando.paradas.isNotEmpty()) {
+        ParadasDelGuiado(guiando, navegacion.acciones, paradasAbiertas, vista.horizontal) {
+            paradasAbiertas = !paradasAbiertas
+        }
+    }
+    AvisoDelPie(contenido.estado, nav.conduciendo, acciones.onDescartarAviso)
+}
+
+/** Lo que sustituye a la hoja: la tarjeta del punto elegido y la vista previa de rutas, la llegada o el error. */
+@Composable
+private fun FaseInferior(contenido: ZonaMapaContenido) {
+    val navegacion = contenido.navegacion
+    val nav = navegacion.estado
+    val acciones = contenido.acciones
+    val densidad = LocalDensity.current
+    val barraInferior = WindowInsets.navigationBars.getBottom(densidad)
+    val margen = with(densidad) { (Espacio.s + MARGEN_PUNTO_SOBRE_TARJETA).roundToPx() }
+    Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+        nav.puntoElegido?.let {
+            val opciones = OpcionesPunto(puedeAnadir = !nav.paradasLlenas)
+            TarjetaPunto(
+                it,
+                opciones,
+                navegacion.acciones,
+                Modifier.onSizeChanged { tamano ->
+                    acciones.onReservaInferiorPunto(tamano.height + barraInferior + margen)
+                },
+            )
+        }
+        PanelInferiorNavegacion(nav, navegacion.acciones, contenido.vista.horizontal)
+    }
+}
+
+/** Margen entre el pin del punto elegido y la tarjeta que lo podría tapar. */
+private val MARGEN_PUNTO_SOBRE_TARJETA = 24.dp
 
 @Composable
 private fun Cargando() {
@@ -448,7 +605,12 @@ private fun CabeceraMapa(
         if (buscar) {
             if (barraDestinoVisible(hayNotas, barra.reclamada, retenida)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    CabeceraBusqueda(navegacion.estado, navegacion.acciones) { barra.enfocada = it }
+                    CabeceraBusqueda(
+                        navegacion.estado,
+                        navegacion.acciones,
+                        pedirFoco = barra.focoPendiente,
+                        onFocoPedido = { barra.focoPendiente = false },
+                    ) { barra.enfocada = it }
                 }
             }
             ListaDestinos(
@@ -465,6 +627,7 @@ private fun CabeceraMapa(
                 CarreteNotas(navegacion.notas, compacta = horizontal)
                 BannerAlerta(contenido.alertas.aviso, contenido.alertas.frescura, compacto = horizontal)
                 CronoSuperior(contenido.crono, compacto = horizontal)
+                BandaSinGps()
             }
             navegacion.estado.seguir?.let {
                 TarjetaSeguir(it, navegacion.acciones.onSeguir, navegacion.acciones.onDescartarSeguir)
@@ -511,70 +674,6 @@ private fun AvisoActualizado(
                 )
             }
         }
-    }
-}
-
-/** Lo que pinta el pie del mapa, agrupado. */
-private class ContenidoPie(
-    val estado: MapaUiState,
-    val vista: EstadoVistaMapa,
-    val acciones: AccionesMapa,
-    val navegacion: NavegacionEnMapa,
-    val alertas: AlertasUiState,
-)
-
-/**
- * Abajo: la tarjeta de la incidencia tocada en el mapa, permiso de ubicación (si falta), botón de recentrar y el
- * panel de navegación (vista previa o aviso). Las atribuciones están solo en Ajustes > Acerca de.
- */
-@Composable
-private fun PieMapa(
-    contenido: ContenidoPie,
-    modifier: Modifier = Modifier,
-) {
-    val estado = contenido.estado
-    val vista = contenido.vista
-    val acciones = contenido.acciones
-    val navegacion = contenido.navegacion
-    val nav = navegacion.estado
-    val guiando = nav.control as? EstadoNavegacion.Guiando
-    var paradasAbiertas by rememberSaveable { mutableStateOf(false) }
-    // En el guiado el pie con llegada y tiempo ocupa el borde de abajo: lo de este bloque queda encima.
-    val reserva =
-        when {
-            guiando?.progreso == null || (nav.puntoElegido == null && nav.paradas.isEmpty()) -> 0.dp
-            nav.paradas.isEmpty() -> RESERVA_PIE_GUIADO
-            else -> RESERVA_PIE_GUIADO_PARADAS
-        }
-    Column(
-        modifier = modifier.fillMaxWidth().padding(bottom = reserva),
-        verticalArrangement = Arrangement.spacedBy(Espacio.s),
-    ) {
-        contenido.alertas.seleccionada?.let {
-            TarjetaIncidencia(it, contenido.alertas.frescura, acciones.onCerrarIncidencia)
-        }
-        if (vista.permiso != EstadoPermisoUbicacion.CONCEDIDO) {
-            TarjetaPermiso(vista.permiso, acciones.onPedirPermiso, acciones.onAbrirAjustes)
-        }
-        if (!vista.siguiendo && estado.posicion != null) {
-            SmallFloatingActionButton(
-                onClick = acciones.onRecentrar,
-                modifier = Modifier.align(Alignment.End).testTag(ETIQUETA_RECENTRAR),
-            ) {
-                Icon(Iconos.MiUbicacion, contentDescription = stringResource(R.string.mapa_recentrar))
-            }
-        }
-        nav.puntoElegido?.let {
-            val opciones = OpcionesPunto(puedeAnadir = !nav.paradasLlenas)
-            TarjetaPunto(it, opciones, navegacion.acciones)
-        }
-        if (guiando != null && guiando.paradas.isNotEmpty()) {
-            ParadasDelGuiado(guiando, navegacion.acciones, paradasAbiertas, vista.horizontal) {
-                paradasAbiertas = !paradasAbiertas
-            }
-        }
-        PanelInferiorNavegacion(navegacion.estado, navegacion.acciones, vista.horizontal)
-        AvisoDelPie(estado, nav.conduciendo, acciones.onDescartarAviso)
     }
 }
 

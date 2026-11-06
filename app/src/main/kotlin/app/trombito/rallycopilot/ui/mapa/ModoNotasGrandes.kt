@@ -24,11 +24,10 @@ import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
-import app.trombito.rallycopilot.ui.comun.BotonIcono
-import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
+import app.trombito.rallycopilot.ui.comun.BandaSinGps
+import app.trombito.rallycopilot.ui.comun.BotonRedondoMapa
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.navegacion.guiado.BannerGuiado
-import app.trombito.rallycopilot.ui.navegacion.guiado.PieGuiado
 import app.trombito.rallycopilot.ui.navegacion.notas.FilaNota
 import app.trombito.rallycopilot.ui.navegacion.notas.MEDIDAS_GRANDE
 import app.trombito.rallycopilot.ui.navegacion.notas.MEDIDAS_ROADBOOK_LADO
@@ -42,6 +41,10 @@ const val ETIQUETA_ROADBOOK = "mapa-roadbook"
 const val ETIQUETA_ROADBOOK_VACIO = "mapa-roadbook-vacio"
 
 private val MARGEN = 8.dp
+
+// Lo que ocupan la hoja de conducción (abajo) y la columna de botones (a la derecha): el roadbook no las pisa.
+private val RESERVA_HOJA = 208.dp
+private val RESERVA_COLUMNA = 72.dp
 private const val PESO_NOTA_ENORME = 1.25f
 
 /** El botón del panel que alterna entre el mapa y el modo de notas grandes (se recuerda en los ajustes). */
@@ -53,11 +56,12 @@ internal fun BotonNotasGrandes(
 ) {
     val estadoBoton =
         if (activo) R.string.notas_grandes_boton_estado_activo else R.string.notas_grandes_boton_estado_inactivo
-    BotonIcono(
+    BotonRedondoMapa(
         descripcion = stringResource(R.string.notas_grandes_boton),
         onClick = onClick,
         modifier = modifier.testTag(ETIQUETA_NOTAS_GRANDES_BOTON),
-        estado = EstadoBotonIcono(seleccionado = activo, descripcionEstado = stringResource(estadoBoton)),
+        activo = activo,
+        descripcionEstado = stringResource(estadoBoton),
     ) { Icon(Iconos.NotasGrandes, contentDescription = null) }
 }
 
@@ -89,7 +93,13 @@ internal fun ZonaRoadbook(
 @Composable
 private fun RoadbookVertical(c: ContenidoRoadbook) {
     Column(
-        modifier = Modifier.fillMaxSize().padding(MARGEN),
+        modifier =
+            Modifier.fillMaxSize().padding(
+                start = MARGEN,
+                top = MARGEN,
+                end = RESERVA_COLUMNA,
+                bottom = RESERVA_HOJA,
+            ),
         verticalArrangement = Arrangement.spacedBy(MARGEN),
     ) {
         Cabecera(c, compacto = false)
@@ -102,14 +112,19 @@ private fun RoadbookVertical(c: ContenidoRoadbook) {
                 FilaNota(visible, i + 1, c.notas.simplificadas, MEDIDAS_GRANDE, Modifier.fillMaxWidth())
             }
         }
-        c.guiando?.progreso?.let { PieGuiado(it, Modifier.align(Alignment.CenterHorizontally)) }
     }
 }
 
 @Composable
 private fun RoadbookHorizontal(c: ContenidoRoadbook) {
     Row(
-        modifier = Modifier.fillMaxSize().padding(MARGEN),
+        modifier =
+            Modifier.fillMaxSize().padding(
+                start = MARGEN,
+                top = MARGEN,
+                end = RESERVA_COLUMNA,
+                bottom = RESERVA_HOJA,
+            ),
         horizontalArrangement = Arrangement.spacedBy(MARGEN),
     ) {
         val primera = c.notas.visibles.firstOrNull()
@@ -141,6 +156,7 @@ private fun Cabecera(
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(MARGEN)) {
         c.guiando?.let { BannerGuiado(it, compacto = true) }
         BannerAlerta(c.alertas.aviso, c.alertas.frescura, compacto = true)
+        BandaSinGps()
         CronoSuperior(c.crono, compacto = compacto || c.guiando != null)
     }
 }

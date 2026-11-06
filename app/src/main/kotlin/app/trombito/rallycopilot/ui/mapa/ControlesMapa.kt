@@ -20,6 +20,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.ui.comun.BotonIcono
+import app.trombito.rallycopilot.ui.comun.BotonRedondoMapa
 import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.theme.Espacio
@@ -42,11 +43,11 @@ internal fun BotonCapas(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BotonIcono(
+    BotonRedondoMapa(
         descripcion = stringResource(R.string.mapa_capas_boton),
         onClick = onClick,
         modifier = modifier.testTag(ETIQUETA_CAPAS_BOTON),
-        estado = EstadoBotonIcono(seleccionado = abierto),
+        activo = abierto,
     ) { Icon(Iconos.Capas, contentDescription = null) }
 }
 
@@ -119,16 +120,31 @@ private fun BotonRelieve(
     ) { Icon(Iconos.Relieve, contentDescription = null) }
 }
 
+/**
+ * El botón de la brújula: con la cámara siguiendo al coche alterna rumbo arriba / norte arriba; si el mapa se movió
+ * ([siguiendo] falso) pasa a ser el de «mi ubicación» y vuelve a centrar en el coche.
+ */
 @Composable
 internal fun BotonOrientacion(
     orientacion: Orientacion,
     onOrientacion: (Orientacion) -> Unit,
+    modifier: Modifier = Modifier,
+    siguiendo: Boolean = true,
+    onRecentrar: () -> Unit = {},
 ) {
+    if (!siguiendo) {
+        BotonRedondoMapa(
+            descripcion = stringResource(R.string.mapa_recentrar),
+            onClick = onRecentrar,
+            modifier = modifier.testTag(ETIQUETA_RECENTRAR),
+        ) { Icon(Iconos.MiUbicacion, contentDescription = null) }
+        return
+    }
     val rumbo = orientacion == Orientacion.RUMBO
     val icono: ImageVector = if (rumbo) Iconos.Rumbo else Iconos.Brujula
-    BotonIcono(
+    BotonRedondoMapa(
         descripcion = stringResource(if (rumbo) R.string.mapa_orientacion_rumbo else R.string.mapa_orientacion_norte),
         onClick = { onOrientacion(if (rumbo) Orientacion.NORTE else Orientacion.RUMBO) },
-        modifier = Modifier.testTag(ETIQUETA_ORIENTACION),
+        modifier = modifier.testTag(ETIQUETA_ORIENTACION),
     ) { Icon(icono, contentDescription = null) }
 }

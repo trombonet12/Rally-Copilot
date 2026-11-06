@@ -15,4 +15,5 @@
     <string name="navegacion_error_permiso">Falta el permiso de ubicación.</string>
     <string name="navegacion_error_gps">Se ha perdido la señal GPS.</string>
     <string name="navegacion_error_arranque">No se ha podido iniciar la conducción.</string>
+    <string name="navegacion_salir_mapa">Cerrar el mapa</string>
 </resources>

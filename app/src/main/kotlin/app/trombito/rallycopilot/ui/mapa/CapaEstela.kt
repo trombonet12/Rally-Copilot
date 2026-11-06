@@ -11,6 +11,10 @@ import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
 import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
+import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
+import org.maplibre.geojson.LineString
+import org.maplibre.geojson.Point
 
 private const val ID_FUENTE_ESTELA = "estela-fuente"
 private const val ID_ESTELA_BORDE = "estela-borde"
@@ -37,9 +41,9 @@ internal val COLOR_ESTELA: Int = GrisEstela.toArgb()
 internal object CapaEstela {
     fun instalar(
         estilo: Style,
-        puntos: List<PuntoGeo>,
+        segmentos: List<List<PuntoGeo>>,
     ) {
-        estilo.addSource(GeoJsonSource(ID_FUENTE_ESTELA, lineaGeoJson(puntos)))
+        estilo.addSource(GeoJsonSource(ID_FUENTE_ESTELA, estelaGeoJson(segmentos)))
         val etiquetas = estilo.layers.firstOrNull { it is SymbolLayer }?.id
         listOf(
             capa(
@@ -56,9 +60,9 @@ internal object CapaEstela {
 
     fun actualizar(
         estilo: Style,
-        puntos: List<PuntoGeo>,
+        segmentos: List<List<PuntoGeo>>,
     ) {
-        estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_ESTELA)?.setGeoJson(lineaGeoJson(puntos))
+        estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_ESTELA)?.setGeoJson(estelaGeoJson(segmentos))
     }
 
     private fun capa(
@@ -83,3 +87,11 @@ internal object CapaEstela {
             ),
         )
 }
+
+/** La estela como líneas separadas (una por segmento con al menos dos puntos) listas para un `GeoJsonSource`. */
+internal fun estelaGeoJson(segmentos: List<List<PuntoGeo>>): FeatureCollection =
+    FeatureCollection.fromFeatures(
+        segmentos
+            .filter { it.size >= 2 }
+            .map { s -> Feature.fromGeometry(LineString.fromLngLats(s.map { Point.fromLngLat(it.lon, it.lat) })) },
+    )

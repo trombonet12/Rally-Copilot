@@ -237,9 +237,9 @@ internal class ComplementoEdicion(
     }
 
     private fun centrar() {
-        val pedido = escena.centrado
+        val pedido = escena.centrado?.takeIf { it != centradoAplicado } ?: return
         val m = mapa
-        if (pedido == null || m == null || estilo == null || pedido == centradoAplicado) return
+        if (m == null || estilo == null) return
         centradoAplicado = pedido
         val zoom = maxOf(m.cameraPosition.zoom, ZOOM_AL_CENTRAR)
         m.easeCamera(

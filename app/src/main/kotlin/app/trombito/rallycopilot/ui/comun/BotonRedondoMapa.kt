@@ -20,6 +20,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.disabled
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -72,6 +74,15 @@ fun BotonRedondoMapa(
                     role = Role.Button
                     selected = activo
                     descripcionEstado?.let { stateDescription = it }
+                    // La acción también en el nodo que se fusiona: TalkBack y las pruebas la encuentran aquí.
+                    if (habilitado) {
+                        onClick {
+                            onClick()
+                            true
+                        }
+                    } else {
+                        disabled()
+                    }
                 },
     ) {
         Box(

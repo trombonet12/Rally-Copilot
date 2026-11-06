@@ -65,18 +65,27 @@ internal class EstadoBarraDestino {
     fun ocultar() {
         reclamada = false
     }
+
+    /** La lupa de la hoja pidió el campo: se enseña y [BarraDestino] toma el foco al componerse. */
+    var focoPendiente by mutableStateOf(false)
+
+    fun pedirFoco() {
+        tocar()
+        focoPendiente = true
+    }
 }
 
-/** Esconde la barra tras [RETARDO_OCULTAR_BARRA_MS] sin toques mientras [cuentaAtras] sea cierta. */
+/** Esconde lo que [estado] gobierna tras [retardoMs] sin toques mientras [cuentaAtras] sea cierta. */
 @Composable
 internal fun OcultarBarraTrasInactividad(
     estado: EstadoBarraDestino,
     cuentaAtras: Boolean,
+    retardoMs: Long = RETARDO_OCULTAR_BARRA_MS,
 ) {
     LaunchedEffect(cuentaAtras, estado.toques) {
         if (cuentaAtras) {
             // En el hilo principal «de verdad» (no el despachador de Compose): así lo gobierna el reloj de los tests.
-            withContext(Dispatchers.Main) { delay(RETARDO_OCULTAR_BARRA_MS) }
+            withContext(Dispatchers.Main) { delay(retardoMs) }
             estado.ocultar()
         }
     }

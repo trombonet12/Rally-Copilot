@@ -23,12 +23,12 @@ import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
+import app.trombito.rallycopilot.ui.comun.BandaSinGps
 import app.trombito.rallycopilot.ui.maniobras.BannerManiobra
 import app.trombito.rallycopilot.ui.maniobras.formatearDistanciaManiobra
 import app.trombito.rallycopilot.ui.navegacion.notas.CarreteNotas
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
 import app.trombito.rallycopilot.ui.tramos.CronoSuperior
-import java.time.ZoneId
 
 const val ETIQUETA_PANEL_GUIADO = "panel_guiado"
 
@@ -96,18 +96,17 @@ internal fun datosBanner(estado: EstadoNavegacion.Guiando): DatosBanner? {
 /**
  * Capa de guiado sobre el mapa (ocupa todo el espacio que se le da y no tapa el centro): arriba el banner de la
  * maniobra actual y la siguiente, a todo el ancho (los botones están en el panel inferior), con el aviso de
- * recálculo debajo, y abajo el pie con llegada, tiempo y km. Entre el banner y el aviso va la carrete de notas (a todo
+ * recálculo debajo (y la banda de «Sin señal GPS» si se perdió el GPS). La llegada, el tiempo y los km van en la hoja
+ * de conducción de abajo. Entre el banner y el aviso va la carrete de notas (a todo
  * el ancho; no pinta nada si no hay notas) y, bajo ella, el banner de alerta de radar o incidencia (entra deslizando
  * y sale al pasar; no pinta nada sin alerta) y, bajo ellos, el HUD del cronómetro si el tramo es conocido o la
- * tarjeta de meta ([crono]). El pie va centrado en vertical y a la izquierda en horizontal. Sin
- * progreso todavía no hay pie.
+ * tarjeta de meta ([crono]).
  */
 @Composable
 @Suppress("LongParameterList") // estado, notas, alertas y cronómetro son los bloques de la capa
 fun PanelGuiado(
     estado: EstadoNavegacion.Guiando,
     modifier: Modifier = Modifier,
-    zona: ZoneId = ZoneId.systemDefault(),
     notas: NotasUiState = NotasUiState(),
     alertas: AlertasUiState = AlertasUiState(),
     crono: CronoEnCurso? = null,
@@ -129,18 +128,7 @@ fun PanelGuiado(
             BannerAlerta(alertas.aviso, alertas.frescura, compacto = horizontal)
             CronoSuperior(crono, compacto = horizontal)
             AvisoRecalculo(estado.recalculando)
-        }
-        estado.progreso?.let {
-            PieGuiado(
-                progreso = it,
-                modifier =
-                    Modifier
-                        .align(
-                            if (horizontal) Alignment.BottomStart else Alignment.BottomCenter,
-                        ).padding(MARGEN),
-                zona = zona,
-                proxima = proximaParada(estado, it),
-            )
+            BandaSinGps()
         }
     }
 }

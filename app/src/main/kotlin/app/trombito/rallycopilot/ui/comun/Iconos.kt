@@ -200,6 +200,11 @@ object Iconos {
         icono("Siguiente", "M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z")
     }
 
+    /** Flecha a la derecha (Material «arrow_forward»): el botón «IR» de la vista previa de rutas. */
+    val FlechaDerecha: ImageVector by lazy {
+        icono("FlechaDerecha", "M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z")
+    }
+
     val Notas: ImageVector by lazy {
         icono("Notas", "M3 18h12v-2H3v2zM3 6v2h18V6H3zm0 7h18v-2H3v2z")
     }

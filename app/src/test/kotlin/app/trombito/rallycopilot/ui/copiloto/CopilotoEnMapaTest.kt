@@ -107,27 +107,36 @@ abstract class CopilotoEnMapaBase {
         }
     }
 
-    protected fun botonesDelPanel(): List<String> =
+    /** Los botones redondos de la columna derecha (parado se ven todos). */
+    protected fun botonesDeLaColumna(): List<String> =
         listOf(
             ETIQUETA_CAPAS_BOTON,
             ETIQUETA_MODO_BOTON,
+            ETIQUETA_SILENCIO_BOTON,
             ETIQUETA_NOTAS_GRANDES_BOTON,
-            ETIQUETA_BUSCAR_GUIANDO,
             ETIQUETA_ORIENTACION,
-            ETIQUETA_TERMINAR,
         )
 
-    /** Los botones están dentro del panel negro y ninguno tapa la velocidad. */
+    /** Los botones redondos caben en pantalla sin tapar la píldora ni la hoja, y la ✕ y la lupa están en la hoja. */
     protected fun comprobarQueCabenSinTaparLaVelocidad() {
-        val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
+        val raiz = banco.raiz().boundsInRoot
+        val hoja = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
         val velocidad = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
-        botonesDelPanel().forEach { etiqueta ->
+        botonesDeLaColumna().forEach { etiqueta ->
             val boton = banco.conEtiqueta(etiqueta).boundsInRoot
             val dentro =
-                boton.left >= panel.left && boton.right <= panel.right &&
-                    boton.top >= panel.top && boton.bottom <= panel.bottom
-            assertTrue("$etiqueta dentro del panel: $boton vs $panel", dentro)
+                boton.left >= raiz.left && boton.right <= raiz.right && boton.top >= raiz.top &&
+                    boton.bottom <= raiz.bottom
+            assertTrue("$etiqueta dentro de la pantalla: $boton vs $raiz", dentro)
             assertFalse("$etiqueta tapa la velocidad: $boton vs $velocidad", boton.overlaps(velocidad))
+            assertFalse("$etiqueta tapa la hoja: $boton vs $hoja", boton.overlaps(hoja))
+        }
+        listOf(ETIQUETA_BUSCAR_GUIANDO, ETIQUETA_TERMINAR).forEach { etiqueta ->
+            val boton = banco.conEtiqueta(etiqueta).boundsInRoot
+            val dentro =
+                boton.left >= hoja.left && boton.right <= hoja.right && boton.top >= hoja.top &&
+                    boton.bottom <= hoja.bottom
+            assertTrue("$etiqueta dentro de la hoja: $boton vs $hoja", dentro)
         }
     }
 }
@@ -169,7 +178,13 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
         assertFalse(banco.hay(ETIQUETA_RAPIDOS_PANEL))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_MODO_BOTON))
         assertTrue(banco.hay(ETIQUETA_RAPIDOS_PANEL))
-        assertEquals("Completo", banco.textos(banco.conEtiqueta(ETIQUETA_MODO_SELECTOR)).first())
+        val nombresModos = banco.textos(banco.conEtiqueta(ETIQUETA_MODO_SELECTOR))
+        assertEquals("el nombre bajo su icono y el del elegido", 2, nombresModos.count { it == "Completo" })
+        assertEquals(
+            "cada icono lleva su nombre debajo",
+            listOf("Silencio", "Solo alertas", "Notas", "Completo"),
+            nombresModos.take(4),
+        )
         assertEquals(
             "Todo, con los tiempos y parciales del tramo",
             banco.textos(banco.conEtiqueta(ETIQUETA_MODO_DETALLE)).single(),

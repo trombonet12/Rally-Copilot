@@ -9,10 +9,13 @@ internal const val INCLINACION_RUMBO = 50.0
 internal const val INCLINACION_NORTE = 0.0
 
 /** Altura (fracción del alto del mapa, desde arriba) a la que queda el marcador en vertical. */
-internal const val MARCADOR_VERTICAL = 0.72
+internal const val MARCADOR_VERTICAL = 0.80
 
-/** En horizontal hay menos alto: el marcador no baja tanto. */
-internal const val MARCADOR_HORIZONTAL = 0.62
+/**
+ * En horizontal hay menos alto: el marcador no baja tanto. El mapa va a pantalla completa y la hoja de conducción
+ * (96-112 dp) lo tapa por abajo: con estos valores el coche queda justo por encima de ella.
+ */
+internal const val MARCADOR_HORIZONTAL = 0.70
 
 /** Inclinación del mapa mientras sigue al coche según la orientación elegida. */
 internal fun inclinacionSeguimiento(orientacion: Orientacion): Double =

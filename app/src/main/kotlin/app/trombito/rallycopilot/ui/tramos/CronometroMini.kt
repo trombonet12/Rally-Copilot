@@ -32,11 +32,15 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.navegacion.guiado.ColoresGuiado
+import app.trombito.rallycopilot.ui.theme.CifraMedia
 
 const val ETIQUETA_CRONO_MINI = "crono-mini"
 
 /** El botón «SALIDA» de la salida manual, junto al «LISTO». */
 const val ETIQUETA_CRONO_SALIDA = "crono-salida"
+
+/** Tamaño del cronómetro pequeño: el de siempre, el de 20 sp del guiado o el grande ámbar de la hoja libre. */
+enum class EscalaCronoMini { NORMAL, COMPACTO, GRANDE }
 
 private val ALTO_BOTON_SALIDA = 56.dp
 private val AMBAR_SALIDA = Color(0xFFFFC94A)
@@ -54,6 +58,7 @@ fun CronometroMini(
     modifier: Modifier = Modifier,
     reloj: () -> Long = System::currentTimeMillis,
     onSalida: (() -> Unit)? = null,
+    escala: EscalaCronoMini = EscalaCronoMini.NORMAL,
 ) {
     val transcurrido = rememberTranscurridoMs(crono, reloj, PERIODO_MINI_MS)
     val recursos = LocalContext.current.resources
@@ -70,7 +75,7 @@ fun CronometroMini(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Cifras(listo, transcurrido, descripcion, alfa)
+        Cifras(listo, transcurrido, descripcion, alfa, escala)
         if (listo && crono.esperaSalidaManual && onSalida != null) BotonSalida(onSalida)
     }
 }
@@ -82,7 +87,9 @@ private fun Cifras(
     transcurrido: Long,
     descripcion: String,
     alfa: Float,
+    escala: EscalaCronoMini,
 ) {
+    val grande = escala == EscalaCronoMini.GRANDE
     Row(
         modifier =
             Modifier
@@ -96,7 +103,7 @@ private fun Cifras(
             imageVector = Iconos.Cronometro,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp),
+            modifier = Modifier.size(if (grande) 28.dp else 20.dp),
         )
         Text(
             text =
@@ -108,12 +115,24 @@ private fun Cifras(
                     formatearTiempo(transcurrido, conDecimas = false)
                 },
             style =
-                TextStyle(
-                    fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                    fontWeight = FontWeight.Bold,
-                    fontFeatureSettings = "tnum",
-                ),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                when (escala) {
+                    EscalaCronoMini.GRANDE -> {
+                        CifraMedia.copy(fontFeatureSettings = "tnum")
+                    }
+
+                    EscalaCronoMini.COMPACTO -> {
+                        TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Bold, fontFeatureSettings = "tnum")
+                    }
+
+                    EscalaCronoMini.NORMAL -> {
+                        TextStyle(
+                            fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                            fontWeight = FontWeight.Bold,
+                            fontFeatureSettings = "tnum",
+                        )
+                    }
+                },
+            color = if (grande) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             softWrap = false,
             modifier = Modifier.alpha(alfa).testTag(ETIQUETA_CRONO_TIEMPO),

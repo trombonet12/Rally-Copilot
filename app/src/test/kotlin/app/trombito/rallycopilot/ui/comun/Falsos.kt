@@ -110,7 +110,12 @@ class FalsoLocutor : Locutor {
 
     override fun preparar(textos: List<String>) = Unit
 
-    override fun decir(texto: String) = Unit
+    /** Cada frase dicha con [decir], en orden. */
+    val dichas = mutableListOf<String>()
+
+    override fun decir(texto: String) {
+        dichas += texto
+    }
 
     override fun duracionEstimadaS(texto: String): Double = 0.0
 

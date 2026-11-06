@@ -106,12 +106,12 @@ class MapaScreenCronoVerticalTest : MapaScreenCronoBase() {
     }
 
     @Test
-    fun `con un tramo nuevo solo hay cronometro pequeno en el panel junto a la velocidad`() {
+    fun `con un tramo nuevo solo hay cronometro pequeno en la hoja`() {
         poner(guiando(), cronoSinReferencia())
         assertFalse(banco.hay(ETIQUETA_CRONO_HUD))
         val mini = bounds(ETIQUETA_CRONO_MINI)
         val panel = bounds("panel")
-        assertTrue("dentro del panel: $mini vs $panel", mini.top >= panel.top && mini.bottom <= panel.bottom)
+        assertTrue("dentro de la hoja: $mini vs $panel", mini.top >= panel.top && mini.bottom <= panel.bottom)
         assertTrue("bajo la velocidad", mini.top >= bounds(ETIQUETA_VELOCIDAD).bottom)
     }
 
@@ -149,18 +149,18 @@ class MapaScreenCronoHorizontalTest : MapaScreenCronoBase() {
         poner(guiando(), cronoConocido(parciales = listOf(sector(1, -300L), sector(2, 1_200L))), radar)
         val hud = bounds(ETIQUETA_CRONO_HUD)
         val panel = bounds("panel")
-        assertTrue("no pasa al panel lateral: $hud vs $panel", hud.right <= panel.left)
+        assertTrue("queda sobre la hoja: $hud vs $panel", hud.bottom <= panel.top)
         assertTrue("bajo la franja", hud.top >= bounds(ETIQUETA_FRANJA_NOTAS).bottom)
         assertTrue("es bajo: $hud", hud.height < 411 * 3 * 0.25f)
         assertTrue("cabe en la pantalla", hud.bottom <= 411 * 3f)
     }
 
     @Test
-    fun `en horizontal el cronometro pequeno cabe en el panel lateral sin pisar los botones`() {
+    fun `en horizontal el cronometro pequeno cabe en la hoja sin pisar los botones`() {
         poner(guiando(), cronoSinTramo())
         val mini = bounds(ETIQUETA_CRONO_MINI)
         val panel = bounds("panel")
-        assertTrue("dentro del panel: $mini vs $panel", mini.left >= panel.left && mini.right <= panel.right)
+        assertTrue("dentro de la hoja: $mini vs $panel", mini.left >= panel.left && mini.right <= panel.right)
         assertTrue("dentro del alto: $mini vs $panel", mini.top >= panel.top && mini.bottom <= panel.bottom)
         listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION).forEach {
             assertFalse("$it no pisa el cronómetro", bounds(it).overlaps(mini))
@@ -174,7 +174,7 @@ class MapaScreenCronoHorizontalTest : MapaScreenCronoBase() {
             cronoTerminado(ResultadoCrono(148_100L, -2_300L, nuevoMejor = true, mejorAnteriorMs = 150_400L)),
         )
         val meta = bounds(ETIQUETA_CRONO_META)
-        assertTrue(meta.right <= bounds("panel").left)
+        assertTrue(meta.bottom <= bounds("panel").top)
         assertTrue("es baja: $meta", meta.height < 411 * 3 * 0.3f)
     }
 }

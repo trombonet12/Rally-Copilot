@@ -6,6 +6,7 @@ import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.ui.comun.FalsaFuenteUbicacion
+import app.trombito.rallycopilot.ui.comun.FalsoLocutor
 import app.trombito.rallycopilot.ui.comun.FalsoProveedorVia
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
@@ -55,6 +56,7 @@ class MapaViewModelEstelaTest {
                 FalsoRepositorioAjustesConduccion(),
                 navegacion,
                 SavedStateHandle(),
+                FalsoLocutor(),
             )
         vm.reloj = { testScheduler.currentTime }
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -74,13 +76,28 @@ class MapaViewModelEstelaTest {
         runTest {
             val vm = crear()
             fijar(0)
-            assertEquals(1, vm.estela.value.size)
+            assertEquals(
+                1,
+                vm.estela.value
+                    .flatten()
+                    .size,
+            )
             fijar(1)
             // Mismo segundo: se guarda pero aún no se publica.
-            assertEquals(1, vm.estela.value.size)
+            assertEquals(
+                1,
+                vm.estela.value
+                    .flatten()
+                    .size,
+            )
             advanceTimeBy(1_000)
             fijar(2)
-            assertEquals(3, vm.estela.value.size)
+            assertEquals(
+                3,
+                vm.estela.value
+                    .flatten()
+                    .size,
+            )
         }
 
     @Test
@@ -90,7 +107,12 @@ class MapaViewModelEstelaTest {
             fijar(0)
             advanceTimeBy(1_000)
             fijar(1, pasoLon = 2.0 / 85_500.0)
-            assertEquals(1, vm.estela.value.size)
+            assertEquals(
+                1,
+                vm.estela.value
+                    .flatten()
+                    .size,
+            )
         }
 
     @Test
@@ -101,7 +123,12 @@ class MapaViewModelEstelaTest {
             fijar(0)
             advanceTimeBy(1_000)
             fijar(1)
-            assertEquals(2, vm.estela.value.size)
+            assertEquals(
+                2,
+                vm.estela.value
+                    .flatten()
+                    .size,
+            )
             navegacion.publicar(EstadoNavegacion.Inactiva)
             assertTrue(vm.estela.value.isEmpty())
         }

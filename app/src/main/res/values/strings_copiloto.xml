@@ -42,4 +42,7 @@
     <string name="acerca_espeak">espeak-ng: GPL-3.0</string>
     <string name="acerca_sherpa">sherpa-onnx: Apache-2.0</string>
     <string name="acerca_vosk">Vosk (reconocimiento de voz) y modelo vosk-model-small-es-0.42: Apache-2.0, Alpha Cephei; JNA: Apache-2.0 / LGPL-2.1</string>
+    <string name="copiloto_silenciar">Silenciar el copiloto</string>
+    <string name="copiloto_silencio_activo">Copiloto en silencio. Pulsa para volver al modo anterior</string>
+    <string name="copiloto_silencio_estado">En silencio</string>
 </resources>

@@ -25,11 +25,13 @@ const val ETIQUETA_ASA_HOJA = "asa-hoja"
 /**
  * Hoja inferior del sistema WRC: radio de 16 dp arriba, asa centrada, fondo opaco `surfaceContainerHigh` e interior
  * de 16 dp. Es solo el contenedor: para una hoja modal, úsala como contenido de `ModalBottomSheet` con
- * `shape = Radios.formaHoja`, `containerColor = Color.Transparent` y `dragHandle = null`.
+ * `shape = Radios.formaHoja`, `containerColor = Color.Transparent` y `dragHandle = null`. Con [compacta] (la hoja de
+ * conducción, 96-112 dp) el asa y el margen de abajo son más bajos.
  */
 @Composable
 fun HojaInferiorWrc(
     modifier: Modifier = Modifier,
+    compacta: Boolean = false,
     contenido: @Composable ColumnScope.() -> Unit,
 ) {
     Surface(
@@ -40,11 +42,15 @@ fun HojaInferiorWrc(
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.navigationBarsPadding().padding(horizontal = Espacio.l).padding(bottom = Espacio.l),
+            modifier =
+                Modifier
+                    .navigationBarsPadding()
+                    .padding(horizontal = Espacio.l)
+                    .padding(bottom = if (compacta) Espacio.s else Espacio.l),
         ) {
             Box(
                 Modifier
-                    .padding(vertical = Espacio.m)
+                    .padding(vertical = if (compacta) Espacio.s else Espacio.m)
                     .size(Medidas.asaAncho, Medidas.asaAlto)
                     .background(MaterialTheme.colorScheme.outline, Radios.formaPildora)
                     .testTag(ETIQUETA_ASA_HOJA)

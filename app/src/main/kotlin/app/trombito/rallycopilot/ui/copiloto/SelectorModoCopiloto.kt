@@ -18,8 +18,11 @@ import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.comun.BotonIcono
+import app.trombito.rallycopilot.ui.comun.BotonRedondoMapa
 import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
+import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.theme.Espacio
+import app.trombito.rallycopilot.ui.theme.EtiquetaIcono
 
 const val ETIQUETA_MODO_BOTON = "copiloto-modo-boton"
 const val ETIQUETA_MODO_PREFIJO = "copiloto-modo-opcion-"
@@ -29,7 +32,7 @@ const val ETIQUETA_MODO_DETALLE = "copiloto-modo-detalle"
 private val LADO_ICONO = 28.dp
 
 /**
- * El botón del copiloto en el panel negro inferior: muestra el modo actual con su icono (sin texto) y abre la hoja con
+ * El botón del copiloto en la columna del mapa: muestra el modo actual con su icono (sin texto) y abre la hoja con
  * el selector de modo y los ajustes rápidos. TalkBack lee el nombre del modo y que al pulsarlo se abre la hoja.
  */
 @Composable
@@ -39,12 +42,19 @@ fun BotonModoCopiloto(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BotonIcono(
+    BotonRedondoMapa(
         descripcion = stringResource(R.string.copiloto_modo_boton, stringResource(modo.nombre())),
         onClick = onClick,
         modifier = modifier.testTag(ETIQUETA_MODO_BOTON),
-        estado = EstadoBotonIcono(seleccionado = abierto),
-    ) { IconoModo(modo) }
+        activo = abierto,
+    ) {
+        // En silencio el modo ya lo dice el botón de silenciar: aquí van los ajustes rápidos.
+        if (modo == ModoCopiloto.SILENCIO) {
+            Icon(Iconos.Deslizadores, contentDescription = null)
+        } else {
+            IconoModo(modo)
+        }
+    }
 }
 
 /**
@@ -56,22 +66,34 @@ fun SelectorModoCopiloto(
     modo: ModoCopiloto,
     onModo: (ModoCopiloto) -> Unit,
     modifier: Modifier = Modifier,
+    conEtiquetas: Boolean = false,
 ) {
     Column(modifier.testTag(ETIQUETA_MODO_SELECTOR), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s), verticalAlignment = Alignment.CenterVertically) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Espacio.m), verticalAlignment = Alignment.Top) {
             ModoCopiloto.entries.forEach { opcion ->
                 val elegido = opcion == modo
-                BotonIcono(
-                    descripcion = stringResource(opcion.nombre()),
-                    onClick = { onModo(opcion) },
-                    modifier = Modifier.testTag(ETIQUETA_MODO_PREFIJO + opcion.name.lowercase()),
-                    estado =
-                        EstadoBotonIcono(
-                            seleccionado = elegido,
-                            descripcionEstado = if (elegido) stringResource(R.string.ajustes_seleccionado) else null,
-                            rol = Role.RadioButton,
-                        ),
-                ) { IconoModo(opcion) }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    BotonIcono(
+                        descripcion = stringResource(opcion.nombre()),
+                        onClick = { onModo(opcion) },
+                        modifier = Modifier.testTag(ETIQUETA_MODO_PREFIJO + opcion.name.lowercase()),
+                        estado =
+                            EstadoBotonIcono(
+                                seleccionado = elegido,
+                                descripcionEstado =
+                                    if (elegido) stringResource(R.string.ajustes_seleccionado) else null,
+                                rol = Role.RadioButton,
+                            ),
+                    ) { IconoModo(opcion) }
+                    if (conEtiquetas) {
+                        Text(
+                            text = stringResource(opcion.nombre()),
+                            style = EtiquetaIcono,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                        )
+                    }
+                }
             }
         }
         val nombre = stringResource(modo.nombre())

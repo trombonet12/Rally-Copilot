@@ -15,7 +15,10 @@ import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.geo.SentidoCamino
 import app.trombito.rallycopilot.motor.ruta.Ruta
+import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.comun.FalsaFuenteUbicacion
+import app.trombito.rallycopilot.ui.comun.FalsoLocutor
 import app.trombito.rallycopilot.ui.comun.FalsoProveedorVia
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
@@ -50,6 +53,7 @@ class MapaViewModelTest {
     private val vias = FalsoProveedorVia()
     private val ajustes = FalsoRepositorioAjustesConduccion()
     private val navegacion = FalsoControlNavegacion()
+    private val locutor = FalsoLocutor()
 
     @Before
     fun preparar() {
@@ -66,7 +70,7 @@ class MapaViewModelTest {
     private lateinit var planificador: TestCoroutineScheduler
 
     private fun crear(guardado: SavedStateHandle = SavedStateHandle()) =
-        MapaViewModel(repositorio, ubicacion, vias, ajustes, navegacion, guardado).also {
+        MapaViewModel(repositorio, ubicacion, vias, ajustes, navegacion, guardado, locutor).also {
             it.reloj = { origenRelojMs + (if (::planificador.isInitialized) planificador.currentTime else 0L) }
         }
 
@@ -462,5 +466,114 @@ class MapaViewModelTest {
             ubicacion.flujo.emit(fijacionTorcida(1_000, rumbo = 85.0, velocidadMs = 15.0))
             ubicacion.flujo.emit(fijacionTorcida(2_000, rumbo = 200.0, velocidadMs = 0.3))
             assertEquals(90.0, vm.uiState.value.rumboMostrado, 0.5)
+        }
+
+    // --- Pérdida de GPS y placa de la vía ---
+
+    private suspend fun emitir(f: Fijacion) {
+        ubicacion.flujo.emit(f)
+    }
+
+    private fun TestScope.avanzarReloj(ms: Long) {
+        advanceTimeBy(ms)
+        runCurrent()
+    }
+
+    @Test
+    fun `tras 5 s sin fijacion se pierde el GPS y el copiloto lo dice una sola vez`() =
+        runTest {
+            navegacion.publicar(EstadoNavegacion.Libre(0, 0.0))
+            val vm = crear()
+            recoger(vm)
+            origenRelojMs = 1_000
+            emitir(fijacion(tiempoMs = 1_000, velocidadMs = 16.7))
+            assertFalse(vm.uiState.value.sinSenalGps)
+            avanzarReloj(4_000)
+            assertFalse("a los 4 s todavia hay senal", vm.uiState.value.sinSenalGps)
+            avanzarReloj(2_500)
+            assertTrue(vm.uiState.value.sinSenalGps)
+            assertEquals(listOf("Sin señal GPS"), locutor.dichas)
+            avanzarReloj(10_000)
+            assertEquals("una sola vez, no cada segundo", listOf("Sin señal GPS"), locutor.dichas)
+        }
+
+    @Test
+    fun `al volver la fijacion el copiloto dice GPS recuperado`() =
+        runTest {
+            navegacion.publicar(EstadoNavegacion.Libre(0, 0.0))
+            val vm = crear()
+            recoger(vm)
+            origenRelojMs = 1_000
+            emitir(fijacion(tiempoMs = 1_000, velocidadMs = 16.7))
+            avanzarReloj(7_000)
+            assertTrue(vm.uiState.value.sinSenalGps)
+            emitir(fijacion(tiempoMs = 8_000, velocidadMs = 16.7))
+            assertFalse(vm.uiState.value.sinSenalGps)
+            assertEquals(listOf("Sin señal GPS", "GPS recuperado"), locutor.dichas)
+        }
+
+    @Test
+    fun `una fijacion de mas de 50 m de error no devuelve la senal`() =
+        runTest {
+            navegacion.publicar(EstadoNavegacion.Libre(0, 0.0))
+            val vm = crear()
+            recoger(vm)
+            origenRelojMs = 1_000
+            emitir(fijacion(tiempoMs = 1_000, velocidadMs = 16.7))
+            avanzarReloj(7_000)
+            emitir(fijacion(tiempoMs = 8_000, velocidadMs = 16.7).copy(precisionM = 90.0))
+            assertTrue(vm.uiState.value.sinSenalGps)
+        }
+
+    @Test
+    fun `en silencio o sin conducir el copiloto no avisa pero el estado si cambia`() =
+        runTest {
+            ajustes.mutable.value = AjustesConduccion(modoCopiloto = ModoCopiloto.SILENCIO)
+            navegacion.publicar(EstadoNavegacion.Libre(0, 0.0))
+            val vm = crear()
+            recoger(vm)
+            origenRelojMs = 1_000
+            emitir(fijacion(tiempoMs = 1_000, velocidadMs = 16.7))
+            avanzarReloj(7_000)
+            assertTrue(vm.uiState.value.sinSenalGps)
+            assertTrue(locutor.dichas.isEmpty())
+
+            ajustes.mutable.value = AjustesConduccion(modoCopiloto = ModoCopiloto.COMPLETO)
+            navegacion.publicar(EstadoNavegacion.Inactiva)
+            emitir(fijacion(tiempoMs = 8_000, velocidadMs = 16.7))
+            avanzarReloj(7_000)
+            assertTrue("sin conduccion no se dice nada", locutor.dichas.isEmpty())
+        }
+
+    @Test
+    fun `sin ninguna fijacion no hay aviso de GPS`() =
+        runTest {
+            navegacion.publicar(EstadoNavegacion.Libre(0, 0.0))
+            val vm = crear()
+            recoger(vm)
+            avanzarReloj(30_000)
+            assertFalse(vm.uiState.value.sinSenalGps)
+            assertTrue(locutor.dichas.isEmpty())
+        }
+
+    @Test
+    fun `la placa del panel solo vale si la via coincide con el camino al que se ajusto la posicion`() =
+        runTest {
+            vias.via = ViaActual("Ma-10", "Ma-10", 50, listOf(PuntoGeo(39.700, 2.899), PuntoGeo(39.700, 2.901)))
+            val vm = crear()
+            recoger(vm)
+            emitir(fijacion(tiempoMs = 1_000, velocidadMs = 16.7))
+            assertTrue(vm.uiState.value.viaCoincide)
+            assertEquals(
+                "Ma-10",
+                vm.uiState.value.viaDelPanel
+                    ?.ref,
+            )
+
+            // La via mas cercana queda a unos 220 m de la fijacion: no es la del mapa y no se enseña su placa.
+            vias.via = ViaActual("Ma-10", "Ma-10", 50, listOf(PuntoGeo(39.702, 2.899), PuntoGeo(39.702, 2.901)))
+            emitir(fijacion(tiempoMs = 2_000, velocidadMs = 16.7))
+            assertFalse(vm.uiState.value.viaCoincide)
+            assertNull(vm.uiState.value.viaDelPanel)
         }
 }
