@@ -112,7 +112,7 @@ class GeneradorNotas(
 
     /**
      * Hueco redondeado hacia abajo a [DISTANCIAS_M], o `null` si la nota va unida a la siguiente (o no hay): hueco
-     * menor de 20 m o de 1,0 s a `min(velocidad de curva, vRef)`.
+     * menor de 20 m o de 1,0 s a `min(velocidad de curva, vRef)`, con la de curva topada a 130 km/h.
      */
     private fun distanciaA(
         curva: Curva,
@@ -121,7 +121,7 @@ class GeneradorNotas(
     ): Int? {
         if (siguiente == null) return null
         val hueco = (siguiente.inicioM - curva.finM).coerceAtLeast(0.0)
-        val vCurva = tabla.velocidadCurvaKmh(curva.radioCentralM)
+        val vCurva = min(tabla.velocidadCurvaKmh(curva.radioCentralM), VELOCIDAD_MAX_KMH)
         val kmh = vRefKmh(curva.inicioM)?.let { min(vCurva, it) } ?: vCurva
         val metrosPorSegundo = kmh / KMH_POR_MS
         val unida = hueco < HUECO_UNIDA_M || hueco < HUECO_UNIDA_S * metrosPorSegundo
@@ -143,6 +143,9 @@ class GeneradorNotas(
         const val HUECO_UNIDA_M = 20.0
         const val HUECO_UNIDA_S = 1.0
         const val KMH_POR_MS = 3.6
+
+        /** Tope de la velocidad de curva al encadenar: una curva muy abierta no es «a 800 km/h». */
+        const val VELOCIDAD_MAX_KMH = 130.0
         val DISTANCIAS_M = listOf(10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 150, 200, 250, 300, 400, 500, 600, 700, 800)
     }
 }

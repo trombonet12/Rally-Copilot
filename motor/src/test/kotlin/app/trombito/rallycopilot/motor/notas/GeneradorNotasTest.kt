@@ -5,6 +5,9 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
 
 class GeneradorNotasTest {
     private val generador = GeneradorNotas()
@@ -318,6 +321,68 @@ class GeneradorNotasTest {
         val notas = generador.generar(curvas)
         assertEquals(2, notas.size)
         assertEquals(200, notas[0].distanciaSiguienteM)
+    }
+
+    private fun notasDeTraza(metros: List<Pair<Double, Double>>): List<Nota> =
+        generador.generar(DetectorCurvas().detectar(TrazasDePrueba.enPlano(metros)))
+
+    /** [segundo] (al norte desde el origen) girado [grados] a la izquierda y pegado al final de [primero]. */
+    private fun encadenar(
+        primero: List<Pair<Double, Double>>,
+        segundo: List<Pair<Double, Double>>,
+        grados: Double,
+    ): List<Pair<Double, Double>> {
+        val (x0, y0) = primero.last()
+        val g = Math.toRadians(grados)
+        return primero +
+            segundo.drop(1).map { (x, y) -> (x0 + x * cos(g) - y * sin(g)) to (y0 + x * sin(g) + y * cos(g)) }
+    }
+
+    @Test
+    fun `una curva abierta de 15 grados y R 600 m canta seis izquierda`() {
+        val nota = notasDeTraza(TrazasDePrueba.arcoEnMetros(600.0, 15.0)).single()
+        assertEquals(6, nota.grado)
+        assertEquals(Direccion.IZQUIERDA, nota.direccion)
+    }
+
+    @Test
+    fun `una compuesta de 40 y 40 grados con 60 m de recta son dos cincos`() {
+        val primero = TrazasDePrueba.arcoEnMetros(100.0, 40.0, entradaM = 150.0, salidaM = 60.0)
+        val segundo = TrazasDePrueba.arcoEnMetros(100.0, 40.0, entradaM = 0.0, salidaM = 150.0)
+        val notas = notasDeTraza(encadenar(primero, segundo, 40.0))
+        assertEquals(listOf(5, 5), notas.map { it.grado })
+        assertTrue(notas.all { it.direccion == Direccion.IZQUIERDA })
+    }
+
+    @Test
+    fun `una S izquierda derecha da dos notas de sentido contrario`() {
+        val primero = TrazasDePrueba.arcoEnMetros(120.0, 40.0, izquierda = true, entradaM = 150.0, salidaM = 0.0)
+        val segundo = TrazasDePrueba.arcoEnMetros(120.0, 40.0, izquierda = false, entradaM = 0.0, salidaM = 150.0)
+        val notas = notasDeTraza(encadenar(primero, segundo, 40.0))
+        assertEquals(listOf(Direccion.IZQUIERDA, Direccion.DERECHA), notas.map { it.direccion })
+    }
+
+    @Test
+    fun `una recta con ruido de 2 grados de rumbo no canta nada`() {
+        val azar = Random(5)
+        val puntos = mutableListOf(0.0 to 0.0)
+        repeat(150) {
+            val rumbo = Math.toRadians(azar.nextDouble(-2.0, 2.0))
+            puntos += (puntos.last().first + 10.0 * sin(rumbo)) to (puntos.last().second + 10.0 * cos(rumbo))
+        }
+        assertTrue(notasDeTraza(puntos).isEmpty())
+    }
+
+    @Test
+    fun `una curva muy abierta no se une a la siguiente por una velocidad de curva enorme`() {
+        val curvas =
+            listOf(
+                curva(inicio = 0.0, radio = 3000.0, angulo = 15.0),
+                curva(inicio = 160.0, radio = 3000.0, angulo = 15.0),
+            )
+        val primera = generador.generar(curvas).first()
+        assertFalse(primera.unidaConSiguiente)
+        assertEquals(100, primera.distanciaSiguienteM)
     }
 
     @Test
