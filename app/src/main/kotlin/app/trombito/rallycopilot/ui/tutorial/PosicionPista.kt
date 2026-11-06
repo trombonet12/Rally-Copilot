@@ -19,21 +19,25 @@ data class PosicionPista(
     val lado: LadoPista,
 )
 
+/** La ventana de [ventana] px donde cae el globo, con [hueco] px de separación (flecha) y [margen] px a los bordes. */
+data class EspacioPista(
+    val ventana: IntSize,
+    val hueco: Int,
+    val margen: Int,
+)
+
 /**
- * Coloca un globo de [globo] px junto al elemento [ancla] (coordenadas de la ventana de [ventana] px) en el [lado]
- * pedido, con [hueco] px de separación (la flecha) y a [margen] px como mínimo de los bordes. Si el lado elegido no
- * cabe, usa el contrario. El globo se desliza a lo largo del borde para no salirse y la flecha sigue apuntando al
- * centro del elemento.
+ * Coloca un globo de [globo] px junto al elemento [ancla] (coordenadas de la ventana de [espacio]) en el [lado] pedido,
+ * con la separación y el margen mínimo de [espacio]. Si el lado elegido no cabe, usa el contrario. El globo se desliza
+ * a lo largo del borde para no salirse y la flecha sigue apuntando al centro del elemento.
  */
-@Suppress("LongParameterList") // ancla, ventana, globo, lado y las dos medidas: una geometría
 fun posicionarPista(
     ancla: IntRect,
-    ventana: IntSize,
+    espacio: EspacioPista,
     globo: IntSize,
     lado: LadoPista,
-    hueco: Int,
-    margen: Int,
 ): PosicionPista {
+    val (ventana, hueco, margen) = espacio
     val vertical = lado == LadoPista.ARRIBA || lado == LadoPista.ABAJO
     return if (vertical) {
         val cabeArriba = ancla.top - hueco - globo.height >= margen

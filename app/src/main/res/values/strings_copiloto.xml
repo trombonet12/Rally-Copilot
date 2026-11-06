@@ -28,6 +28,9 @@
     <!-- Órdenes de voz: botón del micrófono, permiso y palabra de activación -->
     <string name="microfono_boton">Hablar al copiloto</string>
     <string name="microfono_escuchando">Escuchando al copiloto</string>
+    <string name="burbuja_escuchando">Escuchando…</string>
+    <string name="burbuja_oido">«%1$s»</string>
+    <string name="burbuja_sin_oir">No te he oído</string>
     <string name="microfono_permiso_titulo">Permiso de micrófono</string>
     <string name="microfono_permiso_texto">El copiloto necesita el micrófono para oír tus órdenes («repite», «más pronto», «marca aquí»…). Solo escucha al pulsar el micrófono o, si lo activas en Ajustes, al decir «Copiloto». Todo se reconoce en el móvil, sin conexión, y no se guarda ningún audio.</string>
     <string name="microfono_permiso_continuar">Continuar</string>

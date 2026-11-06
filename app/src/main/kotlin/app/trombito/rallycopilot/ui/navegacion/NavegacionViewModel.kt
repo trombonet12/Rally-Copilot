@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.navegacion
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.busqueda.Buscador
 import app.trombito.rallycopilot.domain.enlaces.ResolvedorEnlaces
 import app.trombito.rallycopilot.domain.enlaces.ResultadoResolucion
@@ -20,13 +21,18 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -55,6 +61,7 @@ class NavegacionViewModel
         private val control: ControlNavegacion,
         private val resolvedor: ResolvedorEnlaces,
         private val guiadoPendiente: RepositorioGuiadoPendiente,
+        private val ajustes: RepositorioAjustesConduccion,
     ) : ViewModel() {
         private val texto = MutableStateFlow("")
         private val consulta = MutableStateFlow("")
@@ -75,9 +82,24 @@ class NavegacionViewModel
 
         private val resumenLlegada = MutableStateFlow<ResumenTrayecto?>(null)
 
-        private val seguirYPunto: Flow<Triple<OfertaSeguir?, PuntoElegido?, ResumenTrayecto?>> =
-            combine(ofertaSeguir, puntoElegido, resumenLlegada) { oferta, punto, resumen ->
-                Triple(oferta, punto, resumen)
+        /** La casa de los ajustes (null sin fijar), para «Ir a casa» en la barra y «Casa» en la tarjeta del punto. */
+        private val casa: Flow<PuntoGeo?> = ajustes.ajustes.map { it.casa }.distinctUntilChanged()
+
+        private val _casaGuardada = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+        /** Un aviso cada vez que la tarjeta del punto fija la casa («Casa guardada»). */
+        val casaGuardada: SharedFlow<Unit> = _casaGuardada.asSharedFlow()
+
+        private data class Extras(
+            val oferta: OfertaSeguir?,
+            val punto: PuntoElegido?,
+            val resumen: ResumenTrayecto?,
+            val casa: PuntoGeo?,
+        )
+
+        private val seguirYPunto: Flow<Extras> =
+            combine(ofertaSeguir, puntoElegido, resumenLlegada, casa) { oferta, punto, resumen, casa ->
+                Extras(oferta, punto, resumen, casa)
             }
 
         /** La búsqueda abierta con la lupa del panel mientras se guía. */
@@ -89,7 +111,6 @@ class NavegacionViewModel
         val uiState: StateFlow<NavegacionUiState> =
             combine(texto, busquedaYLupa, vistaPrevia, control.estado, seguirYPunto) { t, busc, v, c, extra ->
                 val (b, lupa) = busc
-                val (oferta, punto, resumen) = extra
                 // Guiando (o con su aviso final) no hay vista previa; la búsqueda solo si se abrió con la lupa.
                 val reposo = c is EstadoNavegacion.Inactiva || c is EstadoNavegacion.Libre
                 val buscando = lupa && c is EstadoNavegacion.Guiando
@@ -102,10 +123,11 @@ class NavegacionViewModel
                     vistaPrevia = previaVisible,
                     control = c,
                     buscando = buscando,
-                    seguir = oferta.takeIf { reposo && previaVisible == null && !hayBusqueda },
+                    seguir = extra.oferta.takeIf { reposo && previaVisible == null && !hayBusqueda },
                     // La tarjeta del punto se ve en reposo y guiando; el aviso de llegada o de error la cierra.
-                    puntoElegido = punto.takeIf { reposo || c is EstadoNavegacion.Guiando },
-                    resumenLlegada = resumen.takeIf { c is EstadoNavegacion.Llegada },
+                    puntoElegido = extra.punto.takeIf { reposo || c is EstadoNavegacion.Guiando },
+                    resumenLlegada = extra.resumen.takeIf { c is EstadoNavegacion.Llegada },
+                    casa = extra.casa,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), NavegacionUiState())
 
@@ -225,6 +247,16 @@ class NavegacionViewModel
         /** «Ir aquí»: el punto de la tarjeta es el destino y se abre la vista previa de rutas. */
         fun irAqui() {
             puntoElegido.value?.let { elegirDestino(it.destino) }
+        }
+
+        /** «Casa» de la tarjeta del punto: lo fija como casa de los ajustes, cierra la tarjeta y avisa. */
+        fun fijarCasaDelPunto() {
+            val punto = puntoElegido.value?.punto ?: return
+            puntoElegido.value = null
+            viewModelScope.launch {
+                ajustes.fijarCasa(punto)
+                _casaGuardada.emit(Unit)
+            }
         }
 
         /** «Añadir parada» de la tarjeta del punto. */

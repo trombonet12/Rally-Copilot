@@ -17,6 +17,7 @@ import app.trombito.rallycopilot.motor.ruta.EstadoRuta
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.mapa.AccionesMapa
+import app.trombito.rallycopilot.ui.mapa.ETIQUETA_IR_A_CASA
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_LIMITE
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_VELOCIDAD
 import app.trombito.rallycopilot.ui.mapa.ETIQUETA_VIA
@@ -60,6 +61,8 @@ class ParadasUiTest {
     private var irAqui = 0
     private var anadirDelPunto = 0
     private var cerrarPunto = 0
+    private var fijarCasa = 0
+    private val elegidos = mutableListOf<Destino>()
     private val quitadas = mutableListOf<Int>()
     private val movidas = mutableListOf<Pair<Int, Int>>()
     private val anadidas = mutableListOf<Destino>()
@@ -69,6 +72,8 @@ class ParadasUiTest {
             onIrAqui = { irAqui++ },
             onAnadirParadaDelPunto = { anadirDelPunto++ },
             onCerrarPunto = { cerrarPunto++ },
+            onFijarCasa = { fijarCasa++ },
+            onElegirDestino = { elegidos += it },
             onAnadirParada = { anadidas += it },
             onQuitarParada = { quitadas += it },
             onMoverParada = { desde, hasta -> movidas += desde to hasta },
@@ -133,6 +138,31 @@ class ParadasUiTest {
         assertEquals(1, irAqui)
         assertEquals(1, anadirDelPunto)
         assertEquals(1, cerrarPunto)
+    }
+
+    @Test
+    fun `la tarjeta del punto tiene el boton Casa que la guarda`() {
+        ponerMapa(NavegacionUiState(puntoElegido = PuntoElegido(SOLLER, "Port de Sóller")))
+        assertTrue("Casa" in banco.textos(banco.conEtiqueta(ETIQUETA_TARJETA_PUNTO)))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_PUNTO_CASA))
+        assertEquals(1, fijarCasa)
+    }
+
+    @Test
+    fun `con casa fijada la barra ofrece Ir a casa y lleva a ella`() {
+        ponerMapa(NavegacionUiState(casa = PALMA))
+        assertTrue(banco.hay(ETIQUETA_IR_A_CASA))
+        assertTrue("Ir a casa" in banco.textos(banco.conEtiqueta(ETIQUETA_IR_A_CASA)))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_IR_A_CASA))
+        assertEquals(listOf(Destino("Casa", PALMA)), elegidos)
+    }
+
+    @Test
+    fun `sin casa o con la busqueda en marcha no hay Ir a casa`() {
+        ponerMapa(NavegacionUiState())
+        assertFalse(banco.hay(ETIQUETA_IR_A_CASA))
+        ponerMapa(NavegacionUiState(casa = PALMA, texto = "Sól"))
+        assertFalse(banco.hay(ETIQUETA_IR_A_CASA))
     }
 
     @Test

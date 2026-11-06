@@ -44,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -90,6 +91,7 @@ private const val PESO_MAPA_VERTICAL = 0.46f
 private const val PESO_LISTA_VERTICAL = 0.54f
 private val ALTO_FILA_NOTA = 56.dp
 private val ANCHO_PILDORA_LISTA = 52.dp
+private val ICONO_LEYENDA = 16.dp
 
 /** Callbacks de la edición de un tramo. */
 data class AccionesEditarTramo(
@@ -211,7 +213,6 @@ private class VistaEdicion(
     val notas: List<Nota>,
     val marcadores: List<MarcadorEdicion>,
     val escena: EscenaEdicion,
-    val marcas: Int,
 )
 
 @Composable
@@ -239,7 +240,7 @@ private fun ContenidoEdicion(
                 centrado = centrado,
             )
         }
-    val vista = VistaEdicion(notas, marcadores, escena, datos.marcas.size)
+    val vista = VistaEdicion(notas, marcadores, escena)
     val gestos = gestosDelMapa(vista, seleccion, acciones)
     BoxWithConstraints(Modifier.fillMaxSize()) {
         if (maxWidth > maxHeight) {
@@ -302,17 +303,14 @@ private fun ZonaMapa(
                 )
             }
         }
-        LeyendaMarcadores(vista.marcadores, vista.marcas)
+        LeyendaMarcadores(vista.marcadores)
     }
 }
 
 /** Chips con el color de cada tipo y cuántos hay, y una línea que explica qué son las marcas y los cortes. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LeyendaMarcadores(
-    marcadores: List<MarcadorEdicion>,
-    marcas: Int,
-) {
+private fun LeyendaMarcadores(marcadores: List<MarcadorEdicion>) {
     val cuenta = { tipo: TipoMarcador -> marcadores.count { it.tipo == tipo } }
     Column(Modifier.padding(vertical = Espacio.xs)) {
         FlowRow(
@@ -321,7 +319,8 @@ private fun LeyendaMarcadores(
         ) {
             FichaLeyenda(TipoMarcador.NOTA, R.string.edicion_leyenda_nota, cuenta(TipoMarcador.NOTA))
             FichaLeyenda(TipoMarcador.CUIDADO, R.string.edicion_leyenda_cuidado, cuenta(TipoMarcador.CUIDADO))
-            FichaLeyenda(TipoMarcador.MARCA, R.string.edicion_leyenda_marca, marcas)
+            FichaLeyenda(TipoMarcador.MARCA, R.string.edicion_leyenda_marca, cuenta(TipoMarcador.MARCA))
+            FichaLeyenda(TipoMarcador.RADAR, R.string.edicion_leyenda_radar, cuenta(TipoMarcador.RADAR))
             FichaLeyenda(TipoMarcador.CORTE, R.string.edicion_leyenda_corte, cuenta(TipoMarcador.CORTE))
         }
         Text(
@@ -350,7 +349,16 @@ private fun FichaLeyenda(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Espacio.xs),
         ) {
-            Box(Modifier.size(10.dp).background(Color(ColoresMarcador.fondo(tipo)), CircleShape))
+            if (tipo == TipoMarcador.RADAR) {
+                Icon(
+                    painterResource(R.drawable.ic_alerta_radar),
+                    contentDescription = null,
+                    tint = Color(ColoresMarcador.fondo(tipo)),
+                    modifier = Modifier.size(ICONO_LEYENDA),
+                )
+            } else {
+                Box(Modifier.size(10.dp).background(Color(ColoresMarcador.fondo(tipo)), CircleShape))
+            }
             Text("$texto $cantidad", style = MaterialTheme.typography.labelMedium)
         }
     }
@@ -426,7 +434,7 @@ private fun FilaNota(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Espacio.m),
     ) {
-        ConPista(Pista.EDITAR_TRAMO, stringResource(R.string.pista_editar_tramo), LadoPista.ABAJO, activa = conPista) {
+        ConPista(Pista.EDITAR_TRAMO, stringResource(R.string.pista_editar_tramo), activa = conPista) {
             Box(
                 Modifier
                     .width(ANCHO_PILDORA_LISTA)

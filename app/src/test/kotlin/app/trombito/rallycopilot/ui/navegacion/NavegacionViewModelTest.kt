@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -48,7 +49,9 @@ class NavegacionViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun crear() = NavegacionViewModel(buscador, enrutador, control, resolvedor, pendiente)
+    private val ajustes = FalsoRepositorioAjustesConduccion()
+
+    private fun crear() = NavegacionViewModel(buscador, enrutador, control, resolvedor, pendiente, ajustes)
 
     private fun TestScope.recoger(vm: NavegacionViewModel) =
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -568,5 +571,32 @@ class NavegacionViewModelTest {
             assertFalse(vm.uiState.value.enReposo)
             control.publicar(EstadoNavegacion.Error("Se ha perdido la señal GPS."))
             assertEquals(EstadoNavegacion.Error("Se ha perdido la señal GPS."), vm.uiState.value.control)
+        }
+
+    @Test
+    fun `Casa en la tarjeta del punto guarda la casa, cierra la tarjeta y avisa`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            val avisos = mutableListOf<Unit>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.casaGuardada.collect { avisos += it } }
+            vm.onMantenerPulsado(SOLLER, "Port de Sóller")
+            assertEquals(null, vm.uiState.value.casa)
+
+            vm.fijarCasaDelPunto()
+
+            assertEquals(SOLLER, ajustes.mutable.value.casa)
+            assertEquals(SOLLER, vm.uiState.value.casa)
+            assertEquals(null, vm.uiState.value.puntoElegido)
+            assertEquals(1, avisos.size)
+        }
+
+    @Test
+    fun `sin punto elegido Casa no hace nada`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            vm.fijarCasaDelPunto()
+            assertEquals(null, ajustes.mutable.value.casa)
         }
 }

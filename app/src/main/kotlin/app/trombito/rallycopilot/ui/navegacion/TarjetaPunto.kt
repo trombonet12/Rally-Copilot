@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.navegacion
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -18,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -33,10 +35,17 @@ const val ETIQUETA_TARJETA_PUNTO = "nav-punto"
 const val ETIQUETA_PUNTO_IR = "nav-punto-ir"
 const val ETIQUETA_PUNTO_PARADA = "nav-punto-parada"
 const val ETIQUETA_PUNTO_CERRAR = "nav-punto-cerrar"
+const val ETIQUETA_PUNTO_CASA = "nav-punto-casa"
 
 private const val OPACIDAD_SOBRE_MAPA = 0.94f
 private val ANCHO_MAXIMO_TARJETA = 520.dp
 private val TAMANO_ICONO_BOTON = 20.dp
+
+/** Relleno corto: con tres botones en la fila el texto no cabe con el relleno de 24 dp de Material. */
+private val RELLENO_BOTON = PaddingValues(horizontal = 10.dp, vertical = 8.dp)
+private const val PESO_IR = 1f
+private const val PESO_PARADA = 1.45f
+private const val PESO_CASA = 0.9f
 
 /** Lo que la tarjeta del punto puede hacer, según haya ruta o no. */
 data class OpcionesPunto(
@@ -46,7 +55,8 @@ data class OpcionesPunto(
 
 /**
  * Tarjeta del punto elegido manteniendo pulsado el mapa: el nombre del lugar o la calle (o «Punto del mapa» con las
- * coordenadas cortas debajo) y dos botones con icono y texto corto, «Ir aquí» y «Añadir parada». La X la cierra; tocar
+ * coordenadas cortas debajo) y tres botones con icono y texto corto, «Ir aquí», «Añadir parada» y «Casa» (lo guarda
+ * como casa). La X la cierra; tocar
  * fuera (en el mapa) también, lo gestiona la pantalla.
  */
 @Composable
@@ -129,7 +139,7 @@ private fun BotonesPunto(
             descripcion = stringResource(R.string.navegacion_ui_punto_ir_descripcion, titulo),
             onClick = acciones.onIrAqui,
             principal = true,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(PESO_IR),
         )
         BotonPunto(
             etiqueta = ETIQUETA_PUNTO_PARADA,
@@ -143,7 +153,16 @@ private fun BotonesPunto(
             onClick = acciones.onAnadirParadaDelPunto,
             principal = false,
             habilitado = opciones.puedeAnadir,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(PESO_PARADA),
+        )
+        BotonPunto(
+            etiqueta = ETIQUETA_PUNTO_CASA,
+            texto = stringResource(R.string.navegacion_ui_punto_casa),
+            descripcion = stringResource(R.string.navegacion_ui_punto_casa_descripcion, titulo),
+            onClick = acciones.onFijarCasa,
+            principal = false,
+            modifier = Modifier.weight(PESO_CASA),
+            icono = Iconos.Casa,
         )
     }
 }
@@ -158,16 +177,18 @@ private fun BotonPunto(
     principal: Boolean,
     modifier: Modifier = Modifier,
     habilitado: Boolean = true,
+    icono: ImageVector = if (principal) Iconos.Direcciones else Iconos.AnadirLugar,
 ) {
-    val icono = if (principal) Iconos.Direcciones else Iconos.AnadirLugar
     val contenido: @Composable () -> Unit = {
         Icon(icono, contentDescription = null, modifier = Modifier.size(TAMANO_ICONO_BOTON))
-        Text(text = texto, modifier = Modifier.padding(start = Espacio.s), maxLines = 1)
+        Text(text = texto, modifier = Modifier.padding(start = Espacio.xs), maxLines = 1)
     }
     val base = modifier.heightIn(min = LADO_TACTIL).testTag(etiqueta).semantics { contentDescription = descripcion }
     if (principal) {
-        Button(onClick = onClick, enabled = habilitado, modifier = base) { contenido() }
+        Button(onClick = onClick, enabled = habilitado, modifier = base, contentPadding = RELLENO_BOTON) { contenido() }
     } else {
-        FilledTonalButton(onClick = onClick, enabled = habilitado, modifier = base) { contenido() }
+        FilledTonalButton(onClick = onClick, enabled = habilitado, modifier = base, contentPadding = RELLENO_BOTON) {
+            contenido()
+        }
     }
 }

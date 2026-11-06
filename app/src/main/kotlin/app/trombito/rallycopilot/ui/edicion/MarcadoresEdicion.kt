@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.edicion
 
 import androidx.compose.ui.geometry.Offset
 import app.trombito.rallycopilot.domain.edicion.TramoEditable
+import app.trombito.rallycopilot.motor.edicion.Marca
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.Nota
@@ -10,7 +11,7 @@ import kotlin.math.cos
 import kotlin.math.hypot
 
 /** Qué es un marcador de la edición del tramo; cada tipo tiene su color en el mapa y en la leyenda. */
-enum class TipoMarcador { NOTA, CUIDADO, MARCA, CORTE }
+enum class TipoMarcador { NOTA, CUIDADO, MARCA, RADAR, CORTE }
 
 /**
  * Un marcador sobre el mapa de edición: [id] estable, [posicionM] (metros desde la salida, a mitad de la curva en las
@@ -33,7 +34,7 @@ fun textoCortoNota(nota: Nota): String {
 /** Identificador del marcador de una nota: su inicio en metros, que es lo que la identifica en el tramo. */
 fun idMarcadorNota(nota: Nota): String = "n-${nota.posicionM}"
 
-/** Los marcadores del tramo: notas, marcas «marca aquí» con posición y cortes de sector (C1, C2…). */
+/** Los marcadores del tramo: notas, marcas «marca aquí» y radares con posición y cortes de sector (C1, C2…). */
 fun marcadoresDe(
     datos: TramoEditable,
     sectoresM: List<Double>,
@@ -52,7 +53,9 @@ fun marcadoresDe(
         }
     val marcas =
         datos.marcas.mapIndexed { i, m ->
-            MarcadorEdicion("m-$i", TipoMarcador.MARCA, m.marca.posicionM, "M", traza.puntoEn(m.marca.posicionM))
+            val radar = m.marca.etiqueta == Marca.ETIQUETA_RADAR
+            val tipo = if (radar) TipoMarcador.RADAR else TipoMarcador.MARCA
+            MarcadorEdicion("m-$i", tipo, m.marca.posicionM, if (radar) "R" else "M", traza.puntoEn(m.marca.posicionM))
         }
     val cortes =
         sectoresM.mapIndexed { i, m -> MarcadorEdicion("c-$i", TipoMarcador.CORTE, m, "C${i + 1}", traza.puntoEn(m)) }

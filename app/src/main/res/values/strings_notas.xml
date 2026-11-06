@@ -16,7 +16,7 @@
     <string name="ajustes_anticipacion_normal">Normal</string>
     <string name="ajustes_anticipacion_tarde">Tarde</string>
     <string name="ajustes_anticipacion_muy_tarde">Muy tarde</string>
-    <string name="ajustes_notas_simplificadas">Notas simplificadas</string>
+    <string name="ajustes_notas_simplificadas">Notas simples</string>
 
     <!-- Seguir a <destino> tras la muerte del proceso -->
     <string name="seguir_a">Seguir a %1$s</string>

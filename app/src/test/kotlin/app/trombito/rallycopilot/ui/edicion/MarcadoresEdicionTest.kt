@@ -56,6 +56,16 @@ class MarcadoresEdicionTest {
     }
 
     @Test
+    fun `una marca con etiqueta radar es un marcador de radar`() {
+        val radar = MarcaConPosicion(Marca(900.0, 1_000L, etiqueta = Marca.ETIQUETA_RADAR), null)
+        val datos = TramoEditable(tramo, HojaNotas(emptyList()), listOf(radar), 0)
+
+        val marcadores = marcadoresDe(datos, emptyList(), metros)
+
+        assertEquals(listOf(TipoMarcador.RADAR to "R"), marcadores.map { it.tipo to it.texto })
+    }
+
+    @Test
     fun `los metros se convierten en posicion y la posicion en metros`() {
         val medio = metros.puntoEn(metros.longitudM / 2)
         val proyeccion = checkNotNull(metros.proyectar(PuntoGeo(medio.lat, medio.lon + 0.00003)))

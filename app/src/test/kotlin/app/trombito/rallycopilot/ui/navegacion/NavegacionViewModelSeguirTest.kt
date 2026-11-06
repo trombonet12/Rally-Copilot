@@ -6,6 +6,7 @@ import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.GuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -42,7 +43,15 @@ class NavegacionViewModelSeguirTest {
         Dispatchers.resetMain()
     }
 
-    private fun crear() = NavegacionViewModel(buscador, enrutador, control, FalsoResolvedor(), pendiente)
+    private fun crear() =
+        NavegacionViewModel(
+            buscador,
+            enrutador,
+            control,
+            FalsoResolvedor(),
+            pendiente,
+            FalsoRepositorioAjustesConduccion(),
+        )
 
     private fun TestScope.recoger(vm: NavegacionViewModel) =
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }

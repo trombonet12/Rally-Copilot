@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -62,12 +63,14 @@ import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
 import app.trombito.rallycopilot.ui.alertas.TarjetaIncidencia
 import app.trombito.rallycopilot.ui.comun.BandaSinGps
+import app.trombito.rallycopilot.ui.comun.ChipIconoWrc
 import app.trombito.rallycopilot.ui.comun.DegradadoSuperiorMapa
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.LocalSinSenalGps
 import app.trombito.rallycopilot.ui.comun.MantenerPantallaEncendida
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.comun.VarianteTarjeta
+import app.trombito.rallycopilot.ui.copiloto.BurbujaEscucha
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.BannerParada
@@ -88,6 +91,7 @@ import app.trombito.rallycopilot.ui.theme.TextoSobreCarbon
 import app.trombito.rallycopilot.ui.tramos.CronoSuperior
 
 const val ETIQUETA_CARGANDO = "mapa-cargando"
+const val ETIQUETA_IR_A_CASA = "mapa-ir-a-casa"
 const val ETIQUETA_SIN_DATOS = "mapa-sin-datos"
 const val ETIQUETA_SIN_DATOS_BOTON = "mapa-sin-datos-boton"
 const val ETIQUETA_DANADOS = "mapa-danados"
@@ -377,13 +381,17 @@ private fun BoxScope.ZonaInferior(
     val nav = contenido.navegacion.estado
     val hoja = !hayFaseInferior(nav)
     val avisos: @Composable () -> Unit = { if (estado.hayDatos) AvisosDelPie(contenido) }
+    // La burbuja de escucha va justo sobre la píldora de velocidad, a la izquierda de la columna de botones.
     val pildora: @Composable () -> Unit = {
-        PildoraConduccion(
-            velocidadKmh = estado.velocidadKmh,
-            limiteKmh = estado.limiteKmh,
-            alertas = contenido.alertas.panel,
-            sinSenal = estado.sinSenalGps,
-        )
+        Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+            BurbujaEscucha(contenido.copiloto.estado.escuchando, contenido.copiloto.estado.dialogo)
+            PildoraConduccion(
+                velocidadKmh = estado.velocidadKmh,
+                limiteKmh = estado.limiteKmh,
+                alertas = contenido.alertas.panel,
+                sinSenal = estado.sinSenalGps,
+            )
+        }
     }
     val fase: @Composable () -> Unit = { if (estado.hayDatos) FaseInferior(contenido) }
     val laHoja: @Composable (Modifier) -> Unit = { HojaDeLaZona(contenido, barra, it) }
@@ -612,6 +620,7 @@ private fun CabeceraMapa(
                         onFocoPedido = { barra.focoPendiente = false },
                     ) { barra.enfocada = it }
                 }
+                AccesoACasa(navegacion)
             }
             ListaDestinos(
                 busqueda = navegacion.estado.busqueda,
@@ -634,6 +643,21 @@ private fun CabeceraMapa(
             }
         }
     }
+}
+
+/** Primer acceso rápido bajo la barra «¿A dónde?»: «Ir a casa», si hay casa y no hay nada escrito ni abierto. */
+@Composable
+private fun AccesoACasa(navegacion: NavegacionEnMapa) {
+    val estado = navegacion.estado
+    val casa = estado.casa ?: return
+    if (estado.texto.isNotEmpty() || estado.busqueda !is BusquedaDestino.Inactiva || estado.vistaPrevia != null) return
+    val nombre = stringResource(R.string.navegacion_ui_casa_nombre)
+    ChipIconoWrc(
+        Iconos.Casa,
+        stringResource(R.string.navegacion_ui_ir_a_casa),
+        modifier = Modifier.testTag(ETIQUETA_IR_A_CASA),
+        onClick = { navegacion.acciones.onElegirDestino(Destino(nombre, casa)) },
+    )
 }
 
 /**

@@ -64,24 +64,28 @@ class EjecutorOrdenes(
     /** `true` si el copiloto acaba de preguntar «¿sí o no?» y la siguiente escucha es la respuesta. */
     val esperaConfirmacion: Boolean get() = conduccion.esperaConfirmacion || navegacion.esperaConfirmacion
 
-    /** Ejecuta lo que salió de la escucha y confirma por voz. */
-    suspend fun ejecutar(resultado: ResultadoEscucha) {
-        when (resultado) {
-            is ResultadoEscucha.Entendido -> {
-                if (resultado.orden !is Orden.Confirma) descartarConfirmacion()
-                confirmar(ejecutar(resultado.orden))
-            }
+    /** Ejecuta lo que salió de la escucha y confirma por voz; devuelve la confirmación (`null` si no hubo). */
+    suspend fun ejecutar(resultado: ResultadoEscucha): String? {
+        val frase =
+            when (resultado) {
+                is ResultadoEscucha.Entendido -> {
+                    if (resultado.orden !is Orden.Confirma) descartarConfirmacion()
+                    ejecutar(resultado.orden)
+                }
 
-            is ResultadoEscucha.NoEntendido -> {
-                val cancelaPregunta = esperaConfirmacion && resultado.texto.isBlank()
-                descartarConfirmacion()
-                confirmar(if (cancelaPregunta) ConduccionPorVoz.CANCELADO else NO_ENTENDIDO)
-            }
+                is ResultadoEscucha.NoEntendido -> {
+                    val cancelaPregunta = esperaConfirmacion && resultado.texto.isBlank()
+                    descartarConfirmacion()
+                    if (cancelaPregunta) ConduccionPorVoz.CANCELADO else NO_ENTENDIDO
+                }
 
-            ResultadoEscucha.SinPermiso, ResultadoEscucha.NoDisponible -> {
-                descartarConfirmacion()
+                ResultadoEscucha.SinPermiso, ResultadoEscucha.NoDisponible -> {
+                    descartarConfirmacion()
+                    return null
+                }
             }
-        }
+        confirmar(frase)
+        return frase
     }
 
     /** Ejecuta [orden]; devuelve la confirmación a decir (o `null` si no hay que decir nada). */

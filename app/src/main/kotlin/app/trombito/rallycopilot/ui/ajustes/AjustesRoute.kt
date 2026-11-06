@@ -120,4 +120,5 @@ private fun accionesDe(
     onAvisarCruces = viewModel::onAvisarCruces,
     onAvisarSalidasAutopista = viewModel::onAvisarSalidasAutopista,
     onAvisarRotondas = viewModel::onAvisarRotondas,
+    onBorrarCasa = viewModel::onBorrarCasa,
 )

@@ -124,6 +124,11 @@ class AjustesViewModel
             guardar { it.copy(capa = capa) }
         }
 
+        /** «Borrar» la casa guardada desde el mapa (Ajustes > Mapa). */
+        fun onBorrarCasa() {
+            viewModelScope.launch { repositorio.fijarCasa(null) }
+        }
+
         fun onRelieve(relieve: Boolean) {
             guardar { it.copy(relieve = relieve) }
         }

@@ -40,8 +40,9 @@
     <string name="edicion_leyenda_nota">Nota</string>
     <string name="edicion_leyenda_cuidado">Cuidado</string>
     <string name="edicion_leyenda_marca">Marca</string>
+    <string name="edicion_leyenda_radar">Radar</string>
     <string name="edicion_leyenda_corte">Corte</string>
-    <string name="edicion_leyenda_explicacion">Marca: punto que dictaste con «marca aquí». Corte: separa los sectores; arrástralo por el mapa.</string>
+    <string name="edicion_leyenda_explicacion">Marca: punto que dictaste con «marca aquí». Radar: el que marcaste con «radar». Corte: separa los sectores; arrástralo por el mapa.</string>
     <string name="edicion_no_encontrado">Este tramo ya no existe.</string>
 
     <!-- Reconocimiento -->

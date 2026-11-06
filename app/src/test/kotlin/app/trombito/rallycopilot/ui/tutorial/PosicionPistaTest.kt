@@ -15,7 +15,7 @@ class PosicionPistaTest {
     private fun colocar(
         ancla: IntRect,
         lado: LadoPista,
-    ) = posicionarPista(ancla, VENTANA, GLOBO, lado, HUECO, MARGEN)
+    ) = posicionarPista(ancla, EspacioPista(VENTANA, HUECO, MARGEN), GLOBO, lado)
 
     @Test
     fun `abajo el globo cuelga bajo el elemento y la flecha apunta a su centro`() {

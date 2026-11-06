@@ -126,7 +126,7 @@ class AjustesConduccionScreenTest {
         val cambios = mutableListOf<Boolean>()
         poner(SeccionAjustes.NOTAS, acciones = AccionesAjustes(onNotasSimplificadas = { cambios += it }))
         val fila = banco.conEtiqueta(ETIQUETA_NOTAS_SIMPLIFICADAS)
-        assertTrue("Notas simplificadas" in banco.textos(fila))
+        assertTrue("Notas simples" in banco.textos(fila))
         banco.pulsar(fila.children.first { banco.esPulsable(it) })
         assertEquals(listOf(true), cambios)
     }

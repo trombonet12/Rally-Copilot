@@ -76,7 +76,7 @@ fun ControlesRepeticion(
                 .padding(end = Espacio.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ConPista(Pista.ANALISIS, stringResource(R.string.pista_analisis), LadoPista.ARRIBA) {
+        ConPista(Pista.ANALISIS, stringResource(R.string.pista_analisis)) {
             BotonPlay(estado.reproduciendo, acciones.onAlternarRepeticion)
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
+import app.trombito.rallycopilot.domain.escucha.DialogoVoz
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
@@ -45,6 +46,8 @@ data class CopilotoUiState(
     val avisarRotondas: Boolean = true,
     /** La salida del cronómetro la da Joan con el botón SALIDA (cuenta atrás) en vez de arrancar al moverse. */
     val salidaManual: Boolean = false,
+    /** Lo último que se oyó y respondió en esta apertura del mapa (para la burbuja de escucha); null si nada aún. */
+    val dialogo: DialogoVoz? = null,
 ) {
     /** Hay que enseñar el diálogo «Elige la voz del copiloto». */
     val pedirVoz: Boolean get() = cargado && voz == null && !vozPospuesta
@@ -62,8 +65,16 @@ class CopilotoViewModel
     ) : ViewModel() {
         private val pospuesta = MutableStateFlow(false)
 
+        /** La escucha que ya estaba resuelta al abrir el mapa: no se enseña otra vez. */
+        private val dialogoPrevio = ordenes.dialogo.value?.id
+
         val uiState: StateFlow<CopilotoUiState> =
-            combine(repositorio.ajustes, pospuesta, ordenes.escuchando) { ajustes, aplazada, escuchando ->
+            combine(
+                repositorio.ajustes,
+                pospuesta,
+                ordenes.escuchando,
+                ordenes.dialogo,
+            ) { ajustes, aplazada, escuchando, dialogo ->
                 CopilotoUiState(
                     cargado = true,
                     modo = ajustes.modoCopiloto,
@@ -78,6 +89,7 @@ class CopilotoViewModel
                     avisarSalidasAutopista = ajustes.avisarSalidasAutopista,
                     avisarRotondas = ajustes.avisarRotondas,
                     salidaManual = ajustes.salidaManual,
+                    dialogo = dialogo?.takeIf { it.id != dialogoPrevio },
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), CopilotoUiState())
 

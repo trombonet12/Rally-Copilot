@@ -139,7 +139,7 @@ private fun FilaTramo(
             Miniatura(traza)
             DatosTramo(tramo, Modifier.weight(1f))
             MejorTiempo(tramo.mejorTotalMs)
-            ConPista(Pista.MIS_TRAMOS, stringResource(R.string.pista_mis_tramos), LadoPista.ABAJO, activa = conPista) {
+            ConPista(Pista.MIS_TRAMOS, stringResource(R.string.pista_mis_tramos), activa = conPista) {
                 BotonFavorito(
                     favorito = tramo.favorito,
                     onClick = { acciones.onFavorito(tramo) },

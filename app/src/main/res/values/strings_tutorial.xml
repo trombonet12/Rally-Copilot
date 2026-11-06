@@ -19,10 +19,7 @@
     <string name="tutorial_voz_a">Funciona sin conexión y sin tocar el móvil.</string>
     <string name="tutorial_voz_b">Pregunta por la ruta, cambia el modo o pide un destino.</string>
     <string name="tutorial_voz_palabra">Copiloto</string>
-    <string name="tutorial_voz_chip_falta">«¿Cuánto falta?»</string>
-    <string name="tutorial_voz_chip_notas">«Modo notas»</string>
-    <string name="tutorial_voz_chip_satelite">«Satélite»</string>
-    <string name="tutorial_voz_chip_llevame">«Llévame a Sóller»</string>
+    <string name="tutorial_voz_lugar">Sóller</string>
 
     <string name="tutorial_crono_titulo">Cada trayecto es un tramo</string>
     <string name="tutorial_crono_a">En LISTO esperas la salida: arranca al moverte o con cuenta atrás.</string>
@@ -116,46 +113,33 @@
     <string name="ayuda_aviso_compresion">Compresión</string>
     <string name="ayuda_aviso_cuidado">Cuidado</string>
 
-    <string name="ayuda_voz_intro">Empieza siempre por «Copiloto» y di la frase tal cual.</string>
+    <string name="ayuda_voz_intro">Di «Copiloto» o toca el micrófono y pronuncia la frase tal cual; el nombre de un lugar va detrás.</string>
     <string name="ayuda_voz_grupo_ruta">Preguntas de ruta</string>
     <string name="ayuda_voz_grupo_control">Control del copiloto</string>
     <string name="ayuda_voz_grupo_navegacion">Navegación</string>
     <string name="ayuda_voz_grupo_mapa">Mapa y crono</string>
     <string name="ayuda_voz_grupo_edicion">Edición de notas</string>
     <string name="ayuda_voz_grupo_limites">Lo que no puede hacer</string>
-    <string name="ayuda_voz_limite_dictado">Dictado libre: solo entiende las frases de esta lista.</string>
-    <string name="ayuda_voz_limite_direcciones">Direcciones que no estén en el buscador sin conexión.</string>
+    <string name="ayuda_voz_ejemplo_lugar">Sóller</string>
+    <string name="ayuda_voz_ejemplo_parada">Inca</string>
+    <string name="ayuda_voz_limite_dictado">Dictado libre: solo entiende las frases de esta lista, no cualquier texto.</string>
+    <string name="ayuda_voz_limite_lugares">Lugares que no estén en el buscador sin conexión.</string>
+    <string name="ayuda_voz_limite_nombres">Nombres que el reconocedor no conoce, como Pollença o Llucmajor: búscalos escribiendo.</string>
     <string name="ayuda_voz_limite_idiomas">Otros idiomas: solo entiende español.</string>
-    <!-- Chuleta de voz: una frase por elemento. Ver GrupoVoz.kt para lo que existe hoy y lo que llega después. -->
-    <string-array name="ayuda_voz_ruta">
-        <item>«¿Cuánto falta?»</item>
-        <item>«¿A qué hora llego?»</item>
-        <item>«¿Qué límite hay?»</item>
-    </string-array>
-    <string-array name="ayuda_voz_control">
-        <item>«Silencio» o «Calla»</item>
+    <!-- Órdenes sueltas que el intérprete entiende y no están en la lista de frases fijas; una frase por elemento. -->
+    <string-array name="ayuda_voz_control_sueltas">
         <item>«Habla»</item>
-        <item>«Repite»</item>
-        <item>«Más pronto» y «Más tarde»</item>
-        <item>«Modo notas» y «Modo completo»</item>
-    </string-array>
-    <string-array name="ayuda_voz_navegacion">
-        <item>«Llévame a Sóller»</item>
-        <item>«Volver a casa»</item>
-        <item>«Cancela la ruta»</item>
-        <item>«Gasolinera más cercana»</item>
-        <item>«Añade parada en Valldemossa»</item>
-    </string-array>
-    <string-array name="ayuda_voz_mapa">
-        <item>«Satélite» y «Mapa»</item>
-        <item>«Marca aquí»</item>
+        <item>«Más pronto»</item>
+        <item>«Más tarde»</item>
     </string-array>
     <string-array name="ayuda_voz_edicion">
-        <item>«Derecha tres» o «Izquierda cuatro larga»</item>
-        <item>«Derecha dos cierra» o «Izquierda cinco abre»</item>
+        <item>«Derecha tres larga»</item>
+        <item>«Izquierda dos cierra»</item>
         <item>«Horquilla izquierda»</item>
         <item>«Derecha escuadra cincuenta»</item>
         <item>«Cuidado derecha cinco»</item>
-        <item>«Quita» o «Cuidado»</item>
+        <item>«Quita»</item>
+        <item>«Repite»</item>
+        <item>«Marca aquí»</item>
     </string-array>
 </resources>

@@ -1,10 +1,15 @@
 package app.trombito.rallycopilot.ui.ajustes
 
+import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.motor.edicion.FrasesOrdenes
+import app.trombito.rallycopilot.motor.edicion.Orden
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -95,17 +100,38 @@ class AyudaAjustesTest {
             "EDICIÓN DE NOTAS",
             "LO QUE NO PUEDE HACER",
             "«Llévame a Sóller»",
-            "«Volver a casa»",
-            "«Cancela la ruta»",
-            "«Gasolinera más cercana»",
-            "«Añade parada en Valldemossa»",
+            "«Añade parada en Inca»",
             "«Horquilla izquierda»",
-            "«Silencio» o «Calla»",
         ).forEach { assertTrue("Falta $it en $textos", it in textos) }
+        FrasesOrdenes.porOrden.forEach { (orden, frases) ->
+            val esperado = ChuletaVoz.formato(frases.first(), orden is Orden.Pregunta)
+            assertTrue("La orden $orden ($esperado) no sale en la chuleta", esperado in textos)
+        }
         val limites = banco.textos(banco.conEtiqueta(ETIQUETA_AYUDA_VOZ_LIMITES))
         assertTrue(limites.any { it.startsWith("Dictado libre") })
-        assertTrue(limites.any { it.startsWith("Direcciones que no estén") })
+        assertTrue(limites.any { it.startsWith("Lugares que no estén") })
+        assertTrue(limites.any { "Pollença" in it && "Llucmajor" in it })
         assertTrue(limites.any { it.startsWith("Otros idiomas") })
+    }
+
+    @Test
+    fun `Ajustes Mapa ensena la casa con Borrar`() {
+        var borradas = 0
+        banco.ponerAjustes(
+            inicial = AjustesConduccion(casa = PuntoGeo(39.5696, 2.6502)),
+            seccion = SeccionAjustes.MAPA,
+            acciones = AccionesAjustes(onBorrarCasa = { borradas++ }),
+        )
+        assertTrue("39.5696, 2.6502" in banco.textos(banco.conEtiqueta(ETIQUETA_AJUSTES_CASA)))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AJUSTES_CASA_BORRAR))
+        assertEquals(1, borradas)
+    }
+
+    @Test
+    fun `sin casa Ajustes Mapa explica como fijarla y no hay Borrar`() {
+        banco.ponerAjustes(seccion = SeccionAjustes.MAPA)
+        assertTrue(banco.textos(banco.conEtiqueta(ETIQUETA_AJUSTES_CASA)).any { it.startsWith("Sin fijar") })
+        assertFalse(banco.hay(ETIQUETA_AJUSTES_CASA_BORRAR))
     }
 
     @Test

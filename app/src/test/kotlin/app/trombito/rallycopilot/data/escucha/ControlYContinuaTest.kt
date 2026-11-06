@@ -73,6 +73,23 @@ class ControlYContinuaTest {
         }
 
     @Test
+    fun `tras escuchar deja lo oido, la orden y la respuesta en el dialogo`() =
+        runBlocking {
+            val escucha = EscuchaGuionizada(ResultadoEscucha.Entendido(Orden.Silencio, "silencio"))
+            val control = ControlOrdenesImpl(escucha, ejecutor(), locutor, ambito)
+            assertEquals(null, control.dialogo.value)
+
+            control.escucharOrden()
+            escucha.liberar.complete(Unit)
+            withTimeout(5_000) { control.escuchando.first { !it } }
+
+            val dialogo = checkNotNull(control.dialogo.value)
+            assertEquals("silencio", dialogo.texto)
+            assertEquals(Orden.Silencio, dialogo.orden)
+            assertEquals(1L, dialogo.id)
+        }
+
+    @Test
     fun `espera a que el copiloto termine de hablar antes de abrir el microfono`() =
         runBlocking {
             locutor.hablando.value = true

@@ -81,7 +81,7 @@ internal fun botonesDeLaColumna(
     val fijos: List<(@Composable () -> Unit)?> =
         listOf(
             {
-                ConPista(Pista.MAPA, stringResource(R.string.pista_mapa), LadoPista.IZQUIERDA) {
+                ConPista(Pista.MAPA, stringResource(R.string.pista_mapa)) {
                     BotonModoCopiloto(modo, menu.actual == MenuMapa.COPILOTO, { menu.alternar(MenuMapa.COPILOTO) })
                 }
             },

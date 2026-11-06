@@ -1,7 +1,9 @@
 package app.trombito.rallycopilot.ui.copiloto
 
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.escucha.DialogoVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.edicion.Orden
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.comun.FalsoControlOrdenes
 import app.trombito.rallycopilot.ui.comun.FalsoLocutor
@@ -185,5 +187,18 @@ class CopilotoViewModelTest {
             assertTrue(vm.uiState.value.avisarCruces)
             assertFalse(repositorio.mutable.value.avisarRotondas)
             assertEquals(ModoCopiloto.NOTAS, repositorio.mutable.value.modoCopiloto)
+        }
+
+    @Test
+    fun `el dialogo de voz nuevo llega al estado y el de antes de abrir el mapa no`() =
+        runTest {
+            ordenes.ultimoDialogo.value = DialogoVoz(1, "satélite", "hecho")
+            val vm = crear()
+            assertNull(vm.uiState.value.dialogo)
+
+            val nuevo = DialogoVoz(2, "modo notas", "modo notas", Orden.Silencio)
+            ordenes.ultimoDialogo.value = nuevo
+
+            assertEquals(nuevo, vm.uiState.value.dialogo)
         }
 }

@@ -1,7 +1,9 @@
 package app.trombito.rallycopilot.data.escucha
 
 import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
+import app.trombito.rallycopilot.domain.escucha.DialogoVoz
 import app.trombito.rallycopilot.domain.escucha.Escucha
+import app.trombito.rallycopilot.domain.escucha.ResultadoEscucha
 import app.trombito.rallycopilot.domain.voz.Locutor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
@@ -27,6 +29,10 @@ class ControlOrdenesImpl(
     private val _escuchando = MutableStateFlow(false)
     override val escuchando: StateFlow<Boolean> = _escuchando.asStateFlow()
 
+    private val _dialogo = MutableStateFlow<DialogoVoz?>(null)
+    override val dialogo: StateFlow<DialogoVoz?> = _dialogo.asStateFlow()
+    private var escuchas = 0L
+
     override fun tienePermiso(): Boolean = escucha.tienePermiso()
 
     override fun escucharOrden() {
@@ -34,16 +40,29 @@ class ControlOrdenesImpl(
         ambito.launch {
             try {
                 esperarAQueAcabeDeHablar()
-                ejecutor.ejecutar(escucha.escuchar())
+                escucharYEjecutar()
                 if (ejecutor.esperaConfirmacion) {
                     esperarAQueAcabeDeHablar(ARRANQUE_VOZ_MS)
-                    ejecutor.ejecutar(escucha.escuchar())
+                    escucharYEjecutar()
                     ejecutor.descartarConfirmacion()
                 }
             } finally {
                 _escuchando.value = false
             }
         }
+    }
+
+    /** Una escucha: la ejecuta y deja lo oído y la respuesta en [dialogo] (para la burbuja del mapa). */
+    private suspend fun escucharYEjecutar() {
+        val resultado = escucha.escuchar()
+        val respuesta = ejecutor.ejecutar(resultado)
+        val texto =
+            when (resultado) {
+                is ResultadoEscucha.Entendido -> resultado.texto
+                is ResultadoEscucha.NoEntendido -> resultado.texto
+                ResultadoEscucha.SinPermiso, ResultadoEscucha.NoDisponible -> ""
+            }
+        _dialogo.value = DialogoVoz(++escuchas, texto, respuesta, (resultado as? ResultadoEscucha.Entendido)?.orden)
     }
 
     /** Con [arranqueMs] se da tiempo a que la frase recién pedida empiece a sonar antes de mirar si ha acabado. */

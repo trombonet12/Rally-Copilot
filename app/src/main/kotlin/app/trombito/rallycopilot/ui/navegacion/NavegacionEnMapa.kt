@@ -30,6 +30,8 @@ data class AccionesNavegacion(
     val onIrAqui: () -> Unit = {},
     /** «Añadir parada» de la tarjeta del punto. */
     val onAnadirParadaDelPunto: () -> Unit = {},
+    /** «Casa» de la tarjeta del punto: lo guarda como casa. */
+    val onFijarCasa: () -> Unit = {},
     /** La lupa del panel (solo guiando): abre la búsqueda encima del mapa. */
     val onAbrirBusqueda: () -> Unit = {},
     /** Cierra esa búsqueda (X o atrás). */

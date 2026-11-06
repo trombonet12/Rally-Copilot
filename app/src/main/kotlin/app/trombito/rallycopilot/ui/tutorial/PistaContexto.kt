@@ -197,7 +197,7 @@ internal fun PopupDePista(
     val margen = with(densidad) { MARGEN_VENTANA.roundToPx() }
     val hueco = with(densidad) { LARGO_FLECHA.roundToPx() }
     var medida by remember { mutableStateOf(IntSize.Zero) }
-    val posicion = posicionarPista(ancla, ventana, medida, lado, hueco, margen)
+    val posicion = posicionarPista(ancla, EspacioPista(ventana, hueco, margen), medida, lado)
     val proveedor =
         remember(posicion) {
             object : PopupPositionProvider {

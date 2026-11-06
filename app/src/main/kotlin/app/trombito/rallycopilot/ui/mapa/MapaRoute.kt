@@ -1,6 +1,10 @@
 package app.trombito.rallycopilot.ui.mapa
 
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -9,9 +13,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
@@ -33,6 +41,7 @@ import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
 import app.trombito.rallycopilot.ui.theme.LocalTemaOscuro
 import app.trombito.rallycopilot.ui.tramos.AccionesSalidaCrono
 import app.trombito.rallycopilot.ui.tramos.CronoViewModel
+import app.trombito.rallycopilot.ui.tramos.CuentaAtrasPorVoz
 import app.trombito.rallycopilot.ui.tramos.LocalAbrirAnalisis
 import app.trombito.rallycopilot.ui.tramos.LocalAccionesSalidaCrono
 import kotlin.math.floor
@@ -69,12 +78,7 @@ fun MapaRoute(
     val edicion by edicionViewModel.uiState.collectAsStateWithLifecycle()
     val estela by viewModel.estela.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
-    LaunchedEffect(permiso.estado) {
-        val concedido = permiso.estado == EstadoPermisoUbicacion.CONCEDIDO
-        viewModel.onPermisoUbicacion(concedido)
-        // El modo libre arranca solo al abrir el mapa con permiso (o al concederlo) y se para al salir (onCleared).
-        navegacionViewModel.onPermisoUbicacion(concedido)
-    }
+    InformarDelPermiso(permiso.estado, viewModel, navegacionViewModel)
     LaunchedEffect(estado.posicion) { navegacionViewModel.onPosicion(estado.posicion?.punto) }
     SeguimientoSegunVistaPrevia(navegacion.encuadrar, viewModel)
     // Con un punto elegido la cámara lo centra sobre su tarjeta: deja de seguir al coche (recentrar lo vuelve a pedir).
@@ -112,33 +116,32 @@ fun MapaRoute(
             alertas = alertas,
             crono = crono,
             superposicion = {
-                EdicionSobreMapa(edicion, navegacion.control, copiloto.escuchando, edicionViewModel, copilotoViewModel)
+                SuperposicionDelMapa(
+                    UiSuperposicion(copiloto, crono, edicion, navegacion.control),
+                    navegacionViewModel,
+                    edicionViewModel,
+                    copilotoViewModel,
+                )
             },
         )
     }
 }
 
-/** El editor de notas y el micrófono grande del reconocimiento, encima de todo lo demás. */
+/**
+ * Pasa el permiso de ubicación a los ViewModels. El modo libre arranca solo al abrir el mapa con permiso (o al
+ * concederlo) y se para al salir (onCleared).
+ */
 @Composable
-private fun BoxScope.EdicionSobreMapa(
-    edicion: EdicionMapaUiState,
-    control: EstadoNavegacion,
-    escuchando: Boolean,
-    edicionViewModel: EdicionMapaViewModel,
-    copilotoViewModel: CopilotoViewModel,
+private fun InformarDelPermiso(
+    estado: EstadoPermisoUbicacion,
+    viewModel: MapaViewModel,
+    navegacionViewModel: NavegacionViewModel,
 ) {
-    EdicionEnMapa(
-        estado = edicion,
-        acciones =
-            AccionesEdicionMapa(
-                onAplicar = edicionViewModel::onAplicar,
-                onQuitar = edicionViewModel::onQuitar,
-                onCerrar = edicionViewModel::onCerrar,
-            ),
-        reconocimiento = control is EstadoNavegacion.Libre && control.reconocimientoTramoId != null,
-        escuchando = escuchando,
-        onEscuchar = copilotoViewModel::onEscuchar,
-    )
+    LaunchedEffect(estado) {
+        val concedido = estado == EstadoPermisoUbicacion.CONCEDIDO
+        viewModel.onPermisoUbicacion(concedido)
+        navegacionViewModel.onPermisoUbicacion(concedido)
+    }
 }
 
 private fun accionesCopiloto(vm: CopilotoViewModel) =
@@ -225,6 +228,7 @@ private fun accionesNavegacion(vm: NavegacionViewModel) =
         onDescartarSeguir = vm::descartarSeguir,
         onIrAqui = vm::irAqui,
         onAnadirParadaDelPunto = vm::anadirParadaDelPunto,
+        onFijarCasa = vm::fijarCasaDelPunto,
         onAbrirBusqueda = vm::abrirBusquedaGuiando,
         onCerrarBusqueda = vm::cerrarBusquedaGuiando,
         onCerrarPunto = vm::cerrarPunto,

@@ -227,7 +227,7 @@ class EjecutorOrdenesNuevasTest {
             banco.decir(Orden.NotasSimplificadas(false))
             assertFalse(banco.ajustes.mutable.value.notasSimplificadas)
 
-            assertEquals(listOf("notas simplificadas", "notas completas"), banco.locutor.dichas.toList())
+            assertEquals(listOf("notas simples", "notas completas"), banco.locutor.dichas.toList())
         }
 
     @Test

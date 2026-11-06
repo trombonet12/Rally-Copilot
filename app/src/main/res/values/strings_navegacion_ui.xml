@@ -32,6 +32,11 @@
     <string name="navegacion_ui_punto_ir_descripcion">Ir a %1$s</string>
     <string name="navegacion_ui_punto_parada">Añadir parada</string>
     <string name="navegacion_ui_punto_parada_descripcion">Añadir %1$s como parada</string>
+    <string name="navegacion_ui_punto_casa">Casa</string>
+    <string name="navegacion_ui_punto_casa_descripcion">Guardar %1$s como casa</string>
+    <string name="navegacion_ui_casa_guardada">Casa guardada</string>
+    <string name="navegacion_ui_ir_a_casa">Ir a casa</string>
+    <string name="navegacion_ui_casa_nombre">Casa</string>
     <string name="navegacion_ui_punto_cerrar">Cerrar la tarjeta del punto</string>
 
     <!-- Paradas -->

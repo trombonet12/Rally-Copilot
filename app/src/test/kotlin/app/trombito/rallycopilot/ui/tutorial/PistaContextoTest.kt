@@ -85,7 +85,7 @@ class PistaContextoTest {
             RallyCopilotTheme {
                 val estado = remember(vistas) { EstadoPistas(vistas) { vistas = vistas + it } }
                 CompositionLocalProvider(LocalPistas provides estado, LocalPresentadorPista provides enLinea) {
-                    ConPista(Pista.MAPA, TEXTO_PISTA, LadoPista.IZQUIERDA) {
+                    ConPista(Pista.MAPA, TEXTO_PISTA) {
                         Box(Modifier.size(48.dp).testTag("objetivo"))
                     }
                 }
@@ -106,7 +106,7 @@ class PistaContextoTest {
     @Test
     fun `con la pista ya vista el elemento se muestra sin globo`() {
         poner(EstadoPistas(setOf(Pista.MAPA)) {}) {
-            ConPista(Pista.MAPA, TEXTO_PISTA, LadoPista.ABAJO) { Box(Modifier.size(48.dp).testTag("objetivo")) }
+            ConPista(Pista.MAPA, TEXTO_PISTA) { Box(Modifier.size(48.dp).testTag("objetivo")) }
         }
         banco.esperar(RETARDO_PISTA_MS + 600)
         assertTrue(banco.hay("objetivo"))
@@ -116,7 +116,7 @@ class PistaContextoTest {
     @Test
     fun `sin proveedor no sale ninguna pista`() {
         poner(null) {
-            ConPista(Pista.ANALISIS, TEXTO_PISTA, LadoPista.ARRIBA) { Box(Modifier.size(48.dp).testTag("objetivo")) }
+            ConPista(Pista.ANALISIS, TEXTO_PISTA) { Box(Modifier.size(48.dp).testTag("objetivo")) }
         }
         banco.esperar(RETARDO_PISTA_MS + 600)
         assertFalse(hayGlobo())
@@ -125,7 +125,7 @@ class PistaContextoTest {
     @Test
     fun `una pista inactiva no sale aunque este pendiente`() {
         poner(EstadoPistas(emptySet()) {}) {
-            ConPista(Pista.MIS_TRAMOS, TEXTO_PISTA, LadoPista.ABAJO, activa = false) {
+            ConPista(Pista.MIS_TRAMOS, TEXTO_PISTA, activa = false) {
                 Box(Modifier.size(48.dp).testTag("objetivo"))
             }
         }

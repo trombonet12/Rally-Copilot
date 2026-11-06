@@ -154,6 +154,8 @@ class FalsoControlOrdenes : app.trombito.rallycopilot.domain.escucha.ControlOrde
     val estaEscuchando = MutableStateFlow(false)
     var peticiones = 0
     override val escuchando: StateFlow<Boolean> = estaEscuchando
+    val ultimoDialogo = MutableStateFlow<app.trombito.rallycopilot.domain.escucha.DialogoVoz?>(null)
+    override val dialogo: StateFlow<app.trombito.rallycopilot.domain.escucha.DialogoVoz?> = ultimoDialogo
 
     override fun tienePermiso(): Boolean = true
 

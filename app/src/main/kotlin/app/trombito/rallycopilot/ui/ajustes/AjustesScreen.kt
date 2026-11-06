@@ -82,6 +82,7 @@ data class AccionesAjustes(
     val onVerTutorial: () -> Unit = {},
     val onAyudaNotas: () -> Unit = {},
     val onAyudaVoz: () -> Unit = {},
+    val onBorrarCasa: () -> Unit = {},
 )
 
 /**

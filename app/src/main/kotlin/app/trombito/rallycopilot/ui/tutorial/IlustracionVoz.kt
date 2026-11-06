@@ -16,10 +16,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.motor.edicion.FrasesOrdenes
+import app.trombito.rallycopilot.motor.edicion.Orden
+import app.trombito.rallycopilot.motor.edicion.TipoPregunta
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import app.trombito.rallycopilot.ui.ajustes.ChuletaVoz
 import app.trombito.rallycopilot.ui.comun.ChipIconoWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.theme.AmbarSobreCarbon
@@ -59,26 +65,23 @@ internal fun IlustracionVoz() {
             horizontalArrangement = Arrangement.spacedBy(Espacio.s),
             verticalArrangement = Arrangement.spacedBy(Espacio.s),
         ) {
-            ChipIconoWrc(
-                Iconos.Cronometro,
-                stringResource(R.string.tutorial_voz_chip_falta),
-                seleccionado = activo == 0,
-            )
-            ChipIconoWrc(Iconos.Notas, stringResource(R.string.tutorial_voz_chip_notas), seleccionado = activo == 1)
-            ChipIconoWrc(
-                Iconos.Satelite,
-                stringResource(R.string.tutorial_voz_chip_satelite),
-                seleccionado =
-                    activo == 2,
-            )
-            ChipIconoWrc(
-                Iconos.Direcciones,
-                stringResource(R.string.tutorial_voz_chip_llevame),
-                seleccionado =
-                    activo == 3,
-            )
+            ejemplosVoz().forEachIndexed { i, (icono, frase) ->
+                ChipIconoWrc(icono, frase, seleccionado = activo == i)
+            }
         }
     }
+}
+
+/** Las frases de ejemplo de la bienvenida, sacadas de las órdenes reales ([ChuletaVoz]), con su icono. */
+@Composable
+private fun ejemplosVoz(): List<Pair<ImageVector, String>> {
+    val lugar = stringResource(R.string.tutorial_voz_lugar)
+    return listOf(
+        Iconos.Cronometro to ChuletaVoz.ejemplo(Orden.Pregunta(TipoPregunta.CUANTO_FALTA)),
+        Iconos.Notas to ChuletaVoz.ejemplo(Orden.Modo(ModoCopiloto.NOTAS)),
+        Iconos.Satelite to ChuletaVoz.ejemplo(Orden.Satelite(true)),
+        Iconos.Direcciones to ChuletaVoz.formato("${FrasesOrdenes.PREFIJOS_IR.first()} $lugar", pregunta = false),
+    )
 }
 
 /** El micrófono con tres ondas que se expanden y se desvanecen. */

@@ -93,7 +93,7 @@ class AjustesPorVoz(
     }
 
     private suspend fun simplificar(activar: Boolean): String =
-        ajustes.cambiar(if (activar) "notas simplificadas" else "notas completas") {
+        ajustes.cambiar(if (activar) "notas simples" else "notas completas") {
             it.copy(notasSimplificadas = activar)
         }
 

@@ -66,7 +66,19 @@ fun AyudaVozScreen(
                         titulo = stringResource(grupo.titulo),
                         etiqueta = ETIQUETA_AYUDA_VOZ_GRUPO_PREFIJO + grupo.name.lowercase(),
                     ) {
-                        stringArrayResource(grupo.frases).forEach { frase -> FraseDeVoz(frase) }
+                        val sueltas =
+                            when (grupo) {
+                                GrupoVoz.CONTROL -> stringArrayResource(R.array.ayuda_voz_control_sueltas).toList()
+                                GrupoVoz.EDICION -> stringArrayResource(R.array.ayuda_voz_edicion).toList()
+                                else -> emptyList()
+                            }
+                        ChuletaVoz
+                            .frases(
+                                grupo,
+                                sueltas.map { it.trim('«', '»') },
+                                stringResource(R.string.ayuda_voz_ejemplo_lugar),
+                                stringResource(R.string.ayuda_voz_ejemplo_parada),
+                            ).forEach { (frase, pregunta) -> FraseDeVoz(ChuletaVoz.formato(frase, pregunta)) }
                     }
                 }
                 TarjetaAyuda(

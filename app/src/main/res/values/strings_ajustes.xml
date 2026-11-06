@@ -146,4 +146,7 @@
     <!-- Ajustes rápidos en el mapa -->
     <string name="rapidos_boton">Ajustes rápidos</string>
     <string name="rapidos_panel">Ajustes rápidos del copiloto</string>
+    <string name="ajustes_casa_titulo">Casa</string>
+    <string name="ajustes_casa_sin_fijar">Sin fijar. Mantén pulsado el mapa y toca «Casa».</string>
+    <string name="ajustes_casa_borrar">Borrar</string>
 </resources>

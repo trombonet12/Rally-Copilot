@@ -7,6 +7,7 @@ import app.trombito.rallycopilot.motor.edicion.Orden
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -105,10 +106,29 @@ fun interface ProveedorContextoConduccion {
     fun actual(): ContextoConduccion?
 }
 
+/**
+ * Lo que se oyó en una escucha y lo que respondió el copiloto, para la burbuja del mapa. [id] crece con cada escucha
+ * (dos iguales seguidas siguen siendo dos); [texto] es lo reconocido (vacío si no se oyó nada) y [respuesta] la
+ * confirmación del copiloto (`null` si no dijo nada). [orden] es la orden entendida (`null` si no se entendió): con
+ * [Orden.Salida] y sin respuesta, el copiloto ha empezado la cuenta atrás de la salida y la interfaz enciende las
+ * luces.
+ */
+data class DialogoVoz(
+    val id: Long,
+    val texto: String,
+    val respuesta: String?,
+    val orden: Orden? = null,
+)
+
+private val SIN_DIALOGO: StateFlow<DialogoVoz?> = MutableStateFlow(null)
+
 /** Ejecuta las órdenes de voz sobre la conducción y confirma por voz. */
 interface ControlOrdenes {
     /** `true` mientras se escucha una orden (para animar el botón de micrófono). */
     val escuchando: StateFlow<Boolean>
+
+    /** La última escucha ya resuelta (lo oído y la respuesta); `null` si aún no hubo ninguna. */
+    val dialogo: StateFlow<DialogoVoz?> get() = SIN_DIALOGO
 
     fun tienePermiso(): Boolean
 

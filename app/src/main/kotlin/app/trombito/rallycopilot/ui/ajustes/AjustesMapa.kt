@@ -81,6 +81,7 @@ internal fun ControlesMapa(
     Opcion(R.string.ajustes_zoom_titulo, R.string.ajustes_zoom_detalle) {
         OpcionesZoom(ajustes.nivelZoom, acciones.onNivelZoom)
     }
+    FilaCasa(ajustes.casa, acciones.onBorrarCasa)
 }
 
 @Composable

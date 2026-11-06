@@ -26,16 +26,15 @@ const val RETARDO_PISTA_MS = 700L
 
 /**
  * Envuelve el elemento que señala la pista. Si la [pista] aún no se ha entendido y [activa], tras un instante sale un
- * [PistaContexto] anclado al elemento, en una ventana aparte: no cambia el diseño ni tapa los toques de alrededor.
+ * [PistaContexto] (en el [Pista.lado] que le toca) anclado al elemento, en una ventana aparte: no cambia el diseño
+ * ni tapa los toques de alrededor.
  * «Entendido» la marca como vista para siempre; cada pantalla enseña la suya una sola vez. Sin elemento (la lista
  * vacía, la fila que no existe) no hay pista y sigue pendiente.
  */
-@Suppress("LongParameterList") // pista, texto, lado, modificador, activa y contenido: el API de un envoltorio
 @Composable
 fun ConPista(
     pista: Pista,
     texto: String,
-    lado: LadoPista,
     modifier: Modifier = Modifier,
     activa: Boolean = true,
     contenido: @Composable () -> Unit,
@@ -61,7 +60,7 @@ fun ConPista(
         contenido()
         val sitio = ancla
         if (pendiente && listo && sitio != null) {
-            LocalPresentadorPista.current(sitio, texto, lado) { estado.entendida(pista) }
+            LocalPresentadorPista.current(sitio, texto, pista.lado) { estado.entendida(pista) }
         }
     }
 }

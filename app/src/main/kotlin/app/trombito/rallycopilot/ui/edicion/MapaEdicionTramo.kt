@@ -43,6 +43,7 @@ object ColoresMarcador {
     const val NOTA = 0xFFF2EDE0.toInt()
     const val CUIDADO = 0xFFFFB300.toInt()
     const val MARCA = 0xFFD8232A.toInt()
+    const val RADAR = 0xFFE5AB46.toInt()
     const val CORTE = 0xFF4FC3F7.toInt()
     const val TEXTO_OSCURO = 0xFF0E0F12.toInt()
     const val TEXTO_CLARO = 0xFFFFFFFF.toInt()
@@ -52,6 +53,7 @@ object ColoresMarcador {
             TipoMarcador.NOTA -> NOTA
             TipoMarcador.CUIDADO -> CUIDADO
             TipoMarcador.MARCA -> MARCA
+            TipoMarcador.RADAR -> RADAR
             TipoMarcador.CORTE -> CORTE
         }
 
@@ -378,7 +380,49 @@ internal fun dibujarPildora(
     val relleno = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ColoresMarcador.fondo(tipo) }
     lienzo.drawRoundRect(caja, radio, radio, relleno)
     lienzo.drawRoundRect(caja, radio, radio, borde)
-    val centroY = caja.centerY() - (letra.descent() + letra.ascent()) / 2f
-    lienzo.drawText(texto, caja.centerX(), centroY, letra)
+    if (tipo == TipoMarcador.RADAR) {
+        dibujarRadar(lienzo, caja, ColoresMarcador.texto(tipo))
+    } else {
+        val centroY = caja.centerY() - (letra.descent() + letra.ascent()) / 2f
+        lienzo.drawText(texto, caja.centerX(), centroY, letra)
+    }
     return imagen
+}
+
+private const val LADO_ICONO_VECTOR = 48f
+private const val PROPORCION_ICONO_RADAR = 0.62f
+
+/** La cámara del icono de radar (`ic_alerta_radar`, viewport 48) en trazo, centrada y ajustada al alto de [caja]. */
+private fun dibujarRadar(
+    lienzo: Canvas,
+    caja: RectF,
+    color: Int,
+) {
+    val escala = caja.height() * PROPORCION_ICONO_RADAR / LADO_ICONO_VECTOR
+    val trazo =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = 4f
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+            this.color = color
+        }
+    val relleno = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
+    lienzo.save()
+    lienzo.translate(
+        caja.centerX() - LADO_ICONO_VECTOR * escala / 2f,
+        caja.centerY() - LADO_ICONO_VECTOR * escala / 2f,
+    )
+    lienzo.scale(escala, escala)
+    lienzo.drawRect(6f, 14f, 31f, 34f, trazo)
+    val lente =
+        android.graphics.Path().apply {
+            moveTo(31f, 21f)
+            lineTo(42f, 14f)
+            lineTo(42f, 34f)
+            lineTo(31f, 27f)
+        }
+    lienzo.drawPath(lente, trazo)
+    lienzo.drawCircle(18.5f, 24f, 4.5f, relleno)
+    lienzo.restore()
 }

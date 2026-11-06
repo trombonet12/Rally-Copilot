@@ -154,6 +154,8 @@ data class NavegacionUiState(
     val puntoElegido: PuntoElegido? = null,
     /** Tiempo y kilómetros del trayecto recién acabado (solo con el aviso de llegada). */
     val resumenLlegada: ResumenTrayecto? = null,
+    /** La casa fijada en los ajustes (null sin fijar): «Ir a casa» bajo la barra «¿A dónde?». */
+    val casa: PuntoGeo? = null,
 ) {
     /** Sin destino en marcha (parado o en modo libre): se puede buscar destino y ver rutas. */
     val enReposo: Boolean get() = control is EstadoNavegacion.Inactiva || control is EstadoNavegacion.Libre
