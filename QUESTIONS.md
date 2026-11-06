@@ -280,3 +280,9 @@ Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y
   - **Cierre:** una sola revisión final en el emulador con los datos de Joan, y después push y release.
   - **Curvas:** casi todo lo que mueva el volante se canta.
   - **Puentes:** una vía que pasa por encima o por debajo no cuenta como cruce ni como vía actual.
+- **Revisión UX de H14c (2026-11-06; las decidió el agente en modo desatendido, siguiendo el criterio ya expresado por Joan; revisables):**
+  - La tarjeta de maniobra queda solo en negro y se retira la variante roja, por «los fondos rojos son un pegote».
+  - «Silenciar» alterna entre silencio y el modo anterior.
+  - La ruta sigue roja, como eligió Joan.
+  - La pérdida de GPS se avisa en pantalla y una vez por voz.
+  - Ajustes pasa a subpantallas con vista previa fija.
