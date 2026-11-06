@@ -37,9 +37,8 @@ class AvisosTest {
     private fun lateral(
         id: Long,
         clase: String,
-        desde: PuntoGeo,
-        hasta: PuntoGeo,
-    ) = Via(id, clase, null, null, null, SentidoUnico.NO, null, null, listOf(desde, hasta))
+        vararg puntos: PuntoGeo,
+    ) = Via(id, clase, null, null, null, SentidoUnico.NO, null, null, puntos.toList())
 
     @Suppress("LongParameterList")
     private fun etiquetas(
@@ -252,6 +251,19 @@ class AvisosTest {
                 lateral(9, "tertiary", p(0.0, 300.0), p(100.0, 300.0)),
             )
         assertUno(TipoAviso.CRUCE, 300.0, extraer(contexto(vias)))
+    }
+
+    @Test
+    fun `un cruce de la via de debajo bajo el puente de la ruta no es un cruce de la ruta`() {
+        // La ruta va por un puente (vía 1) sobre una carretera E-O con un ramal; el nodo cae justo bajo la ruta.
+        val debajo = lateral(5, "secondary", p(-100.0, 300.0), p(0.0, 300.0), p(100.0, 300.0))
+        val vias =
+            listOf(
+                via(1, 0.0, 600.0),
+                debajo,
+                lateral(9, "tertiary", p(0.0, 300.0), p(50.0, 360.0)),
+            )
+        assertTrue(extraer(contexto(vias)).avisos.none { it.tipo == TipoAviso.CRUCE })
     }
 
     @Test

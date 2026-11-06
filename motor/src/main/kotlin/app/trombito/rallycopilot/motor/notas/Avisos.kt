@@ -173,6 +173,9 @@ class ExtractorAvisos(
             .crucesConNodo(ruta)
             .filter { c ->
                 rotondas.none { c.posicionM >= it.start - ANTES_ROTONDA_M && c.posicionM <= it.endInclusive }
+            }.filter { c ->
+                // Un nodo solo de vías ajenas a la ruta (la carretera bajo un puente) no es un cruce de la ruta.
+                contexto.grafo.aristas(c.nodo).any { it.via.id in viasRuta }
             }.filterNot { esEntradaOSalidaDeAutovia(contexto.grafo.aristas(it.nodo), viasRuta) }
             .map { Aviso(it.posicionM, TipoAviso.CRUCE) }
 

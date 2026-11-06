@@ -10,12 +10,14 @@ data class ResultadoLectura(
 
 /**
  * Lee el TSV de vías de Mallorca (formato v1 de `rally-copilot-data/scripts/vias.py`) sin tocar disco: recibe las
- * líneas ya descomprimidas. Campos: id, highway, maxspeed, forward, backward, oneway, ref, name, «lat,lon;…» en
- * millonésimas de grado.
+ * líneas ya descomprimidas. Campos: id, highway, maxspeed, forward, backward, oneway, ref, name, [junction, bridge,
+ * tunnel, layer], «lat,lon;…» en millonésimas de grado. Los cuatro entre corchetes solo existen en los datos nuevos
+ * (13 campos); con 9 campos (datos anteriores) quedan sin informar.
  */
 object LectorVias {
     const val CABECERA = "#vias-mallorca v1"
-    private const val CAMPOS = 9
+    private const val CAMPOS_ANTIGUO = 9
+    private const val CAMPOS = 13
     private const val ESCALA = 1_000_000.0
 
     /** @throws IllegalArgumentException si falta la cabecera `#vias-mallorca v1` o es de otra versión. */
@@ -35,9 +37,10 @@ object LectorVias {
 
     private fun analizar(linea: String): Via? {
         val c = linea.split('\t')
-        if (c.size != CAMPOS) return null
+        if (c.size != CAMPOS && c.size != CAMPOS_ANTIGUO) return null
         val id = c[0].trim().toLongOrNull()
-        val puntos = puntos(c[8])
+        val puntos = puntos(c.last())
+        val nuevos = c.size == CAMPOS
         return if (id == null || puntos == null || puntos.size < 2) {
             null
         } else {
@@ -51,6 +54,10 @@ object LectorVias {
                 ref = campo(c[6]),
                 nombre = campo(c[7]),
                 puntos = puntos,
+                junction = if (nuevos) campo(c[8]) else null,
+                bridge = if (nuevos) campo(c[9]) else null,
+                tunnel = if (nuevos) campo(c[10]) else null,
+                layer = if (nuevos) campo(c[11])?.toIntOrNull() else null,
             )
         }
     }

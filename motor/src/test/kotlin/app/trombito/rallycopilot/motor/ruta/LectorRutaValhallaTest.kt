@@ -86,7 +86,8 @@ class LectorRutaValhallaTest {
                 "begin_shape_index": 1, "end_shape_index": 2, "roundabout_exit_count": 3}"""
         val ruta = LectorRutaValhalla.leer(respuesta(leg(puntos, "$salida,$rotonda,$destino")))
         assertEquals(TipoManiobra.ROTONDA_ENTRADA, ruta.maniobras[1].tipo)
-        assertEquals(3, ruta.maniobras[1].salidaRotonda)
+        // Valhalla 3.9.1 da siempre 2 en roundabout_exit_count: se ignora y lo calcula CorrectorRotondas.
+        assertNull(ruta.maniobras[1].salidaRotonda)
     }
 
     @Test
@@ -144,13 +145,14 @@ class LectorRutaValhallaTest {
         val rotonda = ruta.maniobras[1]
         assertEquals(TipoManiobra.ROTONDA_ENTRADA, rotonda.tipo)
         assertEquals(listOf("Ma-11"), rotonda.vias)
-        assertEquals(2, rotonda.salidaRotonda)
+        assertNull(rotonda.salidaRotonda)
+        assertEquals(2, rotonda.salidaAnilloIndice)
         assertEquals("Entra en la rotonda.", rotonda.instruccionValhalla)
         assertEquals(1, rotonda.inicioIndice)
         assertEquals(3, rotonda.finIndice)
         assertEquals(80.0, rotonda.longitudM, 1e-6)
         assertEquals(8.0, rotonda.tiempoS, 1e-9)
-        assertEquals("rotonda, segunda salida, Ma-11", FrasesManiobra.frase(rotonda))
+        assertEquals("en la rotonda, sal hacia Ma-11", FrasesManiobra.frase(rotonda))
         assertEquals(TipoManiobra.DESTINO, ruta.maniobras[2].tipo)
         assertEquals(230.0, ruta.longitudM, 1e-6)
         assertEquals(28.0, ruta.tiempoS, 1e-9)
@@ -167,13 +169,12 @@ class LectorRutaValhallaTest {
         val ruta = LectorRutaValhalla.leer(respuesta(leg(puntos, "$salida,$entrada,$salidaRotonda,$destino")))
         assertEquals(3, ruta.maniobras.size)
         assertEquals(listOf("Ma-13"), ruta.maniobras[1].vias)
-        assertEquals("rotonda, primera salida, Ma-13", FrasesManiobra.frase(ruta.maniobras[1]))
+        assertEquals("en la rotonda, sal hacia Ma-13", FrasesManiobra.frase(ruta.maniobras[1]))
     }
 
     @Test
-    fun `el ordinal cantado es el roundabout_exit_count de Valhalla para la 1 2 3 y 4 salida`() {
-        val esperadas = listOf("primera", "segunda", "tercera", "cuarta")
-        esperadas.forEachIndexed { i, ordinal ->
+    fun `el roundabout_exit_count de Valhalla no se usa para el ordinal`() {
+        for (i in 0..3) {
             val entrada =
                 """{"type": 26, "instruction": "Entra en la rotonda.", "street_names": ["Ma-13"], "time": 5.0,
                     "length": 0.05, "begin_shape_index": 1, "end_shape_index": 2, "roundabout_exit_count": ${i + 1}}"""
@@ -181,8 +182,8 @@ class LectorRutaValhallaTest {
                 """{"type": 27, "instruction": "Sal de la rotonda.", "time": 3.0, "length": 0.03,
                     "begin_shape_index": 2, "end_shape_index": 3}"""
             val ruta = LectorRutaValhalla.leer(respuesta(leg(puntos, "$salida,$entrada,$salidaRotonda,$destino")))
-            assertEquals(i + 1, ruta.maniobras[1].salidaRotonda)
-            assertEquals("rotonda, $ordinal salida, Ma-13", FrasesManiobra.frase(ruta.maniobras[1]))
+            assertNull(ruta.maniobras[1].salidaRotonda)
+            assertEquals("en la rotonda, sal hacia Ma-13", FrasesManiobra.frase(ruta.maniobras[1]))
         }
     }
 

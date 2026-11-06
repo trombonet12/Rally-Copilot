@@ -46,13 +46,14 @@ class ProveedorViaActualOsm
             }
 
         private suspend fun seguidorActual(): SeguidorVia? {
-            val nuevo = fuente.datos()?.indice
-            if (nuevo == null) {
+            val datos = fuente.datos()
+            val nuevo = datos?.indice
+            if (datos == null || nuevo == null) {
                 indice = null
                 seguidor = null
             } else if (nuevo !== indice) {
                 indice = nuevo
-                seguidor = SeguidorVia(nuevo)
+                seguidor = SeguidorVia(nuevo, grafo = datos.grafo)
             }
             return seguidor
         }

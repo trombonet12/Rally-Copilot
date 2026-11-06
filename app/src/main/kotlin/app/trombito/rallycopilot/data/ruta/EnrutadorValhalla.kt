@@ -2,12 +2,16 @@ package app.trombito.rallycopilot.data.ruta
 
 import app.trombito.rallycopilot.data.datosmapa.ConfigDatosMapa
 import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
+import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.ruta.CorrectorRotondas
 import app.trombito.rallycopilot.motor.ruta.LectorRutaValhalla
+import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.RutaInvalida
+import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import com.valhalla.valhalla.ValhallaException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -30,10 +34,15 @@ class EnrutadorValhalla internal constructor(
     private val dispatcher: CoroutineDispatcher,
     private val reloj: () -> Long,
     private val siembra: EsperaDatosSembrados = EsperaDatosSembrados.Ninguna,
+    private val vias: FuenteVias? = null,
 ) : Enrutador {
     @Inject
-    constructor(config: ConfigDatosMapa, fabrica: FabricaMotorRutas, siembra: EsperaDatosSembrados) :
-        this(File(config.directorioMapa, NOMBRE_TAR), fabrica, Dispatchers.IO, System::nanoTime, siembra)
+    constructor(
+        config: ConfigDatosMapa,
+        fabrica: FabricaMotorRutas,
+        siembra: EsperaDatosSembrados,
+        vias: FuenteVias,
+    ) : this(File(config.directorioMapa, NOMBRE_TAR), fabrica, Dispatchers.IO, System::nanoTime, siembra, vias)
 
     private val cerrojo = Mutex()
     private var motor: MotorRutas? = null
@@ -98,7 +107,7 @@ class EnrutadorValhalla internal constructor(
                 val inicio = reloj()
                 try {
                     val json = motorActual().rutaJson(peticion)
-                    val ruta = LectorRutaValhalla.leer(json)
+                    val ruta = conOrdinalesDeRotonda(LectorRutaValhalla.leer(json))
                     ResultadoRuta.Ok(ruta, (reloj() - inicio) / NANOS_POR_MS)
                 } catch (e: ValhallaException) {
                     ResultadoRuta.Error(e.message ?: "Valhalla no pudo calcular la ruta")
@@ -111,6 +120,17 @@ class EnrutadorValhalla internal constructor(
                 }
             }
         }
+
+    /**
+     * Valhalla 3.9.1 da siempre 2 en `roundabout_exit_count`: el número de salida de cada rotonda se cuenta sobre el
+     * grafo local de vías (ver [CorrectorRotondas]). Sin vías instaladas o si la rotonda no se resuelve queda sin
+     * ordinal y se canta sin él.
+     */
+    private suspend fun conOrdinalesDeRotonda(ruta: Ruta): Ruta {
+        val hayRotondas = ruta.maniobras.any { it.tipo == TipoManiobra.ROTONDA_ENTRADA }
+        val grafo = if (hayRotondas) vias?.datos()?.grafo else null
+        return if (grafo == null) ruta else CorrectorRotondas.aplicar(ruta, grafo)
+    }
 
     /** Abre el motor o lo reabre si el tar ha cambiado desde que se abrió. Llamar con el cerrojo tomado. */
     private fun motorActual(): MotorRutas {

@@ -94,7 +94,7 @@ class ContextoNotasRepositorio internal constructor(
         }
 
     private fun cargar(vias: DatosVias): ContextoNotas {
-        val grafo = GrafoVias(vias.vias)
+        val grafo = vias.grafo
         val datosNotas: DatosNotasVias? =
             archivoNotas.takeIf { it.isFile }?.let { archivo -> leer(archivo) { LectorViasNotas.leer(it) } }
         Log.i(ETIQUETA, "Contexto de notas: ${vias.vias.size} vías, datos de notas: ${datosNotas != null}")

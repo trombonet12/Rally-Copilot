@@ -19,6 +19,7 @@ data class Arista(
  * guarda las aristas (vía, índice de punto) que pasan por él. Se construye en una pasada con una tabla hash de
  * claves primitivas, sin objetos por punto, para que 33 000 vías salgan en bastante menos de un segundo.
  */
+@Suppress("TooManyFunctions") // grafo de nodos, cruces sobre una polilínea, rotondas y conectividad entre vías
 class GrafoVias(
     private val vias: List<Via>,
 ) {
@@ -94,20 +95,81 @@ class GrafoVias(
 
     /**
      * Rangos de las ramas del nodo (una por dirección en que se puede salir de cada vía que pasa), de mayor a menor.
-     * Un nodo con menos de 3 ramas no es un cruce.
+     * Un nodo con menos de 3 ramas no es un cruce. Una vía que atraviesa el nodo sin acabar en él y cuyo nivel
+     * (puente, túnel, `layer`) no comparte ninguna otra vía del nodo pasa por encima o por debajo: no cuenta.
      */
     private fun rangosDeRamas(nodo: Int): List<Int> {
         val rangos = ArrayList<Int>()
+        val niveles = HashMap<Int, Int>()
+        for (k in inicioNodo[nodo] until inicioNodo[nodo + 1]) {
+            niveles.merge(vias[viaDePunto[puntosDeNodo[k]]].nivel, 1, Int::plus)
+        }
         for (k in inicioNodo[nodo] until inicioNodo[nodo + 1]) {
             val g = puntosDeNodo[k]
             val v = viaDePunto[g]
             val i = g - inicioVia[v]
+            val pasaPorEncima = niveles.size > 1 && niveles[vias[v].nivel] == 1 && i > 0 && i < vias[v].puntos.size - 1
+            if (pasaPorEncima) continue
             val ramas = (if (i > 0) 1 else 0) + (if (i < vias[v].puntos.size - 1) 1 else 0)
             repeat(ramas) { rangos.add(rangoClase(vias[v].clase)) }
         }
         rangos.sortDescending()
         return rangos
     }
+
+    private val posicionDeVia: Map<Long, Int> by lazy { vias.withIndex().associate { it.value.id to it.index } }
+
+    /** Las dos vías comparten algún nodo (están conectadas); una vía siempre está conectada consigo misma. */
+    fun conectadas(
+        a: Via,
+        b: Via,
+    ): Boolean {
+        val ia = posicionDeVia[a.id]
+        val ib = posicionDeVia[b.id]
+        return ia != null && ib != null &&
+            (ia == ib || (inicioVia[ia] until inicioVia[ia + 1]).any { comparte(it, ib) })
+    }
+
+    /** Alguna vía de índice [via] pasa por el nodo del punto global [g]. */
+    private fun comparte(
+        g: Int,
+        via: Int,
+    ): Boolean {
+        val nodo = nodoDePunto[g]
+        return (inicioNodo[nodo] until inicioNodo[nodo + 1]).any { viaDePunto[puntosDeNodo[it]] == via }
+    }
+
+    /** Ids de las vías que forman rotondas (ver [esAnillo]). */
+    private val anillos: Set<Long> by lazy {
+        val conJunction = vias.any { it.junction != null }
+        vias.filter { it.esRotonda || (!conJunction && cerradaPequena(it)) }.mapTo(HashSet()) { it.id }
+    }
+
+    /** La vía es (parte de) una rotonda. Con datos sin `junction` se toma por rotonda cualquier lazo de hasta 600 m. */
+    fun esAnillo(via: Via): Boolean = via.id in anillos
+
+    /** Vías que forman rotondas. */
+    internal val viasAnillo: List<Via> by lazy { vias.filter { it.id in anillos } }
+
+    private fun cerradaPequena(via: Via): Boolean =
+        via.puntos.size >= PUNTOS_MINIMOS_ANILLO &&
+            clave(via.puntos.first()) == clave(via.puntos.last()) &&
+            via.puntos.zipWithNext { a, b -> a.distanciaA(b) }.sum() <= PERIMETRO_MAXIMO_ANILLO_M
+
+    private val recorridoRotonda by lazy { RecorridoRotonda(this) }
+
+    /**
+     * Número de la salida de una rotonda que se toma al entrar por [entrada] y salir por [salida] (puntos del anillo,
+     * a [toleranciaM] o menos del nodo del anillo más cercano). Se recorre el anillo en su sentido desde la entrada y
+     * se cuenta cada nodo con alguna rama circulable que no sea del anillo (las de sentido único hacia la rotonda no
+     * cuentan); la salida cuenta siempre como la última. Null si no hay anillo cerca de alguno de los dos puntos o el
+     * anillo no llega de uno al otro. Las vías `service` y `track` no están en los datos y no cuentan.
+     */
+    fun ordinalSalidaRotonda(
+        entrada: PuntoGeo,
+        salida: PuntoGeo,
+        toleranciaM: Double = TOLERANCIA_ANILLO_M,
+    ): Int? = recorridoRotonda.ordinal(entrada, salida, toleranciaM)
 
     private val puntoDeNodo: (Int) -> PuntoGeo = { nodo ->
         val g = puntosDeNodo[inicioNodo[nodo]]
@@ -257,6 +319,9 @@ class GrafoVias(
         private const val DESPLAZA_LON_E6 = 180_000_000L
         private const val ANCHO_LON_E6 = 400_000_000L
         private const val RAMAS_MINIMAS_CRUCE = 3
+        private const val PUNTOS_MINIMOS_ANILLO = 4
+        private const val PERIMETRO_MAXIMO_ANILLO_M = 600.0
+        const val TOLERANCIA_ANILLO_M = 12.0
         private const val RANGO_BAJO = 1
         private const val DISTANCIA_DUPLICADOS_M = 50.0
         private const val METROS_POR_GRADO = PuntoGeo.RADIO_TIERRA_M * Math.PI / 180.0

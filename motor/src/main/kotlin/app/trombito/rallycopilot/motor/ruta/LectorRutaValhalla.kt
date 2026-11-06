@@ -90,6 +90,7 @@ object LectorRutaValhalla {
                 resultado.add(
                     actual.copy(
                         vias = siguiente.vias.ifEmpty { actual.vias },
+                        salidaAnilloIndice = siguiente.inicioIndice,
                         finIndice = siguiente.finIndice,
                         longitudM = actual.longitudM + siguiente.longitudM,
                         tiempoS = actual.tiempoS + siguiente.tiempoS,
@@ -124,7 +125,8 @@ object LectorRutaValhalla {
             finIndice = base + fin,
             longitudM = campo(o, "length").double * metrosPorUnidad,
             tiempoS = campo(o, "time").double,
-            salidaRotonda = o["roundabout_exit_count"]?.jsonPrimitive?.int,
+            // Se ignora roundabout_exit_count: Valhalla 3.9.1 devuelve siempre 2. Lo calcula CorrectorRotondas.
+            salidaRotonda = null,
         )
     }
 

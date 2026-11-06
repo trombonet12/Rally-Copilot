@@ -86,7 +86,7 @@ class NotasSesion internal constructor(
     private val cargaContexto: Deferred<ContextoNotas?> =
         alcance.async(start = CoroutineStart.LAZY) {
             contexto.contexto().also { c ->
-                synchronized(candado) { seguidorVia = c?.let { SeguidorVia(it.indice) } }
+                synchronized(candado) { seguidorVia = c?.let { SeguidorVia(it.indice, grafo = it.grafo) } }
             }
         }
 

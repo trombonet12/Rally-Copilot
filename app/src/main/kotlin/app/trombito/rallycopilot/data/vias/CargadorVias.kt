@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.vias
 import android.content.Context
 import android.util.Log
 import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
+import app.trombito.rallycopilot.motor.vias.GrafoVias
 import app.trombito.rallycopilot.motor.vias.IndiceVias
 import app.trombito.rallycopilot.motor.vias.LectorVias
 import app.trombito.rallycopilot.motor.vias.Via
@@ -18,10 +19,14 @@ import java.util.zip.GZIPInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Vías de `vias-mallorca.tsv.gz` ya leídas, con su [indice] espacial. Inmutable y compartido por quien lo pida. */
+/**
+ * Vías de `vias-mallorca.tsv.gz` ya leídas, con su [indice] espacial y su [grafo] de nodos (se construye al crear los
+ * datos, en el hilo de carga). Inmutable y compartido por quien lo pida.
+ */
 class DatosVias(
     val vias: List<Via>,
     val indice: IndiceVias,
+    val grafo: GrafoVias = GrafoVias(vias),
 )
 
 /** Da las [DatosVias] de los datos instalados, o null si no hay vías (ausentes o ilegibles). */

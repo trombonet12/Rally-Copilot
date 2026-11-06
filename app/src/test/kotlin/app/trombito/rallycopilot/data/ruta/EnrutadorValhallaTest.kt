@@ -1,9 +1,15 @@
 package app.trombito.rallycopilot.data.ruta
 
+import app.trombito.rallycopilot.data.vias.DatosVias
+import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.ruta.FrasesManiobra
 import app.trombito.rallycopilot.motor.ruta.Polyline6
+import app.trombito.rallycopilot.motor.vias.IndiceVias
+import app.trombito.rallycopilot.motor.vias.SentidoUnico
+import app.trombito.rallycopilot.motor.vias.Via
 import com.valhalla.valhalla.ErrorResponse
 import com.valhalla.valhalla.ValhallaException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -221,4 +227,80 @@ class EnrutadorValhallaTest {
         }
         assertEquals(3, Regex("\"lat\"").findAll(fabrica.motores[0].peticiones[0]).count())
     }
+
+    // --- Número de salida de las rotondas: Valhalla 3.9.1 da siempre 2, se cuenta sobre el grafo local -------------
+
+    private fun enPlano(
+        este: Double,
+        norte: Double,
+    ) = PuntoGeo(39.6 + norte / 111_194.9, 2.9 + este / (111_194.9 * Math.cos(Math.toRadians(39.6))))
+
+    private fun nodoAnillo(k: Int) =
+        enPlano(
+            30 * Math.cos(Math.toRadians(45.0 * k)),
+            30 * Math.sin(Math.toRadians(45.0 * k)),
+        )
+
+    private fun lejosAnillo(k: Int) =
+        enPlano(
+            100 * Math.cos(Math.toRadians(45.0 * k)),
+            100 * Math.sin(Math.toRadians(45.0 * k)),
+        )
+
+    private fun viaSintetica(
+        id: Long,
+        junction: String?,
+        puntos: List<PuntoGeo>,
+    ) = Via(id, "tertiary", null, null, null, SentidoUnico.NO, null, null, puntos, junction = junction)
+
+    private val viasConRotonda =
+        listOf(viaSintetica(100, "roundabout", (0..8).map { nodoAnillo(it % 8) })) +
+            listOf(6, 0, 2, 4).map { viaSintetica(200L + it, null, listOf(nodoAnillo(it), lejosAnillo(it))) }
+
+    private fun fuenteVias(vias: List<Via>?) =
+        object : FuenteVias {
+            override suspend fun datos() = vias?.let { DatosVias(it, IndiceVias(it)) }
+        }
+
+    /** Ruta que entra por el sur y sale por el nodo [salida]; Valhalla dice siempre `roundabout_exit_count` 2. */
+    private fun rutaRotonda(salida: Int): String {
+        val shape = Polyline6.codificar(listOf(lejosAnillo(6), nodoAnillo(6), nodoAnillo(salida), lejosAnillo(salida)))
+        return """{"trip":{"units":"kilometers","legs":[{"shape":"$shape","maneuvers":[
+            {"type":26,"instruction":"Entra en la rotonda.","length":0.05,"time":5.0,
+             "begin_shape_index":1,"end_shape_index":2,"roundabout_exit_count":2},
+            {"type":27,"instruction":"Sal de la rotonda por Ma-11.","street_names":["Ma-11"],"length":0.07,"time":6.0,
+             "begin_shape_index":2,"end_shape_index":3},
+            {"type":4,"instruction":"Llegas","length":0.0,"time":0.0,"begin_shape_index":3,"end_shape_index":3}]}]}}"""
+    }
+
+    private fun enrutadorConVias(
+        salida: Int,
+        vias: List<Via>?,
+    ) = EnrutadorValhalla(
+        File(carpeta.root, "valhalla-mallorca.tar").also { if (!it.exists()) it.writeText("x") },
+        FabricaFalsa { rutaRotonda(salida) },
+        UnconfinedTestDispatcher(),
+        System::nanoTime,
+        vias = fuenteVias(vias),
+    )
+
+    @Test
+    fun `la tercera salida se canta tercera aunque Valhalla diga siempre dos`() =
+        runTest {
+            val esperadas = mapOf(0 to "primera", 2 to "segunda", 4 to "tercera", 6 to "cuarta")
+            esperadas.forEach { (salida, ordinal) ->
+                val r = enrutadorConVias(salida, viasConRotonda).ruta(a, b, PerfilRuta.MAS_RAPIDA) as ResultadoRuta.Ok
+                assertEquals("rotonda, $ordinal salida, Ma-11", FrasesManiobra.frase(r.ruta.maniobras[0]))
+            }
+        }
+
+    @Test
+    fun `sin vias o sin anillo la rotonda se canta sin ordinal y no con el de Valhalla`() =
+        runTest {
+            val sinVias = enrutadorConVias(4, null).ruta(a, b, PerfilRuta.MAS_RAPIDA) as ResultadoRuta.Ok
+            assertEquals("en la rotonda, sal hacia Ma-11", FrasesManiobra.frase(sinVias.ruta.maniobras[0]))
+            val otras = listOf(viaSintetica(1, null, listOf(enPlano(0.0, 0.0), enPlano(500.0, 0.0))))
+            val sinAnillo = enrutadorConVias(4, otras).ruta(a, b, PerfilRuta.MAS_RAPIDA) as ResultadoRuta.Ok
+            assertEquals("en la rotonda, sal hacia Ma-11", FrasesManiobra.frase(sinAnillo.ruta.maniobras[0]))
+        }
 }

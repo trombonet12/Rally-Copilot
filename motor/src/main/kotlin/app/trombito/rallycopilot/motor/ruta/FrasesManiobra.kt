@@ -59,8 +59,12 @@ object FrasesManiobra {
         m: Maniobra,
         via: String?,
     ): String {
-        val ordinal = m.salidaRotonda?.let { ORDINALES.getOrNull(it - 1) } ?: return m.instruccionValhalla
-        return con("rotonda, $ordinal salida", via)
+        val ordinal = m.salidaRotonda?.let { ORDINALES.getOrNull(it - 1) }
+        return when {
+            ordinal != null -> con("rotonda, $ordinal salida", via)
+            via != null -> "en la rotonda, sal hacia $via"
+            else -> "toma la salida"
+        }
     }
 
     private fun con(

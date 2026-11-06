@@ -14,7 +14,13 @@ data class Maniobra(
     val finIndice: Int,
     val longitudM: Double,
     val tiempoS: Double,
+    /**
+     * En una rotonda, número de la salida que se toma (1 = primera); null si no se ha podido calcular. Valhalla 3.9.1
+     * devuelve siempre 2 en `roundabout_exit_count`, así que se ignora y lo calcula [CorrectorRotondas] con el grafo.
+     */
     val salidaRotonda: Int?,
+    /** En una rotonda fundida, índice del punto donde la ruta sale del anillo (donde empieza la maniobra de salida). */
+    val salidaAnilloIndice: Int? = null,
 )
 
 /**

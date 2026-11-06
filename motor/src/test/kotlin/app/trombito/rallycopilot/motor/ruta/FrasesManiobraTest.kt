@@ -76,10 +76,13 @@ class FrasesManiobraTest {
     }
 
     @Test
-    fun `rotonda sin numero de salida o fuera de rango devuelve la instruccion`() {
-        assertEquals("Instruccion de Valhalla.", FrasesManiobra.frase(m(TipoManiobra.ROTONDA_ENTRADA)))
-        assertEquals("Instruccion de Valhalla.", FrasesManiobra.frase(m(TipoManiobra.ROTONDA_ENTRADA, salida = 11)))
-        assertEquals("Instruccion de Valhalla.", FrasesManiobra.frase(m(TipoManiobra.ROTONDA_ENTRADA, salida = 0)))
+    fun `rotonda sin numero de salida o fuera de rango se canta sin ordinal`() {
+        val via = listOf("Ma-13")
+        assertEquals("en la rotonda, sal hacia Ma-13", FrasesManiobra.frase(m(TipoManiobra.ROTONDA_ENTRADA, via)))
+        assertEquals("en la rotonda, sal hacia Ma-13", FrasesManiobra.frase(m(TipoManiobra.ROTONDA_ENTRADA, via, 11)))
+        assertEquals("en la rotonda, sal hacia Ma-13", FrasesManiobra.frase(m(TipoManiobra.ROTONDA_ENTRADA, via, 0)))
+        assertEquals("toma la salida", FrasesManiobra.frase(m(TipoManiobra.ROTONDA_ENTRADA)))
+        assertEquals("toma la salida", FrasesManiobra.frase(m(TipoManiobra.ROTONDA_ENTRADA, salida = 11)))
     }
 
     @Test
