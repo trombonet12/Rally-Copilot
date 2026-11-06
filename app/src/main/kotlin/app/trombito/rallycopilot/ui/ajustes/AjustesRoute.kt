@@ -72,6 +72,7 @@ fun AjustesRoute(
                     onCapa = viewModel::onCapa,
                     onRelieve = viewModel::onRelieve,
                     onCronometrar = viewModel::onCronometrar,
+                    onSalidaManual = viewModel::onSalidaManual,
                     onNotasGrandes = viewModel::onNotasGrandes,
                     onExportarCopia = { guardarCopia.launch(nombreArchivoCopia()) },
                     onImportarCopia = { confirmando = true },

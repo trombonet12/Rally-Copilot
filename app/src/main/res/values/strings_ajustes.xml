@@ -47,6 +47,8 @@
     <!-- Tramos y notas grandes -->
     <string name="ajustes_cronometrar">Cronometrar trayectos</string>
     <string name="ajustes_cronometrar_detalle">Cada trayecto se guarda como tramo con su cronómetro. Desactivado no se crean tramos ni se detectan los guardados; las notas, los avisos y el guiado siguen.</string>
+    <string name="ajustes_salida_manual">Salida manual</string>
+    <string name="ajustes_salida_manual_detalle">Tú das la salida con el botón SALIDA y una cuenta atrás de cinco luces. Desactivada, el cronómetro arranca solo al moverte.</string>
     <string name="ajustes_prevista_crono_activo">Cronómetro activo: 1 minuto 23 segundos, 0,4 segundos menos que tu mejor tiempo</string>
     <string name="ajustes_prevista_crono_inactivo">Sin cronómetro: solo notas y guiado</string>
     <string name="ajustes_prevista_crono_tiempo">01:23,4</string>

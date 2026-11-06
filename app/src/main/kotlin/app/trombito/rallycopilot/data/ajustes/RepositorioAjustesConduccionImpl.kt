@@ -52,6 +52,7 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         avisarCruces = avisarCruces,
         avisarSalidasAutopista = avisarSalidasAutopista,
         avisarRotondas = avisarRotondas,
+        salidaManual = salidaManual,
     )
 }
 
@@ -75,6 +76,7 @@ internal fun AjustesConduccion.aEntidad() =
         avisarCruces = avisarCruces,
         avisarSalidasAutopista = avisarSalidasAutopista,
         avisarRotondas = avisarRotondas,
+        salidaManual = salidaManual,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

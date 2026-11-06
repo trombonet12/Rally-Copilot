@@ -23,6 +23,18 @@ import app.trombito.rallycopilot.domain.tramos.ResultadoCrono
 val LocalAbrirAnalisis = staticCompositionLocalOf<((tramoId: String, pasadaId: Long) -> Unit)?> { null }
 
 /**
+ * Lo que la salida manual necesita de fuera: [onDecir] hace que el copiloto diga una palabra de la cuenta atrás y
+ * [onSalida] da la salida del cronómetro. Lo da la ruta del mapa.
+ */
+class AccionesSalidaCrono(
+    val onDecir: (String) -> Unit,
+    val onSalida: () -> Unit,
+)
+
+/** Acciones de la salida manual; null donde no hay conducción a la que dar la salida (sin botón «SALIDA»). */
+val LocalAccionesSalidaCrono = staticCompositionLocalOf<AccionesSalidaCrono?> { null }
+
+/**
  * Lo que el cronómetro pone arriba del mapa, bajo el banner de maniobra, la franja de notas y el banner de alerta: el
  * HUD completo si el tramo es conocido (con mejor pasada), la tarjeta de meta unos segundos al cruzarla y nada en
  * cualquier otro caso (con un tramo nuevo o sin tramo solo hay [CronometroMini] en el panel inferior). Con [compacto]
@@ -43,7 +55,11 @@ fun CronoSuperior(
     }
 }
 
-/** El cronómetro pequeño del panel inferior: solo sin tramo conocido y mientras no haya resultado de meta. */
+/**
+ * El cronómetro pequeño del panel inferior: solo sin tramo conocido y mientras no haya resultado de meta. Con la
+ * salida manual pendiente añade el botón «SALIDA», que abre la [CuentaAtras] (si [LocalAccionesSalidaCrono] la
+ * permite); la cuenta atrás se retira sola al acabar o al tocar fuera.
+ */
 @Composable
 fun CronoMiniEnPanel(
     crono: CronoEnCurso?,
@@ -51,7 +67,17 @@ fun CronoMiniEnPanel(
     reloj: () -> Long = System::currentTimeMillis,
 ) {
     if (crono != null && crono.resultado == null && vistaCrono(crono) == VistaCrono.MINI) {
-        CronometroMini(crono, modifier, reloj)
+        val acciones = LocalAccionesSalidaCrono.current
+        var contando by remember { mutableStateOf(false) }
+        CronometroMini(
+            crono,
+            modifier,
+            reloj,
+            onSalida = acciones?.let { { contando = true } },
+        )
+        if (contando && acciones != null) {
+            CuentaAtras(onDecir = acciones.onDecir, onYa = acciones.onSalida, onCerrar = { contando = false })
+        }
     }
 }
 

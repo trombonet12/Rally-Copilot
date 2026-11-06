@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -303,11 +304,14 @@ class SesionCronoTest {
     private val ediciones = EdicionesFalsas()
 
     /** Conduce una sesión libre completa con las [fijaciones]; [modo] da voz al copiloto (null: sin copiloto). */
+    @Suppress("LongParameterList") // un parámetro por escenario: modo, solicitud, cronometrar y salida
     private suspend fun TestScope.conducir(
         fijaciones: List<Fijacion>,
         modo: ModoCopiloto? = null,
         solicitud: SolicitudNavegacion = SolicitudNavegacion.Libre,
         cronometrar: Boolean = true,
+        salidaManual: Flow<Boolean> = flowOf(false),
+        darSalidaEnMs: Long? = null,
     ): Conducida {
         val publicados = mutableListOf<CronoEnCurso?>()
         val locutor = LocutorAnotador()
@@ -319,7 +323,15 @@ class SesionCronoTest {
                 { "tramo-${++idsNuevos}" },
                 nombrar = { "Ma-2141 · Escorca" },
                 anclarEdiciones = { anclado += it?.id },
+                salidaManual = salidaManual,
             )
+        // La salida manual la da Joan a mitad de la conducción: aquí, a los [darSalidaEnMs] de tiempo virtual.
+        darSalidaEnMs?.let {
+            launch {
+                delay(it)
+                crono.darSalida(testScheduler.currentTime)
+            }
+        }
         val copiloto =
             modo?.let { CopilotoVoz(locutor, flowOf(AjustesConduccion(modoCopiloto = it, voz = VozCopiloto.DAVEFX))) }
         SesionNavegacion(
@@ -679,5 +691,92 @@ class SesionCronoTest {
             val traza = checkNotNull(tramos.tramo("tramo-1")).traza
             assertTrue(traza.first().distanciaA(CALOBRA.first()) < 30.0)
             assertNull(c.publicados.last())
+        }
+
+    @Test
+    fun `con salida manual el movimiento no arranca el cronometro y se espera la salida`() =
+        runTest {
+            val c = conducir(conduccion(40.0, hastaM = 800.0), salidaManual = flowOf(true))
+
+            assertTrue(c.estados.isNotEmpty())
+            assertTrue(c.estados.none { it.enMarcha })
+            assertTrue(c.estados.all { it.esperaSalidaManual && it.transcurridoMs == 0L })
+            // Sin salida no hay tramo ni pasada, aunque el coche se haya movido.
+            assertTrue(tramos.tramos.isEmpty())
+            assertTrue(tramos.pasadas.isEmpty())
+        }
+
+    @Test
+    fun `con salida automatica no se espera ninguna salida`() =
+        runTest {
+            val parado = (0 until 10).map { Fijacion(CALOBRA.first(), 5_000_000L + it * 1000L, 0.0, null, 5.0) }
+            val c = conducir(parado + conduccion(40.0, hastaM = 800.0, base = 5_010_000L))
+
+            assertTrue(c.estados.none { it.esperaSalidaManual })
+        }
+
+    @Test
+    fun `darSalida pone en marcha el cronometro desde ese instante y el tramo nuevo empieza ahi`() =
+        runTest {
+            val c = conducir(conduccion(40.0), salidaManual = flowOf(true), darSalidaEnMs = 30_000L)
+
+            val esperando = c.estados.takeWhile { !it.enMarcha }
+            assertTrue(esperando.size >= 25)
+            assertTrue(esperando.all { it.esperaSalidaManual && it.transcurridoMs == 0L })
+            val enMarcha = c.estados.drop(esperando.size)
+            assertTrue(enMarcha.isNotEmpty())
+            assertTrue(enMarcha.none { it.esperaSalidaManual })
+            // Cuenta desde la salida (a los 30 s), no desde que empezó la conducción.
+            val duracionMs = c.estados.size * 1000L
+            assertTrue(enMarcha.last().transcurridoMs in 1L until duracionMs - 25_000L)
+            // El tramo creado arranca donde estaba el coche a los 30 s (unos 320 m de carretera), no en el inicio.
+            val inicio = checkNotNull(tramos.tramo("tramo-1")).traza.first()
+            val cercano = CALOBRA.indices.minBy { CALOBRA[it].distanciaA(inicio) }
+            val saltadoM = CALOBRA.take(cercano + 1).longitudMetros()
+            assertTrue("el tramo arranca a $saltadoM m del inicio de la carretera", saltadoM in 250.0..400.0)
+        }
+
+    @Test
+    fun `cambiar de manual a automatica en vivo hace que el movimiento arranque el cronometro`() =
+        runTest {
+            val ajuste =
+                flow {
+                    emit(true)
+                    delay(10_000)
+                    emit(false)
+                }
+            val c = conducir(conduccion(40.0, hastaM = 800.0), salidaManual = ajuste)
+
+            assertTrue(c.estados.first().esperaSalidaManual)
+            assertFalse(c.estados.first().enMarcha)
+            assertTrue(c.estados.last().enMarcha)
+            assertFalse(c.estados.last().esperaSalidaManual)
+        }
+
+    @Test
+    fun `darSalida publica en marcha al momento y una segunda salida no cambia la primera`() =
+        runTest {
+            val publicados = mutableListOf<CronoEnCurso?>()
+            var ahora = 10_000L
+            val crono = SesionCrono(tramos, { publicados += it }, { ahora }, salidaManual = flowOf(true))
+            crono.arrancar(this)
+            testScheduler.runCurrent()
+            for (k in 0 until 5) {
+                crono.alFijar(Fijacion(CALOBRA.first(), 1_000L + k * 1000L, 12.0, null, 5.0))
+            }
+            assertFalse(checkNotNull(publicados.last()).enMarcha)
+            assertTrue(checkNotNull(publicados.last()).esperaSalidaManual)
+
+            ahora = 12_000L
+            crono.darSalida(11_000L)
+            val en = checkNotNull(publicados.last())
+            assertTrue(en.enMarcha)
+            assertFalse(en.esperaSalidaManual)
+            assertEquals(1_000L, en.transcurridoMs)
+
+            ahora = 15_000L
+            crono.darSalida(14_000L)
+            crono.alFijar(Fijacion(CALOBRA.first(), 7_000L, 12.0, null, 5.0))
+            assertEquals(4_000L, checkNotNull(publicados.last()).transcurridoMs)
         }
 }

@@ -147,6 +147,22 @@ class CopilotoViewModelTest {
         }
 
     @Test
+    fun `la salida manual llega al estado, se guarda y conserva lo demas`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(modoCopiloto = ModoCopiloto.NOTAS)
+            val vm = crear()
+            assertFalse(vm.uiState.value.salidaManual)
+
+            vm.onSalidaManual(true)
+            assertTrue(vm.uiState.value.salidaManual)
+            assertTrue(repositorio.mutable.value.salidaManual)
+            assertEquals(ModoCopiloto.NOTAS, repositorio.mutable.value.modoCopiloto)
+
+            vm.onSalidaManual(false)
+            assertFalse(repositorio.mutable.value.salidaManual)
+        }
+
+    @Test
     fun `los interruptores de indicaciones llegan al estado, se guardan uno a uno y conservan lo demas`() =
         runTest {
             repositorio.mutable.value = AjustesConduccion(modoCopiloto = ModoCopiloto.NOTAS)

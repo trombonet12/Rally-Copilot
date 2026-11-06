@@ -19,6 +19,7 @@ data class AccionesCopiloto(
     val onAvisarCruces: (Boolean) -> Unit = {},
     val onAvisarSalidasAutopista: (Boolean) -> Unit = {},
     val onAvisarRotondas: (Boolean) -> Unit = {},
+    val onSalidaManual: (Boolean) -> Unit = {},
 )
 
 /** Estado y acciones del copiloto que la pantalla de mapa pinta: selector de modo y diálogo de voz. */

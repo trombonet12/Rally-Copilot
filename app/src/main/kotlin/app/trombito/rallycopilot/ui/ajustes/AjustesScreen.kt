@@ -66,6 +66,7 @@ data class AccionesAjustes(
     val onCapa: (CapaMapa) -> Unit = {},
     val onRelieve: (Boolean) -> Unit = {},
     val onCronometrar: (Boolean) -> Unit = {},
+    val onSalidaManual: (Boolean) -> Unit = {},
     val onNotasGrandes: (Boolean) -> Unit = {},
     val onExportarCopia: () -> Unit = {},
     val onImportarCopia: () -> Unit = {},
@@ -96,7 +97,7 @@ fun AjustesScreen(
             SeccionCopiloto(ajustes, acciones)
             SeccionNotas(ajustes, acciones)
             SeccionVoz(ajustes, acciones)
-            SeccionTramos(ajustes.cronometrar, acciones.onCronometrar)
+            SeccionTramos(ajustes.cronometrar, acciones.onCronometrar, ajustes.salidaManual, acciones.onSalidaManual)
             SeccionMapa(ajustes, acciones)
             SeccionEscucha(ajustes, acciones)
             SeccionTema(ajustes.tema, acciones.onTema)

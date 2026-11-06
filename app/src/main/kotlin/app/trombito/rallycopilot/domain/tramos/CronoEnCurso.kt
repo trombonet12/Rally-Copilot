@@ -55,7 +55,8 @@ data class ResultadoCrono(
  * cruzar la meta llega el [resultado] y el cronómetro se queda en el total hasta que se entre en otro tramo.
  *
  * [enMarcha] es false mientras la conducción está «lista» (se pulsó Conducir y el coche aún no ha salido): no hay
- * tiempo que contar y la UI muestra «LISTO» en vez de 00:00.
+ * tiempo que contar y la UI muestra «LISTO» en vez de 00:00. [esperaSalidaManual] es true en ese estado cuando la
+ * salida es manual: la UI ofrece el botón «SALIDA» (cuenta atrás) en vez de esperar a que el coche se mueva.
  */
 data class CronoEnCurso(
     val tramo: TramoCronometrado?,
@@ -68,7 +69,13 @@ data class CronoEnCurso(
     val hayMejorPasada: Boolean = false,
     val resultado: ResultadoCrono? = null,
     val enMarcha: Boolean = true,
+    val esperaSalidaManual: Boolean = false,
 )
+
+/** Da la salida del cronómetro de la conducción en curso (salida manual); sin conducción no hace nada. */
+interface ControlSalidaCrono {
+    fun darSalida()
+}
 
 /** Cronómetro en vivo de la sesión de navegación; null si no hay conducción en curso. */
 interface ProveedorCrono {

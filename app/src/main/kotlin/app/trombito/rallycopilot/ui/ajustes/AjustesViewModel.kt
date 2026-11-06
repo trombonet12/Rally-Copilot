@@ -103,6 +103,11 @@ class AjustesViewModel
             guardar { it.copy(cronometrar = cronometrar) }
         }
 
+        /** «Salida manual» del cronómetro: vale desde el siguiente «LISTO», también con una conducción en curso. */
+        fun onSalidaManual(manual: Boolean) {
+            guardar { it.copy(salidaManual = manual) }
+        }
+
         fun onNotasGrandes(grandes: Boolean) {
             guardar { it.copy(notasGrandes = grandes) }
         }

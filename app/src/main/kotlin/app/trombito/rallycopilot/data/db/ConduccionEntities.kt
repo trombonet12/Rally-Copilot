@@ -27,6 +27,7 @@ data class AjustesConduccionEntity(
     @ColumnInfo(defaultValue = "1") val avisarCruces: Boolean = true,
     @ColumnInfo(defaultValue = "1") val avisarSalidasAutopista: Boolean = true,
     @ColumnInfo(defaultValue = "1") val avisarRotondas: Boolean = true,
+    @ColumnInfo(defaultValue = "0") val salidaManual: Boolean = false,
 )
 
 /** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */

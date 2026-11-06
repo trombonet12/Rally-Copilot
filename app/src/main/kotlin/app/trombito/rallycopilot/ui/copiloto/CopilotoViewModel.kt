@@ -43,6 +43,8 @@ data class CopilotoUiState(
     val avisarCruces: Boolean = true,
     val avisarSalidasAutopista: Boolean = true,
     val avisarRotondas: Boolean = true,
+    /** La salida del cronómetro la da Joan con el botón SALIDA (cuenta atrás) en vez de arrancar al moverse. */
+    val salidaManual: Boolean = false,
 ) {
     /** Hay que enseñar el diálogo «Elige la voz del copiloto». */
     val pedirVoz: Boolean get() = cargado && voz == null && !vozPospuesta
@@ -75,6 +77,7 @@ class CopilotoViewModel
                     avisarCruces = ajustes.avisarCruces,
                     avisarSalidasAutopista = ajustes.avisarSalidasAutopista,
                     avisarRotondas = ajustes.avisarRotondas,
+                    salidaManual = ajustes.salidaManual,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), CopilotoUiState())
 
@@ -121,6 +124,11 @@ class CopilotoViewModel
 
         fun onAvisarRotondas(avisar: Boolean) {
             cambiar { it.copy(avisarRotondas = avisar) }
+        }
+
+        /** Salida del cronómetro manual o automática: vale al momento, también con la conducción en curso. */
+        fun onSalidaManual(manual: Boolean) {
+            cambiar { it.copy(salidaManual = manual) }
         }
 
         /** Volumen propio de la voz (50–150 %): se aplica al locutor al instante, también conduciendo. */

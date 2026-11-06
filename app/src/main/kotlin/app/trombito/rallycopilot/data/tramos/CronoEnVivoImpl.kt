@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.tramos
 
+import app.trombito.rallycopilot.domain.tramos.ControlSalidaCrono
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,12 +13,26 @@ import javax.inject.Singleton
 @Singleton
 class CronoEnVivoImpl
     @Inject
-    constructor() : ProveedorCrono {
+    constructor() :
+    ProveedorCrono,
+        ControlSalidaCrono {
         private val actual = MutableStateFlow<CronoEnCurso?>(null)
 
         override val crono: StateFlow<CronoEnCurso?> = actual.asStateFlow()
 
+        @Volatile private var accionSalida: (() -> Unit)? = null
+
         fun publicar(crono: CronoEnCurso?) {
             actual.value = crono
+            if (crono == null) accionSalida = null
+        }
+
+        /** La conducción en curso registra aquí cómo dar su salida (manual); se olvida al cerrar. */
+        fun registrarSalida(accion: () -> Unit) {
+            accionSalida = accion
+        }
+
+        override fun darSalida() {
+            accionSalida?.invoke()
         }
     }

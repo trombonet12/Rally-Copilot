@@ -191,3 +191,14 @@ val MIGRATION_12_13: Migration =
             db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `avisarRotondas` INTEGER NOT NULL DEFAULT 1")
         }
     }
+
+/**
+ * v13 -> v14: salida del cronómetro manual o automática (automática, 0, en la fila existente). El SQL es el
+ * `createSql` de `schemas/.../14.json`.
+ */
+val MIGRATION_13_14: Migration =
+    object : Migration(13, 14) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `salidaManual` INTEGER NOT NULL DEFAULT 0")
+        }
+    }

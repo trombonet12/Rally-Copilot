@@ -24,6 +24,8 @@ import app.trombito.rallycopilot.motor.voz.Frase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -34,8 +36,9 @@ import java.util.UUID
  * sector y en meta, solo del tramo más reciente en que se entró y solo si tiene mejor pasada con la que comparar).
  * Sin tramo conocido publica el cronómetro de la conducción desde la salida (primer movimiento, ver [DetectorSalida]);
  * hasta entonces publica el estado «listo» ([CronoEnCurso.enMarcha] false, sin tiempo) y el tramo que se crea del
- * recorrido tampoco incluye el rato parado. No es concurrente: se usa desde la corrutina de la sesión. Nunca
- * registra coordenadas.
+ * recorrido tampoco incluye el rato parado. Con [salidaManual] verdadero (se sigue en vivo desde [arrancar]) el
+ * detector no cuenta: la salida la fija [darSalida] y mientras tanto se publica [CronoEnCurso.esperaSalidaManual]. No
+ * es concurrente: se usa desde la corrutina de la sesión. Nunca registra coordenadas.
  *
  * Cada pasada completada se guarda en cuanto se cruza la meta (en segundo plano, ligada al recorrido de la
  * conducción en curso y a su intervalo de puntos) y el resultado se republica con el `tramoId` y el `pasadaId` para
@@ -53,6 +56,7 @@ class SesionCrono(
     private val alFallar: (Throwable) -> Unit = {},
     private val nombrar: suspend (List<PuntoGeo>) -> String? = { null },
     private val anclarEdiciones: suspend (Tramo?) -> Unit = {},
+    private val salidaManual: Flow<Boolean> = flowOf(false),
 ) {
     /** Un tramo en que se ha entrado y aún no se ha completado ni abandonado. */
     private class Vivo(
@@ -89,6 +93,10 @@ class SesionCrono(
 
     /** Epoch de la salida (cuando el coche empieza a moverse); null mientras siga parado. */
     private var salidaEpochMs: Long? = null
+
+    /** La salida la da Joan con [darSalida] y no el movimiento del coche. */
+    @Volatile private var manual = false
+    private var ultimaFijacion: Fijacion? = null
     private var detector: DetectorTramo? = null
     private var catalogo: Map<String, Tramo> = emptyMap()
     private val mejores = HashMap<String, Pasada>()
@@ -112,6 +120,7 @@ class SesionCrono(
         this.alcance = alcance
         this.recorridoId = recorridoId
         return alcance.launch {
+            launch { salidaManual.collect { manual = it } }
             try {
                 val lista = repositorio.cronometrables()
                 catalogo = lista.associate { it.tramo.id to it.tramo }
@@ -129,7 +138,8 @@ class SesionCrono(
     fun alFijar(f: Fijacion): List<Frase> =
         synchronized(cerrojo) {
             ultimaFijacionMs = f.tiempoMs
-            if (salidaEpochMs == null) {
+            ultimaFijacion = f
+            if (salidaEpochMs == null && !manual) {
                 salida.alFijar(f)?.let { salidaEpochMs = ahoraMs() - (f.tiempoMs - it) }
             }
             val frases = ArrayList<Frase>()
@@ -137,6 +147,18 @@ class SesionCrono(
             publicar(estado(f))
             frases
         }
+
+    /**
+     * Fija la salida en [epochMs] (por defecto ahora) si aún no la hay: el cronómetro de la conducción y el tramo
+     * que se crea del recorrido cuentan desde ahí. Republica el estado al momento, sin esperar a otra fijación.
+     */
+    fun darSalida(epochMs: Long = ahoraMs()) {
+        synchronized(cerrojo) {
+            if (salidaEpochMs != null) return
+            salidaEpochMs = epochMs
+            ultimaFijacion?.let { publicar(estado(it)) }
+        }
+    }
 
     /** El tramo en que se está ahora (entrado y sin completar ni abandonar); null si no hay ninguno. */
     fun tramoActivo(): Tramo? = synchronized(cerrojo) { vivos.values.lastOrNull()?.tramo }
@@ -305,6 +327,7 @@ class SesionCrono(
                     transcurridoMs = if (salida != null) ahora - salida else 0L,
                     actualizadoEnMs = ahora,
                     enMarcha = salida != null,
+                    esperaSalidaManual = salida == null && manual,
                 )
             }
         }

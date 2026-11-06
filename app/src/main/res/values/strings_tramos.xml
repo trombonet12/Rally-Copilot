@@ -27,6 +27,26 @@
     <string name="crono_listo">LISTO</string>
     <string name="crono_listo_descripcion">Cronómetro de la conducción: listo, esperando la salida</string>
 
+    <!-- Salida manual: botón junto a LISTO y cuenta atrás de cinco luces -->
+    <string name="crono_salida_boton">SALIDA</string>
+    <string name="crono_salida_descripcion">Dar la salida. Empieza una cuenta atrás de cinco segundos</string>
+    <string name="cuenta_atras_descripcion">Cuenta atrás: %1$d</string>
+    <string name="cuenta_atras_ya_descripcion">¡Ya! Cronómetro en marcha</string>
+    <string name="cuenta_atras_ya">¡YA!</string>
+    <string name="cuenta_atras_cancelar">Cancelar la cuenta atrás</string>
+    <string name="cuenta_atras_luz_encendida">Luz %1$d encendida</string>
+    <string name="cuenta_atras_luz_apagada">Luz %1$d apagada</string>
+    <string name="cuenta_atras_luces_verdes">Luces en verde</string>
+    <!-- Lo que dice el copiloto en la cuenta atrás: cinco, cuatro, tres, dos, uno, ya -->
+    <string-array name="cuenta_atras_voz">
+        <item>cinco</item>
+        <item>cuatro</item>
+        <item>tres</item>
+        <item>dos</item>
+        <item>uno</item>
+    </string-array>
+    <string name="cuenta_atras_voz_ya">ya</string>
+
     <!-- Tarjeta de meta -->
     <string name="crono_meta_titulo">META</string>
     <string name="crono_meta_nuevo_mejor">NUEVO MEJOR</string>

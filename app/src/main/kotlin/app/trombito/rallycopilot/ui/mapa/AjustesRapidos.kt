@@ -30,6 +30,7 @@ import app.trombito.rallycopilot.ui.ajustes.OpcionesAnticipacion
 import app.trombito.rallycopilot.ui.ajustes.VistaPreviaNotasReducida
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
+import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoUiState
 import app.trombito.rallycopilot.ui.copiloto.SelectorModoCopiloto
@@ -39,6 +40,7 @@ const val ETIQUETA_RAPIDOS_PANEL = "mapa-rapidos-panel"
 const val ETIQUETA_AVISAR_CRUCES = "rapidos-avisar-cruces"
 const val ETIQUETA_AVISAR_SALIDAS_AUTOPISTA = "rapidos-avisar-salidas-autopista"
 const val ETIQUETA_AVISAR_ROTONDAS = "rapidos-avisar-rotondas"
+const val ETIQUETA_SALIDA_MANUAL = "rapidos-salida-manual"
 
 private const val OPACIDAD_PANEL = 0.98f
 private val RADIO_PANEL = 28.dp
@@ -50,7 +52,8 @@ private val LADO_ICONO = 28.dp
 /**
  * Hoja del copiloto, pegada a su botón del panel: arriba los cuatro modos (con el nombre y lo que hace el elegido) y
  * debajo los ajustes rápidos: la vista previa, la anticipación (5 niveles), las simplificadas,
- * tres interruptores de indicaciones (cruces, salidas de autopista, rotondas) y el volumen de la voz. Cada cambio se
+ * tres interruptores de indicaciones (cruces, salidas de autopista, rotondas), el de salida del cronómetro (automática
+ * o manual, con icono de semáforo) y el volumen de la voz. Cada cambio se
  * guarda y vale al momento, sin cerrar la hoja ni parar la conducción.
  */
 @Composable
@@ -123,7 +126,7 @@ private fun AjustesDeLaVoz(
     ControlVolumen(estado.volumenVoz, acciones.onVolumenVoz)
 }
 
-/** Tres interruptores con icono (sin texto): cruces, salidas y entradas de autopista, rotondas. */
+/** Interruptores con icono (sin texto): cruces, salidas y entradas de autopista, rotondas y salida del crono. */
 @Composable
 private fun InterruptoresIndicaciones(
     estado: CopilotoUiState,
@@ -151,7 +154,28 @@ private fun InterruptoresIndicaciones(
             onCambio = acciones.onAvisarRotondas,
             etiqueta = ETIQUETA_AVISAR_ROTONDAS,
         )
+        InterruptorSalida(estado.salidaManual, acciones.onSalidaManual)
     }
+}
+
+/** Salida del cronómetro: automática (al moverse) o manual (botón SALIDA y cuenta atrás); manual = seleccionado. */
+@Composable
+private fun InterruptorSalida(
+    manual: Boolean,
+    onCambio: (Boolean) -> Unit,
+) {
+    BotonIcono(
+        descripcion = stringResource(R.string.salida_modo_titulo),
+        onClick = { onCambio(!manual) },
+        modifier = Modifier.testTag(ETIQUETA_SALIDA_MANUAL),
+        estado =
+            EstadoBotonIcono(
+                seleccionado = manual,
+                descripcionEstado =
+                    stringResource(if (manual) R.string.salida_modo_manual else R.string.salida_modo_automatica),
+                rol = Role.Switch,
+            ),
+    ) { Icon(Iconos.Semaforo, contentDescription = null, modifier = Modifier.size(LADO_ICONO)) }
 }
 
 @Composable

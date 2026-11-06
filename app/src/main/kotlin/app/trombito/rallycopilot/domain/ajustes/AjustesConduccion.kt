@@ -28,7 +28,9 @@ enum class Orientacion { RUMBO, NORTE }
  * sistema. [cronometrar] activa los tramos cronometrados (desactivado: no se crean tramos ni pasadas ni se detectan los
  * guardados, pero las notas y la navegación siguen); [notasGrandes] cambia la pantalla de conducción al modo roadbook
  * (notas enormes, casi sin mapa). [avisarCruces], [avisarSalidasAutopista] y [avisarRotondas] dicen qué indicaciones se
- * dicen y se ven (todas por defecto; ver `FiltroIndicaciones` del motor).
+ * dicen y se ven (todas por defecto; ver `FiltroIndicaciones` del motor). [salidaManual] hace que el cronómetro de la
+ * conducción no arranque solo al moverse el coche sino cuando Joan pulsa «Salida» (cuenta atrás); desactivado = salida
+ * automática.
  */
 data class AjustesConduccion(
     val nivelZoom: Int = 0,
@@ -49,6 +51,7 @@ data class AjustesConduccion(
     val avisarCruces: Boolean = true,
     val avisarSalidasAutopista: Boolean = true,
     val avisarRotondas: Boolean = true,
+    val salidaManual: Boolean = false,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }

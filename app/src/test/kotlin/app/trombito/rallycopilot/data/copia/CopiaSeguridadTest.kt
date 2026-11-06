@@ -153,7 +153,7 @@ class CopiaSeguridadTest {
         val contenido = entradas(exportar())
         assertEquals(setOf("rally.db", "manifest.json"), contenido.keys)
         val texto = contenido.getValue("manifest.json").decodeToString()
-        assertTrue(texto, "\"esquema\":13" in texto.replace(" ", ""))
+        assertTrue(texto, "\"esquema\":14" in texto.replace(" ", ""))
         assertTrue(texto, "\"versionName\":\"1.2.3\"" in texto.replace(" ", ""))
         assertTrue(texto, "\"recorridos\":1" in texto.replace(" ", ""))
     }

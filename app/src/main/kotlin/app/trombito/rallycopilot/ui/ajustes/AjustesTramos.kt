@@ -23,16 +23,20 @@ import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 
 const val ETIQUETA_AJUSTES_CRONOMETRAR = "ajustes-cronometrar"
+const val ETIQUETA_AJUSTES_SALIDA_MANUAL = "ajustes-salida-manual"
 const val ETIQUETA_PREVISTA_CRONO = "prevista-crono"
 
 /**
- * Tramos: el interruptor «Cronometrar trayectos». Activado cada trayecto se guarda como tramo con sus pasadas; la vista
- * previa enseña el cronómetro con su delta, y desactivado dice qué deja de hacerse (las notas y el guiado siguen).
+ * Tramos: los interruptores «Cronometrar trayectos» y «Salida manual» (cada uno con su línea de explicación).
+ * Cronometrar activado: cada trayecto se guarda como tramo con sus pasadas; la vista previa enseña el cronómetro con
+ * su delta, y desactivado dice qué deja de hacerse (las notas y el guiado siguen).
  */
 @Composable
 internal fun SeccionTramos(
     cronometrar: Boolean,
     onCronometrar: (Boolean) -> Unit,
+    salidaManual: Boolean,
+    onSalidaManual: (Boolean) -> Unit,
 ) {
     TarjetaSeccion(
         clave = "tramos",
@@ -47,6 +51,13 @@ internal fun SeccionTramos(
             onCambio = onCronometrar,
             etiqueta = ETIQUETA_AJUSTES_CRONOMETRAR,
             detalle = stringResource(R.string.ajustes_cronometrar_detalle),
+        )
+        FilaInterruptor(
+            titulo = stringResource(R.string.ajustes_salida_manual),
+            marcado = salidaManual,
+            onCambio = onSalidaManual,
+            etiqueta = ETIQUETA_AJUSTES_SALIDA_MANUAL,
+            detalle = stringResource(R.string.ajustes_salida_manual_detalle),
         )
     }
 }

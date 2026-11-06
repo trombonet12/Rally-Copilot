@@ -116,6 +116,16 @@ class RepositorioAjustesConduccionImplTest {
         }
 
     @Test
+    fun `la salida del cronometro es automatica por defecto y la manual se guarda`() =
+        runBlocking {
+            val defecto = repositorio.ajustes.first()
+            assertEquals(false, defecto.salidaManual)
+
+            repositorio.guardar(defecto.copy(salidaManual = true))
+            assertEquals(true, repositorio.ajustes.first().salidaManual)
+        }
+
+    @Test
     fun `un volumen fuera de rango o un tema desconocido en disco valen los de por defecto o se acotan`() =
         runBlocking {
             val dao = base.ajustesConduccionDao()

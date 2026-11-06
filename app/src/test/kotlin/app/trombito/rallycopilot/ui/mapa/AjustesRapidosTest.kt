@@ -59,6 +59,7 @@ abstract class AjustesRapidosBase {
             onAvisarCruces = { copiloto = copiloto.copy(avisarCruces = it) },
             onAvisarSalidasAutopista = { copiloto = copiloto.copy(avisarSalidasAutopista = it) },
             onAvisarRotondas = { copiloto = copiloto.copy(avisarRotondas = it) },
+            onSalidaManual = { copiloto = copiloto.copy(salidaManual = it) },
             onVolumenVoz = { copiloto = copiloto.copy(volumenVoz = it) },
             onEscucharEjemplo = { escuchas += Unit },
         )
@@ -100,7 +101,12 @@ abstract class AjustesRapidosBase {
         assertTrue("La hoja $hoja sale de la pantalla $raiz", hoja.left >= raiz.left && hoja.right <= raiz.right)
         assertTrue("La hoja $hoja sale de la pantalla $raiz", hoja.top >= raiz.top && hoja.bottom <= raiz.bottom)
         assertEquals(NivelAnticipacion.entries.size, banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).size)
-        listOf(ETIQUETA_AVISAR_CRUCES, ETIQUETA_AVISAR_SALIDAS_AUTOPISTA, ETIQUETA_AVISAR_ROTONDAS).forEach {
+        listOf(
+            ETIQUETA_AVISAR_CRUCES,
+            ETIQUETA_AVISAR_SALIDAS_AUTOPISTA,
+            ETIQUETA_AVISAR_ROTONDAS,
+            ETIQUETA_SALIDA_MANUAL,
+        ).forEach {
             val nodo = banco.conEtiqueta(it)
             assertTrue("$it mide ${nodo.size}", nodo.size.width >= LADO_MINIMO_PX && nodo.size.height >= LADO_MINIMO_PX)
             assertTrue("$it sale de la hoja", nodo.boundsInRoot.right <= hoja.right)
@@ -198,6 +204,26 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
         assertTrue(copiloto.avisarCruces)
         assertEquals(true, marcado(ETIQUETA_AVISAR_CRUCES))
         assertTrue("la hoja sigue abierta", banco.hay(ETIQUETA_RAPIDOS_PANEL))
+    }
+
+    @Test
+    fun `el interruptor de salida del cronometro alterna entre automatica y manual en vivo`() {
+        abrir()
+        val nodo = banco.conEtiqueta(ETIQUETA_SALIDA_MANUAL)
+        assertTrue(banco.esPulsable(nodo))
+        assertEquals(false, marcado(ETIQUETA_SALIDA_MANUAL))
+        assertEquals("Automática", banco.descripcionEstado(ETIQUETA_SALIDA_MANUAL))
+        assertEquals("Salida del cronómetro", banco.descripcion(nodo))
+
+        banco.pulsar(nodo)
+        assertTrue(copiloto.salidaManual)
+        assertEquals(true, marcado(ETIQUETA_SALIDA_MANUAL))
+        assertEquals("Manual", banco.descripcionEstado(ETIQUETA_SALIDA_MANUAL))
+        assertTrue("la hoja sigue abierta", banco.hay(ETIQUETA_RAPIDOS_PANEL))
+
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_SALIDA_MANUAL))
+        assertFalse(copiloto.salidaManual)
+        assertEquals("Automática", banco.descripcionEstado(ETIQUETA_SALIDA_MANUAL))
     }
 
     @Test

@@ -7,6 +7,7 @@ import app.trombito.rallycopilot.data.tramos.GuardadorTramos
 import app.trombito.rallycopilot.data.tramos.NombradorTramos
 import app.trombito.rallycopilot.data.tramos.RepositorioTramosRoom
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
+import app.trombito.rallycopilot.domain.tramos.ControlSalidaCrono
 import app.trombito.rallycopilot.domain.tramos.GuardaTraza
 import app.trombito.rallycopilot.domain.tramos.NombraTraza
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
@@ -24,6 +25,9 @@ import javax.inject.Singleton
 abstract class TramosModule {
     @Binds
     abstract fun proveedorCrono(implementacion: CronoEnVivoImpl): ProveedorCrono
+
+    @Binds
+    abstract fun controlSalidaCrono(implementacion: CronoEnVivoImpl): ControlSalidaCrono
 
     @Binds
     abstract fun guardaTraza(implementacion: GuardadorTramos): GuardaTraza

@@ -6,4 +6,8 @@
     <string name="indicaciones_rotondas">Avisar de rotondas</string>
     <string name="indicaciones_estado_activo">Activado</string>
     <string name="indicaciones_estado_inactivo">Desactivado</string>
+    <!-- Salida del cronómetro: interruptor con icono de la hoja del copiloto -->
+    <string name="salida_modo_titulo">Salida del cronómetro</string>
+    <string name="salida_modo_manual">Manual</string>
+    <string name="salida_modo_automatica">Automática</string>
 </resources>

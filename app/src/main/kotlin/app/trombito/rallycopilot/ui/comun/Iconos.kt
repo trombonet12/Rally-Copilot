@@ -121,6 +121,17 @@ object Iconos {
         )
     }
 
+    /** Semáforo de salida (cuerpo con tres luces huecas): la cuenta atrás de la salida manual. */
+    val Semaforo: ImageVector by lazy {
+        icono(
+            "Semaforo",
+            "M9,2 H15 Q17,2 17,4 V20 Q17,22 15,22 H9 Q7,22 7,20 V4 Q7,2 9,2Z " +
+                "M12,4.3 A2.2,2.2 0 1,0 12,8.7 A2.2,2.2 0 1,0 12,4.3Z " +
+                "M12,9.8 A2.2,2.2 0 1,0 12,14.2 A2.2,2.2 0 1,0 12,9.8Z " +
+                "M12,15.3 A2.2,2.2 0 1,0 12,19.7 A2.2,2.2 0 1,0 12,15.3Z",
+        )
+    }
+
     /** Cronómetro (Material «timer»): el tiempo de la conducción. */
     val Cronometro: ImageVector by lazy {
         icono(
