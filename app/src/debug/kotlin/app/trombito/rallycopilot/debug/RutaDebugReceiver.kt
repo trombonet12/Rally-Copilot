@@ -88,7 +88,11 @@ class RutaDebugReceiver : BroadcastReceiver() {
                 Log.i(ETIQUETA, "Vias: ${vias.joinToString(" | ")}")
                 ruta.maniobras.forEachIndexed { i, m ->
                     val km = "%.1f".format(m.longitudM / METROS_POR_KM)
-                    Log.i(ETIQUETA, "${i + 1}. [${m.tipo}] ${FrasesManiobra.frase(m)} ($km km)")
+                    Log.i(
+                        ETIQUETA,
+                        "${i + 1}. [${m.tipo}] ${FrasesManiobra.frase(m)} ($km km) salidaRotonda=${m.salidaRotonda}" +
+                            " valhalla=\"${m.instruccionValhalla}\"",
+                    )
                 }
             }
         }
