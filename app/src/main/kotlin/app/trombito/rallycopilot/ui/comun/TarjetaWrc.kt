@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.unit.Dp
 import app.trombito.rallycopilot.ui.theme.AmbarSobreCarbon
 import app.trombito.rallycopilot.ui.theme.CarbonTranslucido
 import app.trombito.rallycopilot.ui.theme.DarkColors
@@ -52,7 +53,8 @@ internal fun TemaSobreCarbon(contenido: @Composable () -> Unit) {
  * Tarjeta del sistema WRC: radio 12, interior 16. [VarianteTarjeta.MAPA] = carbón translúcido (0xE60E0F12);
  * [VarianteTarjeta.OPACA] = `surfaceContainerHigh`. [activa] añade el borde ámbar de 1,5 dp (solo para lo activo);
  * [acentoRojo] pinta una barra roja de 4 dp a la izquierda (acento, nunca relleno); [biselada] corta una esquina en
- * diagonal. Con [onClick] es pulsable (rol botón).
+ * diagonal. [forma] sustituye la forma (p. ej. radio 16 del banner de maniobra) y [relleno] el interior de 16 dp
+ * (las tarjetas bajas del carrete de notas). Con [onClick] es pulsable (rol botón).
  */
 @Suppress("LongParameterList") // API de componente: cada opción visual es un parámetro con valor por defecto
 @Composable
@@ -62,10 +64,12 @@ fun TarjetaWrc(
     activa: Boolean = false,
     acentoRojo: Boolean = false,
     biselada: Boolean = false,
+    forma: Shape? = null,
+    relleno: Dp = Espacio.l,
     onClick: (() -> Unit)? = null,
     contenido: @Composable ColumnScope.() -> Unit,
 ) {
-    val forma: Shape = if (biselada) FormaBiselada() else Radios.formaTarjeta
+    val formaTarjeta: Shape = forma ?: if (biselada) FormaBiselada() else Radios.formaTarjeta
     val enMapa = variante == VarianteTarjeta.MAPA
     val fondo = if (enMapa) CarbonTranslucido else MaterialTheme.colorScheme.surfaceContainerHigh
     val colorBorde = if (enMapa) AmbarSobreCarbon else MaterialTheme.colorScheme.primary
@@ -79,14 +83,14 @@ fun TarjetaWrc(
             } else {
                 Modifier
             }
-        val margenIzquierdo = if (acentoRojo) Espacio.l + Medidas.barraAcento else Espacio.l
+        val margenIzquierdo = if (acentoRojo) relleno + Medidas.barraAcento else relleno
         Box(Modifier.fillMaxWidth().then(dibujoBarra)) {
             Column(
                 Modifier.fillMaxWidth().padding(
                     start = margenIzquierdo,
-                    top = Espacio.l,
-                    end = Espacio.l,
-                    bottom = Espacio.l,
+                    top = relleno,
+                    end = relleno,
+                    bottom = relleno,
                 ),
                 content = contenido,
             )
@@ -98,8 +102,14 @@ fun TarjetaWrc(
     }
     val envuelto: @Composable () -> Unit = if (enMapa) ({ TemaSobreCarbon(contenidoTarjeta) }) else contenidoTarjeta
     if (onClick != null) {
-        Surface(onClick = onClick, modifier = modifier, shape = forma, color = fondo, border = borde) { envuelto() }
+        Surface(
+            onClick = onClick,
+            modifier = modifier,
+            shape = formaTarjeta,
+            color = fondo,
+            border = borde,
+        ) { envuelto() }
     } else {
-        Surface(modifier = modifier, shape = forma, color = fondo, border = borde) { envuelto() }
+        Surface(modifier = modifier, shape = formaTarjeta, color = fondo, border = borde) { envuelto() }
     }
 }

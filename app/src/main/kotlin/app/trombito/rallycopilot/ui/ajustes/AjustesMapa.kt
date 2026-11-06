@@ -20,7 +20,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
-import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.datos.CapaMapa
@@ -30,13 +29,12 @@ import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.nombre
 import app.trombito.rallycopilot.ui.comun.recurso
 import app.trombito.rallycopilot.ui.maniobras.IconoManiobra
-import app.trombito.rallycopilot.ui.maniobras.nombre
-import app.trombito.rallycopilot.ui.maniobras.variante
+import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_PREVISTA_MAPA = "prevista-mapa"
 const val ETIQUETA_PREVISTA_MAPA_ICONO = "prevista-mapa-icono-"
-const val ETIQUETA_PREVISTA_MAPA_MANIOBRA = "prevista-mapa-maniobra-"
+const val ETIQUETA_PREVISTA_MAPA_MANIOBRA = "prevista-mapa-maniobra"
 const val ETIQUETA_CAPA_PREFIJO = "ajustes-capa-"
 const val ETIQUETA_AJUSTES_RELIEVE = "ajustes-relieve"
 
@@ -57,7 +55,7 @@ private fun textoNivelZoom(nivel: Int): Int =
         else -> R.string.ajustes_zoom_muy_cerca
     }
 
-/** Mapa: zoom, orientación, icono de posición, estilo de las maniobras y mapa por defecto, con su vista previa. */
+/** Mapa: zoom, orientación, icono de posición y mapa por defecto, con su vista previa. */
 @Composable
 internal fun SeccionMapa(
     ajustes: AjustesConduccion,
@@ -68,16 +66,13 @@ internal fun SeccionMapa(
         icono = Iconos.Mapa,
         titulo = R.string.ajustes_seccion_mapa,
         detalle = R.string.ajustes_seccion_mapa_detalle,
-        vistaPrevia = { VistaPreviaMapa(ajustes.icono, ajustes.estiloManiobras) },
+        vistaPrevia = { VistaPreviaMapa(ajustes.icono) },
     ) {
         Opcion(R.string.ajustes_orientacion_titulo, R.string.ajustes_orientacion_detalle) {
             OpcionesOrientacion(ajustes.orientacion, acciones.onOrientacion)
         }
         Opcion(R.string.ajustes_icono_titulo, R.string.ajustes_icono_detalle) {
             OpcionesIcono(ajustes.icono, acciones.onIcono)
-        }
-        Opcion(R.string.ajustes_maniobras_titulo, R.string.ajustes_maniobras_detalle) {
-            OpcionesManiobras(ajustes.estiloManiobras, acciones.onEstiloManiobras)
         }
         Opcion(R.string.ajustes_capa_titulo, R.string.ajustes_capa_detalle) {
             OpcionesCapa(ajustes.capa, acciones.onCapa)
@@ -95,18 +90,10 @@ internal fun SeccionMapa(
     }
 }
 
-/** Miniaturas del icono de posición y de la maniobra elegidos, tal como saldrán en el mapa. */
+/** Miniaturas del icono de posición elegido y de la flecha de maniobra (única), tal como saldrán en el mapa. */
 @Composable
-private fun VistaPreviaMapa(
-    icono: IconoPosicion,
-    estilo: EstiloManiobras,
-) {
-    val descripcion =
-        stringResource(
-            R.string.ajustes_prevista_mapa_descripcion,
-            stringResource(icono.nombre()),
-            stringResource(estilo.nombre()),
-        )
+private fun VistaPreviaMapa(icono: IconoPosicion) {
+    val descripcion = stringResource(R.string.ajustes_prevista_mapa_descripcion, stringResource(icono.nombre()))
     Row(
         modifier = Modifier.testTag(ETIQUETA_PREVISTA_MAPA).semantics { contentDescription = descripcion },
         verticalAlignment = Alignment.CenterVertically,
@@ -119,8 +106,8 @@ private fun VistaPreviaMapa(
         )
         IconoManiobra(
             tipo = TipoManiobra.DERECHA,
-            variante = estilo.variante(),
-            modifier = Modifier.testTag(ETIQUETA_PREVISTA_MAPA_MANIOBRA + estilo.name.lowercase()),
+            variante = VarianteManiobra.CHEVRON_HUD,
+            modifier = Modifier.testTag(ETIQUETA_PREVISTA_MAPA_MANIOBRA),
             tamano = DIBUJO_PREVISTA,
             decorativo = true,
         )
@@ -164,30 +151,6 @@ private fun OpcionesIcono(
                 estado = estadoSeleccion(opcion == icono),
             ) {
                 Image(painterResource(opcion.recurso()), contentDescription = null, Modifier.size(DIBUJO_MINIATURA))
-            }
-        }
-    }
-}
-
-@Composable
-private fun OpcionesManiobras(
-    estilo: EstiloManiobras,
-    onEstilo: (EstiloManiobras) -> Unit,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Espacio.s), verticalAlignment = Alignment.CenterVertically) {
-        EstiloManiobras.entries.forEach { opcion ->
-            BotonIcono(
-                descripcion = stringResource(opcion.nombre()),
-                onClick = { onEstilo(opcion) },
-                modifier = Modifier.size(LADO_MINIATURA).testTag(ETIQUETA_MANIOBRAS_PREFIJO + opcion.name.lowercase()),
-                estado = estadoSeleccion(opcion == estilo),
-            ) {
-                IconoManiobra(
-                    tipo = TipoManiobra.DERECHA,
-                    variante = opcion.variante(),
-                    tamano = DIBUJO_MINIATURA,
-                    decorativo = true,
-                )
             }
         }
     }

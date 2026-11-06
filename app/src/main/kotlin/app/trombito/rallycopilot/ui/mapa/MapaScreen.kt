@@ -37,6 +37,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -52,11 +53,13 @@ import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
 import app.trombito.rallycopilot.ui.alertas.TarjetaIncidencia
+import app.trombito.rallycopilot.ui.comun.DegradadoSuperiorMapa
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.MantenerPantallaEncendida
+import app.trombito.rallycopilot.ui.comun.TarjetaWrc
+import app.trombito.rallycopilot.ui.comun.VarianteTarjeta
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.DialogoVozCopiloto
-import app.trombito.rallycopilot.ui.maniobras.variante
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.BannerParada
 import app.trombito.rallycopilot.ui.navegacion.BusquedaDestino
@@ -69,8 +72,9 @@ import app.trombito.rallycopilot.ui.navegacion.OpcionesPunto
 import app.trombito.rallycopilot.ui.navegacion.PanelInferiorNavegacion
 import app.trombito.rallycopilot.ui.navegacion.TarjetaPunto
 import app.trombito.rallycopilot.ui.navegacion.TarjetaSeguir
-import app.trombito.rallycopilot.ui.navegacion.notas.FranjaNotas
+import app.trombito.rallycopilot.ui.navegacion.notas.CarreteNotas
 import app.trombito.rallycopilot.ui.theme.Espacio
+import app.trombito.rallycopilot.ui.theme.TextoSobreCarbon
 import app.trombito.rallycopilot.ui.tramos.CronoSuperior
 
 const val ETIQUETA_CARGANDO = "mapa-cargando"
@@ -89,6 +93,7 @@ const val ETIQUETA_PERMISO_AJUSTES = "mapa-permiso-ajustes"
 
 private const val OPACIDAD_SUPERFICIE_SOBRE_MAPA = 0.88f
 private val ALTO_MINIMO_TACTIL = 48.dp
+private const val DURACION_AVISO_MS = 4_000L
 private val ANCHO_BANNER_PARADA = 520.dp
 
 // Altura del pie del guiado (una fila; con paradas, dos) más su margen: lo que queda por encima es de la tarjeta.
@@ -263,6 +268,8 @@ private fun ZonaConMapa(
 
             else -> {
                 mapa(json, Modifier.fillMaxSize())
+                // Bajo la barra de estado: los rótulos y escudos del mapa no chocan con la hora ni los iconos.
+                DegradadoSuperiorMapa(Modifier.align(Alignment.TopCenter))
             }
         }
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.only(lados)).padding(Espacio.s)) {
@@ -321,7 +328,6 @@ private fun RoadbookEnZona(
             ContenidoRoadbook(
                 notas = navegacion.notas,
                 guiando = navegacion.estado.control as? EstadoNavegacion.Guiando,
-                variante = contenido.estado.estiloManiobras.variante(),
                 alertas = contenido.alertas,
                 crono = contenido.crono,
             ),
@@ -411,12 +417,12 @@ private class ContenidoCabecera(
 )
 
 /**
- * Arriba: en reposo, la barra «¿A dónde?» a todo el ancho con su lista de resultados; debajo, la franja de notas de
- * la carretera y el banner de alerta (modo libre), «Seguir a <destino>» si hay un guiado a medias y el aviso de
- * actualización. Mientras se guía, el banner de maniobra, la franja de notas y el banner de alerta ocupan esa franja
- * y el aviso espera a que acabe. Con notas en la
- * franja la barra se esconde (la franja sube a su sitio): reaparece al tocar el mapa y se vuelve a esconder a los 8 s
- * sin toques, nunca con el campo enfocado, texto escrito, resultados o vista previa abiertos.
+ * Arriba: en reposo, la barra «¿A dónde?» a todo el ancho con su lista de resultados; debajo, el carrete de notas de
+ * la carretera y el banner de alerta (modo libre) y «Seguir a <destino>» si hay un guiado a medias. Mientras se guía,
+ * el banner de maniobra, el carrete de notas y el banner de alerta ocupan esa franja. Con notas en el carrete la
+ * barra se esconde (el carrete sube a su sitio): reaparece al tocar el mapa y se vuelve a esconder a los 8 s sin
+ * toques, nunca con el campo enfocado, texto escrito, resultados o vista previa abiertos. El aviso de mapas
+ * actualizados va abajo ([PieMapa]).
  */
 @Composable
 private fun CabeceraMapa(
@@ -426,7 +432,6 @@ private fun CabeceraMapa(
     modifier: Modifier = Modifier,
 ) {
     val estado = contenido.estado
-    val acciones = contenido.acciones
     val navegacion = contenido.navegacion
     val buscar = estado.hayDatos && navegacion.estado.enReposo
     val hayNotas = navegacion.notas.visibles.isNotEmpty()
@@ -457,7 +462,7 @@ private fun CabeceraMapa(
             )
             // Sin búsqueda ni vista previa abiertas: lo que importa de la carretera y, si toca, retomar el guiado.
             if (navegacion.estado.busqueda is BusquedaDestino.Inactiva && navegacion.estado.vistaPrevia == null) {
-                FranjaNotas(navegacion.notas, compacta = horizontal)
+                CarreteNotas(navegacion.notas, compacta = horizontal)
                 BannerAlerta(contenido.alertas.aviso, contenido.alertas.frescura, compacto = horizontal)
                 CronoSuperior(contenido.crono, compacto = horizontal)
             }
@@ -465,35 +470,44 @@ private fun CabeceraMapa(
                 TarjetaSeguir(it, navegacion.acciones.onSeguir, navegacion.acciones.onDescartarSeguir)
             }
         }
-        if (!navegacion.estado.conduciendo) {
-            estado.datos.avisoActualizado?.let { AvisoActualizado(it, acciones.onDescartarAviso) }
-        }
     }
 }
 
+/**
+ * Aviso de mapas actualizados: tarjeta de carbón abajo, sobre el panel y debajo de todo lo demás (no tapa las notas),
+ * que se descarta sola a los 4 s; la X lo cierra antes.
+ */
 @Composable
 private fun AvisoActualizado(
     version: String,
     onCerrar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
-        shape = MaterialTheme.shapes.small,
+    val alCerrar by rememberUpdatedState(onCerrar)
+    LaunchedEffect(version) {
+        // Por fotogramas (no con `delay`): el reloj de los fotogramas es el que se adelanta en las pruebas.
+        val inicio = withFrameMillis { it }
+        var transcurrido = 0L
+        while (transcurrido < DURACION_AVISO_MS) transcurrido = withFrameMillis { it } - inicio
+        alCerrar()
+    }
+    TarjetaWrc(
         modifier = modifier.fillMaxWidth().testTag(ETIQUETA_AVISO),
+        variante = VarianteTarjeta.MAPA,
+        relleno = Espacio.s,
     ) {
-        Row(Modifier.padding(start = Espacio.l), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(start = Espacio.s), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(R.string.mapa_aviso_actualizado, version),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                color = TextoSobreCarbon,
                 modifier = Modifier.weight(1f),
             )
             IconButton(onClick = onCerrar, modifier = Modifier.testTag(ETIQUETA_AVISO_CERRAR)) {
                 Icon(
                     imageVector = Iconos.Cerrar,
                     contentDescription = stringResource(R.string.mapa_aviso_cerrar),
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    tint = TextoSobreCarbon,
                 )
             }
         }
@@ -560,7 +574,19 @@ private fun PieMapa(
             }
         }
         PanelInferiorNavegacion(navegacion.estado, navegacion.acciones, vista.horizontal)
+        AvisoDelPie(estado, nav.conduciendo, acciones.onDescartarAviso)
     }
+}
+
+/** El aviso de mapas actualizados, si toca: solo con datos nuevos y sin conducir. */
+@Composable
+private fun AvisoDelPie(
+    estado: MapaUiState,
+    conduciendo: Boolean,
+    onDescartar: () -> Unit,
+) {
+    if (conduciendo) return
+    estado.datos.avisoActualizado?.let { AvisoActualizado(it, onDescartar) }
 }
 
 /** Banner «Parada 1 de 3» del guiado y, si se toca, la lista para quitar o reordenar las que faltan. */

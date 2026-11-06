@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -45,6 +44,7 @@ import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.LADO_TACTIL
 import app.trombito.rallycopilot.ui.theme.Espacio
+import app.trombito.rallycopilot.ui.theme.Radios
 
 const val ETIQUETA_BUSCADOR = "nav-buscador"
 const val ETIQUETA_LIMPIAR = "nav-limpiar"
@@ -55,30 +55,31 @@ const val ETIQUETA_SIN_RESULTADOS = "nav-sin-resultados"
 const val ETIQUETA_RESULTADO_PARADA = "nav-resultado-parada-"
 const val ETIQUETA_RESULTADO_IR = "nav-resultado-ir-"
 
-private const val OPACIDAD_SOBRE_MAPA = 0.92f
-private val RADIO_BARRA = 28.dp
 private val ALTO_FILA = 56.dp
 private val ALTO_LISTA_VERTICAL = 300.dp
 private val ALTO_LISTA_HORIZONTAL = 144.dp
 
 /**
- * Campo «¿A dónde?» de esquinas muy redondeadas, con lupa y, si hay texto, un botón para borrarlo. [onFoco] avisa de si
+ * Campo «¿A dónde?» en píldora opaca (`surfaceContainerHigh`), con lupa y una sola ✕ al final: con [onCerrar] cierra
+ * la búsqueda (siempre visible, con el campo vacío o no); sin él borra el texto (solo si lo hay). [onFoco] avisa de si
  * el campo tiene el foco (y de que lo pierde al salir de la composición).
  */
 @Composable
+@Suppress("LongParameterList") // campo, foco y las dos acciones de la ✕ final
 fun BarraDestino(
     texto: String,
     onTexto: (String) -> Unit,
     onLimpiar: () -> Unit,
     modifier: Modifier = Modifier,
     onFoco: (Boolean) -> Unit = {},
+    onCerrar: (() -> Unit)? = null,
 ) {
     val colores = MaterialTheme.colorScheme
     DisposableEffect(Unit) { onDispose { onFoco(false) } }
     val cerrarTeclado = cerrarTeclado()
     Surface(
-        shape = RoundedCornerShape(RADIO_BARRA),
-        color = colores.surfaceContainerHigh.copy(OPACIDAD_SOBRE_MAPA),
+        shape = Radios.formaPildora,
+        color = colores.surfaceContainerHigh,
         modifier = modifier.heightIn(min = LADO_TACTIL),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -118,16 +119,28 @@ fun BarraDestino(
                     },
                 )
             }
-            if (texto.isNotEmpty()) {
-                IconButton(onClick = onLimpiar, modifier = Modifier.size(LADO_TACTIL).testTag(ETIQUETA_LIMPIAR)) {
-                    Icon(
-                        imageVector = Iconos.Cerrar,
-                        contentDescription = stringResource(R.string.navegacion_ui_limpiar),
-                        tint = colores.onSurface,
-                    )
-                }
-            }
+            AccionFinal(texto, onLimpiar, onCerrar)
         }
+    }
+}
+
+/** La ✕ final de la barra: cierra la búsqueda con [onCerrar]; sin él, borra el texto (solo si lo hay). */
+@Composable
+private fun AccionFinal(
+    texto: String,
+    onLimpiar: () -> Unit,
+    onCerrar: (() -> Unit)?,
+) {
+    if (onCerrar == null && texto.isEmpty()) return
+    val cierra = onCerrar != null
+    val etiqueta = if (cierra) ETIQUETA_BUSQUEDA_GUIANDO_CERRAR else ETIQUETA_LIMPIAR
+    val descripcion = if (cierra) R.string.navegacion_ui_buscar_guiando_cerrar else R.string.navegacion_ui_limpiar
+    IconButton(onClick = onCerrar ?: onLimpiar, modifier = Modifier.size(LADO_TACTIL).testTag(etiqueta)) {
+        Icon(
+            imageVector = Iconos.Cerrar,
+            contentDescription = stringResource(descripcion),
+            tint = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -162,8 +175,8 @@ fun ListaDestinos(
             }
         }
     Surface(
-        shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(OPACIDAD_SOBRE_MAPA),
+        shape = Radios.formaPanel,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = modifier.fillMaxWidth().testTag(ETIQUETA_RESULTADOS).semantics { contentDescription = descripcion },
     ) {
         val alto: Dp = if (horizontal) ALTO_LISTA_HORIZONTAL else ALTO_LISTA_VERTICAL

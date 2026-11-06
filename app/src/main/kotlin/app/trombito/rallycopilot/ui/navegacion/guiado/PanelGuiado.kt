@@ -24,9 +24,8 @@ import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
 import app.trombito.rallycopilot.ui.maniobras.BannerManiobra
-import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
 import app.trombito.rallycopilot.ui.maniobras.formatearDistanciaManiobra
-import app.trombito.rallycopilot.ui.navegacion.notas.FranjaNotas
+import app.trombito.rallycopilot.ui.navegacion.notas.CarreteNotas
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
 import app.trombito.rallycopilot.ui.tramos.CronoSuperior
 import java.time.ZoneId
@@ -34,6 +33,9 @@ import java.time.ZoneId
 const val ETIQUETA_PANEL_GUIADO = "panel_guiado"
 
 private val MARGEN = 8.dp
+
+// Con los 8 dp de la zona del mapa, el banner queda a 12 dp de los bordes.
+private val MARGEN_LATERAL = 4.dp
 
 /** Lo que enseña el banner: maniobra, distancia hasta ella y la siguiente; [frase] null = «destino» (sin maniobras). */
 internal data class DatosBanner(
@@ -94,17 +96,16 @@ internal fun datosBanner(estado: EstadoNavegacion.Guiando): DatosBanner? {
 /**
  * Capa de guiado sobre el mapa (ocupa todo el espacio que se le da y no tapa el centro): arriba el banner de la
  * maniobra actual y la siguiente, a todo el ancho (los botones están en el panel inferior), con el aviso de
- * recálculo debajo, y abajo el pie con llegada, tiempo y km. Entre el banner y el aviso va la franja de notas (a todo
+ * recálculo debajo, y abajo el pie con llegada, tiempo y km. Entre el banner y el aviso va la carrete de notas (a todo
  * el ancho; no pinta nada si no hay notas) y, bajo ella, el banner de alerta de radar o incidencia (entra deslizando
  * y sale al pasar; no pinta nada sin alerta) y, bajo ellos, el HUD del cronómetro si el tramo es conocido o la
  * tarjeta de meta ([crono]). El pie va centrado en vertical y a la izquierda en horizontal. Sin
  * progreso todavía no hay pie.
  */
 @Composable
-@Suppress("LongParameterList") // estado, estilo, notas, alertas y cronómetro son los bloques de la capa
+@Suppress("LongParameterList") // estado, notas, alertas y cronómetro son los bloques de la capa
 fun PanelGuiado(
     estado: EstadoNavegacion.Guiando,
-    variante: VarianteManiobra,
     modifier: Modifier = Modifier,
     zona: ZoneId = ZoneId.systemDefault(),
     notas: NotasUiState = NotasUiState(),
@@ -114,12 +115,17 @@ fun PanelGuiado(
     BoxWithConstraints(modifier = modifier.testTag(ETIQUETA_PANEL_GUIADO)) {
         val horizontal = maxWidth > maxHeight
         Column(
-            modifier = Modifier.align(Alignment.TopStart).fillMaxWidth().padding(MARGEN),
+            modifier =
+                Modifier
+                    .align(
+                        Alignment.TopStart,
+                    ).fillMaxWidth()
+                    .padding(horizontal = MARGEN_LATERAL, vertical = MARGEN),
             horizontalAlignment = Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(MARGEN),
         ) {
-            datosBanner(estado)?.let { Banner(it, variante, compacto = horizontal) }
-            FranjaNotas(notas, compacta = horizontal)
+            datosBanner(estado)?.let { Banner(it, compacto = horizontal) }
+            CarreteNotas(notas, compacta = horizontal)
             BannerAlerta(alertas.aviso, alertas.frescura, compacto = horizontal)
             CronoSuperior(crono, compacto = horizontal)
             AvisoRecalculo(estado.recalculando)
@@ -165,16 +171,14 @@ private const val MS_POR_S = 1_000.0
 @Composable
 internal fun BannerGuiado(
     estado: EstadoNavegacion.Guiando,
-    variante: VarianteManiobra,
     compacto: Boolean,
 ) {
-    datosBanner(estado)?.let { Banner(it, variante, compacto) }
+    datosBanner(estado)?.let { Banner(it, compacto) }
 }
 
 @Composable
 private fun Banner(
     datos: DatosBanner,
-    variante: VarianteManiobra,
     compacto: Boolean,
 ) {
     val frase = datos.frase ?: stringResource(R.string.guiado_destino)
@@ -184,7 +188,6 @@ private fun Banner(
     val descripcion = stringResource(R.string.guiado_banner_descripcion, hablada, distancia)
     Box(Modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = descripcion }) {
         BannerManiobra(
-            variante = variante,
             tipo = datos.tipo,
             distanciaM = datos.distanciaM,
             frase = frase,

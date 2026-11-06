@@ -59,7 +59,6 @@ fun AjustesRoute(
                     onNivelZoom = viewModel::onNivelZoom,
                     onIcono = viewModel::onIcono,
                     onOrientacion = viewModel::onOrientacion,
-                    onEstiloManiobras = viewModel::onEstiloManiobras,
                     onAnticipacion = viewModel::onAnticipacion,
                     onNotasSimplificadas = viewModel::onNotasSimplificadas,
                     onModoCopiloto = viewModel::onModoCopiloto,

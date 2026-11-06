@@ -254,6 +254,20 @@ class MapaScreenTest {
     }
 
     @Test
+    fun `el aviso de actualizacion se descarta solo a los 4 segundos y va abajo sobre el panel`() {
+        var cerrado = 0
+        val estado = conDatos().copy(datos = datos.copy(avisoActualizado = "2026.11.0"))
+        poner(estado, acciones = AccionesMapa(onDescartarAviso = { cerrado++ }))
+        val aviso = banco.conEtiqueta(ETIQUETA_AVISO).boundsInRoot
+        val panel = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
+        assertTrue("el aviso queda sobre el panel: $aviso vs $panel", aviso.bottom <= panel.top + 1)
+        banco.esperar(3_000)
+        assertEquals(0, cerrado)
+        banco.esperar(1_500)
+        assertEquals(1, cerrado)
+    }
+
+    @Test
     fun `sin aviso no hay banner`() {
         poner(conDatos())
         assertFalse(banco.hay(ETIQUETA_AVISO))

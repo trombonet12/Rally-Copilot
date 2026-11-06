@@ -36,6 +36,7 @@ data class MapaUiState(
     val relieve: Boolean = false,
     val orientacion: Orientacion = Orientacion.RUMBO,
     val icono: IconoPosicion = IconoPosicion.FLECHA_WRC,
+    /** Estilo guardado de los iconos de maniobra: desde H14c el banner usa siempre el ámbar y lo ignora. */
     val estiloManiobras: EstiloManiobras = EstiloManiobras.PLACA,
     /** Zoom automático (por velocidad y ajuste de Joan, suavizado); null mientras no hay velocidad conocida. */
     val zoomObjetivo: Double? = null,

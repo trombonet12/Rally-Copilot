@@ -27,7 +27,6 @@ import app.trombito.rallycopilot.ui.alertas.BannerAlerta
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
-import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
 import app.trombito.rallycopilot.ui.navegacion.guiado.BannerGuiado
 import app.trombito.rallycopilot.ui.navegacion.guiado.PieGuiado
 import app.trombito.rallycopilot.ui.navegacion.notas.FilaNota
@@ -66,7 +65,6 @@ internal fun BotonNotasGrandes(
 internal class ContenidoRoadbook(
     val notas: NotasUiState,
     val guiando: EstadoNavegacion.Guiando?,
-    val variante: VarianteManiobra,
     val alertas: AlertasUiState,
     val crono: CronoEnCurso?,
 )
@@ -141,7 +139,7 @@ private fun Cabecera(
     compacto: Boolean,
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(MARGEN)) {
-        c.guiando?.let { BannerGuiado(it, c.variante, compacto = true) }
+        c.guiando?.let { BannerGuiado(it, compacto = true) }
         BannerAlerta(c.alertas.aviso, c.alertas.frescura, compacto = true)
         CronoSuperior(c.crono, compacto = compacto || c.guiando != null)
     }

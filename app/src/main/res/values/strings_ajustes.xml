@@ -28,7 +28,6 @@
     <string name="ajustes_simplificadas_detalle">Dice «media» o «suave» en vez del número de cada curva.</string>
     <string name="ajustes_zoom_detalle">Cuánto de cerca ves el mapa al conducir.</string>
     <string name="ajustes_icono_detalle">El dibujo que te representa en el mapa.</string>
-    <string name="ajustes_maniobras_detalle">El estilo de los avisos de «gira aquí» del guiado.</string>
     <string name="ajustes_orientacion_detalle">Rumbo arriba gira el mapa contigo; norte arriba lo deja fijo.</string>
     <string name="ajustes_capa_titulo">Mapa al abrir la app</string>
     <string name="ajustes_capa_detalle">Si el satélite no está descargado, se ve el mapa normal.</string>
@@ -42,7 +41,7 @@
     <string name="ajustes_prevista_escuchar">Escuchar ejemplo</string>
     <string name="ajustes_prevista_escuchar_descripcion">Escuchar un ejemplo con tu voz y tu volumen</string>
     <string name="ajustes_prevista_mapa">Así se verán tu posición y los avisos</string>
-    <string name="ajustes_prevista_mapa_descripcion">Muestra: icono de posición %1$s y avisos con estilo %2$s</string>
+    <string name="ajustes_prevista_mapa_descripcion">Muestra: icono de posición %1$s y flecha de aviso</string>
 
     <!-- Tramos y notas grandes -->
     <string name="ajustes_cronometrar">Cronometrar trayectos</string>

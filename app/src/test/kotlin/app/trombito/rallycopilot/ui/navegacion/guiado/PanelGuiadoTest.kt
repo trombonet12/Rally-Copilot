@@ -21,7 +21,6 @@ import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_DISTANCIA
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_FRASE
 import app.trombito.rallycopilot.ui.maniobras.ETIQUETA_BANNER_SIGUIENTE
-import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
 import app.trombito.rallycopilot.ui.navegacion.notas.ETIQUETA_FRANJA_NOTAS
 import app.trombito.rallycopilot.ui.navegacion.notas.ETIQUETA_NOTA_PREFIJO
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
@@ -88,10 +87,9 @@ class PanelGuiadoTest {
 
     private fun poner(
         estado: EstadoNavegacion.Guiando,
-        variante: VarianteManiobra = VarianteManiobra.CHEVRON_HUD,
         notas: NotasUiState = NotasUiState(),
     ) = banco.poner {
-        RallyCopilotTheme { PanelGuiado(estado, variante, Modifier.fillMaxSize(), ZoneId.of("UTC"), notas) }
+        RallyCopilotTheme { PanelGuiado(estado, Modifier.fillMaxSize(), ZoneId.of("UTC"), notas) }
     }
 
     private fun placas() = banco.nodos().filter { it.config.getOrNull(SemanticsProperties.TestTag) == ETIQUETA_PLACA }
@@ -235,7 +233,7 @@ class PanelGuiadoTest {
 
     @Test
     @Config(qualifiers = "w891dp-h411dp-xxhdpi")
-    fun `en horizontal el banner es de una linea, la franja de una fila y el pie no se solapa`() {
+    fun `en horizontal el banner es de una linea, el carrete bajo y el pie no se solapa`() {
         val notas =
             NotasUiState(
                 listOf(visible(deNota(nota(4))), visible(deNota(nota(2))), visible(deNota(nota(5)))),
@@ -283,18 +281,18 @@ class PanelGuiadoTest {
     }
 
     @Test
-    fun `la franja de notas va a todo el ancho justo debajo del banner`() {
+    fun `el carrete de notas va a todo el ancho justo debajo del banner`() {
         poner(estado(progreso()), notas = NotasUiState(listOf(visible(deNota(nota(4))))))
         val banner = banco.conEtiqueta(ETIQUETA_BANNER).boundsInRoot
         val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
         val panel = banco.conEtiqueta(ETIQUETA_PANEL_GUIADO).boundsInRoot
         assertTrue("la franja va bajo el banner: $franja vs $banner", franja.top >= banner.bottom)
-        // Todo el ancho menos el margen de 8 dp por lado.
-        assertEquals(panel.width - 2 * 8 * 3f, franja.width, 2f)
+        // Todo el ancho menos el margen lateral de 4 dp por lado (12 dp con los 8 dp de la zona del mapa).
+        assertEquals(panel.width - 2 * 4 * 3f, franja.width, 2f)
     }
 
     @Test
-    fun `sin notas no hay franja`() {
+    fun `sin notas no hay carrete`() {
         poner(estado(progreso()))
         assertFalse(banco.hay(ETIQUETA_FRANJA_NOTAS))
     }

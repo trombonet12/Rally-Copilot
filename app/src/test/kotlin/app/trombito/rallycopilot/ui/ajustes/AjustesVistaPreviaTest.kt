@@ -10,7 +10,6 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.state.ToggleableState
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
-import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
@@ -49,7 +48,6 @@ class AjustesVistaPreviaTest {
                             onAnticipacion = { ajustes = ajustes.copy(anticipacion = it) },
                             onNotasSimplificadas = { ajustes = ajustes.copy(notasSimplificadas = it) },
                             onIcono = { ajustes = ajustes.copy(icono = it) },
-                            onEstiloManiobras = { ajustes = ajustes.copy(estiloManiobras = it) },
                             onTema = { ajustes = ajustes.copy(tema = it) },
                             onCronometrar = { ajustes = ajustes.copy(cronometrar = it) },
                             onNotasGrandes = { ajustes = ajustes.copy(notasGrandes = it) },
@@ -174,14 +172,13 @@ class AjustesVistaPreviaTest {
     }
 
     @Test
-    fun `la miniatura del mapa muestra el icono de posicion y la maniobra elegidos`() {
+    fun `la miniatura del mapa muestra el icono de posicion elegido y la flecha de maniobra`() {
         ponerConEstado()
         assertTrue(banco.hay(ETIQUETA_PREVISTA_MAPA_ICONO + IconoPosicion.FLECHA_WRC.name.lowercase()))
-        assertTrue(banco.hay(ETIQUETA_PREVISTA_MAPA_MANIOBRA + EstiloManiobras.PLACA.name.lowercase()))
+        assertTrue(banco.hay(ETIQUETA_PREVISTA_MAPA_MANIOBRA))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_ICONO_PREFIJO + IconoPosicion.CASCO.name.lowercase()))
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_MANIOBRAS_PREFIJO + EstiloManiobras.CHEVRON.name.lowercase()))
         assertTrue(banco.hay(ETIQUETA_PREVISTA_MAPA_ICONO + "casco"))
-        assertTrue(banco.hay(ETIQUETA_PREVISTA_MAPA_MANIOBRA + "chevron"))
+        assertTrue(banco.hay(ETIQUETA_PREVISTA_MAPA_MANIOBRA))
         assertFalse(banco.hay(ETIQUETA_PREVISTA_MAPA_ICONO + "flecha_wrc"))
     }
 

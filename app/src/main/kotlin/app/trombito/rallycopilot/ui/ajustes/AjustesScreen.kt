@@ -24,7 +24,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
-import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.Tema
@@ -41,7 +40,6 @@ const val ETIQUETA_AJUSTES_MAPAS = "ajustes-mapas-offline"
 const val ETIQUETA_AJUSTES_ACERCA_DE = "ajustes-acerca-de"
 const val ETIQUETA_ZOOM_PREFIJO = "ajustes-zoom-"
 const val ETIQUETA_ICONO_PREFIJO = "ajustes-icono-"
-const val ETIQUETA_MANIOBRAS_PREFIJO = "ajustes-maniobras-"
 const val ETIQUETA_ORIENTACION_RUMBO = "ajustes-orientacion-rumbo"
 const val ETIQUETA_ORIENTACION_NORTE = "ajustes-orientacion-norte"
 
@@ -53,7 +51,6 @@ data class AccionesAjustes(
     val onNivelZoom: (Int) -> Unit = {},
     val onIcono: (IconoPosicion) -> Unit = {},
     val onOrientacion: (Orientacion) -> Unit = {},
-    val onEstiloManiobras: (EstiloManiobras) -> Unit = {},
     val onAnticipacion: (NivelAnticipacion) -> Unit = {},
     val onNotasSimplificadas: (Boolean) -> Unit = {},
     val onModoCopiloto: (ModoCopiloto) -> Unit = {},

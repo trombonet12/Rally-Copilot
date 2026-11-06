@@ -9,7 +9,6 @@ import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
-import app.trombito.rallycopilot.ui.maniobras.VarianteManiobra
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasUiState
 
 /** Callbacks de la navegación sobre el mapa. */
@@ -62,15 +61,11 @@ typealias PanelGuiado =
 /** Hueco vacío: no pinta nada. */
 val SinPanelGuiado: PanelGuiado = { _, _, _, _, _ -> }
 
-/**
- * El panel de guiado real: banner arriba a todo el ancho y pie abajo. [variante] es el estilo de los iconos de
- * maniobra elegido en Ajustes (por defecto, la placa inclinada).
- */
-fun panelGuiadoMapa(variante: VarianteManiobra = VarianteManiobra.PLACA_INCLINADA): PanelGuiado =
+/** El panel de guiado real: banner arriba a todo el ancho, carrete de notas debajo y pie abajo. */
+fun panelGuiadoMapa(): PanelGuiado =
     { guiando, _, notas, alertas, crono ->
         app.trombito.rallycopilot.ui.navegacion.guiado.PanelGuiado(
             estado = guiando,
-            variante = variante,
             modifier = Modifier.fillMaxSize(),
             notas = notas,
             alertas = alertas,

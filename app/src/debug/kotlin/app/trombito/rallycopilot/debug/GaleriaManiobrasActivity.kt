@@ -86,24 +86,20 @@ private fun Galeria() {
         Text("Banners", color = Color.White)
         FondoSatelite {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                VarianteManiobra.entries.forEach { variante -> BannerEjemplo(variante) }
+                BannerEjemplo()
             }
         }
         Text("Guiado · vertical", color = Color.White)
-        VarianteManiobra.entries.forEach { variante ->
-            FondoSatelite {
-                PanelGuiado(
-                    estado = EJEMPLO_GUIANDO,
-                    variante = variante,
-                    modifier = Modifier.fillMaxWidth().height(380.dp),
-                )
-            }
+        FondoSatelite {
+            PanelGuiado(
+                estado = EJEMPLO_GUIANDO,
+                modifier = Modifier.fillMaxWidth().height(380.dp),
+            )
         }
         Text("Guiado · horizontal, recalculando y llegada", color = Color.White)
         FondoSatelite {
             PanelGuiado(
                 estado = EJEMPLO_GUIANDO.copy(recalculando = true),
-                variante = VarianteManiobra.PLACA_INCLINADA,
                 modifier = Modifier.width(640.dp).height(300.dp),
             )
         }
@@ -129,10 +125,9 @@ private fun Rejilla(variante: VarianteManiobra) {
 }
 
 @Composable
-private fun BannerEjemplo(variante: VarianteManiobra) {
+private fun BannerEjemplo() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         BannerManiobra(
-            variante = variante,
             tipo = TipoManiobra.IZQUIERDA,
             distanciaM = 352.0,
             frase = "Izquierda cerrada, Ma-10",
@@ -140,7 +135,6 @@ private fun BannerEjemplo(variante: VarianteManiobra) {
             modifier = Modifier.fillMaxWidth(),
         )
         BannerManiobra(
-            variante = variante,
             tipo = TipoManiobra.ROTONDA_ENTRADA,
             distanciaM = 1234.0,
             frase = "Rotonda, segunda salida",

@@ -1,7 +1,6 @@
 package app.trombito.rallycopilot.ui.ajustes
 
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
-import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.Tema
@@ -83,18 +82,6 @@ class AjustesViewModelTest {
             assertEquals(true, guardado.relieve)
             assertEquals(2, guardado.nivelZoom)
             assertEquals(2, repositorio.guardados.size)
-        }
-
-    @Test
-    fun `el estilo de maniobras es la placa por defecto y se guarda conservando el resto`() =
-        runTest {
-            repositorio.mutable.value = AjustesConduccion(nivelZoom = 1)
-            val vm = crear()
-            assertEquals(EstiloManiobras.PLACA, vm.uiState.value.estiloManiobras)
-            vm.onEstiloManiobras(EstiloManiobras.CHEVRON)
-            val guardado = repositorio.mutable.value
-            assertEquals(EstiloManiobras.CHEVRON, guardado.estiloManiobras)
-            assertEquals(1, guardado.nivelZoom)
         }
 
     @Test

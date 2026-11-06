@@ -3,7 +3,6 @@ package app.trombito.rallycopilot.ui.ajustes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
-import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
@@ -48,10 +47,6 @@ class AjustesViewModel
 
         fun onOrientacion(orientacion: Orientacion) {
             guardar { it.copy(orientacion = orientacion) }
-        }
-
-        fun onEstiloManiobras(estilo: EstiloManiobras) {
-            guardar { it.copy(estiloManiobras = estilo) }
         }
 
         fun onAnticipacion(nivel: NivelAnticipacion) {

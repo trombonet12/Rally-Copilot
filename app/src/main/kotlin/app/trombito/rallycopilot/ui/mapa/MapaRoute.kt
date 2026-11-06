@@ -20,7 +20,6 @@ import app.trombito.rallycopilot.ui.copiloto.CopilotoViewModel
 import app.trombito.rallycopilot.ui.edicion.AccionesEdicionMapa
 import app.trombito.rallycopilot.ui.edicion.EdicionEnMapa
 import app.trombito.rallycopilot.ui.edicion.EdicionMapaViewModel
-import app.trombito.rallycopilot.ui.maniobras.variante
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 import app.trombito.rallycopilot.ui.navegacion.NavegacionUiState
@@ -75,7 +74,7 @@ fun MapaRoute(
     LaunchedEffect(estado.posicion) { navegacionViewModel.onPosicion(estado.posicion?.punto) }
     SeguimientoSegunVistaPrevia(navegacion.encuadrar, viewModel)
     val ruta = rutaParaMapa(navegacion)
-    val panel = panelGuiado ?: remember(estado.estiloManiobras) { panelGuiadoMapa(estado.estiloManiobras.variante()) }
+    val panel = panelGuiado ?: remember { panelGuiadoMapa() }
 
     val salida = remember(cronoViewModel) { AccionesSalidaCrono(cronoViewModel::decir, cronoViewModel::darSalida) }
     CompositionLocalProvider(LocalAbrirAnalisis provides onVerAnalisis, LocalAccionesSalidaCrono provides salida) {
