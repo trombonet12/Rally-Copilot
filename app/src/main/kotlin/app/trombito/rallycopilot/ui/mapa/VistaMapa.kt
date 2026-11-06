@@ -296,6 +296,8 @@ private class ControladorMapa(
                 isRotateGesturesEnabled = true
                 isTiltGesturesEnabled = true
             }
+            // Inclinar con prioridad sobre girar (ver [ajustarGestosMapa]): con el SDK por defecto costaba inclinar.
+            ajustarGestosMapa(m.gesturesManager, vista.resources.displayMetrics.density)
             val centro = camaraInicial?.let { LatLng(it.latitud, it.longitud) } ?: LatLng(LAT_INICIAL, LON_INICIAL)
             m.moveCamera(
                 CameraUpdateFactory.newCameraPosition(
