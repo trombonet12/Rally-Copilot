@@ -284,6 +284,42 @@ class AvisosTest {
         assertTrue(extraer(contexto(vias)).avisos.none { it.tipo == TipoAviso.CRUCE })
     }
 
+    private fun autoviaConEnlace(
+        claseRuta: String,
+        claseEnlace: String,
+    ) = listOf(
+        Via(1, claseRuta, null, null, null, SentidoUnico.NO, null, null, listOf(0.0, 300.0, 600.0).map { p(0.0, it) }),
+        lateral(9, claseEnlace, p(0.0, 300.0), p(100.0, 400.0)),
+    )
+
+    @Test
+    fun `en autovia no se canta cruce en la entrada ni en la salida`() {
+        assertTrue(
+            extraer(contexto(autoviaConEnlace("motorway", "motorway_link"))).avisos.none {
+                it.tipo ==
+                    TipoAviso.CRUCE
+            },
+        )
+        assertTrue(extraer(contexto(autoviaConEnlace("trunk", "tertiary"))).avisos.none { it.tipo == TipoAviso.CRUCE })
+        assertTrue(
+            extraer(contexto(autoviaConEnlace("primary_link", "tertiary"))).avisos.none {
+                it.tipo ==
+                    TipoAviso.CRUCE
+            },
+        )
+    }
+
+    @Test
+    fun `si todas las demas ramas son enlaces no se canta cruce`() {
+        val vias = autoviaConEnlace("secondary", "primary_link")
+        assertTrue(extraer(contexto(vias)).avisos.none { it.tipo == TipoAviso.CRUCE })
+    }
+
+    @Test
+    fun `en carretera convencional el cruce con una calle sigue avisando`() {
+        assertUno(TipoAviso.CRUCE, 300.0, extraer(contexto(autoviaConEnlace("secondary", "tertiary"))))
+    }
+
     // --- STOP y CEDA de la otra via ---------------------------------------------------------------------------------
 
     private fun viaConRef(

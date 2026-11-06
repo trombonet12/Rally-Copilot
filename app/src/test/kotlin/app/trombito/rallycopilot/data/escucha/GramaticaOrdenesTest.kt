@@ -43,6 +43,9 @@ class GramaticaOrdenesTest {
         assertTrue("cuidado derecha tres larga" in frases)
         assertTrue("horquilla izquierda" in frases)
         assertTrue("horquilla derecha doscientos cincuenta" in frases)
+        assertTrue("derecha escuadra" in frases)
+        assertTrue("cuidado izquierda escuadra" in frases)
+        assertTrue("izquierda escuadra cincuenta" in frases)
     }
 
     @Test
@@ -76,6 +79,14 @@ class GramaticaOrdenesTest {
         )
         assertEquals(Orden.MasPronto, InterpreteOrdenes.interpretar("más pronto"))
         assertEquals(Orden.MarcaAqui, InterpreteOrdenes.interpretar("marca aquí"))
+    }
+
+    @Test
+    fun `una escuadra de la gramatica es grado tres con escuadra`() {
+        assertEquals(
+            Orden.Nota(Direccion.DERECHA, 3, setOf(Modificador.ESCUADRA), distanciaSiguienteM = 50),
+            InterpreteOrdenes.interpretar("derecha escuadra cincuenta"),
+        )
     }
 
     @Test

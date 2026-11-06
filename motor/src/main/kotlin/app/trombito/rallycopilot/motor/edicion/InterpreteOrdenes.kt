@@ -8,8 +8,9 @@ import java.text.Normalizer
 /**
  * Interpreta el texto que devuelve un reconocedor de voz (ASR) y lo convierte en una [Orden]. Gramática del glosario:
  * `[cuidado] dirección grado [larga|muy larga] [cierra|abre] [distancia]`, con el grado en palabra («tres»), en cifra
- * («3») o simplificado («media»); `[cuidado] horquilla dirección`; y las órdenes sueltas (quita, cuidado, repite, más
- * pronto, más tarde, silencio, habla, marca aquí).
+ * («3») o simplificado («media»); `[cuidado] horquilla dirección`;
+ * `[cuidado] dirección escuadra [distancia]` (grado 3, escuadra); y las órdenes sueltas (quita, cuidado, repite,
+ * más pronto, más tarde, silencio, habla, marca aquí).
  *
  * Es tolerante a mayúsculas, tildes, puntuación y palabras de relleno («el», «a la», «por favor», «copiloto»). Devuelve
  * `null` si no entiende: sin dirección o sin grado, órdenes contradictorias o más de [RUIDO_MAX] palabras desconocidas.
@@ -19,6 +20,7 @@ object InterpreteOrdenes {
     const val RUIDO_MAX = 2
 
     private const val GRADO_MAX = 6
+    private const val GRADO_ESCUADRA = 3
     private const val DISTANCIA_MIN_M = 10
     private const val DISTANCIA_MAX_M = 999
 
@@ -105,6 +107,8 @@ object InterpreteOrdenes {
 
         data object Horquilla : Ficha
 
+        data object Escuadra : Ficha
+
         data object Aviso : Ficha
 
         data class Grado(
@@ -141,9 +145,16 @@ object InterpreteOrdenes {
         val aviso = fichas.contains(Ficha.Aviso)
         return when {
             giros.size > 1 -> null
+
             giros.size == 1 -> if (comandos.isEmpty()) nota(fichas, giros.single(), aviso) else null
-            fichas.any { it is Ficha.Horquilla || it is Ficha.Grado || it is Ficha.Matiz || it is Ficha.Numero } -> null
+
+            fichas.any {
+                it is Ficha.Horquilla || it is Ficha.Escuadra || it is Ficha.Grado || it is Ficha.Matiz ||
+                    it is Ficha.Numero
+            } -> null
+
             aviso -> if (comandos.all { it == Orden.MarcaAqui }) Orden.Cuidado else null
+
             else -> comandos.singleOrNull()
         }
     }
@@ -154,27 +165,45 @@ object InterpreteOrdenes {
         cuidado: Boolean,
     ): Orden.Nota? {
         val horquilla = fichas.contains(Ficha.Horquilla)
+        val escuadra = fichas.contains(Ficha.Escuadra)
         val inicio = fichas.indexOfLast { it is Ficha.Giro || it == Ficha.Horquilla }
         val numeros = fichas.withIndex().filter { it.value is Ficha.Numero }
         val grados = fichas.filterIsInstance<Ficha.Grado>().map { it.valor }.distinct()
         val matices = fichas.filterIsInstance<Ficha.Matiz>().map { it.modificador }.toSet()
         val valida =
-            numeros.all { it.index > inicio } &&
-                grados.size <= 1 &&
-                !(horquilla && grados.isNotEmpty()) &&
-                !(Modificador.CIERRA in matices && Modificador.ABRE in matices)
+            numeros.all { it.index > inicio } && combinacionValida(horquilla, escuadra, grados.size, matices)
         val valores = numeros.map { (it.value as Ficha.Numero).valor }
         val porPalabra = grados.singleOrNull()
         val porNumero = valores.firstOrNull()?.takeIf { it in 1..GRADO_MAX }
-        val grado = if (horquilla) null else porPalabra ?: porNumero
-        val dictado = if (horquilla || porPalabra != null) valores else valores.drop(1)
+        val grado =
+            if (horquilla) {
+                null
+            } else if (escuadra) {
+                GRADO_ESCUADRA
+            } else {
+                porPalabra ?: porNumero
+            }
+        val dictado = if (horquilla || escuadra || porPalabra != null) valores else valores.drop(1)
         val completa = valida && (horquilla || grado != null)
         return if (completa) {
-            Orden.Nota(direccion, grado, modificadores(matices, horquilla), distancia(dictado), cuidado)
+            val mods = if (escuadra) setOf(Modificador.ESCUADRA) else modificadores(matices, horquilla)
+            Orden.Nota(direccion, grado, mods, distancia(dictado), cuidado)
         } else {
             null
         }
     }
+
+    /** Horquilla y escuadra no llevan grado en palabra (ni matices la escuadra); cierra y abre no juntos. */
+    private fun combinacionValida(
+        horquilla: Boolean,
+        escuadra: Boolean,
+        grados: Int,
+        matices: Set<Modificador>,
+    ): Boolean =
+        grados <= 1 &&
+            !((horquilla || escuadra) && grados > 0) &&
+            !(escuadra && (horquilla || matices.isNotEmpty())) &&
+            !(Modificador.CIERRA in matices && Modificador.ABRE in matices)
 
     private fun modificadores(
         matices: Set<Modificador>,
@@ -213,6 +242,7 @@ object InterpreteOrdenes {
             palabra.startsWith("izquierd") -> Ficha.Giro(Direccion.IZQUIERDA)
             palabra == "derecha" || palabra == "derechas" -> Ficha.Giro(Direccion.DERECHA)
             palabra.startsWith("horquilla") -> Ficha.Horquilla
+            palabra == "escuadra" -> Ficha.Escuadra
             palabra == "cuidado" || palabra == "ojo" -> Ficha.Aviso
             palabra in MODIFICADORES -> Ficha.Matiz(MODIFICADORES.getValue(palabra))
             palabra in GRADOS_SIMPLIFICADOS -> Ficha.Grado(GRADOS_SIMPLIFICADOS.getValue(palabra))

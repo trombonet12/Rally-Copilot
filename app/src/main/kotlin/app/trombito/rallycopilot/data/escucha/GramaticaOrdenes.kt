@@ -12,7 +12,8 @@ import kotlinx.serialization.json.JsonPrimitive
  * el texto reconocido pasa luego por `InterpreteOrdenes`, que es quien da el significado.
  *
  * Cobertura de las notas dictadas: dirección + grado (cifra en palabra o simplificado) + `larga`/`muy larga` +
- * `cierra`/`abre` + distancia, y `horquilla` + dirección + distancia; con `cuidado` delante solo sin distancia.
+ * `cierra`/`abre` + distancia, `horquilla` + dirección + distancia y dirección + `escuadra` + distancia; con `cuidado`
+ * delante solo sin distancia.
  */
 object GramaticaOrdenes {
     /** Lo que el reconocedor devuelve para lo que no está en la gramática. */
@@ -43,7 +44,7 @@ object GramaticaOrdenes {
     private fun frasesDe(direccion: String): List<String> {
         val numericas = GRADOS.flatMap { notaCon("$direccion $it", matices()) }
         val simplificadas = SIMPLIFICADOS.flatMap { notaCon("$direccion $it", listOf("")) }
-        return numericas + simplificadas + horquilla(direccion)
+        return numericas + simplificadas + horquilla(direccion) + escuadra(direccion)
     }
 
     /** La nota de [giro] con cada matiz: sola, con «cuidado» delante y con cada distancia detrás. */
@@ -60,6 +61,9 @@ object GramaticaOrdenes {
         listOf("horquilla $direccion", "cuidado horquilla $direccion") +
             LARGURAS.drop(1).map { "horquilla $direccion $it" } +
             DISTANCIAS.map { "horquilla $direccion $it" }
+
+    private fun escuadra(direccion: String): List<String> =
+        listOf("$direccion escuadra", "cuidado $direccion escuadra") + DISTANCIAS.map { "$direccion escuadra $it" }
 
     private fun matices(): List<String> =
         LARGURAS.flatMap { largura ->

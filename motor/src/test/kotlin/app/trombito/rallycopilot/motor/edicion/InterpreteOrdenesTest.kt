@@ -65,6 +65,22 @@ class InterpreteOrdenesTest {
     }
 
     @Test
+    fun `escuadra es grado tres con el modificador escuadra`() {
+        val esc = setOf(Modificador.ESCUADRA)
+        comprobar("derecha escuadra", nota(der, 3, esc))
+        comprobar("Izquierda, escuadra.", nota(izq, 3, esc))
+        comprobar("escuadra izquierda", nota(izq, 3, esc))
+        comprobar("cuidado derecha escuadra", nota(der, 3, esc, cuidado = true))
+        comprobar("derecha escuadra cincuenta", nota(der, 3, esc, distanciaM = 50))
+    }
+
+    @Test
+    fun `la escuadra no admite modificadores ni se entiende sin direccion`() {
+        comprobar("derecha escuadra larga", null)
+        comprobar("escuadra", null)
+    }
+
+    @Test
     fun `la horquilla nunca lleva cierra ni abre`() {
         comprobar("horquilla derecha cierra", nota(der, null))
         comprobar("horquilla izquierda larga abre", nota(izq, null, setOf(Modificador.LARGA)))

@@ -149,7 +149,19 @@ class GrafoVias(
     fun cruces(
         polilinea: List<PuntoGeo>,
         toleranciaM: Double = 3.0,
-    ): List<Double> {
+    ): List<Double> = crucesConNodo(polilinea, toleranciaM).map { it.posicionM }
+
+    /** Un cruce sobre una polilínea: [posicionM] (metros a lo largo de ella) y el [nodo] del grafo donde está. */
+    class CruceEnRuta(
+        val posicionM: Double,
+        val nodo: PuntoGeo,
+    )
+
+    /** Como [cruces], pero con el nodo de cada cruce (para consultar sus [aristas]). */
+    fun crucesConNodo(
+        polilinea: List<PuntoGeo>,
+        toleranciaM: Double = 3.0,
+    ): List<CruceEnRuta> {
         val encontrados = ArrayList<Hallazgo>()
         val acumulada = DoubleArray(polilinea.size)
         for (i in 0 until polilinea.size - 1) {
@@ -160,8 +172,10 @@ class GrafoVias(
         return encontrados
             .sortedBy { it.posicionM }
             .filter { ramaExtraImportante[it.cruce] || Giro.esGiro(polilinea, acumulada, it.posicionM) }
-            .fold(ArrayList<Double>()) { sin, h ->
-                if (sin.isEmpty() || h.posicionM - sin.last() >= DISTANCIA_DUPLICADOS_M) sin.add(h.posicionM)
+            .fold(ArrayList<CruceEnRuta>()) { sin, h ->
+                if (sin.isEmpty() || h.posicionM - sin.last().posicionM >= DISTANCIA_DUPLICADOS_M) {
+                    sin.add(CruceEnRuta(h.posicionM, puntoDeNodo(cruce[h.cruce])))
+                }
                 sin
             }
     }
@@ -224,17 +238,17 @@ class GrafoVias(
         }
     }
 
-    private fun rango(
-        minimo: Double,
-        maximo: Double,
-    ): Pair<Int, Int> = floor(minimo * CELDAS_POR_GRADO).toInt() to floor(maximo * CELDAS_POR_GRADO).toInt()
-
-    private fun claveCelda(
-        fila: Int,
-        columna: Int,
-    ): Long = (fila + DESPLAZA_CELDA) * ANCHO_CELDAS + (columna + DESPLAZA_CELDA)
-
     companion object {
+        private fun rango(
+            minimo: Double,
+            maximo: Double,
+        ): Pair<Int, Int> = floor(minimo * CELDAS_POR_GRADO).toInt() to floor(maximo * CELDAS_POR_GRADO).toInt()
+
+        private fun claveCelda(
+            fila: Int,
+            columna: Int,
+        ): Long = (fila + DESPLAZA_CELDA) * ANCHO_CELDAS + (columna + DESPLAZA_CELDA)
+
         private const val VACIO = Long.MIN_VALUE
         private const val MEZCLA = -7046029254386353131L
         private const val CAPACIDAD_MINIMA = 16

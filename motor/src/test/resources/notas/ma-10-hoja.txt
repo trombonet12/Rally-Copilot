@@ -5,7 +5,7 @@
   295 m  derecha tres cierra sobre puente y  [114° R22 m]
   298 m  cruce
   322 m  ceda el paso
-  365 m  cruce, izquierda seis y  [26° R91 m]
+  365 m  izquierda seis y  [26° R91 m]
   425 m  derecha cinco, ciento veinte  [36° R61 m]
   449 m  cruce
   610 m  izquierda cinco, trescientos  [58° R53 m]
@@ -14,7 +14,6 @@
   745 m  puente
   927 m  cruce
   990 m  ceda el paso, izquierda cinco, ciento veinte  [46° R33 m]
-  994 m  cruce
  1024 m  paso a nivel
  1150 m  derecha cuatro larga cierra, trescientos  [67° R63 m]
  1195 m  ceda el paso
@@ -50,8 +49,6 @@
  5065 m  cuidado, derecha uno larga y  [164° R41 m]
  5215 m  izquierda cuatro y  [85° R40 m]
  5305 m  derecha seis, cincuenta  [21° R124 m]
- 5334 m  cruce
- 5388 m  cruce
  5415 m  izquierda cinco y  [48° R88 m]
  5525 m  derecha cuatro abre, veinte  [68° R43 m]
  5625 m  izquierda seis, ciento cincuenta  [28° R96 m]

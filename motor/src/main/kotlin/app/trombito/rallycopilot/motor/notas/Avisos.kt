@@ -92,7 +92,7 @@ class ExtractorAvisos(
         if (muestras.isEmpty()) return AvisosRuta(emptyList(), emptyList())
         val tramos = LectorTramos(contexto).leer(muestras)
         val nodos = avisosDeNodos(ruta, tramos.viasRuta)
-        val cruces = crucesFueraDeRotondas(ruta, tramos.rotondas)
+        val cruces = crucesFueraDeRotondas(ruta, tramos.rotondas, tramos.viasRuta)
         val rasantes = rasantes(ruta).filterNot { enJunta(it.posicionM, tramos.extremosEstructuraM) }
         val avisos = tramos.avisos + nodos.avisos + cruces + rasantes
         return AvisosRuta(avisos.sinDuplicados(), (tramos.curvasPeligrosasM + nodos.curvasPeligrosasM).sorted())
@@ -167,11 +167,14 @@ class ExtractorAvisos(
     private fun crucesFueraDeRotondas(
         ruta: List<PuntoGeo>,
         rotondas: List<ClosedFloatingPointRange<Double>>,
+        viasRuta: Set<Long>,
     ): List<Aviso> =
         contexto.grafo
-            .cruces(ruta)
-            .filter { s -> rotondas.none { s >= it.start - ANTES_ROTONDA_M && s <= it.endInclusive } }
-            .map { Aviso(it, TipoAviso.CRUCE) }
+            .crucesConNodo(ruta)
+            .filter { c ->
+                rotondas.none { c.posicionM >= it.start - ANTES_ROTONDA_M && c.posicionM <= it.endInclusive }
+            }.filterNot { esEntradaOSalidaDeAutovia(contexto.grafo.aristas(it.nodo), viasRuta) }
+            .map { Aviso(it.posicionM, TipoAviso.CRUCE) }
 
     /** Las rasantes a [JUNTA_M] o menos de un extremo de puente o túnel son un artefacto del MDT. */
     private fun enJunta(
@@ -201,6 +204,21 @@ class ExtractorAvisos(
         const val JUNTA_M = 30.0
     }
 }
+
+/**
+ * En autovía no se cantan cruces: la vía de la ruta en el nodo es motorway, trunk o un `*_link`, o todas las demás
+ * ramas son `*_link` (las salidas que toma la ruta ya las canta la navegación).
+ */
+private fun esEntradaOSalidaDeAutovia(
+    aristas: List<Arista>,
+    viasRuta: Set<Long>,
+): Boolean {
+    val (deRuta, otras) = aristas.partition { it.via.id in viasRuta }
+    return deRuta.any { esAutovia(it.via.clase) } ||
+        (otras.isNotEmpty() && otras.all { it.via.clase.endsWith("_link") })
+}
+
+private fun esAutovia(clase: String): Boolean = clase == "motorway" || clase == "trunk" || clase.endsWith("_link")
 
 /** Clasificación de los tipos crudos de los nodos `N` de `vias-notas`. */
 private enum class ClaseNodo(
