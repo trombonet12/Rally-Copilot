@@ -130,6 +130,47 @@ class SesionAlertasTest {
         }
 
     @Test
+    fun `al pasar un radar fijo publica la velocidad de paso unos 4 segundos`() =
+        runTest {
+            val e = escenario(radares = listOf(radarFijo("f1", 2000.0, limite = 50)))
+            val posiciones = listOf(1950.0, 1970.0, 1990.0, 2010.0, 2030.0, 2050.0, 2070.0, 2090.0, 2110.0)
+            val pasos =
+                posiciones.mapIndexed { i, m ->
+                    e.sesion.alFijar(fijacion(punto(m), i), 20.0, m, null)
+                    e.ultima.pasoRadar
+                }
+            // El paso se detecta en la primera fijación que ya se aleja (2030 m, i = 4) y dura 4 s (hasta i = 7).
+            assertEquals(List(4) { null }, pasos.take(4))
+            val paso = checkNotNull(pasos[4])
+            assertEquals("f1", paso.radarId)
+            assertEquals(72.0, paso.velocidadKmh, 0.01)
+            assertEquals(50, paso.limiteKmh)
+            assertEquals(paso, pasos[7])
+            assertNull(pasos[8])
+        }
+
+    @Test
+    fun `un fijo del sentido contrario se avisa como tal y el proximo lo marca`() =
+        runTest {
+            val contrario = radarFijo("f1", 2000.0).copy(rumboGrados = 180.0)
+            val e = escenario(radares = listOf(contrario))
+            val frases = e.sesion.alFijar(fijacion(punto(1750.0), 0), 20.0, 1750.0, null)
+            assertEquals("radar, sentido contrario", frases.single().texto)
+            val proximo = checkNotNull(e.ultima.radarProximo)
+            assertEquals("f1", proximo.id)
+            assertTrue(proximo.sentidoContrario)
+        }
+
+    @Test
+    fun `a menos de 100 m suena el segundo aviso del radar fijo`() =
+        runTest {
+            val e = escenario(radares = listOf(radarFijo("f1", 2000.0)))
+            val frases = e.sesion.alFijar(fijacion(punto(1930.0), 0), 20.0, 1930.0, null)
+            assertEquals("radar-f1-cerca", frases.single().id)
+            assertEquals("f1", checkNotNull(e.ultima.radarProximo).id)
+        }
+
+    @Test
     fun `sin radares no hay avisos ni error y el exceso sigue funcionando`() =
         runTest {
             val e = escenario(radares = emptyList(), ruta = null, via = ViaActual("Ma-1", "Ma-1", 50))

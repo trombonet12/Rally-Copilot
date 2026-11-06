@@ -49,6 +49,9 @@ internal fun tituloIncidencia(tipo: TipoIncidencia): Int =
         TipoIncidencia.OTRA -> R.string.alerta_incidencia_otra
     }
 
+/** Nombre del icono del marcador del radar en el estilo del mapa, uno por clase. */
+internal fun imagenRadar(clase: ClaseRadar): String = "radar-${clase.name.lowercase()}"
+
 /** Nombre del icono del marcador en el estilo del mapa, uno por tipo. */
 internal fun imagenMarcador(tipo: TipoIncidencia): String = "incidencia-${tipo.name.lowercase()}"
 

@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.RectF
+import androidx.annotation.DrawableRes
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.motor.alertas.TipoIncidencia
@@ -90,10 +91,16 @@ internal fun featuresIncidencias(marcadores: List<MarcadorIncidencia>): FeatureC
         },
     )
 
-/** Insignia redonda: fondo carbón, borde del color del tipo e icono blanco. */
 private fun insigniaDe(
     contexto: Context,
     tipo: TipoIncidencia,
+): Bitmap = insignia(contexto, iconoIncidencia(tipo), colorIncidencia(tipo).toArgb())
+
+/** Insignia redonda: fondo carbón, borde de [colorBorde] e icono [icono] en blanco. */
+internal fun insignia(
+    contexto: Context,
+    @DrawableRes icono: Int,
+    colorBorde: Int,
 ): Bitmap {
     val densidad = contexto.resources.displayMetrics.density
     val lado = (LADO_MARCADOR_DP * densidad).toInt()
@@ -106,13 +113,13 @@ private fun insigniaDe(
     lienzo.drawCircle(radio, radio, radio - borde / 2, pincel)
     pincel.style = Paint.Style.STROKE
     pincel.strokeWidth = borde
-    pincel.color = colorIncidencia(tipo).toArgb()
+    pincel.color = colorBorde
     lienzo.drawCircle(radio, radio, radio - borde / 2, pincel)
-    ContextCompat.getDrawable(contexto, iconoIncidencia(tipo))?.mutate()?.let { icono ->
+    ContextCompat.getDrawable(contexto, icono)?.mutate()?.let { dibujo ->
         val relleno = (RELLENO_ICONO_DP * densidad).toInt()
-        icono.setBounds(relleno, relleno, lado - relleno, lado - relleno)
-        icono.setTint(Color.WHITE)
-        icono.draw(lienzo)
+        dibujo.setBounds(relleno, relleno, lado - relleno, lado - relleno)
+        dibujo.setTint(Color.WHITE)
+        dibujo.draw(lienzo)
     }
     return bitmap
 }

@@ -27,7 +27,9 @@ import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.ui.alertas.BocadilloMapa
 import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
+import app.trombito.rallycopilot.ui.alertas.RadaresUi
 import app.trombito.rallycopilot.ui.comun.recurso
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
@@ -104,6 +106,10 @@ data class PreferenciasVistaMapa(
     val notas: List<MarcadorNota> = emptyList(),
     /** Estela de por dónde se ha pasado en el recorrido en curso (gris, bajo la ruta); vacía = ninguna. */
     val estela: List<PuntoGeo> = emptyList(),
+    /** Todos los radares y los segmentos de tramo, siempre visibles; vacío = ninguno. */
+    val radares: RadaresUi = RadaresUi(),
+    /** Bocadillo de lo que se acerca o se acaba de pasar, anclado a su marcador; null = ninguno. */
+    val bocadillo: BocadilloMapa? = null,
 )
 
 /**
@@ -387,6 +393,8 @@ private class ControladorMapa(
     ) {
         val capas = estilo ?: return
         if (nuevas.incidencias != previas.incidencias) CapaIncidencias.actualizar(capas, nuevas.incidencias)
+        if (nuevas.radares != previas.radares) CapaRadares.actualizar(capas, nuevas.radares)
+        if (nuevas.bocadillo != previas.bocadillo) CapaBocadillo.actualizar(capas, vista.context, nuevas.bocadillo)
         if (nuevas.notas != previas.notas) CapaNotas.actualizar(capas, nuevas.notas)
         if (nuevas.estela != previas.estela) CapaEstela.actualizar(capas, nuevas.estela)
     }
@@ -404,8 +412,10 @@ private class ControladorMapa(
             // (que se instala antes) debajo de la ruta.
             CapaEstela.instalar(cargado, preferencias.estela)
             CapaRuta.instalar(cargado, vista.context, preferencias.ruta)
+            CapaRadares.instalar(cargado, vista.context, preferencias.radares)
             CapaIncidencias.instalar(cargado, vista.context, preferencias.incidencias)
             CapaNotas.instalar(cargado, preferencias.notas)
+            CapaBocadillo.instalar(cargado, vista.context, preferencias.bocadillo)
             asegurarUbicacion()
         }
     }

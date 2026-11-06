@@ -21,8 +21,12 @@ import kotlin.math.sin
  *   geometría de la vía actual como `ruta` saldría antes.
  *
  * Avisos (todos [app.trombito.rallycopilot.motor.voz.TipoFrase.ALERTA], id `radar-<id del radar>`):
- * - fijo: desde `clamp(v·15 s, 300, 800)` redondeado a cientos, «radar a quinientos, ochenta» (la distancia es la que
- *   queda redondeada a cientos, y a menos de 50 m «radar, ochenta»; sin límite no se dice);
+ * - fijo: desde `clamp(v·15 s, 200, 800)` redondeado a cientos, «radar a quinientos, ochenta» (la distancia es la que
+ *   queda redondeada a cientos; sin límite no se dice), y un segundo aviso a 100 m o menos, «radar, ochenta» (id
+ *   `radar-<id>-cerca`; el primero deja de sonar al entrar en esos 100 m);
+ * - fijo del sentido contrario (su rumbo es el opuesto, ±45°): «radar, sentido contrario» una sola vez (id
+ *   `radar-<id>-contra`) desde la misma distancia que el primer aviso; los que miran de lado no cuentan. Solo los
+ *   fijos: los tramos y zonas del otro sentido no se avisan;
  * - inicio de tramo y zona móvil: desde `clamp(v·6 s, 80, 250)` m, «tramo de radar, límite ochenta» y «zona de radar
  *   móvil». El final de tramo no se anuncia (de eso se encarga [VelocidadMediaTramo]).
  */
@@ -36,13 +40,13 @@ class AlertasRadar(
 
     /** Tramos completos de la ruta (inicio y fin con el mismo `tramo_id`, en ese orden de marcha). */
     val tramos: List<TramoRadar> =
-        enRuta.filter { it.radar.tipo == TipoRadar.TRAMO_INICIO }.mapNotNull { emparejar(it) }
+        enRuta.filter { it.radar.tipo == TipoRadar.TRAMO_INICIO && !it.contrario }.mapNotNull { emparejar(it) }
 
     /** Avisos vigentes en el progreso [posicionM] de la ruta yendo a [vMs]; vacío si no se creó con ruta. */
     fun candidatas(
         posicionM: Double,
         vMs: Double,
-    ): List<Frase> = enRuta.mapNotNull { frase(it.radar, it.progresoM - posicionM, vMs, it.progresoM) }
+    ): List<Frase> = enRuta.mapNotNull { frase(it.radar, it.progresoM - posicionM, vMs, it.progresoM, it.contrario) }
 
     /**
      * Avisos en modo libre desde [posicion] con [rumboGrados] (sin rumbo no se sabe qué hay por delante). [posicionM]
@@ -58,8 +62,8 @@ class AlertasRadar(
         if (rumboGrados == null) return emptyList()
         return radares
             .mapNotNull { radar -> delante(posicion, rumboGrados, radar)?.let { it to radar } }
-            .sortedBy { it.first }
-            .mapNotNull { (delanteM, radar) -> frase(radar, delanteM, vMs, posicionM?.plus(delanteM)) }
+            .sortedBy { it.first.metros }
+            .mapNotNull { (d, radar) -> frase(radar, d.metros, vMs, posicionM?.plus(d.metros), d.contrario) }
     }
 
     /** Metros por delante (sobre la recta del rumbo) si el radar cuenta; `null` si está de lado o en otro sentido. */
@@ -67,33 +71,51 @@ class AlertasRadar(
         posicion: PuntoGeo,
         rumboGrados: Double,
         radar: Radar,
-    ): Double? {
+    ): Delante? {
         val rumbo = Math.toRadians(rumboGrados)
         val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(posicion.lat))
         val este = Math.toRadians(radar.punto.lon - posicion.lon) * escalaX
         val norte = Math.toRadians(radar.punto.lat - posicion.lat) * PuntoGeo.RADIO_TIERRA_M
         val lateralM = abs(este * cos(rumbo) - norte * sin(rumbo))
-        val vigilado = radar.rumboGrados
-        val sentidoOk = vigilado == null || VentanasAviso.diferenciaRumbo(rumboGrados, vigilado) < UMBRAL_RUMBO_GRADOS
-        return if (lateralM <= DISTANCIA_CAMINO_M && sentidoOk) este * sin(rumbo) + norte * cos(rumbo) else null
+        val contrario = contrarioSiCuenta(radar, rumboGrados) ?: return null
+        return if (lateralM <= DISTANCIA_CAMINO_M) Delante(este * sin(rumbo) + norte * cos(rumbo), contrario) else null
+    }
+
+    private class Delante(
+        val metros: Double,
+        val contrario: Boolean,
+    )
+
+    /**
+     * `false` si el radar vigila el sentido de [marchaGrados] (o ambos), `true` si es un fijo del sentido contrario
+     * (±45° del opuesto) y `null` si no cuenta (mira de lado, o es contrario pero no un fijo).
+     */
+    private fun contrarioSiCuenta(
+        radar: Radar,
+        marchaGrados: Double,
+    ): Boolean? {
+        val vigilado = radar.rumboGrados ?: return false
+        val diferencia = VentanasAviso.diferenciaRumbo(marchaGrados, vigilado)
+        return when {
+            diferencia < UMBRAL_RUMBO_GRADOS -> false
+            diferencia > LLANO_GRADOS - UMBRAL_RUMBO_GRADOS && radar.tipo == TipoRadar.FIJO -> true
+            else -> null
+        }
     }
 
     private class Colocado(
         val radar: Radar,
         val progresoM: Double,
+        val contrario: Boolean = false,
     )
 
     private fun colocar(
         camino: CaminoPlano,
         radar: Radar,
     ): Colocado? {
-        val p = camino.masCercano(radar.punto, AjusteCamino.SIN_VENTANA)
-        if (p == null || p.distanciaM > DISTANCIA_CAMINO_M) return null
-        val vigilado = radar.rumboGrados
-        val sentidoOk =
-            vigilado == null ||
-                VentanasAviso.diferenciaRumbo(camino.rumboEn(p, SEMIVENTANA_M), vigilado) < UMBRAL_RUMBO_GRADOS
-        return if (sentidoOk) Colocado(radar, p.progresoM) else null
+        val p = camino.masCercano(radar.punto, AjusteCamino.SIN_VENTANA)?.takeIf { it.distanciaM <= DISTANCIA_CAMINO_M }
+        val contrario = p?.let { contrarioSiCuenta(radar, camino.rumboEn(it, SEMIVENTANA_M)) }
+        return if (p == null || contrario == null) null else Colocado(radar, p.progresoM, contrario)
     }
 
     private fun emparejar(inicio: Colocado): TramoRadar? {
@@ -111,17 +133,49 @@ class AlertasRadar(
         restanteM: Double,
         vMs: Double,
         puntoM: Double?,
+        contrario: Boolean,
     ): Frase? {
         if (restanteM <= 0.0) return null
-        val texto =
-            when (radar.tipo) {
-                TipoRadar.FIJO -> if (restanteM <= VentanasAviso.avisoM(vMs)) textoFijo(radar, restanteM) else null
-                TipoRadar.TRAMO_INICIO -> if (restanteM <= VentanasAviso.entradaM(vMs)) textoTramo(radar) else null
-                TipoRadar.ZONA_MOVIL -> if (restanteM <= VentanasAviso.entradaM(vMs)) "zona de radar móvil" else null
-                TipoRadar.TRAMO_FIN -> null
+        val prefijo = "$PREFIJO_ID${radar.id}"
+        val aviso =
+            when {
+                radar.tipo == TipoRadar.FIJO -> {
+                    fijo(radar, prefijo, restanteM, vMs, contrario)
+                }
+
+                contrario -> {
+                    null
+                }
+
+                radar.tipo == TipoRadar.TRAMO_INICIO -> {
+                    if (restanteM <= VentanasAviso.entradaM(vMs)) prefijo to textoTramo(radar) else null
+                }
+
+                radar.tipo == TipoRadar.ZONA_MOVIL -> {
+                    if (restanteM <= VentanasAviso.entradaM(vMs)) prefijo to "zona de radar móvil" else null
+                }
+
+                else -> {
+                    null
+                }
             }
-        return texto?.let { VentanasAviso.alerta("radar-${radar.id}", it, puntoM) }
+        return aviso?.let { (id, texto) -> VentanasAviso.alerta(id, texto, puntoM) }
     }
+
+    /** Id y texto del aviso de un radar fijo según lo que queda, o `null` si aún no toca. */
+    private fun fijo(
+        radar: Radar,
+        prefijo: String,
+        restanteM: Double,
+        vMs: Double,
+        contrario: Boolean,
+    ): Pair<String, String>? =
+        when {
+            restanteM > VentanasAviso.avisoRadarM(vMs) -> null
+            contrario -> "$prefijo$SUFIJO_CONTRARIO" to "radar, sentido contrario"
+            restanteM <= SEGUNDO_AVISO_M -> "$prefijo$SUFIJO_CERCA" to textoFijo(radar, 0.0)
+            else -> prefijo to textoFijo(radar, restanteM)
+        }
 
     private fun textoFijo(
         radar: Radar,
@@ -142,5 +196,27 @@ class AlertasRadar(
         /** Un radar con rumbo solo cuenta si el rumbo de marcha difiere menos de esto. */
         const val UMBRAL_RUMBO_GRADOS = 45.0
         private const val SEMIVENTANA_M = 5.0
+        private const val LLANO_GRADOS = 180.0
+
+        /** El segundo aviso de un radar fijo suena a esta distancia o menos. */
+        const val SEGUNDO_AVISO_M = 100.0
+
+        private const val PREFIJO_ID = "radar-"
+        private const val SUFIJO_CERCA = "-cerca"
+        private const val SUFIJO_CONTRARIO = "-contra"
+
+        /**
+         * Id del radar al que pertenece una frase de este objeto (`radar-<id>[-cerca|-contra]`), o `null` si no es de
+         * radar. Se asume que ningún id de radar de los datos acaba en `-cerca` o `-contra`.
+         */
+        fun idDeRadar(idFrase: String): String? =
+            idFrase
+                .takeIf { it.startsWith(PREFIJO_ID) }
+                ?.removePrefix(PREFIJO_ID)
+                ?.removeSuffix(SUFIJO_CERCA)
+                ?.removeSuffix(SUFIJO_CONTRARIO)
+
+        /** La frase avisa de un radar fijo del sentido contrario. */
+        fun esContrario(idFrase: String): Boolean = idFrase.startsWith(PREFIJO_ID) && idFrase.endsWith(SUFIJO_CONTRARIO)
     }
 }

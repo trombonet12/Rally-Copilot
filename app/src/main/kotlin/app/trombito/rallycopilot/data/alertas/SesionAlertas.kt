@@ -79,6 +79,7 @@ class SesionAlertas internal constructor(
     private var radarRuta: AlertasRadar? = null
     private var libres: RadaresLibres? = null
     private var media: VelocidadMediaTramo? = null
+    private val pasos = PasosRadar()
     private var filtro: FiltroIncidencias? = null
     private var tramoFinal: Pair<TramoActivo, Long>? = null
     private val cache = CacheCarreteraPredicha()
@@ -100,6 +101,7 @@ class SesionAlertas internal constructor(
                 val leidos = radares.radares()
                 datosRadares = leidos
                 radaresPorId = leidos.associateBy { it.id }
+                pasos.cargar(leidos)
                 radaresSucios = true
             }
             incidencias.incidencias.collect {
@@ -170,6 +172,7 @@ class SesionAlertas internal constructor(
                 incidencias = incidenciasCercanas,
                 antiguedadIncidenciasMs = antiguedadMs(),
                 errorIncidencias = vigentes.errorUltimo,
+                pasoRadar = pasos.actualizar(fijacion, velocidadMs),
             ),
         )
         return frasesRadar + listOfNotNull(estadoTramo?.frase) + frasesIncidencias + listOfNotNull(estadoExceso.frase)
@@ -227,25 +230,33 @@ class SesionAlertas internal constructor(
     ): RadarProximo? =
         frasesRadar
             .mapNotNull { f ->
-                val radar = radaresPorId[f.id.removePrefix(PREFIJO_RADAR)]
+                val radar = AlertasRadar.idDeRadar(f.id)?.let { radaresPorId[it] }
                 val punto = f.puntoM
-                if (radar == null || punto == null) null else radar to (punto - base)
+                if (radar == null || punto == null) null else Triple(radar, punto - base, f)
             }.minByOrNull { it.second }
-            ?.let { (radar, distancia) -> RadarProximo(radar.tipo, distancia.coerceAtLeast(0.0), radar.limiteKmh) }
+            ?.let { (radar, distancia, frase) ->
+                RadarProximo(
+                    radar.tipo,
+                    distancia.coerceAtLeast(0.0),
+                    radar.limiteKmh,
+                    radar.id,
+                    AlertasRadar.esContrario(frase.id),
+                )
+            }
 
     private fun tramoActivo(
         estado: EstadoTramo?,
         tiempoMs: Long,
     ): TramoActivo? {
         if (estado == null) return tramoFinal?.takeIf { tiempoMs < it.second }?.first
-        val actual = TramoActivo(estado.mediaKmh, estado.tramo.limiteKmh, estado.superaLimite, estado.terminado)
+        val actual =
+            TramoActivo(estado.mediaKmh, estado.tramo.limiteKmh, estado.superaLimite, estado.terminado, estado.tramo.id)
         tramoFinal = if (estado.terminado) actual to tiempoMs + RETENCION_TRAMO_FINAL_MS else null
         return actual
     }
 
     private companion object {
         const val MS_A_KMH = 3.6
-        const val PREFIJO_RADAR = "radar-"
 
         /** Las incidencias se refiltran al menos cada minuto: así las que caducan salen aunque el feed no cambie. */
         const val REFILTRO_MS = CacheCarreteraPredicha.REFILTRO_MS

@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.alertas
 
 import androidx.compose.runtime.Immutable
 import app.trombito.rallycopilot.motor.alertas.TipoIncidencia
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 
 /** Clase de radar tal como la ve el conductor (el tramo cuenta una sola vez, entrada o salida). */
 enum class ClaseRadar { FIJO, MOVIL, TRAMO }
@@ -14,6 +15,8 @@ sealed interface AvisoAlerta {
         val clase: ClaseRadar,
         override val distanciaM: Int,
         val limiteKmh: Int?,
+        /** Fijo que vigila el otro sentido: se avisa «por si acaso» como «Radar · sentido contrario». */
+        val sentidoContrario: Boolean = false,
     ) : AvisoAlerta
 
     /** [distanciaM] es 0 si el coche ya está dentro de la incidencia. */
@@ -55,6 +58,70 @@ data class MarcadorIncidencia(
     val enRuta: Boolean,
 )
 
+/** Un radar (fijo, móvil o entrada de tramo) pintado siempre en el mapa. */
+@Immutable
+data class MarcadorRadar(
+    val id: String,
+    val clase: ClaseRadar,
+    val lat: Double,
+    val lon: Double,
+    val limiteKmh: Int?,
+)
+
+/** El segmento de un radar de tramo sobre el mapa: [puntos] de la entrada a la salida. */
+@Immutable
+data class TramoRadarMapa(
+    val id: String,
+    val limiteKmh: Int?,
+    val puntos: List<PuntoGeo>,
+)
+
+/** Radares y tramos que se pintan siempre en el mapa (con o sin conducción en curso). */
+@Immutable
+data class RadaresUi(
+    val marcadores: List<MarcadorRadar> = emptyList(),
+    val tramos: List<TramoRadarMapa> = emptyList(),
+)
+
+/** Lo que dice el bocadillo anclado a un marcador del mapa. */
+sealed interface ContenidoBocadillo {
+    /** Radar que se acerca; [sentidoContrario] lo avisa como «Radar · sentido contrario». */
+    data class Radar(
+        val clase: ClaseRadar,
+        val limiteKmh: Int?,
+        val sentidoContrario: Boolean,
+    ) : ContenidoBocadillo
+
+    /** Radar de tramo en el que se está: límite y media actual (null hasta recorrer unos 100 m). */
+    data class Tramo(
+        val limiteKmh: Int?,
+        val mediaKmh: Int?,
+        val supera: Boolean,
+    ) : ContenidoBocadillo
+
+    /** Se acaba de pasar un radar fijo a [velocidadKmh]; [limiteKmh] null si no se conoce. */
+    data class Paso(
+        val velocidadKmh: Int,
+        val limiteKmh: Int?,
+    ) : ContenidoBocadillo {
+        /** Verde si va dentro del límite, rojo si lo pasa, `null` (neutro) sin límite. */
+        val supera: Boolean? get() = limiteKmh?.let { velocidadKmh > it }
+    }
+
+    data class Incidencia(
+        val tipo: TipoIncidencia,
+    ) : ContenidoBocadillo
+}
+
+/** Bocadillo anclado a la coordenada [lat], [lon] (el marcador al que se refiere). [id] cambia con el contenido. */
+@Immutable
+data class BocadilloMapa(
+    val id: String,
+    val lat: Double,
+    val lon: Double,
+    val contenido: ContenidoBocadillo,
+)
+
 /**
  * Cuánto hace que se obtuvieron los datos de incidencias. Solo existe si merece decirlo: pasan de 30 minutos
  * ([conError] = false) o el último refresco falló ([conError] = true) y se usa la copia.
@@ -72,6 +139,10 @@ data class AlertasUiState(
     val panel: AlertasPanel = AlertasPanel(),
     val marcadores: List<MarcadorIncidencia> = emptyList(),
     val frescura: FrescuraIncidencias? = null,
+    /** Todos los radares y los tramos, siempre en el mapa. */
+    val radares: RadaresUi = RadaresUi(),
+    /** Bocadillo de lo que se acerca o se acaba de pasar (radar, tramo o incidencia); null si no hay. */
+    val bocadillo: BocadilloMapa? = null,
     /** La incidencia tocada en el mapa (tarjeta abierta); null si ninguna. */
     val seleccionada: MarcadorIncidencia? = null,
 )

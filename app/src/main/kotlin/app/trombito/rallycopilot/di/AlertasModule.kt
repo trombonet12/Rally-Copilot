@@ -4,11 +4,13 @@ import android.content.Context
 import app.trombito.rallycopilot.data.alertas.AlertasEnVivoImpl
 import app.trombito.rallycopilot.data.alertas.CargadorRadares
 import app.trombito.rallycopilot.data.alertas.FuenteRadares
+import app.trombito.rallycopilot.data.alertas.RadaresParaMapa
 import app.trombito.rallycopilot.data.alertas.RepositorioIncidenciasDgt
 import app.trombito.rallycopilot.data.alertas.URL_DATEX_DGT
 import app.trombito.rallycopilot.data.datosmapa.ClienteHttp
 import app.trombito.rallycopilot.data.datosmapa.ConfigDatosMapa
 import app.trombito.rallycopilot.domain.alertas.ProveedorAlertas
+import app.trombito.rallycopilot.domain.alertas.ProveedorRadaresMapa
 import app.trombito.rallycopilot.domain.alertas.RepositorioIncidencias
 import dagger.Binds
 import dagger.Module
@@ -28,6 +30,9 @@ abstract class AlertasModule {
 
     @Binds
     abstract fun fuenteRadares(implementacion: CargadorRadares): FuenteRadares
+
+    @Binds
+    abstract fun proveedorRadaresMapa(implementacion: RadaresParaMapa): ProveedorRadaresMapa
 
     companion object {
         @Provides

@@ -12,8 +12,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.AlertasViewModel
-import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.CopilotoViewModel
@@ -29,8 +29,10 @@ import app.trombito.rallycopilot.ui.navegacion.PanelGuiado
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasViewModel
 import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
 import app.trombito.rallycopilot.ui.theme.LocalTemaOscuro
+import app.trombito.rallycopilot.ui.tramos.AccionesSalidaCrono
 import app.trombito.rallycopilot.ui.tramos.CronoViewModel
 import app.trombito.rallycopilot.ui.tramos.LocalAbrirAnalisis
+import app.trombito.rallycopilot.ui.tramos.LocalAccionesSalidaCrono
 import kotlin.math.floor
 
 /**
@@ -75,7 +77,8 @@ fun MapaRoute(
     val ruta = rutaParaMapa(navegacion)
     val panel = panelGuiado ?: remember(estado.estiloManiobras) { panelGuiadoMapa(estado.estiloManiobras.variante()) }
 
-    CompositionLocalProvider(LocalAbrirAnalisis provides onVerAnalisis) {
+    val salida = remember(cronoViewModel) { AccionesSalidaCrono(cronoViewModel::decir, cronoViewModel::darSalida) }
+    CompositionLocalProvider(LocalAbrirAnalisis provides onVerAnalisis, LocalAccionesSalidaCrono provides salida) {
         MapaScreen(
             estado = estado,
             vista = EstadoVistaMapa(permiso = permiso.estado, siguiendo = estado.siguiendo),
@@ -85,7 +88,7 @@ fun MapaRoute(
                     estiloJson = estiloJson,
                     posicion = estado.posicionMostrada,
                     camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel, edicionViewModel),
-                    preferencias = preferenciasVista(estado, ruta, alertas.marcadores, edicion.marcadores, estela),
+                    preferencias = preferenciasVista(estado, ruta, alertas, edicion.marcadores, estela),
                     modifier = modificador,
                 )
             },
@@ -128,6 +131,7 @@ private fun accionesCopiloto(vm: CopilotoViewModel) =
         onAvisarCruces = vm::onAvisarCruces,
         onAvisarSalidasAutopista = vm::onAvisarSalidasAutopista,
         onAvisarRotondas = vm::onAvisarRotondas,
+        onSalidaManual = vm::onSalidaManual,
     )
 
 private fun accionesMapa(
@@ -169,7 +173,7 @@ private fun camaraVistaMapa(
 private fun preferenciasVista(
     estado: MapaUiState,
     ruta: RutaEnMapa?,
-    incidencias: List<MarcadorIncidencia>,
+    alertas: AlertasUiState,
     notas: List<MarcadorNota>,
     estela: List<PuntoGeo>,
 ) = PreferenciasVistaMapa(
@@ -179,7 +183,9 @@ private fun preferenciasVista(
     orientacion = estado.orientacion,
     zoomObjetivo = estado.zoomObjetivo,
     ruta = ruta,
-    incidencias = incidencias,
+    incidencias = alertas.marcadores,
+    radares = alertas.radares,
+    bocadillo = alertas.bocadillo,
     notas = notas,
     estela = estela,
 )

@@ -4,9 +4,13 @@ import app.trombito.rallycopilot.domain.alertas.AlertasEnCurso
 import app.trombito.rallycopilot.domain.alertas.ExcesoEnCurso
 import app.trombito.rallycopilot.domain.alertas.IncidenciasVigentes
 import app.trombito.rallycopilot.domain.alertas.ProveedorAlertas
+import app.trombito.rallycopilot.domain.alertas.ProveedorRadaresMapa
 import app.trombito.rallycopilot.domain.alertas.RadarProximo
+import app.trombito.rallycopilot.domain.alertas.RadaresEnMapa
 import app.trombito.rallycopilot.domain.alertas.RepositorioIncidencias
+import app.trombito.rallycopilot.motor.alertas.Radar
 import app.trombito.rallycopilot.motor.alertas.TipoRadar
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,10 +44,17 @@ private class FalsoRepositorioIncidencias : RepositorioIncidencias {
     override suspend fun refrescar() = Unit
 }
 
+private class FalsosRadaresMapa(
+    var datos: RadaresEnMapa = RadaresEnMapa(),
+) : ProveedorRadaresMapa {
+    override suspend fun radaresEnMapa(): RadaresEnMapa = datos
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class AlertasViewModelTest {
     private val proveedor = FalsoProveedorAlertas()
     private val repositorio = FalsoRepositorioIncidencias()
+    private val radares = FalsosRadaresMapa()
     private var ahoraMs = AHORA_MS
 
     @Before
@@ -57,7 +68,7 @@ class AlertasViewModelTest {
     }
 
     private fun TestScope.crear(): AlertasViewModel {
-        val vm = AlertasViewModel(proveedor, repositorio)
+        val vm = AlertasViewModel(proveedor, repositorio, radares)
         vm.reloj = { ahoraMs }
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
@@ -68,6 +79,19 @@ class AlertasViewModelTest {
         runTest {
             val vm = crear()
             assertEquals(AlertasUiState(), vm.uiState.value)
+        }
+
+    @Test
+    fun `los radares de los datos salen siempre en el estado aunque no haya conduccion`() =
+        runTest {
+            val radar = Radar("r1", TipoRadar.FIJO, PuntoGeo(39.6, 2.9), 10.0, 80, null, "test")
+            radares.datos = RadaresEnMapa(listOf(radar))
+            val vm = crear()
+            assertEquals(
+                listOf(MarcadorRadar("r1", ClaseRadar.FIJO, 39.6, 2.9, 80)),
+                vm.uiState.value.radares.marcadores,
+            )
+            assertNull(vm.uiState.value.bocadillo)
         }
 
     @Test

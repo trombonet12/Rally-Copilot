@@ -38,8 +38,71 @@ internal fun tituloAviso(
     aviso: AvisoAlerta,
 ): String =
     when (aviso) {
-        is AvisoAlerta.Radar -> recursos.getString(tituloRadar(aviso.clase))
-        is AvisoAlerta.Incidencia -> recursos.getString(tituloIncidencia(aviso.tipo))
+        is AvisoAlerta.Radar -> {
+            if (aviso.sentidoContrario) {
+                recursos.getString(R.string.alerta_radar_contrario)
+            } else {
+                recursos.getString(tituloRadar(aviso.clase))
+            }
+        }
+
+        is AvisoAlerta.Incidencia -> {
+            recursos.getString(tituloIncidencia(aviso.tipo))
+        }
+    }
+
+/** Texto corto del bocadillo del mapa: «Radar fijo 80», «Radar · sentido contrario», «Pasaste a 87», «Obras»... */
+internal fun textoBocadillo(
+    recursos: Resources,
+    contenido: ContenidoBocadillo,
+): String =
+    when (contenido) {
+        is ContenidoBocadillo.Radar -> {
+            textoBocadilloRadar(recursos, contenido)
+        }
+
+        is ContenidoBocadillo.Tramo -> {
+            val titulo = recursos.getString(R.string.alerta_radar_tramo)
+            val limite = contenido.limiteKmh
+            when {
+                limite == null -> titulo
+                contenido.mediaKmh == null -> recursos.getString(R.string.bocadillo_tramo_sin_media, titulo, limite)
+                else -> recursos.getString(R.string.bocadillo_tramo_media, titulo, limite, contenido.mediaKmh)
+            }
+        }
+
+        is ContenidoBocadillo.Paso -> {
+            recursos.getString(R.string.bocadillo_paso, contenido.velocidadKmh)
+        }
+
+        is ContenidoBocadillo.Incidencia -> {
+            recursos.getString(tituloIncidencia(contenido.tipo))
+        }
+    }
+
+private fun textoBocadilloRadar(
+    recursos: Resources,
+    contenido: ContenidoBocadillo.Radar,
+): String {
+    val limite = contenido.limiteKmh
+    val titulo = recursos.getString(tituloRadar(contenido.clase))
+    return when {
+        contenido.sentidoContrario -> recursos.getString(R.string.alerta_radar_contrario)
+        limite == null -> titulo
+        else -> recursos.getString(R.string.bocadillo_radar_limite, titulo, limite)
+    }
+}
+
+/** Lo que lee TalkBack del bocadillo (el paso dice si va dentro o por encima del límite). */
+internal fun descripcionBocadillo(
+    recursos: Resources,
+    contenido: ContenidoBocadillo,
+): String =
+    if (contenido is ContenidoBocadillo.Paso && contenido.supera != null) {
+        val recurso = if (contenido.supera == true) R.string.bocadillo_paso_fuera else R.string.bocadillo_paso_dentro
+        recursos.getString(recurso, contenido.velocidadKmh)
+    } else {
+        textoBocadillo(recursos, contenido)
     }
 
 /** Distancia del banner: «350 m», «1,2 km»; null si el aviso es de una incidencia en la que ya se está. */

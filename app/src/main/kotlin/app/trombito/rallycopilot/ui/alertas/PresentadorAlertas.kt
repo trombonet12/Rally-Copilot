@@ -29,6 +29,7 @@ internal fun presentarAlertas(
     vigentes: IncidenciasVigentes,
     ahoraMs: Long,
     seleccionadaId: String? = null,
+    radares: RadaresUi = RadaresUi(),
 ): AlertasUiState {
     val cercanas = alertas?.incidencias ?: incidenciasFueraDeConduccion(vigentes, ahoraMs)
     val marcadores = marcadoresDe(cercanas)
@@ -40,6 +41,8 @@ internal fun presentarAlertas(
         panel = alertas?.let(::panelDe) ?: AlertasPanel(),
         marcadores = marcadores,
         frescura = frescuraDe(antiguedadMs, hayError),
+        radares = radares,
+        bocadillo = alertas?.let { bocadilloDe(it, cercanas, marcadores, radares) },
         seleccionada = marcadores.firstOrNull { it.id == seleccionadaId },
     )
 }
@@ -83,13 +86,9 @@ private fun avisoDe(
             ?.let { AvisoAlerta.Incidencia(it.incidencia.tipo, it.incidencia.carretera, redondear(it.distanciaM)) }
 
 private fun avisoDeRadar(radar: RadarProximo): AvisoAlerta.Radar {
-    val clase =
-        when (radar.tipo) {
-            TipoRadar.FIJO -> ClaseRadar.FIJO
-            TipoRadar.ZONA_MOVIL -> ClaseRadar.MOVIL
-            TipoRadar.TRAMO_INICIO, TipoRadar.TRAMO_FIN -> ClaseRadar.TRAMO
-        }
-    return AvisoAlerta.Radar(clase, redondear(radar.distanciaM), radar.limiteKmh)
+    // Un fijo del otro sentido no enseña su límite: no es el de este coche.
+    val limite = radar.limiteKmh.takeUnless { radar.sentidoContrario }
+    return AvisoAlerta.Radar(claseDe(radar.tipo), redondear(radar.distanciaM), limite, radar.sentidoContrario)
 }
 
 private fun redondear(metros: Double): Int =

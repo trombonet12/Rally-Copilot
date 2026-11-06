@@ -57,11 +57,13 @@ class AlertasRadarTest {
     }
 
     @Test
-    fun `la distancia de aviso es v por 15 s acotada a 300-800 y redondeada a cien`() {
+    fun `la distancia de aviso es v por 15 s acotada a 200-800 y redondeada a cien`() {
         val a = enRuta(radar())
-        // Parado: 300 m.
-        assertEquals(listOf("radar a trescientos, ochenta"), textos(a, 4710.0, 0.0))
-        assertEquals(emptyList<String>(), textos(a, 4690.0, 0.0))
+        // Parado: 200 m.
+        assertEquals(listOf("radar a doscientos, ochenta"), textos(a, 4810.0, 0.0))
+        assertEquals(emptyList<String>(), textos(a, 4790.0, 0.0))
+        // 10 m/s = 150 m, acotado a 200.
+        assertEquals(emptyList<String>(), textos(a, 4790.0, 10.0))
         // 60 m/s = 900 m, acotado a 800.
         assertEquals(listOf("radar a ochocientos, ochenta"), textos(a, 4210.0, 60.0))
         assertEquals(emptyList<String>(), textos(a, 4190.0, 60.0))
@@ -101,7 +103,9 @@ class AlertasRadarTest {
         assertEquals(1, cuenta(350.0))
         assertEquals(1, cuenta(316.0))
         assertEquals(0, cuenta(314.0))
-        assertEquals(0, cuenta(180.0))
+        // De lado (46°–134°) no cuenta; opuesto (±45° de 180°) es «sentido contrario».
+        assertEquals(0, cuenta(100.0))
+        assertEquals(1, cuenta(180.0))
     }
 
     @Test
@@ -128,6 +132,69 @@ class AlertasRadarTest {
     fun `el id es estable aunque cambie la posicion o la velocidad`() {
         val a = enRuta(radar())
         assertEquals(a.candidatas(4510.0, v120).single().id, a.candidatas(4800.0, 20.0).single().id)
+    }
+
+    // ---- Segundo aviso y sentido contrario ----
+
+    @Test
+    fun `a 100 m o menos suena el segundo aviso con otro id y el primero deja de sonar`() {
+        val a = enRuta(radar())
+        val lejos = a.candidatas(4860.0, v120).single() // 140 m: primero
+        assertEquals("radar-r1", lejos.id)
+        assertEquals("radar a cien, ochenta", lejos.texto)
+        val cerca = a.candidatas(4905.0, v120).single() // 95 m: segundo
+        assertEquals("radar-r1-cerca", cerca.id)
+        assertEquals("radar, ochenta", cerca.texto)
+        assertEquals(5000.0, cerca.puntoM!!, 0.5)
+        assertEquals("radar-r1-cerca", a.candidatas(4990.0, v120).single().id)
+    }
+
+    @Test
+    fun `el segundo aviso sin limite dice solo radar`() {
+        assertEquals(listOf("radar"), textos(enRuta(radar(limite = null)), 4950.0))
+    }
+
+    @Test
+    fun `un fijo del sentido contrario se avisa como radar sentido contrario con su id`() {
+        val a = enRuta(radar(rumbo = 180.0))
+        val frase = a.candidatas(4510.0, v120).single()
+        assertEquals("radar, sentido contrario", frase.texto)
+        assertEquals("radar-r1-contra", frase.id)
+        assertEquals(TipoFrase.ALERTA, frase.tipo)
+        // Una sola frase (un solo id) hasta pasarlo: no hay segundo aviso a 100 m.
+        assertEquals("radar-r1-contra", a.candidatas(4950.0, v120).single().id)
+        assertEquals(emptyList<String>(), textos(a, 4480.0))
+        assertEquals(emptyList<String>(), textos(a, 5010.0))
+    }
+
+    @Test
+    fun `un fijo de lado o un tramo o zona del otro sentido no se avisa`() {
+        assertEquals(0, enRuta(radar(rumbo = 90.0)).candidatas(4510.0, v120).size)
+        assertEquals(0, enRuta(radar(tipo = TipoRadar.ZONA_MOVIL, rumbo = 180.0)).candidatas(4900.0, 10.0).size)
+        val tramo = radar("t", TipoRadar.TRAMO_INICIO, rumbo = 180.0, tramo = "t")
+        assertEquals(0, enRuta(tramo).candidatas(4900.0, 10.0).size)
+        assertEquals(
+            emptyList<TramoRadar>(),
+            enRuta(tramo, radar("f", TipoRadar.TRAMO_FIN, 7000.0, rumbo = 180.0, tramo = "t")).tramos,
+        )
+    }
+
+    @Test
+    fun `en libre un fijo opuesto por delante se avisa como sentido contrario`() {
+        val a = AlertasRadar(listOf(radar(norteM = 400.0, rumbo = 180.0)))
+        val frase = a.candidatasLibre(punto(0.0), 0.0, v120).single()
+        assertEquals("radar-r1-contra", frase.id)
+        assertEquals("radar, sentido contrario", frase.texto)
+    }
+
+    @Test
+    fun `idDeRadar y esContrario leen los ids de las frases`() {
+        assertEquals("osm-n1-r2", AlertasRadar.idDeRadar("radar-osm-n1-r2"))
+        assertEquals("a", AlertasRadar.idDeRadar("radar-a-cerca"))
+        assertEquals("a", AlertasRadar.idDeRadar("radar-a-contra"))
+        assertNull(AlertasRadar.idDeRadar("tramo-media-x-1"))
+        assertTrue(AlertasRadar.esContrario("radar-a-contra"))
+        assertEquals(false, AlertasRadar.esContrario("radar-a-cerca"))
     }
 
     // ---- Zonas móviles y tramos ----
@@ -241,13 +308,15 @@ class AlertasRadarTest {
         assertEquals(1, cuenta(null))
         assertEquals(1, cuenta(44.0))
         assertEquals(0, cuenta(46.0))
-        assertEquals(0, cuenta(190.0))
+        assertEquals(0, cuenta(90.0))
+        assertEquals(1, cuenta(190.0))
     }
 
     @Test
     fun `en libre la ventana depende de la velocidad`() {
         assertEquals(0, libre(0.0, v = 0.0).size) // 400 m > 300 m
-        assertEquals(1, libre(0.0, v = 0.0, pos = punto(150.0)).size) // 250 m
+        assertEquals(0, libre(0.0, v = 0.0, pos = punto(150.0)).size) // 250 m > 200 m
+        assertEquals(1, libre(0.0, v = 0.0, pos = punto(250.0)).size) // 150 m
     }
 
     @Test

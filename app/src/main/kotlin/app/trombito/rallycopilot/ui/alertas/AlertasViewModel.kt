@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.alertas
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.alertas.ProveedorAlertas
+import app.trombito.rallycopilot.domain.alertas.ProveedorRadaresMapa
 import app.trombito.rallycopilot.domain.alertas.RepositorioIncidencias
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 private const val PARADA_MS = 5_000L
@@ -30,6 +32,7 @@ class AlertasViewModel
     constructor(
         proveedor: ProveedorAlertas,
         incidencias: RepositorioIncidencias,
+        radares: ProveedorRadaresMapa,
     ) : ViewModel() {
         /** Reloj de pared (ms); sustituible en los tests. */
         internal var reloj: () -> Long = System::currentTimeMillis
@@ -44,9 +47,22 @@ class AlertasViewModel
                 }
             }
 
+        /** Todos los radares y tramos, leídos una vez en segundo plano; vacíos hasta entonces (o sin archivo). */
+        private val radaresUi = MutableStateFlow(RadaresUi())
+
+        init {
+            viewModelScope.launch { radaresUi.value = radaresUiDe(radares.radaresEnMapa()) }
+        }
+
         val uiState: StateFlow<AlertasUiState> =
-            combine(proveedor.alertas, incidencias.incidencias, seleccion, pulso) { alertas, vigentes, elegida, _ ->
-                presentarAlertas(alertas, vigentes, reloj(), elegida)
+            combine(
+                proveedor.alertas,
+                incidencias.incidencias,
+                seleccion,
+                pulso,
+                radaresUi,
+            ) { alertas, vigentes, elegida, _, r ->
+                presentarAlertas(alertas, vigentes, reloj(), elegida, r)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), AlertasUiState())
 
         /** Se toca un marcador del mapa ([id]); `null` cierra la tarjeta. Tocar el mismo otra vez la cierra. */

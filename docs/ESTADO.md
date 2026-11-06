@@ -83,4 +83,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H14a en curso (bugs, ROADMAP H14): salida del crono, rotondas, cruces en autovía, escuadra por voz, Mis tramos, inclinar en satélite. Dump del móvil en %USERPROFILE%/RallyCopilot-dump/2026-11-03/ (falta cargarlo en el emulador). Pendiente también: batería E2E, ux-reviewer, H11.
+- **Agente:** H14 en curso, con todo en commits locales sin push hasta la revisión final. H14a hecho (crono LISTO, curvas, cruces, escuadra por voz, rotondas, puentes, Mis tramos, inclinar). H14b casi hecho (copia, filtros, ruta y estela, salida manual; radares en curso). Pendiente: la release de datos con bridge/tunnel/layer/junction (`rally-copilot-data` ya tiene el push; el workflow falla por timeout de osmdata.openstreetmap.de al bajar los polígonos de agua; reintentar con `gh run rerun 42260418092` y después fijar la etiqueta en `app/datos-incluidos.properties`). Después: H14c, H14d, H14e, la revisión final con el dump, y luego push y release v1.2.0.

@@ -11,6 +11,7 @@ internal object VentanasAviso {
     private const val AVISO_S = 15.0
     private const val AVISO_MIN_M = 300.0
     private const val AVISO_MAX_M = 800.0
+    private const val RADAR_MIN_M = 200.0
     private const val ENTRADA_S = 6.0
     private const val ENTRADA_MIN_M = 80.0
     private const val ENTRADA_MAX_M = 250.0
@@ -20,6 +21,10 @@ internal object VentanasAviso {
 
     /** Distancia de aviso de lo que se acerca: `v · 15 s` acotado a 300–800 m y redondeado a cientos. */
     fun avisoM(vMs: Double): Double = aCientos((vMs.coerceAtLeast(0.0) * AVISO_S).coerceIn(AVISO_MIN_M, AVISO_MAX_M))
+
+    /** Distancia del primer aviso de un radar fijo: `v · 15 s` acotado a 200–800 m y redondeado a cientos. */
+    fun avisoRadarM(vMs: Double): Double =
+        aCientos((vMs.coerceAtLeast(0.0) * AVISO_S).coerceIn(RADAR_MIN_M, AVISO_MAX_M))
 
     /** Ventana para avisar de que se entra en una zona o tramo: `v · 6 s` acotado a 80–250 m (sin redondear). */
     fun entradaM(vMs: Double): Double = (vMs.coerceAtLeast(0.0) * ENTRADA_S).coerceIn(ENTRADA_MIN_M, ENTRADA_MAX_M)
