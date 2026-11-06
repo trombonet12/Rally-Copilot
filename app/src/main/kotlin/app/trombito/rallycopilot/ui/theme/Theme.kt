@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.theme
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -8,6 +9,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.dp
+import app.trombito.rallycopilot.domain.ajustes.Tema
 
 private val RallyShapes =
     Shapes(
@@ -40,3 +42,7 @@ fun RallyCopilotTheme(
         )
     }
 }
+
+/** Si este tema se pinta en oscuro ahora; con [Tema.SISTEMA] sigue el modo del móvil y recompone al cambiarlo. */
+@Composable
+fun Tema.oscuroAhora(): Boolean = esOscuro(isSystemInDarkTheme())

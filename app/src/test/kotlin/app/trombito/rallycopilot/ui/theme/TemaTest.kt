@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.graphics.Color
 import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
@@ -16,6 +17,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 class TemaTest {
@@ -53,6 +55,48 @@ class TemaTest {
         assertEquals(DarkColors.primary, primario)
         assertEquals(RallyOscuro, rally)
         assertEquals(true, oscuro)
+    }
+
+    @Test
+    fun `el tema raiz reacciona al cambio de preferencia sin reiniciar`() {
+        val tema = mutableStateOf(Tema.OSCURO)
+        var primario: Color? = null
+        banco.poner {
+            RallyCopilotTheme(darkTheme = tema.value.oscuroAhora()) { primario = MaterialTheme.colorScheme.primary }
+        }
+        assertEquals(DarkColors.primary, primario)
+        tema.value = Tema.CLARO
+        banco.reposo()
+        assertEquals(LightColors.primary, primario)
+        tema.value = Tema.OSCURO
+        banco.reposo()
+        assertEquals(DarkColors.primary, primario)
+    }
+
+    @Test
+    @Config(qualifiers = "notnight")
+    fun `automatico con el movil en claro pinta claro`() {
+        var primario: Color? = null
+        banco.poner {
+            RallyCopilotTheme(darkTheme = Tema.SISTEMA.oscuroAhora()) {
+                primario =
+                    MaterialTheme.colorScheme.primary
+            }
+        }
+        assertEquals(LightColors.primary, primario)
+    }
+
+    @Test
+    @Config(qualifiers = "night")
+    fun `automatico con el movil en oscuro pinta oscuro`() {
+        var primario: Color? = null
+        banco.poner {
+            RallyCopilotTheme(darkTheme = Tema.SISTEMA.oscuroAhora()) {
+                primario =
+                    MaterialTheme.colorScheme.primary
+            }
+        }
+        assertEquals(DarkColors.primary, primario)
     }
 
     @Test

@@ -7,7 +7,6 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -23,6 +22,7 @@ import app.trombito.rallycopilot.ui.AppNavHost
 import app.trombito.rallycopilot.ui.mistramos.ImportarViewModel
 import app.trombito.rallycopilot.ui.mistramos.uriDeImportacion
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
+import app.trombito.rallycopilot.ui.theme.oscuroAhora
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
         // Incidencias de la DGT al abrir la app (a lo sumo cada 5 min); sin red se queda con la copia.
         lifecycleScope.launch { incidencias.refrescar() }
         setContent {
-            val oscuro = (tema ?: Tema.PREDETERMINADO).esOscuro(isSystemInDarkTheme())
+            val oscuro = (tema ?: Tema.PREDETERMINADO).oscuroAhora()
             DisposableEffect(oscuro) {
                 val barras = SystemBarStyle.auto(TRANSPARENTE, TRANSPARENTE) { oscuro }
                 enableEdgeToEdge(statusBarStyle = barras, navigationBarStyle = barras)

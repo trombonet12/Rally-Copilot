@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -103,11 +104,12 @@ fun InicioScreen(
                 Column(
                     modifier =
                         Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth()
+                            .heightIn(min = maxHeight)
                             .verticalScroll(rememberScrollState())
                             .padding(horizontal = Espacio.xl, vertical = Espacio.xl),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Espacio.l),
+                    verticalArrangement = Arrangement.spacedBy(Espacio.l, Alignment.CenterVertically),
                 ) {
                     Aparece(0) { CabeceraInicio() }
                     Column(
