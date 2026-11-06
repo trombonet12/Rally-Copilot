@@ -34,7 +34,6 @@ import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
-import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
 
 private const val LAT_INICIAL = 39.62
@@ -50,7 +49,6 @@ private const val ID_EXTREMOS = "analisis-extremos"
 private const val ID_FUENTE_MARCADOR = "analisis-marcador-fuente"
 private const val ID_MARCADOR_HALO = "analisis-marcador-halo"
 private const val ID_MARCADOR = "analisis-marcador"
-private const val PROPIEDAD_FRACCION = "f"
 private const val PROPIEDAD_TIPO = "tipo"
 private const val TIPO_SALIDA = "salida"
 
@@ -68,12 +66,7 @@ private const val RADIO_MARCADOR = 8f
 private const val RADIO_HALO_MARCADOR = 13f
 private const val GROSOR_BORDE = 2.5f
 private const val DURACION_ENCUADRE_MS = 600
-private const val ENCUADRE_ARRIBA_DP = 72f
-private const val ENCUADRE_ABAJO_DP = 150f
-private const val ENCUADRE_LATERAL_DP = 36f
-private const val ENCUADRE_COMPACTO_DP = 36f
-private const val ENCUADRE_MAXIMO_ARRIBA = 0.22f
-private const val ENCUADRE_MAXIMO_ABAJO = 0.4f
+private const val ENCUADRE_MARGEN_DP = 36f
 
 private val CARBON = Color.parseColor("#0E0F12")
 private val LATON = Color.parseColor("#E5AB46")
@@ -117,34 +110,48 @@ fun MapaTramo(
             OpcionesMapa(
                 colorUnico = colorTraza,
                 interactivo = false,
-                compacto = true,
                 descripcion = R.string.detalle_mapa_descripcion,
             )
         }
     MapaMapLibre(estiloJson, contenido, opciones, modifier)
 }
 
+/**
+ * Añadido que otra pantalla (la edición de un tramo) engancha al mapa del análisis para pintar y escuchar lo suyo:
+ * recibe el mapa y la vista al crearse y el estilo cada vez que se (re)carga, con la traza ya instalada.
+ */
+internal interface ComplementoMapa {
+    /** El mapa ya existe: ahí se registran los gestos. */
+    fun alIniciar(
+        mapa: MapLibreMap,
+        vista: MapView,
+    )
+
+    /** El estilo [estilo] acaba de cargarse (y de instalarse la traza): ahí se instalan las capas propias. */
+    fun alCargarEstilo(estilo: Style)
+}
+
 /** Lo que se pinta en el mapa: la traza por segmentos con su escala de color y el marcador (si hay). */
-private class ContenidoMapa(
+internal class ContenidoMapa(
     val segmentos: List<SegmentoMapa>,
     val escala: EscalaVelocidad,
     val marcador: PuntoGeo?,
 )
 
 /** Cómo se comporta el mapa: color único de la traza (null = por velocidad), gestos, encuadre y descripción. */
-private class OpcionesMapa(
+internal class OpcionesMapa(
     val colorUnico: Int? = null,
     val interactivo: Boolean = true,
-    val compacto: Boolean = false,
     val descripcion: Int = R.string.analisis_mapa_descripcion,
 )
 
 @Composable
-private fun MapaMapLibre(
+internal fun MapaMapLibre(
     estiloJson: String,
     contenido: ContenidoMapa,
     opciones: OpcionesMapa,
     modifier: Modifier,
+    complemento: ComplementoMapa? = null,
 ) {
     val contexto = LocalContext.current
     val ciclo = LocalLifecycleOwner.current
@@ -154,7 +161,7 @@ private fun MapaMapLibre(
             MapLibre.setConnected(false)
             MapView(contexto)
         }
-    val controlador = remember(vista) { ControladorMapaAnalisis(vista, opciones) }
+    val controlador = remember(vista) { ControladorMapaAnalisis(vista, opciones, complemento) }
     DisposableEffect(vista, ciclo) {
         val puente = PuenteCicloVida(vista) { }
         ciclo.lifecycle.addObserver(puente)
@@ -177,6 +184,7 @@ private fun MapaMapLibre(
 private class ControladorMapaAnalisis(
     private val vista: MapView,
     private val opciones: OpcionesMapa,
+    private val complemento: ComplementoMapa?,
 ) {
     private var mapa: MapLibreMap? = null
     private var estilo: Style? = null
@@ -206,6 +214,7 @@ private class ControladorMapaAnalisis(
                         .build(),
                 ),
             )
+            complemento?.alIniciar(m, vista)
             // El mapa se mide después de crearse: el encuadre pendiente se hace en cuanto tenga tamaño.
             vista.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> encuadrarSiToca() }
             estiloPedido?.let(::aplicarEstilo)
@@ -244,13 +253,14 @@ private class ControladorMapaAnalisis(
             estilo = cargado
             pintarTraza(cargado)
             marcador(marcador)
+            complemento?.alCargarEstilo(cargado)
             encuadrePendiente = segmentos.isNotEmpty()
             encuadrarSiToca()
         }
     }
 
     private fun instalarCapas(cargado: Style) {
-        cargado.addSource(GeoJsonSource(ID_FUENTE_TRAZA, vacio()))
+        cargado.addSource(GeoJsonSource(ID_FUENTE_TRAZA, vacio(), opcionesFuenteTraza()))
         cargado.addSource(GeoJsonSource(ID_FUENTE_EXTREMOS, vacio()))
         cargado.addSource(GeoJsonSource(ID_FUENTE_MARCADOR, vacio()))
         // Debajo de las etiquetas del estilo: la traza se ve sobre las vías sin tapar los nombres.
@@ -278,13 +288,9 @@ private class ControladorMapaAnalisis(
 
     private fun pintarTraza(cargado: Style) {
         val actual = escala ?: return
-        val lineas =
-            segmentos.filter { it.puntos.size >= 2 }.map { s ->
-                Feature
-                    .fromGeometry(LineString.fromLngLats(s.puntos.map { Point.fromLngLat(it.lon, it.lat) }))
-                    .also { it.addNumberProperty(PROPIEDAD_FRACCION, actual.fraccion(s.velocidadKmh)) }
-            }
-        cargado.getSourceAs<GeoJsonSource>(ID_FUENTE_TRAZA)?.setGeoJson(FeatureCollection.fromFeatures(lineas))
+        cargado
+            .getSourceAs<GeoJsonSource>(ID_FUENTE_TRAZA)
+            ?.setGeoJson(FeatureCollection.fromFeatures(featuresTraza(segmentos, actual)))
         val extremos =
             listOfNotNull(
                 segmentos
@@ -309,15 +315,9 @@ private class ControladorMapaAnalisis(
         val limites = limitesDe(segmentos.flatMap { it.puntos }) ?: return
         encuadrePendiente = false
         val densidad = vista.resources.displayMetrics.density
-        val alto = vista.height.toFloat()
-        val compacto = (ENCUADRE_COMPACTO_DP * densidad).toInt()
-        val holguraArriba = minOf(ENCUADRE_ARRIBA_DP * densidad, alto * ENCUADRE_MAXIMO_ARRIBA).toInt()
-        val holguraAbajo = minOf(ENCUADRE_ABAJO_DP * densidad, alto * ENCUADRE_MAXIMO_ABAJO).toInt()
-        val arriba = if (opciones.compacto) compacto else holguraArriba
-        val abajo = if (opciones.compacto) compacto else holguraAbajo
-        val lado = (ENCUADRE_LATERAL_DP * densidad).toInt()
+        val margen = (ENCUADRE_MARGEN_DP * densidad).toInt()
         m.easeCamera(
-            CameraUpdateFactory.newLatLngBounds(limites, lado, arriba, lado, abajo),
+            CameraUpdateFactory.newLatLngBounds(limites, margen, margen, margen, margen),
             DURACION_ENCUADRE_MS,
         )
     }
@@ -344,17 +344,6 @@ private fun colorExtremo(): Expression =
         Expression.get(PROPIEDAD_TIPO),
         Expression.color(ROJO_META),
         Expression.stop(TIPO_SALIDA, Expression.color(VERDE_SALIDA)),
-    )
-
-/** Color de la traza según la propiedad `f` (0..1) de cada segmento, con las mismas paradas que la leyenda. */
-@Suppress("SpreadOperator") // una sola vez al instalar las capas, con cuatro paradas
-private fun colorPorVelocidad(): Expression =
-    Expression.interpolate(
-        Expression.linear(),
-        Expression.get(PROPIEDAD_FRACCION),
-        *PaletaVelocidad.paradas
-            .map { (posicion, _) -> Expression.stop(posicion, Expression.color(PaletaVelocidad.argb(posicion))) }
-            .toTypedArray(),
     )
 
 private fun linea(

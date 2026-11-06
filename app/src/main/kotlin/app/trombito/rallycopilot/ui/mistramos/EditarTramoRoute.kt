@@ -20,6 +20,7 @@ fun EditarTramoRoute(
             AccionesEditarTramo(
                 onVolver = onVolver,
                 onTocarNota = viewModel::onTocarNota,
+                onSeleccionar = viewModel::onSeleccionar,
                 onTocarPunto = viewModel::onTocarPunto,
                 onMoverCorte = viewModel::onMoverCorte,
                 onSoltarCorte = viewModel::onSoltarCorte,

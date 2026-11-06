@@ -8,9 +8,15 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -26,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.analisis.AnalisisPasada
 import app.trombito.rallycopilot.motor.analisis.ParcialAnalisis
+import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 import app.trombito.rallycopilot.ui.tramos.colorDelta
@@ -36,8 +43,10 @@ const val ETIQUETA_FILA_SECTOR = "analisis-fila-sector-"
 const val ETIQUETA_FILA_MICRO = "analisis-fila-micro-"
 const val ETIQUETA_FILA_TOTAL = "analisis-fila-total"
 const val ETIQUETA_TABLA = "analisis-tabla"
+const val ETIQUETA_MICROS_INTERRUPTOR = "analisis-micros-interruptor"
 
 private val ALTO_FILA = 44.dp
+private val ALTO_INTERRUPTOR = 48.dp
 private const val PESO_ETIQUETA = 1.25f
 private const val PESO_TIEMPO = 1.35f
 private const val PESO_DELTA = 1.05f
@@ -74,7 +83,9 @@ internal fun maximaTotalKmh(analisis: AnalisisPasada): Double =
 fun TablaParciales(
     analisis: AnalisisPasada,
     modifier: Modifier = Modifier,
+    conDelta: Boolean = analisis.deltaTotalMs != null,
 ) {
+    var verMicros by rememberSaveable { mutableStateOf(false) }
     val recursos = LocalContext.current.resources
     val sectores =
         analisis.sectores.map {
@@ -109,13 +120,15 @@ fun TablaParciales(
         )
     Column(modifier.fillMaxWidth().testTag(ETIQUETA_TABLA), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
         Titulo(R.string.analisis_sectores_titulo)
-        Cabecera()
-        sectores.forEach { Fila(it) }
-        Fila(total, destacada = true)
+        Cabecera(conDelta)
+        sectores.forEach { Fila(it, conDelta) }
+        Fila(total, conDelta, destacada = true)
         if (micros.isNotEmpty()) {
-            Titulo(R.string.analisis_micros_titulo, Modifier.padding(top = Espacio.m))
-            Cabecera()
-            micros.forEach { Fila(it) }
+            InterruptorMicros(micros.size, verMicros) { verMicros = !verMicros }
+            if (verMicros) {
+                Cabecera(conDelta)
+                micros.forEach { Fila(it, conDelta) }
+            }
         }
     }
 }
@@ -149,8 +162,34 @@ private fun Titulo(
     )
 }
 
+/** «Ver microsectores (N)»: despliega o pliega los parciales cortos, que son muchos y quedan fuera de la vista. */
 @Composable
-private fun Cabecera() {
+private fun InterruptorMicros(
+    cantidad: Int,
+    desplegados: Boolean,
+    onAlternar: () -> Unit,
+) {
+    val texto =
+        if (desplegados) {
+            stringResource(R.string.analisis_micros_ocultar)
+        } else {
+            stringResource(R.string.analisis_micros_ver, cantidad)
+        }
+    TextButton(
+        onClick = onAlternar,
+        modifier = Modifier.heightIn(min = ALTO_INTERRUPTOR).testTag(ETIQUETA_MICROS_INTERRUPTOR),
+    ) {
+        Text(texto, style = MaterialTheme.typography.labelLarge)
+        Icon(
+            imageVector = if (desplegados) Iconos.ExpandirMenos else Iconos.ExpandirMas,
+            contentDescription = null,
+            modifier = Modifier.padding(start = Espacio.xs),
+        )
+    }
+}
+
+@Composable
+private fun Cabecera(conDelta: Boolean) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = Espacio.s),
         verticalAlignment = Alignment.CenterVertically,
@@ -162,12 +201,14 @@ private fun Cabecera() {
             estilo = EstiloCelda.ENCABEZADO,
             alinear = TextAlign.End,
         )
-        Celda(
-            stringResource(R.string.analisis_columna_delta),
-            PESO_DELTA,
-            estilo = EstiloCelda.ENCABEZADO,
-            alinear = TextAlign.End,
-        )
+        if (conDelta) {
+            Celda(
+                stringResource(R.string.analisis_columna_delta),
+                PESO_DELTA,
+                estilo = EstiloCelda.ENCABEZADO,
+                alinear = TextAlign.End,
+            )
+        }
         Celda(
             stringResource(R.string.analisis_columna_media),
             PESO_VELOCIDAD,
@@ -186,6 +227,7 @@ private fun Cabecera() {
 @Composable
 private fun Fila(
     fila: FilaTabla,
+    conDelta: Boolean,
     destacada: Boolean = false,
 ) {
     val colores = LocalColoresRally.current
@@ -222,13 +264,15 @@ private fun Fila(
             estilo = EstiloCelda.NEGRITA,
         )
         val delta = fila.diferenciaMs
-        Celda(
-            texto = delta?.let { formatearDelta(it) } ?: stringResource(R.string.analisis_sin_delta),
-            peso = PESO_DELTA,
-            color = delta?.let { colorDelta(it, colores, neutro) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
-            alinear = TextAlign.End,
-            estilo = EstiloCelda.NEGRITA,
-        )
+        if (conDelta) {
+            Celda(
+                texto = delta?.let { formatearDelta(it) } ?: stringResource(R.string.analisis_sin_delta),
+                peso = PESO_DELTA,
+                color = delta?.let { colorDelta(it, colores, neutro) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                alinear = TextAlign.End,
+                estilo = EstiloCelda.NEGRITA,
+            )
+        }
         Celda(formatearKmhCelda(fila.mediaKmh), PESO_VELOCIDAD, color = neutro, alinear = TextAlign.End)
         Celda(formatearKmhCelda(fila.maximaKmh), PESO_VELOCIDAD, color = neutro, alinear = TextAlign.End)
     }

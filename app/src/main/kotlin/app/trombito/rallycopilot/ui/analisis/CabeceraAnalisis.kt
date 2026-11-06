@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -61,10 +63,10 @@ fun BarraAnalisis(
         BotonVolver(onVolver)
         Column(Modifier.weight(1f).padding(horizontal = Espacio.xs)) {
             Text(
-                text = (estado.tramoNombre ?: stringResource(R.string.analisis_titulo)).uppercase(),
-                style = MaterialTheme.typography.titleLarge,
+                text = estado.tramoNombre ?: stringResource(R.string.analisis_titulo),
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = TAMANO_TITULO_SP.sp, lineHeight = 22.sp),
                 color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.testTag(ETIQUETA_ANALISIS_TITULO).semantics { heading() },
             )
@@ -116,18 +118,34 @@ fun ResumenAnalisis(
             modifier = Modifier.testTag(ETIQUETA_ANALISIS_TOTAL),
         )
         if (delta != null) PildoraDelta(delta, TAMANO_DELTA_SP.sp, 72.dp, 5.dp, ETIQUETA_ANALISIS_DELTA)
+        if (comparada != null) {
+            Text(
+                text = stringResource(R.string.analisis_contra, formatearTiempo(comparada.totalMs)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f).testTag(ETIQUETA_ANALISIS_COMPARADA),
+            )
+        } else {
+            FichaSinComparar()
+        }
+    }
+}
+
+/** Ficha corta «Sin comparar» (en vez de un párrafo) cuando no hay pasada contra la que medirse. */
+@Composable
+private fun FichaSinComparar() {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shape = CircleShape,
+    ) {
         Text(
-            text =
-                if (comparada != null) {
-                    stringResource(R.string.analisis_contra, formatearTiempo(comparada.totalMs))
-                } else {
-                    stringResource(
-                        if (estado.opciones.isEmpty()) R.string.analisis_sin_otras else R.string.analisis_sin_comparar,
-                    )
-                },
-            style = MaterialTheme.typography.bodySmall,
+            text = stringResource(R.string.analisis_sin_comparar),
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f).testTag(ETIQUETA_ANALISIS_COMPARADA),
+            modifier =
+                Modifier
+                    .padding(horizontal = Espacio.m, vertical = Espacio.xs)
+                    .testTag(ETIQUETA_ANALISIS_COMPARADA),
         )
     }
 }
@@ -177,6 +195,7 @@ fun SelectorComparada(
 
 private const val TAMANO_TOTAL_SP = 36
 private const val TAMANO_DELTA_SP = 24
+private const val TAMANO_TITULO_SP = 18
 
 private fun estiloCifras(tamanoSp: Int) =
     TextStyle(

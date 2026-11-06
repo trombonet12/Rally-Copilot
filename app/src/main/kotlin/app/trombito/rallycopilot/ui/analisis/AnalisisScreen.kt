@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -34,8 +35,8 @@ const val ETIQUETA_ANALISIS_NO_ENCONTRADA = "analisis-no-encontrada"
 const val ETIQUETA_ANALISIS_ILEGIBLE = "analisis-ilegible"
 const val ETIQUETA_ANALISIS_SIN_MAPA = "analisis-sin-mapa"
 
-private const val PESO_MAPA_VERTICAL = 0.44f
-private const val PESO_DATOS_VERTICAL = 0.56f
+private const val PESO_MAPA_VERTICAL = 0.5f
+private const val PESO_DATOS_VERTICAL = 0.5f
 
 /** El mapa del análisis: recibe el estilo, el análisis (traza coloreada) y el marcador de la repetición. */
 typealias MapaDelAnalisis = @Composable (
@@ -158,7 +159,10 @@ private fun DatosDelAnalisis(
     }
 }
 
-/** El mapa con la leyenda arriba y el mando de la repetición abajo; sin datos de mapa, un aviso en su lugar. */
+/**
+ * El mapa protagonista, con la leyenda de velocidad en una línea debajo y el mando de la repetición de 56 dp tras ella
+ * (nada tapa el mapa); sin datos de mapa, un aviso en su lugar.
+ */
 @Composable
 private fun ZonaMapa(
     estado: AnalisisUiState,
@@ -167,25 +171,31 @@ private fun ZonaMapa(
     mapa: MapaDelAnalisis,
     modifier: Modifier = Modifier,
 ) {
-    Box(modifier.background(MaterialTheme.colorScheme.surfaceContainerLowest, MaterialTheme.shapes.medium)) {
-        val estilo = estado.estiloMapaJson
-        if (estilo != null) {
-            mapa(estilo, analisis, estado.posicion?.punto, Modifier.fillMaxSize())
-            LeyendaVelocidad(analisis.escala, Modifier.align(Alignment.TopStart).padding(Espacio.s))
-        } else {
-            Text(
-                text = stringResource(R.string.analisis_sin_mapa),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.Center).padding(Espacio.xl).testTag(ETIQUETA_ANALISIS_SIN_MAPA),
-            )
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest),
+        ) {
+            val estilo = estado.estiloMapaJson
+            if (estilo != null) {
+                mapa(estilo, analisis, estado.posicion?.punto, Modifier.fillMaxSize())
+            } else {
+                Text(
+                    text = stringResource(R.string.analisis_sin_mapa),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier =
+                        Modifier.align(Alignment.Center).padding(Espacio.xl).testTag(ETIQUETA_ANALISIS_SIN_MAPA),
+                )
+            }
         }
-        ControlesRepeticion(
-            estado = estado.repeticion,
-            duracionMs = analisis.totalMs,
-            acciones = acciones,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(Espacio.s),
-        )
+        if (estado.estiloMapaJson != null) {
+            LeyendaVelocidad(analisis.escala, Modifier.padding(horizontal = Espacio.xs))
+        }
+        ControlesRepeticion(estado = estado.repeticion, duracionMs = analisis.totalMs, acciones = acciones)
     }
 }

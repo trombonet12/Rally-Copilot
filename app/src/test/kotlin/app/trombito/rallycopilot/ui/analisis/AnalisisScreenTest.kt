@@ -90,7 +90,7 @@ class AnalisisScreenTest {
     fun `la cabecera trae el tramo, la fecha, el tiempo total y el delta contra la comparada`() {
         val e = estado()
         poner(e)
-        assertEquals(listOf("MA-2141 · ESCORCA"), textos(ETIQUETA_ANALISIS_TITULO))
+        assertEquals(listOf("Ma-2141 · Escorca"), textos(ETIQUETA_ANALISIS_TITULO))
         assertTrue(Regex("""\d+ \w{3} \d{4} · \d{2}:\d{2}""").matches(textos(ETIQUETA_ANALISIS_FECHA).single()))
         assertEquals(listOf(formatearTiempoPrueba(lenta.totalMs)), textos(ETIQUETA_ANALISIS_TOTAL))
         val delta = textos(ETIQUETA_ANALISIS_DELTA).single()
@@ -140,10 +140,10 @@ class AnalisisScreenTest {
     }
 
     @Test
-    fun `sin otras pasadas no hay selector y se explica`() {
+    fun `sin otras pasadas no hay selector y la ficha dice sin comparar`() {
         poner(estado(contra = null).copy(opciones = emptyList()))
         assertFalse(banco.hay(ETIQUETA_COMPARAR_NINGUNA))
-        assertTrue(textos(ETIQUETA_ANALISIS_COMPARADA).single().startsWith("Es la única pasada"))
+        assertEquals(listOf("Sin comparar"), textos(ETIQUETA_ANALISIS_COMPARADA))
     }
 
     @Test
@@ -152,8 +152,14 @@ class AnalisisScreenTest {
         (1..4).forEach { assertTrue("sector $it", banco.hay("$ETIQUETA_FILA_SECTOR$it")) }
         assertFalse(banco.hay("${ETIQUETA_FILA_SECTOR}5"))
         assertTrue(banco.hay(ETIQUETA_FILA_TOTAL))
-        // Un microsector por kilómetro: 4,4 km dan 5
+        // Los microsectores van plegados bajo «Ver microsectores (N)»; un microsector por kilómetro: 4,4 km dan 5
+        assertEquals(0, banco.etiquetas(ETIQUETA_FILA_MICRO).size)
+        assertEquals(listOf("Ver microsectores (5)"), textos(ETIQUETA_MICROS_INTERRUPTOR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_MICROS_INTERRUPTOR))
         assertEquals(5, banco.etiquetas(ETIQUETA_FILA_MICRO).size)
+        assertEquals(listOf("Ocultar microsectores"), textos(ETIQUETA_MICROS_INTERRUPTOR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_MICROS_INTERRUPTOR))
+        assertEquals(0, banco.etiquetas(ETIQUETA_FILA_MICRO).size)
     }
 
     @Test
@@ -185,11 +191,18 @@ class AnalisisScreenTest {
     }
 
     @Test
-    fun `sin comparada la columna de delta queda en rayas`() {
+    fun `sin comparada la tabla no tiene columna de delta`() {
         poner(estado(contra = null))
-        assertTrue("—" in textos("${ETIQUETA_FILA_SECTOR}1"))
+        assertFalse("—" in textos("${ETIQUETA_FILA_SECTOR}1"))
+        assertFalse("—" in textos(ETIQUETA_FILA_TOTAL))
+        assertFalse(banco.todosLosTextos().contains("DELTA"))
         assertTrue(banco.descripcion(banco.conEtiqueta("${ETIQUETA_FILA_SECTOR}1"))!!.contains("sin comparada"))
-        assertTrue("—" in textos(ETIQUETA_FILA_TOTAL))
+    }
+
+    @Test
+    fun `con comparada la tabla si tiene columna de delta`() {
+        poner(estado())
+        assertTrue(banco.todosLosTextos().contains("DELTA"))
     }
 
     @Test

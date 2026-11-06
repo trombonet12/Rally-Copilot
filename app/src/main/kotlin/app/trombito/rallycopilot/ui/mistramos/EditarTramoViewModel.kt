@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.edicion.EditorTramo
 import app.trombito.rallycopilot.domain.edicion.TramoEditable
 import app.trombito.rallycopilot.motor.edicion.AccionEdicion
@@ -45,6 +46,29 @@ data class EditarTramoUiState(
     val microsectoresM: List<Double> = emptyList(),
     val editor: EditorDeTramo? = null,
     val simplificadas: Boolean = false,
+    /** Estilo del mapa offline; null = aún no se ha leído o no hay mapa instalado. */
+    val estiloMapaJson: String? = null,
+    /** Inicio (m) de la nota elegida en el mapa o en la lista; null = ninguna. */
+    val seleccionM: Double? = null,
+    /** Sube cada vez que una elección pide centrar el mapa en la nota (la de la lista, no la del mapa). */
+    val centrarVersion: Int = 0,
+    /** La elección actual pide centrar el mapa (viene de la lista); la del mapa no mueve la cámara. */
+    val centrarSeleccion: Boolean = false,
+)
+
+/** La nota elegida y cuántas veces se ha pedido centrarla. */
+private data class Seleccion(
+    val posicionM: Double? = null,
+    val centrarVersion: Int = 0,
+    val centrar: Boolean = false,
+)
+
+/** Lo que el ViewModel lleva aparte del tramo guardado: cortes en vuelo, estilo del mapa y nota elegida. */
+private class Locales(
+    val sectores: List<Double>?,
+    val microsectores: Int?,
+    val estilo: String?,
+    val seleccion: Seleccion,
 )
 
 /**
@@ -60,6 +84,7 @@ class EditarTramoViewModel
         guardado: SavedStateHandle,
         private val editor: EditorTramo,
         ajustes: RepositorioAjustesConduccion,
+        datosMapa: RepositorioDatosMapa,
     ) : ViewModel() {
         private val tramoId = guardado.toRoute<RutaEditarTramo>().tramoId
         private val editando = MutableStateFlow<EditorDeTramo?>(null)
@@ -67,31 +92,50 @@ class EditarTramoViewModel
         /** Cortes mientras se arrastra o recién guardados; null = los del tramo cargado. */
         private val sectoresLocales = MutableStateFlow<List<Double>?>(null)
         private val microsectoresLocales = MutableStateFlow<Int?>(null)
+        private val estiloMapa = MutableStateFlow<String?>(null)
+        private val seleccion = MutableStateFlow(Seleccion())
 
         private val tramoEditable = editor.observar(tramoId)
 
+        private val locales =
+            combine(sectoresLocales, microsectoresLocales, estiloMapa, seleccion, ::Locales)
+
         val uiState: StateFlow<EditarTramoUiState> =
-            combine(
-                tramoEditable,
-                editando,
-                sectoresLocales,
-                microsectoresLocales,
-                ajustes.ajustes,
-            ) { datos, abierto, sectores, micro, preferencias ->
+            combine(tramoEditable, editando, locales, ajustes.ajustes) { datos, abierto, local, preferencias ->
                 EditarTramoUiState(
                     cargando = false,
                     encontrado = datos != null,
                     datos = datos,
-                    sectoresM = sectores ?: datos?.tramo?.sectores.orEmpty(),
+                    sectoresM = local.sectores ?: datos?.tramo?.sectores.orEmpty(),
                     microsectoresPorKm =
-                        micro ?: datos?.let { CortesTramo.porKmDe(it.tramo.longitudM, it.tramo.microsectores) } ?: 0,
+                        local.microsectores
+                            ?: datos?.let { CortesTramo.porKmDe(it.tramo.longitudM, it.tramo.microsectores) }
+                            ?: 0,
                     microsectoresM =
-                        micro?.let { CortesTramo.microsectoresPorKm(datos?.tramo?.longitudM ?: 0.0, it) }
+                        local.microsectores?.let { CortesTramo.microsectoresPorKm(datos?.tramo?.longitudM ?: 0.0, it) }
                             ?: datos?.tramo?.microsectores.orEmpty(),
                     editor = abierto,
                     simplificadas = preferencias.notasSimplificadas,
+                    estiloMapaJson = local.estilo,
+                    seleccionM = local.seleccion.posicionM,
+                    centrarVersion = local.seleccion.centrarVersion,
+                    centrarSeleccion = local.seleccion.centrar,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), EditarTramoUiState())
+
+        init {
+            viewModelScope.launch { estiloMapa.value = datosMapa.estilos()?.vectorial }
+        }
+
+        /** Elige [nota] (resaltada en el mapa y en la lista); con [centrar] el mapa se va a ella. */
+        fun onSeleccionar(
+            nota: Nota,
+            centrar: Boolean,
+        ) {
+            seleccion.update {
+                Seleccion(nota.posicionM, if (centrar) it.centrarVersion + 1 else it.centrarVersion, centrar)
+            }
+        }
 
         fun onTocarNota(nota: Nota) {
             editando.value = EditorDeTramo(nota.posicionM, nota)

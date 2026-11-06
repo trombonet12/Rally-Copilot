@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.mistramos
 import androidx.compose.ui.geometry.Offset
 import androidx.lifecycle.SavedStateHandle
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.edicion.EditorTramo
 import app.trombito.rallycopilot.domain.edicion.TramoEditable
 import app.trombito.rallycopilot.motor.edicion.AccionEdicion
@@ -13,6 +14,7 @@ import app.trombito.rallycopilot.motor.notas.HojaNotas
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -75,11 +77,14 @@ class EditarTramoViewModelTest {
             MutableStateFlow(TramoEditable(tramo, HojaNotas(listOf(ElementoHoja.DeNota(curva))), emptyList(), 0)),
         )
 
+    private var estilos: EstilosMapa? = EstilosMapa("{\"version\":8}", null)
+
     private fun viewModel() =
         EditarTramoViewModel(
             SavedStateHandle(mapOf("tramoId" to "t1")),
             editor,
             FalsoRepositorioAjustesConduccion(AjustesConduccion()),
+            FalsoRepositorioDatosMapa(estilosDisponibles = estilos),
         )
 
     /** Empieza a recoger el estado (el ViewModel solo lo calcula con un suscriptor) y devuelve el último valor. */
@@ -197,10 +202,36 @@ class EditarTramoViewModelTest {
         assertEquals(lienzo.longitudM / 2, proyeccion.metros, lienzo.longitudM * 0.01)
         assertEquals(lienzo.trazo.first(), lienzo.pixelEn(-50.0))
         assertEquals(lienzo.trazo.last().y, lienzo.pixelEn(1e9).y, 0.5f)
-        val nota = Nota(lienzo.longitudM / 2 - 20, lienzo.longitudM / 2 + 20, Direccion.DERECHA, 3)
-        assertEquals(nota, notaCercana(lienzo, listOf(nota), mitad + Offset(4f, 4f), 20f))
-        assertNull(notaCercana(lienzo, listOf(nota), mitad + Offset(100f, 0f), 20f))
-        assertEquals(1, corteCercano(lienzo, listOf(100.0, lienzo.longitudM / 2), mitad, 20f))
-        assertNull(corteCercano(lienzo, listOf(100.0), mitad, 20f))
+    }
+
+    @Test
+    fun `elegir una nota la deja elegida y solo pide centrar el mapa si viene de la lista`() {
+        val vm = viewModel()
+        val recogida = vm.uiState.collectAhora()
+        assertNull(recogida().seleccionM)
+        assertEquals(0, recogida().centrarVersion)
+
+        vm.onSeleccionar(curva, centrar = false)
+        assertEquals(300.0, recogida().seleccionM!!, 1e-9)
+        assertEquals(0, recogida().centrarVersion)
+        assertEquals(false, recogida().centrarSeleccion)
+
+        vm.onSeleccionar(curva, centrar = true)
+        assertEquals(1, recogida().centrarVersion)
+        assertEquals(true, recogida().centrarSeleccion)
+        vm.onSeleccionar(curva, centrar = true)
+        assertEquals(2, recogida().centrarVersion)
+        // Elegir otra vez desde el mapa no mueve la cámara
+        vm.onSeleccionar(curva, centrar = false)
+        assertEquals(false, recogida().centrarSeleccion)
+        // Elegir no abre el editor
+        assertNull(recogida().editor)
+    }
+
+    @Test
+    fun `lleva el estilo del mapa instalado y sin mapa lo deja vacio`() {
+        assertEquals("{\"version\":8}", viewModel().uiState.collectAhora()().estiloMapaJson)
+        estilos = null
+        assertNull(viewModel().uiState.collectAhora()().estiloMapaJson)
     }
 }

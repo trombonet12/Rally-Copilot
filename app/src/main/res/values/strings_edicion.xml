@@ -19,7 +19,10 @@
     <string name="edicion_nota_mapa">Nota a %1$d m: %2$s</string>
     <string name="edicion_editar_notas">Editar notas</string>
     <string name="edicion_tramo_titulo">Notas y sectores</string>
-    <string name="edicion_ayuda">Toca una nota para editarla o un punto del trazo para añadir una. Arrastra los cortes para mover los sectores.</string>
+    <string name="edicion_ayuda">Toca una nota en el mapa o en la lista para elegirla; el lápiz de su fila (o tocarla otra vez en el mapa) la abre para corregirla. Toca un punto del trazo para añadir una nota. Arrastra los cortes de sector (C1, C2…) por el mapa para moverlos. Con dos dedos haces zoom.</string>
+    <string name="edicion_ayuda_titulo">Cómo editar</string>
+    <string name="edicion_ayuda_boton">Ayuda para editar las notas y los sectores</string>
+    <string name="edicion_ayuda_entendido">Entendido</string>
     <string name="edicion_restaurar">Restaurar las notas automáticas</string>
     <string name="edicion_sectores">Sectores</string>
     <string name="edicion_microsectores">Microsectores</string>
@@ -29,9 +32,16 @@
     <string name="edicion_microsectores_cada">cada %1$d m</string>
     <string name="edicion_menos">Menos microsectores</string>
     <string name="edicion_mas">Más microsectores</string>
-    <string name="edicion_marcas">Marcas: %1$d</string>
-    <string name="edicion_lienzo">Trazo del tramo con sus notas, marcas y cortes de sector</string>
-    <string name="edicion_corte">Corte de sector %1$d a %2$d m</string>
+    <string name="edicion_mapa_descripcion">Mapa del tramo con sus notas, marcas y cortes de sector. Se mueve con un dedo y se acerca con dos.</string>
+    <string name="edicion_sin_mapa">El mapa no está instalado. Descárgalo en Mapas offline para ver aquí el tramo; la lista de notas sigue funcionando.</string>
+    <string name="edicion_cargando">Cargando el tramo…</string>
+    <string name="edicion_notas_titulo">Notas (%1$d)</string>
+    <string name="edicion_editar_nota_descripcion">Editar la nota «%1$s», %2$s</string>
+    <string name="edicion_leyenda_nota">Nota</string>
+    <string name="edicion_leyenda_cuidado">Cuidado</string>
+    <string name="edicion_leyenda_marca">Marca</string>
+    <string name="edicion_leyenda_corte">Corte</string>
+    <string name="edicion_leyenda_explicacion">Marca: punto que dictaste con «marca aquí». Corte: separa los sectores; arrástralo por el mapa.</string>
     <string name="edicion_no_encontrado">Este tramo ya no existe.</string>
 
     <!-- Reconocimiento -->
