@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.domain.ajustes
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
+import app.trombito.rallycopilot.motor.voz.FiltroIndicaciones
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -26,7 +27,8 @@ enum class Orientacion { RUMBO, NORTE }
  * copiloto en porcentaje (50–150, 100 = sin cambio), aparte del volumen del móvil; [tema] es oscuro, claro o el del
  * sistema. [cronometrar] activa los tramos cronometrados (desactivado: no se crean tramos ni pasadas ni se detectan los
  * guardados, pero las notas y la navegación siguen); [notasGrandes] cambia la pantalla de conducción al modo roadbook
- * (notas enormes, casi sin mapa).
+ * (notas enormes, casi sin mapa). [avisarCruces], [avisarSalidasAutopista] y [avisarRotondas] dicen qué indicaciones se
+ * dicen y se ven (todas por defecto; ver `FiltroIndicaciones` del motor).
  */
 data class AjustesConduccion(
     val nivelZoom: Int = 0,
@@ -44,11 +46,18 @@ data class AjustesConduccion(
     val tema: Tema = Tema.PREDETERMINADO,
     val cronometrar: Boolean = true,
     val notasGrandes: Boolean = false,
+    val avisarCruces: Boolean = true,
+    val avisarSalidasAutopista: Boolean = true,
+    val avisarRotondas: Boolean = true,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }
         require(volumenVoz in VOLUMEN_VOZ_MIN..VOLUMEN_VOZ_MAX) { "volumenVoz fuera de rango: $volumenVoz" }
     }
+
+    /** Las preferencias de indicaciones como filtro del motor. */
+    val filtroIndicaciones: FiltroIndicaciones
+        get() = FiltroIndicaciones(avisarCruces, avisarSalidasAutopista, avisarRotondas)
 
     companion object {
         const val NIVEL_MIN = -2

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Salida o entrada de autopista. Icono monocromo del interruptor de indicaciones: se tiñe en la interfaz. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M15,44 L15,6" android:strokeColor="#FFFFFF" android:strokeWidth="6" />
+    <path android:pathData="M15,32 L33,14" android:strokeColor="#FFFFFF" android:strokeWidth="6" />
+    <path android:pathData="M22,13 L35,13 L35,26" android:strokeColor="#FFFFFF" android:strokeWidth="6" />
+</vector>

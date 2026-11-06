@@ -26,10 +26,14 @@ class AvisosManiobra(
         }
     }
 
-    /** Frases de maniobra vigentes en [posicionM] yendo a [vMs] (m/s), en orden de ruta. */
+    /**
+     * Frases de maniobra vigentes en [posicionM] yendo a [vMs] (m/s), en orden de ruta. Las maniobras que el [filtro]
+     * calla (rotondas, salidas de autopista) no dan ninguna de sus dos fases.
+     */
     fun candidatas(
         posicionM: Double,
         vMs: Double,
+        filtro: FiltroIndicaciones = FiltroIndicaciones(),
     ): List<Frase> {
         val v = vMs.coerceAtLeast(0.0)
         val inminenteM = (v * INMINENTE_S).coerceIn(INMINENTE_MIN_M, INMINENTE_MAX_M)
@@ -39,7 +43,7 @@ class AvisosManiobra(
             val punto = posicionesM[i]
             val distancia = punto - posicionM
             when {
-                maniobra.tipo == TipoManiobra.SALIDA || distancia < 0.0 -> {
+                maniobra.tipo == TipoManiobra.SALIDA || distancia < 0.0 || !filtro.permite(maniobra.tipo) -> {
                     null
                 }
 

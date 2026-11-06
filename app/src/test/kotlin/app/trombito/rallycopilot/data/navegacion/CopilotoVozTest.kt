@@ -6,19 +6,25 @@ import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.notas.Aviso
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.HojaNotas
 import app.trombito.rallycopilot.motor.notas.Nota
+import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import app.trombito.rallycopilot.motor.voz.Frase
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.motor.voz.TipoFrase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -464,5 +470,120 @@ class CopilotoVozTest {
         repeat(3) { c.alFijar(null, null, null, 20.0) }
 
         assertEquals(listOf("menos dos décimas"), locutor.dichas)
+    }
+}
+
+/**
+ * Qué indicaciones se dicen según `avisarCruces`, `avisarSalidasAutopista` y `avisarRotondas`: los avisos «cruce» y
+ * «rotonda» de la hoja y las maniobras de rotonda y de salida de autopista; girar en un cruce de la ruta no se calla
+ * nunca. Todo a 20 m/s desde 920 m (la curva, los avisos y las maniobras están activos a la vez).
+ */
+class CopilotoVozIndicacionesTest {
+    private val curva = ElementoHoja.DeNota(Nota(960.0, 990.0, Direccion.DERECHA, grado = 3))
+    private val hoja =
+        HojaNotas(
+            listOf(
+                ElementoHoja.DeAviso(Aviso(940.0, TipoAviso.CRUCE)),
+                ElementoHoja.DeAviso(Aviso(950.0, TipoAviso.ROTONDA)),
+                curva,
+            ),
+        )
+
+    private fun maniobra(
+        tipo: TipoManiobra,
+        salidaRotonda: Int? = null,
+    ) = Maniobra(tipo, "x", emptyList(), 0, 0, 100.0, 10.0, salidaRotonda)
+
+    private val maniobras =
+        listOf(
+            maniobra(TipoManiobra.SALIDA),
+            maniobra(TipoManiobra.ROTONDA_ENTRADA, salidaRotonda = 2),
+            maniobra(TipoManiobra.SALIDA_AUTOVIA_DERECHA),
+            maniobra(TipoManiobra.IZQUIERDA),
+        )
+    private val posiciones = listOf(0.0, 1000.0, 1010.0, 1020.0)
+
+    private val avisoCruce = "cruce"
+    private val avisoRotonda = "rotonda"
+    private val maniobraRotonda = "rotonda, segunda salida"
+    private val maniobraSalida = "salida"
+    private val giro = "cruce, izquierda"
+    private val nota = "derecha tres"
+
+    private fun dicho(ajustes: AjustesConduccion): Set<String> {
+        val locutor = LocutorFalso()
+        val copiloto = CopilotoVoz(locutor, flowOf(ajustes)).also { runBlocking { it.seguirAjustes() } }
+        val ruta = RutaVoz(AvisosManiobra(maniobras, posiciones), posiciones)
+        repeat(12) {
+            copiloto.alFijar(NotasEnCurso(hoja, 920.0, 20.0, OrigenNotas.GUIADO), ruta, 920.0, 20.0)
+        }
+        return locutor.dichas.toSet()
+    }
+
+    private fun con(
+        cruces: Boolean = true,
+        salidas: Boolean = true,
+        rotondas: Boolean = true,
+    ) = AjustesConduccion(
+        modoCopiloto = ModoCopiloto.NOTAS,
+        voz = VozCopiloto.DAVEFX,
+        avisarCruces = cruces,
+        avisarSalidasAutopista = salidas,
+        avisarRotondas = rotondas,
+    )
+
+    private val todo = setOf(avisoCruce, avisoRotonda, maniobraRotonda, maniobraSalida, giro, nota)
+
+    @Test
+    fun `con todo activo se dice todo`() {
+        assertEquals(todo, dicho(con()))
+    }
+
+    @Test
+    fun `sin cruces solo se calla el aviso de cruce y el giro de la ruta se dice`() {
+        assertEquals(todo - avisoCruce, dicho(con(cruces = false)))
+        assertTrue(giro in dicho(con(cruces = false)))
+    }
+
+    @Test
+    fun `sin salidas de autopista solo se calla la maniobra de salida`() {
+        assertEquals(todo - maniobraSalida, dicho(con(salidas = false)))
+    }
+
+    @Test
+    fun `sin rotondas se callan el aviso y la maniobra de rotonda`() {
+        assertEquals(todo - avisoRotonda - maniobraRotonda, dicho(con(rotondas = false)))
+    }
+
+    @Test
+    fun `con todo desactivado queda la curva y el giro`() {
+        assertEquals(setOf(nota, giro), dicho(con(cruces = false, salidas = false, rotondas = false)))
+    }
+
+    @Test
+    fun `lo desactivado tampoco se prepara por adelantado`() {
+        val locutor = LocutorFalso()
+        val ajustes = con(cruces = false, salidas = false, rotondas = false)
+        val copiloto = CopilotoVoz(locutor, flowOf(ajustes)).also { runBlocking { it.seguirAjustes() } }
+        val ruta = RutaVoz(AvisosManiobra(maniobras, posiciones), posiciones)
+        copiloto.alFijar(NotasEnCurso(hoja, 600.0, 20.0, OrigenNotas.GUIADO), ruta, 600.0, 20.0)
+        val preparadas = locutor.preparadas.last().toSet()
+        assertEquals(setOf(nota, giro), preparadas)
+    }
+
+    @Test
+    fun `cambiar un interruptor vale en la siguiente fijacion`() {
+        val locutor = LocutorFalso()
+        val ajustes = MutableStateFlow(con())
+        val copiloto = CopilotoVoz(locutor, ajustes)
+        val trabajo = Job()
+        CoroutineScope(Dispatchers.Unconfined + trabajo).launch { copiloto.seguirAjustes() }
+        ajustes.value = con(rotondas = false)
+        val ruta = RutaVoz(AvisosManiobra(maniobras, posiciones), posiciones)
+        repeat(12) {
+            copiloto.alFijar(NotasEnCurso(hoja, 920.0, 20.0, OrigenNotas.GUIADO), ruta, 920.0, 20.0)
+        }
+        trabajo.cancel()
+        assertEquals(todo - avisoRotonda - maniobraRotonda, locutor.dichas.toSet())
     }
 }

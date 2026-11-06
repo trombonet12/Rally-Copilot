@@ -176,3 +176,18 @@ val MIGRATION_11_12: Migration =
             db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `notasGrandes` INTEGER NOT NULL DEFAULT 0")
         }
     }
+
+/**
+ * v12 -> v13: qué indicaciones se dicen y se ven: avisos de cruce, salidas de autopista y rotondas (todos activados en
+ * la fila existente). El SQL es el `createSql` de `schemas/.../13.json`.
+ */
+val MIGRATION_12_13: Migration =
+    object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `avisarCruces` INTEGER NOT NULL DEFAULT 1")
+            db.execSQL(
+                "ALTER TABLE `ajustes_conduccion` ADD COLUMN `avisarSalidasAutopista` INTEGER NOT NULL DEFAULT 1",
+            )
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `avisarRotondas` INTEGER NOT NULL DEFAULT 1")
+        }
+    }

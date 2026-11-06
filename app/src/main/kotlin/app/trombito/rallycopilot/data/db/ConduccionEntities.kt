@@ -24,6 +24,9 @@ data class AjustesConduccionEntity(
     @ColumnInfo(defaultValue = "'OSCURO'") val tema: String = "OSCURO",
     @ColumnInfo(defaultValue = "1") val cronometrar: Boolean = true,
     @ColumnInfo(defaultValue = "0") val notasGrandes: Boolean = false,
+    @ColumnInfo(defaultValue = "1") val avisarCruces: Boolean = true,
+    @ColumnInfo(defaultValue = "1") val avisarSalidasAutopista: Boolean = true,
+    @ColumnInfo(defaultValue = "1") val avisarRotondas: Boolean = true,
 )
 
 /** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */

@@ -39,6 +39,10 @@ data class CopilotoUiState(
     val volumenVoz: Int = AjustesConduccion.VOLUMEN_VOZ_NORMAL,
     /** Modo roadbook: la pantalla de conducción enseña las notas enormes y casi nada de mapa. */
     val notasGrandes: Boolean = false,
+    /** Indicaciones que se dicen y se ven (cruces, salidas y entradas de autopista, rotondas); todas por defecto. */
+    val avisarCruces: Boolean = true,
+    val avisarSalidasAutopista: Boolean = true,
+    val avisarRotondas: Boolean = true,
 ) {
     /** Hay que enseñar el diálogo «Elige la voz del copiloto». */
     val pedirVoz: Boolean get() = cargado && voz == null && !vozPospuesta
@@ -68,6 +72,9 @@ class CopilotoViewModel
                     notasSimplificadas = ajustes.notasSimplificadas,
                     volumenVoz = ajustes.volumenVoz,
                     notasGrandes = ajustes.notasGrandes,
+                    avisarCruces = ajustes.avisarCruces,
+                    avisarSalidasAutopista = ajustes.avisarSalidasAutopista,
+                    avisarRotondas = ajustes.avisarRotondas,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), CopilotoUiState())
 
@@ -101,6 +108,19 @@ class CopilotoViewModel
 
         fun onNotasSimplificadas(simplificadas: Boolean) {
             cambiar { it.copy(notasSimplificadas = simplificadas) }
+        }
+
+        /** Interruptores de indicaciones de la hoja rápida: valen desde la siguiente fijación, conduciendo. */
+        fun onAvisarCruces(avisar: Boolean) {
+            cambiar { it.copy(avisarCruces = avisar) }
+        }
+
+        fun onAvisarSalidasAutopista(avisar: Boolean) {
+            cambiar { it.copy(avisarSalidasAutopista = avisar) }
+        }
+
+        fun onAvisarRotondas(avisar: Boolean) {
+            cambiar { it.copy(avisarRotondas = avisar) }
         }
 
         /** Volumen propio de la voz (50–150 %): se aplica al locutor al instante, también conduciendo. */

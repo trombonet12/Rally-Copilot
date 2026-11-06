@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.notas.ProveedorNotas
 import app.trombito.rallycopilot.motor.notas.SelectorNotas
+import app.trombito.rallycopilot.motor.voz.HojaFiltrada
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +20,8 @@ internal const val NOTAS_VISIBLES = 3
 
 /**
  * Presentación de la franja de notas: combina las [ProveedorNotas.notas] en vivo (hoja, posición y velocidad) con la
- * anticipación y las notas simplificadas de los ajustes, y deja a [SelectorNotas] elegir los próximos elementos.
+ * anticipación y las notas simplificadas de los ajustes, y deja a [SelectorNotas] elegir los próximos elementos de la
+ * hoja sin los avisos (cruce, rotonda) que el piloto ha desactivado: lo que se ve es lo que se dice.
  */
 @HiltViewModel
 class NotasViewModel
@@ -29,6 +31,7 @@ class NotasViewModel
         ajustes: RepositorioAjustesConduccion,
     ) : ViewModel() {
         private val selector = SelectorNotas()
+        private val hojaFiltrada = HojaFiltrada()
 
         val uiState: StateFlow<NotasUiState> =
             combine(proveedor.notas, ajustes.ajustes) { notas, preferencias ->
@@ -38,7 +41,7 @@ class NotasViewModel
                     NotasUiState(
                         visibles =
                             selector.siguientes(
-                                hoja = notas.hoja,
+                                hoja = hojaFiltrada.de(notas.hoja, preferencias.filtroIndicaciones),
                                 posicionM = notas.posicionM,
                                 vMs = notas.vMs ?: 0.0,
                                 nivel = preferencias.anticipacion,

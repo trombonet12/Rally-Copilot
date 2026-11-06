@@ -49,6 +49,9 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         tema = enumOrNull<Tema>(tema) ?: defecto.tema,
         cronometrar = cronometrar,
         notasGrandes = notasGrandes,
+        avisarCruces = avisarCruces,
+        avisarSalidasAutopista = avisarSalidasAutopista,
+        avisarRotondas = avisarRotondas,
     )
 }
 
@@ -69,6 +72,9 @@ internal fun AjustesConduccion.aEntidad() =
         tema = tema.name,
         cronometrar = cronometrar,
         notasGrandes = notasGrandes,
+        avisarCruces = avisarCruces,
+        avisarSalidasAutopista = avisarSalidasAutopista,
+        avisarRotondas = avisarRotondas,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

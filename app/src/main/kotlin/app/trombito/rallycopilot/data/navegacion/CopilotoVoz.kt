@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.motor.notas.SelectorNotas
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import app.trombito.rallycopilot.motor.voz.CandidatasNotas
 import app.trombito.rallycopilot.motor.voz.Frase
+import app.trombito.rallycopilot.motor.voz.HojaFiltrada
 import app.trombito.rallycopilot.motor.voz.IdsEstablesNotas
 import app.trombito.rallycopilot.motor.voz.PlanificadorFrases
 import app.trombito.rallycopilot.motor.voz.TipoFrase
@@ -44,6 +45,7 @@ class CopilotoVoz(
     private val alDecir: ((String) -> Unit)? = null,
 ) {
     private val selector = SelectorNotas()
+    private val hojaFiltrada = HojaFiltrada()
     private val planificador = PlanificadorFrases(locutor::duracionEstimadaS)
     private val ids = IdsEstablesNotas()
 
@@ -75,7 +77,7 @@ class CopilotoVoz(
         porDecir += FrasePorDecir(frase, VIGENCIA_PARADA_FIJACIONES)
     }
 
-    /** Mantiene al día los ajustes (modo, voz, anticipación, notas simplificadas) hasta que se cancele. */
+    /** Mantiene al día los ajustes (modo, voz, notas, indicaciones que se callan) hasta cancelar. */
     suspend fun seguirAjustes() {
         ajustes.collect { actuales = it }
     }
@@ -114,13 +116,13 @@ class CopilotoVoz(
         }
         val v = vMs ?: 0.0
         val visibles = visibles(notas, a, v)
-        val maniobras = maniobras(ruta, posicionM, v)
+        val maniobras = maniobras(ruta, posicionM, v, a)
         val idDe = idsDe(notas)
         val pendientes = pendientesVigentes()
         val activas = CandidatasNotas.de(visibles, a.notasSimplificadas, idDe) + maniobras + alertas + pendientes
         val previstas =
             CandidatasNotas.de(visibles.map { it.copy(activa = true) }, a.notasSimplificadas, idDe) +
-                maniobras + inminentesPrevistos(ruta, posicionM)
+                maniobras + inminentesPrevistos(ruta, posicionM, a)
         if (!locutor.hablando.value) {
             planificador.siguiente(activas, posicionM, vMs, a.modoCopiloto)?.let {
                 porDecir.removeAll { p -> p.frase.id == it.id }
@@ -149,7 +151,11 @@ class CopilotoVoz(
         a: AjustesConduccion,
         vMs: Double,
     ): List<NotaVisible> =
-        notas?.let { selector.siguientes(it.hoja, it.posicionM, vMs, a.anticipacion, NOTAS_CONSIDERADAS) }.orEmpty()
+        notas
+            ?.let {
+                val hoja = hojaFiltrada.de(it.hoja, a.filtroIndicaciones)
+                selector.siguientes(hoja, it.posicionM, vMs, a.anticipacion, NOTAS_CONSIDERADAS)
+            }.orEmpty()
 
     /**
      * Id de cada elemento de la hoja, independiente del origen de la hoja: si se conoce la traza, la misma curva en una
@@ -160,15 +166,19 @@ class CopilotoVoz(
         return { ids.id(it, puntoEn(it.posicionM)) }
     }
 
-    /** Frases de maniobra vigentes ahora; el id lleva la generación de la ruta para que un recálculo no las calle. */
+    /**
+     * Frases de maniobra vigentes ahora (sin las familias que los ajustes callan); el id lleva la generación de la ruta
+     * para que un recálculo no las calle.
+     */
     private fun maniobras(
         ruta: RutaVoz?,
         posicionM: Double,
         vMs: Double,
+        a: AjustesConduccion,
     ): List<Frase> =
         ruta
             ?.avisos
-            ?.candidatas(posicionM, vMs)
+            ?.candidatas(posicionM, vMs, a.filtroIndicaciones)
             .orEmpty()
             .map(::conRuta)
 
@@ -179,13 +189,14 @@ class CopilotoVoz(
     private fun inminentesPrevistos(
         ruta: RutaVoz?,
         posicionM: Double,
+        a: AjustesConduccion,
     ): List<Frase> =
         ruta
             ?.posicionesM
             ?.filter { it > posicionM }
             ?.take(MANIOBRAS_PREPARADAS)
             ?.flatMap { punto ->
-                ruta.avisos.candidatas(punto - 1.0, 0.0).filter {
+                ruta.avisos.candidatas(punto - 1.0, 0.0, a.filtroIndicaciones).filter {
                     it.puntoM == punto && it.id.endsWith(SUFIJO_INMINENTE)
                 }
             }.orEmpty()

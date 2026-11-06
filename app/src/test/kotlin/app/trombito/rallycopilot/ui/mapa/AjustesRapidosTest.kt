@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
@@ -55,6 +56,9 @@ abstract class AjustesRapidosBase {
             onModo = { copiloto = copiloto.copy(modo = it) },
             onAnticipacion = { copiloto = copiloto.copy(anticipacion = it) },
             onNotasSimplificadas = { copiloto = copiloto.copy(notasSimplificadas = it) },
+            onAvisarCruces = { copiloto = copiloto.copy(avisarCruces = it) },
+            onAvisarSalidasAutopista = { copiloto = copiloto.copy(avisarSalidasAutopista = it) },
+            onAvisarRotondas = { copiloto = copiloto.copy(avisarRotondas = it) },
             onVolumenVoz = { copiloto = copiloto.copy(volumenVoz = it) },
             onEscucharEjemplo = { escuchas += Unit },
         )
@@ -96,6 +100,11 @@ abstract class AjustesRapidosBase {
         assertTrue("La hoja $hoja sale de la pantalla $raiz", hoja.left >= raiz.left && hoja.right <= raiz.right)
         assertTrue("La hoja $hoja sale de la pantalla $raiz", hoja.top >= raiz.top && hoja.bottom <= raiz.bottom)
         assertEquals(NivelAnticipacion.entries.size, banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).size)
+        listOf(ETIQUETA_AVISAR_CRUCES, ETIQUETA_AVISAR_SALIDAS_AUTOPISTA, ETIQUETA_AVISAR_ROTONDAS).forEach {
+            val nodo = banco.conEtiqueta(it)
+            assertTrue("$it mide ${nodo.size}", nodo.size.width >= LADO_MINIMO_PX && nodo.size.height >= LADO_MINIMO_PX)
+            assertTrue("$it sale de la hoja", nodo.boundsInRoot.right <= hoja.right)
+        }
         banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).forEach {
             val nodo = banco.conEtiqueta(it)
             assertTrue("$it mide ${nodo.size}", nodo.size.width >= LADO_MINIMO_PX && nodo.size.height >= LADO_MINIMO_PX)
@@ -155,6 +164,40 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
         banco.pulsar(banco.conEtiqueta(ETIQUETA_NOTAS_SIMPLIFICADAS).children.first { banco.esPulsable(it) })
         assertTrue(copiloto.notasSimplificadas)
         assertTrue("MEDIA" in textoDe(ETIQUETA_PREVISTA_NOTA))
+    }
+
+    private fun marcado(etiqueta: String) = banco.conEtiqueta(etiqueta).config.getOrNull(SemanticsProperties.Selected)
+
+    @Test
+    fun `la hoja trae tres interruptores de indicaciones, todos activados al empezar`() {
+        abrir()
+        listOf(ETIQUETA_AVISAR_CRUCES, ETIQUETA_AVISAR_SALIDAS_AUTOPISTA, ETIQUETA_AVISAR_ROTONDAS).forEach {
+            assertTrue("falta $it", banco.hay(it))
+            assertEquals("$it activado", true, marcado(it))
+            assertTrue("$it pulsable", banco.esPulsable(banco.conEtiqueta(it)))
+        }
+    }
+
+    @Test
+    fun `cada interruptor de indicaciones cambia solo el suyo, en vivo, y se puede volver a activar`() {
+        abrir()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_CRUCES))
+        assertFalse(copiloto.avisarCruces)
+        assertTrue(copiloto.avisarSalidasAutopista && copiloto.avisarRotondas)
+        assertEquals(false, marcado(ETIQUETA_AVISAR_CRUCES))
+
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_SALIDAS_AUTOPISTA))
+        assertFalse(copiloto.avisarSalidasAutopista)
+        assertTrue(copiloto.avisarRotondas)
+
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_ROTONDAS))
+        assertFalse(copiloto.avisarRotondas)
+        assertEquals(false, marcado(ETIQUETA_AVISAR_ROTONDAS))
+
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_CRUCES))
+        assertTrue(copiloto.avisarCruces)
+        assertEquals(true, marcado(ETIQUETA_AVISAR_CRUCES))
+        assertTrue("la hoja sigue abierta", banco.hay(ETIQUETA_RAPIDOS_PANEL))
     }
 
     @Test

@@ -4,6 +4,8 @@ import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.notas.ProveedorNotas
+import app.trombito.rallycopilot.motor.notas.Aviso
+import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.HojaNotas
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.notas.TipoAviso
@@ -165,5 +167,78 @@ class NotasViewModelTest {
                 vm.uiState.value.visibles
                     .isEmpty(),
             )
+        }
+
+    private val hojaConAvisos =
+        HojaNotas(
+            listOf(
+                deAviso(TipoAviso.CRUCE),
+                deAviso(TipoAviso.ROTONDA),
+                deNota(nota(3, posicionM = 320.0), TipoAviso.CRUCE, TipoAviso.ROTONDA),
+                ElementoHoja.DeAviso(Aviso(400.0, TipoAviso.PUENTE)),
+            ),
+        )
+
+    private fun tiposVisibles(vm: NotasViewModel) =
+        vm.uiState.value.visibles
+            .map { it.elemento }
+            .filterIsInstance<ElementoHoja.DeAviso>()
+            .map { it.aviso.tipo }
+
+    private fun frasePrimeraNota(vm: NotasViewModel) =
+        vm.uiState.value.visibles
+            .map { it.elemento }
+            .filterIsInstance<ElementoHoja.DeNota>()
+            .first()
+            .frase
+
+    @Test
+    fun `con todo activo la franja ensena cruces y rotondas como siempre`() =
+        runTest {
+            val vm = crear()
+            proveedor.mutable.value = NotasEnCurso(hojaConAvisos, 100.0, 20.0, OrigenNotas.GUIADO)
+            assertEquals(listOf(TipoAviso.CRUCE, TipoAviso.ROTONDA), tiposVisibles(vm))
+            assertEquals("cruce, rotonda, derecha tres", frasePrimeraNota(vm))
+        }
+
+    @Test
+    fun `sin cruces la franja no ensena el aviso de cruce, suelto ni unido, y deja el resto`() =
+        runTest {
+            ajustes.mutable.value = AjustesConduccion(avisarCruces = false)
+            val vm = crear()
+            proveedor.mutable.value = NotasEnCurso(hojaConAvisos, 100.0, 20.0, OrigenNotas.GUIADO)
+            assertEquals(listOf(TipoAviso.ROTONDA, TipoAviso.PUENTE), tiposVisibles(vm))
+            assertEquals("rotonda, derecha tres", frasePrimeraNota(vm))
+        }
+
+    @Test
+    fun `sin rotondas la franja no ensena el aviso de rotonda, suelto ni unido, y deja el resto`() =
+        runTest {
+            ajustes.mutable.value = AjustesConduccion(avisarRotondas = false)
+            val vm = crear()
+            proveedor.mutable.value = NotasEnCurso(hojaConAvisos, 100.0, 20.0, OrigenNotas.GUIADO)
+            assertEquals(listOf(TipoAviso.CRUCE, TipoAviso.PUENTE), tiposVisibles(vm))
+            assertEquals("cruce, derecha tres", frasePrimeraNota(vm))
+        }
+
+    @Test
+    fun `sin salidas de autopista la franja no cambia`() =
+        runTest {
+            ajustes.mutable.value = AjustesConduccion(avisarSalidasAutopista = false)
+            val vm = crear()
+            proveedor.mutable.value = NotasEnCurso(hojaConAvisos, 100.0, 20.0, OrigenNotas.GUIADO)
+            assertEquals(listOf(TipoAviso.CRUCE, TipoAviso.ROTONDA), tiposVisibles(vm))
+        }
+
+    @Test
+    fun `cambiar un interruptor cambia la franja al momento`() =
+        runTest {
+            val vm = crear()
+            proveedor.mutable.value = NotasEnCurso(hojaConAvisos, 100.0, 20.0, OrigenNotas.GUIADO)
+            assertEquals(listOf(TipoAviso.CRUCE, TipoAviso.ROTONDA), tiposVisibles(vm))
+            ajustes.mutable.value = AjustesConduccion(avisarCruces = false, avisarRotondas = false)
+            assertEquals(listOf(TipoAviso.PUENTE), tiposVisibles(vm))
+            ajustes.mutable.value = AjustesConduccion()
+            assertEquals(listOf(TipoAviso.CRUCE, TipoAviso.ROTONDA), tiposVisibles(vm))
         }
 }
