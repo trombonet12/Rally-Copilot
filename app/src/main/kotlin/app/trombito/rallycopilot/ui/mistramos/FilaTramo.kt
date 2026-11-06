@@ -47,6 +47,9 @@ import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.Radios
 import app.trombito.rallycopilot.ui.theme.Rotulo
 import app.trombito.rallycopilot.ui.tramos.formatearTiempo
+import app.trombito.rallycopilot.ui.tutorial.ConPista
+import app.trombito.rallycopilot.ui.tutorial.LadoPista
+import app.trombito.rallycopilot.ui.tutorial.Pista
 
 const val ETIQUETA_FILA_PREFIJO = "tramo-fila-"
 const val ETIQUETA_FAVORITO_PREFIJO = "tramo-favorito-"
@@ -62,6 +65,7 @@ fun FilaTramoDeslizable(
     acciones: AccionesMisTramos,
     modifier: Modifier = Modifier,
     traza: List<PuntoGeo>? = null,
+    conPista: Boolean = false,
 ) {
     val estado =
         rememberSwipeToDismissBoxState(
@@ -77,7 +81,7 @@ fun FilaTramoDeslizable(
         enableDismissFromStartToEnd = false,
         backgroundContent = { FondoBorrar() },
     ) {
-        FilaTramo(tramo, traza, acciones)
+        FilaTramo(tramo, traza, acciones, conPista)
     }
 }
 
@@ -100,6 +104,7 @@ private fun FilaTramo(
     tramo: ResumenTramo,
     traza: List<PuntoGeo>?,
     acciones: AccionesMisTramos,
+    conPista: Boolean,
 ) {
     val borrarTexto = stringResource(R.string.mistramos_borrar)
     val renombrarTexto = stringResource(R.string.mistramos_renombrar)
@@ -134,11 +139,13 @@ private fun FilaTramo(
             Miniatura(traza)
             DatosTramo(tramo, Modifier.weight(1f))
             MejorTiempo(tramo.mejorTotalMs)
-            BotonFavorito(
-                favorito = tramo.favorito,
-                onClick = { acciones.onFavorito(tramo) },
-                modifier = Modifier.testTag(ETIQUETA_FAVORITO_PREFIJO + tramo.id),
-            )
+            ConPista(Pista.MIS_TRAMOS, stringResource(R.string.pista_mis_tramos), LadoPista.ABAJO, activa = conPista) {
+                BotonFavorito(
+                    favorito = tramo.favorito,
+                    onClick = { acciones.onFavorito(tramo) },
+                    modifier = Modifier.testTag(ETIQUETA_FAVORITO_PREFIJO + tramo.id),
+                )
+            }
         }
     }
 }

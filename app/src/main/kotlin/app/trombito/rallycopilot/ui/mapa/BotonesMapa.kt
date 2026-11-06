@@ -14,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.copiloto.BotonMicrofono
@@ -24,6 +26,9 @@ import app.trombito.rallycopilot.ui.copiloto.modoAlAlternarSilencio
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.Movimiento
+import app.trombito.rallycopilot.ui.tutorial.ConPista
+import app.trombito.rallycopilot.ui.tutorial.LadoPista
+import app.trombito.rallycopilot.ui.tutorial.Pista
 
 const val ETIQUETA_COLUMNA_BOTONES = "mapa-columna-botones"
 
@@ -75,7 +80,11 @@ internal fun botonesDeLaColumna(
         )
     val fijos: List<(@Composable () -> Unit)?> =
         listOf(
-            { BotonModoCopiloto(modo, menu.actual == MenuMapa.COPILOTO, { menu.alternar(MenuMapa.COPILOTO) }) },
+            {
+                ConPista(Pista.MAPA, stringResource(R.string.pista_mapa), LadoPista.IZQUIERDA) {
+                    BotonModoCopiloto(modo, menu.actual == MenuMapa.COPILOTO, { menu.alternar(MenuMapa.COPILOTO) })
+                }
+            },
             {
                 BotonSilencio(
                     silenciado = modo == ModoCopiloto.SILENCIO,

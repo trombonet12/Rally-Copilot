@@ -79,6 +79,9 @@ data class AccionesAjustes(
     val onAvisarRotondas: (Boolean) -> Unit = {},
     val onExportarCopia: () -> Unit = {},
     val onImportarCopia: () -> Unit = {},
+    val onVerTutorial: () -> Unit = {},
+    val onAyudaNotas: () -> Unit = {},
+    val onAyudaVoz: () -> Unit = {},
 )
 
 /**

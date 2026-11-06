@@ -3,11 +3,7 @@ package app.trombito.rallycopilot.data.escucha
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.escucha.ContextoConduccion
 import app.trombito.rallycopilot.domain.escucha.EdicionPendiente
-import app.trombito.rallycopilot.domain.escucha.MarcaConPosicion
-import app.trombito.rallycopilot.domain.escucha.ProveedorContextoConduccion
-import app.trombito.rallycopilot.domain.escucha.RepositorioMarcas
 import app.trombito.rallycopilot.domain.escucha.ResultadoEscucha
-import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.edicion.Marca
 import app.trombito.rallycopilot.motor.edicion.Orden
@@ -15,62 +11,25 @@ import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
-import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-private class LocutorGrabador : Locutor {
-    override val hablando: StateFlow<Boolean> = MutableStateFlow(false)
-    val dichas = mutableListOf<String>()
-
-    override fun usarVoz(v: VozCopiloto) = Unit
-
-    override fun preparar(textos: List<String>) = Unit
-
-    override fun decir(texto: String) {
-        dichas += texto
-    }
-
-    override fun duracionEstimadaS(texto: String): Double = 0.0
-
-    override fun probar(v: VozCopiloto) = Unit
-
-    override fun cerrar() = Unit
-}
-
-private class MarcasFalsas : RepositorioMarcas {
-    val guardadas = mutableListOf<Pair<Marca, PuntoGeo?>>()
-
-    override suspend fun guardar(
-        marca: Marca,
-        posicion: PuntoGeo?,
-    ) {
-        guardadas += marca to posicion
-    }
-
-    override suspend fun deTramo(tramoId: String) = emptyList<MarcaConPosicion>()
-}
-
 class EjecutorOrdenesTest {
-    private val ajustes = FalsoRepositorioAjustesConduccion(AjustesConduccion(voz = VozCopiloto.DAVEFX))
-    private val locutor = LocutorGrabador()
-    private val memoria = MemoriaFrases()
-    private val ediciones = EdicionesFalsas()
-    private val marcas = MarcasFalsas()
-    private var contexto: ContextoConduccion? = ContextoConduccion(1_250.0, "tramo-1", PuntoGeo(39.7, 2.9))
-    private val ejecutor =
-        EjecutorOrdenes(
-            ajustes,
-            locutor,
-            memoria,
-            ediciones,
-            marcas,
-            ProveedorContextoConduccion { contexto },
-            { 777L },
-        )
+    private val banco = BancoOrdenes(CoroutineScope(Dispatchers.Default))
+    private val ajustes = banco.ajustes
+    private val locutor = banco.locutor
+    private val memoria = banco.memoria
+    private val ediciones = banco.ediciones
+    private val marcas = banco.marcas
+    private var contexto: ContextoConduccion?
+        get() = banco.contexto
+        set(valor) {
+            banco.contexto = valor
+        }
+    private val ejecutor = banco.ejecutor
 
     private fun entendido(orden: Orden) = ResultadoEscucha.Entendido(orden, "texto")
 
@@ -185,7 +144,7 @@ class EjecutorOrdenesTest {
 
             assertEquals(emptyList<Marca>(), marcas.guardadas.map { it.first })
             assertEquals(emptyList<EdicionPendiente>(), ediciones.publicadas)
-            assertEquals(listOf("no entendido", "no entendido"), locutor.dichas)
+            assertEquals(List(2) { EjecutorOrdenes.SIN_CONDUCCION }, locutor.dichas)
         }
 
     @Test
@@ -193,7 +152,7 @@ class EjecutorOrdenesTest {
         runBlocking {
             ejecutor.ejecutar(ResultadoEscucha.NoEntendido("[unk]"))
 
-            assertEquals(listOf("no entendido"), locutor.dichas)
+            assertEquals(listOf("no te he entendido, di ayuda"), locutor.dichas)
         }
 
     @Test

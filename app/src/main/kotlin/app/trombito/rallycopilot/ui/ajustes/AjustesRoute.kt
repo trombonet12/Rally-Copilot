@@ -48,6 +48,7 @@ fun AjustesSeccionRoute(
     onMapasOffline: () -> Unit,
     onVolver: () -> Unit,
     modifier: Modifier = Modifier,
+    ayuda: AccionesAyuda = AccionesAyuda(),
     viewModel: AjustesViewModel = hiltViewModel(),
     copia: CopiaViewModel = hiltViewModel(),
 ) {
@@ -71,6 +72,9 @@ fun AjustesSeccionRoute(
             acciones =
                 accionesDe(viewModel, onVolver).copy(
                     onMapasOffline = onMapasOffline,
+                    onVerTutorial = ayuda.onVerTutorial,
+                    onAyudaNotas = ayuda.onNotas,
+                    onAyudaVoz = ayuda.onVoz,
                     onExportarCopia = { guardarCopia.launch(nombreArchivoCopia()) },
                     onImportarCopia = { confirmando = true },
                 ),

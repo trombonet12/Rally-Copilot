@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.escucha
 
+import app.trombito.rallycopilot.motor.edicion.FrasesOrdenes
 import app.trombito.rallycopilot.motor.edicion.InterpreteOrdenes
 import app.trombito.rallycopilot.motor.edicion.Orden
 import app.trombito.rallycopilot.motor.notas.Direccion
@@ -51,6 +52,53 @@ class GramaticaOrdenesTest {
     @Test
     fun `se mantiene en un tamano razonable para compilarla en el movil`() {
         assertTrue(GramaticaOrdenes.frasesOrdenes().size in 1000..4000)
+    }
+
+    @Test
+    fun `lleva las preguntas y las ordenes de control mapa y cronometro`() {
+        val frases = frasesDe(GramaticaOrdenes.jsonOrdenes())
+
+        val nuevas =
+            listOf(
+                "cuánto falta",
+                "a qué hora llego",
+                "qué límite hay",
+                "dónde estoy",
+                "cómo voy",
+                "modo notas",
+                "solo avisos",
+                "completo",
+                "modo silencio",
+                "sube el volumen",
+                "baja el volumen",
+                "notas sencillas",
+                "notas completas",
+                "sin cruces",
+                "con rotondas",
+                "sin salidas",
+                "satélite",
+                "mapa",
+                "norte arriba",
+                "rumbo arriba",
+                "acerca",
+                "aleja",
+                "salida",
+                "para el crono",
+                "avisa radar aquí",
+                "sí",
+                "no",
+                "ayuda",
+            )
+        assertEquals(emptyList<String>(), nuevas.filterNot { it in frases })
+    }
+
+    @Test
+    fun `las ordenes nuevas apenas hacen crecer la gramatica cerrada`() {
+        val todas = GramaticaOrdenes.frasesOrdenes()
+        val deNotas = todas.size - FrasesOrdenes.frases().size
+
+        assertTrue("frases fijas: ${FrasesOrdenes.frases().size}", FrasesOrdenes.frases().size < 200)
+        assertTrue("total: ${todas.size}, de notas: $deNotas", todas.size < 3_000)
     }
 
     @Test

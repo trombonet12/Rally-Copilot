@@ -24,6 +24,18 @@ data class RutaAjustesSeccion(
     val seccion: SeccionAjustes,
 )
 
+/** Bienvenida del primer arranque (y «Ver el tutorial otra vez» de Ajustes > Ayuda). */
+@Serializable
+data object RutaBienvenida
+
+/** Ajustes > Ayuda > Qué significan las notas. */
+@Serializable
+data object RutaAyudaNotas
+
+/** Ajustes > Ayuda > Qué le puedes decir. */
+@Serializable
+data object RutaAyudaVoz
+
 @Serializable
 data object RutaAcercaDe
 

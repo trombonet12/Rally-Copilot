@@ -7,8 +7,9 @@ import androidx.room.PrimaryKey
 import androidx.room.Query
 
 /**
- * Marca dejada con la orden de voz «marca aquí». [posicionM] son metros sobre la traza del tramo activo (o sobre la
- * hoja de notas si no hay tramo); [tramoId] es el tramo activo (o null); [lat] y [lon] son la coordenada si se conoce.
+ * Marca dejada con la orden de voz «marca aquí» o «avisa radar aquí» ([etiqueta] `radar`). [posicionM] son metros
+ * sobre la traza del tramo activo (o sobre la hoja de notas si no hay tramo); [tramoId] es el tramo activo (o null);
+ * [lat] y [lon] son la coordenada si se conoce.
  */
 @Entity(tableName = "marca")
 data class MarcaEntity(
@@ -18,6 +19,7 @@ data class MarcaEntity(
     val tramoId: String?,
     val lat: Double?,
     val lon: Double?,
+    val etiqueta: String? = null,
 )
 
 @Dao

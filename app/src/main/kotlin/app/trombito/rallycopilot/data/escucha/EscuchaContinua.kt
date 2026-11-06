@@ -15,7 +15,7 @@ import kotlinx.coroutines.withContext
 import kotlin.coroutines.coroutineContext
 
 /**
- * Palabra de activación «Copiloto» (desactivada por defecto). Mientras dura la conducción y el ajuste
+ * Palabra de activación «Copiloto» (activada por defecto). Mientras dura la conducción y el ajuste
  * `activarConCopiloto` esté activo, escucha el micrófono sin parar con una gramática mínima (`["copiloto", "[unk]"]`)
  * y, al oír la palabra, suelta el micrófono y deja que [control] escuche una orden (con foco exclusivo); después vuelve
  * a esperar la palabra.

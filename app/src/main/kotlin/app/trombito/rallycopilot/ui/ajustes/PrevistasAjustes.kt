@@ -74,7 +74,7 @@ internal fun altoPrevista(seccion: SeccionAjustes): Dp? =
         SeccionAjustes.COPILOTO -> ALTO_COPILOTO
         SeccionAjustes.NOTAS -> ALTO_NOTAS
         SeccionAjustes.MAPA -> ALTO_COPILOTO
-        SeccionAjustes.DATOS, SeccionAjustes.ACERCA_DE -> null
+        SeccionAjustes.DATOS, SeccionAjustes.AYUDA, SeccionAjustes.ACERCA_DE -> null
         else -> ALTO_ESTANDAR
     }
 
@@ -108,7 +108,7 @@ internal fun PrevistaDeSeccion(
                 SeccionAjustes.MAPA -> PrevistaMapa(ajustes)
                 SeccionAjustes.ESCUCHA -> PrevistaEscucha(ajustes.activarConCopiloto)
                 SeccionAjustes.TEMA -> PrevistaTema(ajustes.tema)
-                SeccionAjustes.DATOS, SeccionAjustes.ACERCA_DE -> Unit
+                SeccionAjustes.DATOS, SeccionAjustes.AYUDA, SeccionAjustes.ACERCA_DE -> Unit
             }
         }
     }

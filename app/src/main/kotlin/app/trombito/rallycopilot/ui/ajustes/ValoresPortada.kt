@@ -27,6 +27,7 @@ internal fun valorDeSeccion(
         SeccionAjustes.ESCUCHA -> valorEscucha(ajustes.activarConCopiloto)
         SeccionAjustes.TEMA -> stringResource(ajustes.tema.nombre())
         SeccionAjustes.DATOS -> stringResource(R.string.ajustes_valor_datos)
+        SeccionAjustes.AYUDA -> stringResource(R.string.ajustes_valor_ayuda)
         SeccionAjustes.ACERCA_DE -> stringResource(R.string.ajustes_valor_acerca)
     }
 

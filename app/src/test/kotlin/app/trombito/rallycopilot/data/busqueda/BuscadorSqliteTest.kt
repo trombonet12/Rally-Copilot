@@ -115,6 +115,22 @@ class BuscadorSqliteTest {
     ) = runBlocking { buscador.buscar(texto, cerca, limite) }
 
     @Test
+    fun `los nombres de lugares son municipios y localidades sin calles ni POIs, de mas a menos importantes`() {
+        crearIndice(archivo)
+
+        val nombres = runBlocking { buscador.nombresDeLugares(10) }
+
+        assertEquals(listOf("Cala d'Or", "Sóller", "Port de Sóller"), nombres)
+        assertEquals(listOf("Cala d'Or"), runBlocking { buscador.nombresDeLugares(1) })
+        assertTrue(runBlocking { buscador.nombresDeLugares(0) }.isEmpty())
+    }
+
+    @Test
+    fun `sin indice no hay nombres de lugares`() {
+        assertTrue(runBlocking { buscador.nombresDeLugares(10) }.isEmpty())
+    }
+
+    @Test
     fun `sin indice instalado no devuelve nada`() {
         assertTrue(buscar("soller").isEmpty())
     }

@@ -12,6 +12,7 @@ import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import kotlinx.coroutines.flow.first
@@ -63,16 +64,16 @@ class RepositorioAjustesConduccionImplTest {
         }
 
     @Test
-    fun `activar con Copiloto esta desactivado por defecto y se guarda y se lee`() =
+    fun `activar con Copiloto esta activado por defecto y se guarda y se lee`() =
         runBlocking {
-            assertEquals(false, repositorio.ajustes.first().activarConCopiloto)
-
-            repositorio.elegirActivarConCopiloto(true)
             assertEquals(true, repositorio.ajustes.first().activarConCopiloto)
-            assertEquals(AjustesConduccion(activarConCopiloto = true), repositorio.ajustes.first())
 
             repositorio.elegirActivarConCopiloto(false)
             assertEquals(false, repositorio.ajustes.first().activarConCopiloto)
+            assertEquals(AjustesConduccion(activarConCopiloto = false), repositorio.ajustes.first())
+
+            repositorio.elegirActivarConCopiloto(true)
+            assertEquals(true, repositorio.ajustes.first().activarConCopiloto)
         }
 
     @Test
@@ -123,6 +124,35 @@ class RepositorioAjustesConduccionImplTest {
 
             repositorio.guardar(defecto.copy(salidaManual = true))
             assertEquals(true, repositorio.ajustes.first().salidaManual)
+        }
+
+    @Test
+    fun `la casa no esta fijada por defecto, se fija y se borra sin tocar el resto`() =
+        runBlocking {
+            assertEquals(null, repositorio.ajustes.first().casa)
+
+            repositorio.elegirVoz(VozCopiloto.DAVEFX)
+            repositorio.fijarCasa(PuntoGeo(39.6, 2.9))
+            val conCasa = repositorio.ajustes.first()
+            assertEquals(PuntoGeo(39.6, 2.9), conCasa.casa)
+            assertEquals(VozCopiloto.DAVEFX, conCasa.voz)
+
+            repositorio.fijarCasa(null)
+            assertEquals(null, repositorio.ajustes.first().casa)
+            assertEquals(VozCopiloto.DAVEFX, repositorio.ajustes.first().voz)
+        }
+
+    @Test
+    fun `una casa a medias o fuera de rango en disco se lee como sin casa`() =
+        runBlocking {
+            val dao = base.ajustesConduccionDao()
+            val fila = AjustesConduccionEntity(1, 0, "FLECHA", "RUMBO", "VECTORIAL", false)
+
+            dao.guardar(fila.copy(casaLat = 39.6))
+            assertEquals(null, repositorio.ajustes.first().casa)
+
+            dao.guardar(fila.copy(casaLat = 139.6, casaLon = 2.9))
+            assertEquals(null, repositorio.ajustes.first().casa)
         }
 
     @Test

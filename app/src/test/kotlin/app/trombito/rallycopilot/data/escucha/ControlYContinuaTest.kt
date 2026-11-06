@@ -1,15 +1,10 @@
 package app.trombito.rallycopilot.data.escucha
 
-import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
-import app.trombito.rallycopilot.domain.escucha.ContextoConduccion
 import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
 import app.trombito.rallycopilot.domain.escucha.Escucha
 import app.trombito.rallycopilot.domain.escucha.ResultadoEscucha
-import app.trombito.rallycopilot.domain.voz.Locutor
-import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.edicion.Orden
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
-import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,49 +35,26 @@ private class EscuchaGuionizada(
     }
 }
 
-private class LocutorMudo(
-    override val hablando: MutableStateFlow<Boolean> = MutableStateFlow(false),
-) : Locutor {
-    val dichas = java.util.Collections.synchronizedList(mutableListOf<String>())
+/** Escucha que devuelve los resultados guionizados uno a uno (el último se repite). */
+private class EscuchaSecuencia(
+    private vararg val resultados: ResultadoEscucha,
+) : Escucha {
+    val llamadas = AtomicInteger()
+    override val escuchando: StateFlow<Boolean> = MutableStateFlow(false)
 
-    override fun usarVoz(v: VozCopiloto) = Unit
+    override fun tienePermiso(): Boolean = true
 
-    override fun preparar(textos: List<String>) = Unit
-
-    override fun decir(texto: String) {
-        dichas += texto
-    }
-
-    override fun duracionEstimadaS(texto: String): Double = 0.0
-
-    override fun probar(v: VozCopiloto) = Unit
-
-    override fun cerrar() = Unit
+    override suspend fun escuchar(): ResultadoEscucha =
+        resultados[minOf(llamadas.getAndIncrement(), resultados.lastIndex)]
 }
 
 class ControlYContinuaTest {
     private val ambito = CoroutineScope(Dispatchers.Default)
-    private val ajustes = FalsoRepositorioAjustesConduccion(AjustesConduccion(voz = VozCopiloto.DAVEFX))
-    private val locutor = LocutorMudo()
+    private val banco = BancoOrdenes(ambito)
+    private val ajustes = banco.ajustes
+    private val locutor = banco.locutor
 
-    private fun ejecutor() =
-        EjecutorOrdenes(
-            ajustes,
-            locutor,
-            MemoriaFrases(),
-            EdicionesFalsas(),
-            object : app.trombito.rallycopilot.domain.escucha.RepositorioMarcas {
-                override suspend fun guardar(
-                    marca: app.trombito.rallycopilot.motor.edicion.Marca,
-                    posicion: app.trombito.rallycopilot.motor.geo.PuntoGeo?,
-                ) = Unit
-
-                override suspend fun deTramo(tramoId: String) =
-                    emptyList<app.trombito.rallycopilot.domain.escucha.MarcaConPosicion>()
-            },
-            { ContextoConduccion(0.0, null, null) },
-            { 1L },
-        )
+    private fun ejecutor() = banco.ejecutor
 
     @Test
     fun `escuchar una orden la ejecuta y una segunda peticion mientras escucha se ignora`() =
@@ -115,7 +87,7 @@ class ControlYContinuaTest {
             withTimeout(5_000) { control.escuchando.first { !it } }
 
             assertEquals(1, escucha.llamadas.get())
-            assertEquals(listOf("no entendido"), locutor.dichas.toList())
+            assertEquals(listOf("no te he entendido, di ayuda"), locutor.dichas.toList())
         }
 
     private class ReconocedorDeActivacion(
@@ -192,6 +164,57 @@ class ControlYContinuaTest {
         }
 
     @Test
+    fun `tras una pregunta de si o no escucha una vez mas la respuesta y la ejecuta`() =
+        runBlocking {
+            banco.estado = guiandoCon(10_000.0, 600.0, 0L)
+            val escucha =
+                EscuchaSecuencia(
+                    ResultadoEscucha.Entendido(Orden.ParaCrono, "para el crono"),
+                    ResultadoEscucha.Entendido(Orden.Confirma(true), "sí"),
+                )
+            val control = ControlOrdenesImpl(escucha, ejecutor(), locutor, ambito)
+
+            control.escucharOrden()
+            withTimeout(5_000) { control.escuchando.first { !it } }
+
+            assertEquals(2, escucha.llamadas.get())
+            assertEquals(1, banco.terminadas)
+            assertEquals(listOf("di sí para terminar", "conducción terminada"), locutor.dichas.toList())
+            assertEquals(false, banco.ejecutor.esperaConfirmacion)
+        }
+
+    @Test
+    fun `si no se responde a la pregunta se cancela y no se termina`() =
+        runBlocking {
+            banco.estado = guiandoCon(10_000.0, 600.0, 0L)
+            val escucha =
+                EscuchaSecuencia(
+                    ResultadoEscucha.Entendido(Orden.ParaCrono, "para el crono"),
+                    ResultadoEscucha.NoEntendido(""),
+                )
+            val control = ControlOrdenesImpl(escucha, ejecutor(), locutor, ambito)
+
+            control.escucharOrden()
+            withTimeout(5_000) { control.escuchando.first { !it } }
+
+            assertEquals(0, banco.terminadas)
+            assertEquals(listOf("di sí para terminar", "cancelado"), locutor.dichas.toList())
+            assertEquals(false, banco.ejecutor.esperaConfirmacion)
+        }
+
+    @Test
+    fun `una orden normal no abre una segunda escucha`() =
+        runBlocking {
+            val escucha = EscuchaSecuencia(ResultadoEscucha.Entendido(Orden.Habla, "habla"))
+            val control = ControlOrdenesImpl(escucha, ejecutor(), locutor, ambito)
+
+            control.escucharOrden()
+            withTimeout(5_000) { control.escuchando.first { !it } }
+
+            assertEquals(1, escucha.llamadas.get())
+        }
+
+    @Test
     fun `al oir la palabra suena el tic antes de escuchar la orden`() =
         runBlocking {
             val orden = java.util.Collections.synchronizedList(mutableListOf<String>())
@@ -234,6 +257,7 @@ class ControlYContinuaTest {
                     null
                 }
             val control = ControlFalso()
+            ajustes.mutable.value = ajustes.mutable.value.copy(activarConCopiloto = false)
 
             val desactivado =
                 ambito.launch {

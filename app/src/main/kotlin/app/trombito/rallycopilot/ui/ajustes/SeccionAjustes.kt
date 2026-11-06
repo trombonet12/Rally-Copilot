@@ -28,6 +28,7 @@ enum class SeccionAjustes(
     ESCUCHA("escucha"),
     TEMA("tema"),
     DATOS("datos"),
+    AYUDA("ayuda"),
     ACERCA_DE("acerca"),
 }
 
@@ -43,6 +44,7 @@ internal fun SeccionAjustes.titulo(): Int =
         SeccionAjustes.ESCUCHA -> R.string.ajustes_seccion_escucha
         SeccionAjustes.TEMA -> R.string.ajustes_seccion_tema
         SeccionAjustes.DATOS -> R.string.ajustes_seccion_datos
+        SeccionAjustes.AYUDA -> R.string.ajustes_seccion_ayuda
         SeccionAjustes.ACERCA_DE -> R.string.ajustes_seccion_acerca
     }
 
@@ -57,5 +59,6 @@ internal fun SeccionAjustes.icono(): ImageVector =
         SeccionAjustes.ESCUCHA -> Iconos.Microfono
         SeccionAjustes.TEMA -> Iconos.TemaOscuro
         SeccionAjustes.DATOS -> Iconos.Descarga
+        SeccionAjustes.AYUDA -> Iconos.Ayuda
         SeccionAjustes.ACERCA_DE -> Iconos.Informacion
     }

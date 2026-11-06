@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Bienvenida: seis páginas deslizables al primer arranque -->
+    <string name="tutorial_saltar">Saltar</string>
+    <string name="tutorial_siguiente">Siguiente</string>
+    <string name="tutorial_empezar">Empezar</string>
+    <string name="tutorial_pagina">Página %1$d de %2$d</string>
+
+    <string name="tutorial_notas_titulo">Notas de rally en cada curva</string>
+    <string name="tutorial_notas_a">«Derecha 4»: dirección y grado, del 6 (casi recta) al 1 (la más cerrada).</string>
+    <string name="tutorial_notas_b">La escuadra y la horquilla tienen su propio icono.</string>
+    <string name="tutorial_notas_nota">DERECHA 4</string>
+    <string name="tutorial_notas_suave">Suave</string>
+    <string name="tutorial_notas_cerrada">Cerrada</string>
+    <string name="tutorial_notas_escuadra">Escuadra</string>
+    <string name="tutorial_notas_horquilla">Horquilla</string>
+
+    <string name="tutorial_voz_titulo">Di «Copiloto» y pregunta</string>
+    <string name="tutorial_voz_a">Funciona sin conexión y sin tocar el móvil.</string>
+    <string name="tutorial_voz_b">Pregunta por la ruta, cambia el modo o pide un destino.</string>
+    <string name="tutorial_voz_palabra">Copiloto</string>
+    <string name="tutorial_voz_chip_falta">«¿Cuánto falta?»</string>
+    <string name="tutorial_voz_chip_notas">«Modo notas»</string>
+    <string name="tutorial_voz_chip_satelite">«Satélite»</string>
+    <string name="tutorial_voz_chip_llevame">«Llévame a Sóller»</string>
+
+    <string name="tutorial_crono_titulo">Cada trayecto es un tramo</string>
+    <string name="tutorial_crono_a">En LISTO esperas la salida: arranca al moverte o con cuenta atrás.</string>
+    <string name="tutorial_crono_b">En meta ves tu tiempo y el delta: ▼ ganas tiempo, ▲ lo pierdes.</string>
+    <string name="tutorial_crono_listo">LISTO</string>
+    <string name="tutorial_crono_salida">SALIDA</string>
+    <string name="tutorial_crono_meta">META</string>
+    <string name="tutorial_crono_delta">▼ 1,2 s</string>
+
+    <string name="tutorial_radar_titulo">Radares y avisos a tiempo</string>
+    <string name="tutorial_radar_a">Te avisa del radar y de su límite antes de llegar.</string>
+    <string name="tutorial_radar_b">Si el radar mira al otro sentido, te lo indica sin alarmarte.</string>
+    <string name="tutorial_radar_bocadillo">Radar fijo 80</string>
+    <string name="tutorial_radar_contrario">Radar · sentido contrario</string>
+
+    <string name="tutorial_offline_titulo">Todo funciona sin conexión</string>
+    <string name="tutorial_offline_a">Mapas, notas, voz y radares viven en el móvil: sin cobertura sigue igual.</string>
+    <string name="tutorial_offline_b">El mapa satélite es opcional y se descarga aparte.</string>
+    <string name="tutorial_offline_mapa">Mapa</string>
+    <string name="tutorial_offline_satelite">Satélite</string>
+
+    <string name="tutorial_permisos_titulo">Un último paso</string>
+    <string name="tutorial_permisos_a">Concede los permisos ahora o más tarde, cuando los necesites.</string>
+    <string name="tutorial_permisos_b">Sin ellos algunas funciones se quedan apagadas.</string>
+    <string name="tutorial_permiso_ubicacion">Ubicación</string>
+    <string name="tutorial_permiso_ubicacion_para">Para saber dónde estás y cronometrar tus tramos.</string>
+    <string name="tutorial_permiso_ubicacion_denegado">Sin ubicación no hay mapa en vivo, notas ni cronómetro.</string>
+    <string name="tutorial_permiso_microfono">Micrófono</string>
+    <string name="tutorial_permiso_microfono_para">Para decir «Copiloto» y dar órdenes de voz.</string>
+    <string name="tutorial_permiso_microfono_denegado">Sin micrófono el copiloto no te oye, pero sigue cantando las notas.</string>
+    <string name="tutorial_permiso_notificaciones">Notificaciones</string>
+    <string name="tutorial_permiso_notificaciones_para">Para mantener la guía activa con la pantalla apagada.</string>
+    <string name="tutorial_permiso_notificaciones_denegado">Sin avisos no verás la guía fuera de la app; dentro sigue igual.</string>
+    <string name="tutorial_permiso_conceder">Conceder</string>
+    <string name="tutorial_permiso_concedido">Concedido</string>
+    <string name="tutorial_permiso_ajustes">Abrir ajustes</string>
+
+    <!-- Pistas en contexto: un globo que señala un elemento, una sola vez por pantalla -->
+    <string name="pista_entendido">Entendido</string>
+    <string name="pista_descripcion">Pista</string>
+    <string name="pista_mapa">Aquí cambias lo que te canta. Debajo, el altavoz te silencia de un toque.</string>
+    <string name="pista_mis_tramos">Marca con la estrella tus tramos favoritos para tenerlos arriba.</string>
+    <string name="pista_analisis">Dale al play para ver la pasada otra vez sobre el mapa.</string>
+    <string name="pista_editar_tramo">Toca una nota para elegirla; el lápiz la edita.</string>
+
+    <!-- Ajustes > Ayuda -->
+    <string name="ajustes_seccion_ayuda">Ayuda</string>
+    <string name="ajustes_valor_ayuda">Tutorial, notas y voz</string>
+    <string name="ayuda_ver_tutorial">Ver el tutorial otra vez</string>
+    <string name="ayuda_ver_tutorial_detalle">Repasa la bienvenida y las pistas.</string>
+    <string name="ayuda_notas_titulo">Qué significan las notas</string>
+    <string name="ayuda_notas_detalle">Cada curva, escuadra, horquilla y aviso.</string>
+    <string name="ayuda_voz_titulo">Qué le puedes decir</string>
+    <string name="ayuda_voz_detalle">Las frases que entiende el copiloto.</string>
+
+    <string name="ayuda_notas_curvas">Curvas, del 6 al 1</string>
+    <string name="ayuda_grado_6">Casi recta, muy suave</string>
+    <string name="ayuda_grado_5">Suave</string>
+    <string name="ayuda_grado_4">Media</string>
+    <string name="ayuda_grado_3">Cerrada</string>
+    <string name="ayuda_grado_2">Muy cerrada</string>
+    <string name="ayuda_grado_1">La más cerrada</string>
+    <string name="ayuda_notas_formas">Formas especiales</string>
+    <string name="ayuda_escuadra">Escuadra</string>
+    <string name="ayuda_escuadra_detalle">Ángulo recto, unos 90 grados.</string>
+    <string name="ayuda_horquilla">Horquilla</string>
+    <string name="ayuda_horquilla_detalle">Giro de casi 180 grados.</string>
+    <string name="ayuda_notas_modificadores">Modificadores</string>
+    <string name="ayuda_larga">Larga</string>
+    <string name="ayuda_larga_detalle">La curva dura más de lo normal.</string>
+    <string name="ayuda_muy_larga">Muy larga</string>
+    <string name="ayuda_muy_larga_detalle">Dura mucho más: no te relajes.</string>
+    <string name="ayuda_cierra">Cierra</string>
+    <string name="ayuda_cierra_detalle">Se hace más cerrada hacia el final.</string>
+    <string name="ayuda_abre">Abre</string>
+    <string name="ayuda_abre_detalle">Se hace más suave hacia el final.</string>
+    <string name="ayuda_notas_avisos">Avisos</string>
+    <string name="ayuda_aviso_puente">Puente</string>
+    <string name="ayuda_aviso_tunel">Túnel</string>
+    <string name="ayuda_aviso_rotonda">Rotonda</string>
+    <string name="ayuda_aviso_estrecha">Estrecha</string>
+    <string name="ayuda_aviso_bache">Bache</string>
+    <string name="ayuda_aviso_baden">Badén</string>
+    <string name="ayuda_aviso_paso_nivel">Paso a nivel</string>
+    <string name="ayuda_aviso_stop">Stop</string>
+    <string name="ayuda_aviso_ceda">Ceda el paso</string>
+    <string name="ayuda_aviso_semaforo">Semáforo</string>
+    <string name="ayuda_aviso_cruce">Cruce</string>
+    <string name="ayuda_aviso_rasante">Rasante</string>
+    <string name="ayuda_aviso_salto">Salto</string>
+    <string name="ayuda_aviso_compresion">Compresión</string>
+    <string name="ayuda_aviso_cuidado">Cuidado</string>
+
+    <string name="ayuda_voz_intro">Empieza siempre por «Copiloto» y di la frase tal cual.</string>
+    <string name="ayuda_voz_grupo_ruta">Preguntas de ruta</string>
+    <string name="ayuda_voz_grupo_control">Control del copiloto</string>
+    <string name="ayuda_voz_grupo_navegacion">Navegación</string>
+    <string name="ayuda_voz_grupo_mapa">Mapa y crono</string>
+    <string name="ayuda_voz_grupo_edicion">Edición de notas</string>
+    <string name="ayuda_voz_grupo_limites">Lo que no puede hacer</string>
+    <string name="ayuda_voz_limite_dictado">Dictado libre: solo entiende las frases de esta lista.</string>
+    <string name="ayuda_voz_limite_direcciones">Direcciones que no estén en el buscador sin conexión.</string>
+    <string name="ayuda_voz_limite_idiomas">Otros idiomas: solo entiende español.</string>
+    <!-- Chuleta de voz: una frase por elemento. Ver GrupoVoz.kt para lo que existe hoy y lo que llega después. -->
+    <string-array name="ayuda_voz_ruta">
+        <item>«¿Cuánto falta?»</item>
+        <item>«¿A qué hora llego?»</item>
+        <item>«¿Qué límite hay?»</item>
+    </string-array>
+    <string-array name="ayuda_voz_control">
+        <item>«Silencio» o «Calla»</item>
+        <item>«Habla»</item>
+        <item>«Repite»</item>
+        <item>«Más pronto» y «Más tarde»</item>
+        <item>«Modo notas» y «Modo completo»</item>
+    </string-array>
+    <string-array name="ayuda_voz_navegacion">
+        <item>«Llévame a Sóller»</item>
+        <item>«Volver a casa»</item>
+        <item>«Cancela la ruta»</item>
+        <item>«Gasolinera más cercana»</item>
+        <item>«Añade parada en Valldemossa»</item>
+    </string-array>
+    <string-array name="ayuda_voz_mapa">
+        <item>«Satélite» y «Mapa»</item>
+        <item>«Marca aquí»</item>
+    </string-array>
+    <string-array name="ayuda_voz_edicion">
+        <item>«Derecha tres» o «Izquierda cuatro larga»</item>
+        <item>«Derecha dos cierra» o «Izquierda cinco abre»</item>
+        <item>«Horquilla izquierda»</item>
+        <item>«Derecha escuadra cincuenta»</item>
+        <item>«Cuidado derecha cinco»</item>
+        <item>«Quita» o «Cuidado»</item>
+    </string-array>
+</resources>

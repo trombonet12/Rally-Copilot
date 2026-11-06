@@ -43,6 +43,7 @@ class AjustesPortadaTest {
                 SeccionAjustes.ESCUCHA to "Escucha",
                 SeccionAjustes.TEMA to "Tema",
                 SeccionAjustes.DATOS to "Datos",
+                SeccionAjustes.AYUDA to "Ayuda",
                 SeccionAjustes.ACERCA_DE to "Acerca de",
             )
         assertEquals(SeccionAjustes.entries.toSet(), titulos.keys)
@@ -61,7 +62,7 @@ class AjustesPortadaTest {
         assertTrue("Todas activas" in tarjeta(SeccionAjustes.INDICACIONES))
         assertTrue("Salida automática" in tarjeta(SeccionAjustes.TRAMOS))
         assertTrue("Rumbo arriba · Mapa" in tarjeta(SeccionAjustes.MAPA))
-        assertTrue("Desactivada" in tarjeta(SeccionAjustes.ESCUCHA))
+        assertTrue("«Copiloto» activado" in tarjeta(SeccionAjustes.ESCUCHA))
         assertTrue("Oscuro" in tarjeta(SeccionAjustes.TEMA))
     }
 

@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.domain.ajustes
 
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.FiltroIndicaciones
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -23,14 +24,15 @@ enum class Orientacion { RUMBO, NORTE }
  * [notasSimplificadas] reduce las notas a las curvas relevantes. [modoCopiloto] es cuánto habla el copiloto y [voz] la
  * voz elegida (`null` = aún no se ha elegido: se pregunta en el primer uso y mientras tanto el copiloto no habla).
  * [activarConCopiloto] escucha sin parar, solo mientras se conduce, la palabra «Copiloto» para recibir una orden de voz
- * (desactivado por defecto: gasta batería y mantiene el micrófono abierto). [volumenVoz] es la ganancia propia del
- * copiloto en porcentaje (50–150, 100 = sin cambio), aparte del volumen del móvil; [tema] es oscuro, claro o el del
- * sistema. [cronometrar] activa los tramos cronometrados (desactivado: no se crean tramos ni pasadas ni se detectan los
- * guardados, pero las notas y la navegación siguen); [notasGrandes] cambia la pantalla de conducción al modo roadbook
- * (notas enormes, casi sin mapa). [avisarCruces], [avisarSalidasAutopista] y [avisarRotondas] dicen qué indicaciones se
- * dicen y se ven (todas por defecto; ver `FiltroIndicaciones` del motor). [salidaManual] hace que el cronómetro de la
- * conducción no arranque solo al moverse el coche sino cuando Joan pulsa «Salida» (cuenta atrás); desactivado = salida
- * automática.
+ * (activado por defecto desde la v15 de Room: mantiene el micrófono abierto y gasta batería). [volumenVoz] es la
+ * ganancia propia del copiloto en porcentaje (50–150, 100 = sin cambio), aparte del volumen del móvil; [tema] es
+ * oscuro, claro o el del sistema. [cronometrar] activa los tramos cronometrados (desactivado: no se crean tramos ni
+ * pasadas ni se detectan los guardados, pero las notas y la navegación siguen); [notasGrandes] cambia la pantalla de
+ * conducción al modo roadbook (notas enormes, casi sin mapa). [avisarCruces], [avisarSalidasAutopista] y
+ * [avisarRotondas] dicen qué indicaciones se dicen y se ven (todas por defecto; ver `FiltroIndicaciones` del motor).
+ * [salidaManual] hace que el cronómetro de la conducción no arranque solo al moverse el coche sino cuando Joan pulsa
+ * «Salida» (cuenta atrás); desactivado = salida automática. [casa] es el punto al que lleva «volver a casa» (`null` =
+ * aún no se ha fijado; se fija con `fijarCasa`).
  */
 data class AjustesConduccion(
     val nivelZoom: Int = 0,
@@ -43,7 +45,7 @@ data class AjustesConduccion(
     val notasSimplificadas: Boolean = false,
     val modoCopiloto: ModoCopiloto = ModoCopiloto.POR_DEFECTO,
     val voz: VozCopiloto? = null,
-    val activarConCopiloto: Boolean = false,
+    val activarConCopiloto: Boolean = true,
     val volumenVoz: Int = VOLUMEN_VOZ_NORMAL,
     val tema: Tema = Tema.PREDETERMINADO,
     val cronometrar: Boolean = true,
@@ -52,6 +54,7 @@ data class AjustesConduccion(
     val avisarSalidasAutopista: Boolean = true,
     val avisarRotondas: Boolean = true,
     val salidaManual: Boolean = false,
+    val casa: PuntoGeo? = null,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }
@@ -84,6 +87,11 @@ interface RepositorioAjustesConduccion {
     /** Activa o desactiva la escucha de la palabra «Copiloto» durante la conducción. */
     suspend fun elegirActivarConCopiloto(activar: Boolean) {
         guardar(ajustes.first().copy(activarConCopiloto = activar))
+    }
+
+    /** Fija (o, con `null`, borra) la casa a la que lleva «volver a casa»; el resto de ajustes no cambia. */
+    suspend fun fijarCasa(punto: PuntoGeo?) {
+        guardar(ajustes.first().copy(casa = punto))
     }
 
     /** Cambia solo la voz del copiloto. */

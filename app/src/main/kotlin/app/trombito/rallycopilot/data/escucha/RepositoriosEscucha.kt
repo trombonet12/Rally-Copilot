@@ -119,6 +119,7 @@ class RepositorioMarcasRoom(
                 tramoId = marca.tramoId,
                 lat = posicion?.lat,
                 lon = posicion?.lon,
+                etiqueta = marca.etiqueta,
             ),
         )
     }
@@ -126,7 +127,7 @@ class RepositorioMarcasRoom(
     override suspend fun deTramo(tramoId: String): List<MarcaConPosicion> =
         dao.deTramo(tramoId).map {
             val punto = if (it.lat != null && it.lon != null) PuntoGeo(it.lat, it.lon) else null
-            MarcaConPosicion(Marca(it.posicionM, it.tiempoMs, it.tramoId), punto)
+            MarcaConPosicion(Marca(it.posicionM, it.tiempoMs, it.tramoId, it.etiqueta), punto)
         }
 }
 

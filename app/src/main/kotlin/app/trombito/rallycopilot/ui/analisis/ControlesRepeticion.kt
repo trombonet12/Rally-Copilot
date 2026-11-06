@@ -39,6 +39,9 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.tramos.formatearTiempo
+import app.trombito.rallycopilot.ui.tutorial.ConPista
+import app.trombito.rallycopilot.ui.tutorial.LadoPista
+import app.trombito.rallycopilot.ui.tutorial.Pista
 
 const val ETIQUETA_REPETICION_PLAY = "analisis-repeticion-play"
 const val ETIQUETA_REPETICION_POSICION = "analisis-repeticion-posicion"
@@ -73,7 +76,9 @@ fun ControlesRepeticion(
                 .padding(end = Espacio.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        BotonPlay(estado.reproduciendo, acciones.onAlternarRepeticion)
+        ConPista(Pista.ANALISIS, stringResource(R.string.pista_analisis), LadoPista.ARRIBA) {
+            BotonPlay(estado.reproduciendo, acciones.onAlternarRepeticion)
+        }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

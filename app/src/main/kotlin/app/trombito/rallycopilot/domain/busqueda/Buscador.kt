@@ -18,4 +18,10 @@ interface Buscador {
         cerca: PuntoGeo?,
         limite: Int = 20,
     ): List<ResultadoBusqueda>
+
+    /**
+     * Los nombres de municipios y localidades (ciudades, pueblos y aldeas), sin repetir y de más a menos importantes,
+     * hasta [limite]; es lo que la gramática de voz ofrece como destino. Vacío sin índice instalado.
+     */
+    suspend fun nombresDeLugares(limite: Int): List<String> = emptyList()
 }

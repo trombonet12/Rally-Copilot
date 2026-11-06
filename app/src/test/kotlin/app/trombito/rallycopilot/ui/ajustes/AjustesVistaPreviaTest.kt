@@ -272,13 +272,14 @@ class AjustesVistaPreviaTest {
 
     @Test
     fun `la vista previa de escucha refleja si la palabra Copiloto esta activa`() {
-        banco.ponerAjustes(seccion = SeccionAjustes.ESCUCHA)
+        banco.ponerAjustes(AjustesConduccion(activarConCopiloto = false), SeccionAjustes.ESCUCHA)
         assertEquals("No escucha: usa el botón del micrófono", descripcionDe(ETIQUETA_PREVISTA_ESCUCHA))
     }
 
     @Test
     fun `con la palabra Copiloto activa la vista previa enseña el micro escuchando`() {
-        banco.ponerAjustes(AjustesConduccion(activarConCopiloto = true), SeccionAjustes.ESCUCHA)
+        // Activada por defecto (decisión de Joan, 2026-11-06).
+        banco.ponerAjustes(seccion = SeccionAjustes.ESCUCHA)
         assertEquals("Escucha la palabra Copiloto mientras conduces", descripcionDe(ETIQUETA_PREVISTA_ESCUCHA))
     }
 

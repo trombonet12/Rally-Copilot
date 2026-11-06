@@ -12,9 +12,14 @@ import java.text.Normalizer
  * `[cuidado] dirección escuadra [distancia]` (grado 3, escuadra); y las órdenes sueltas (quita, cuidado, repite,
  * más pronto, más tarde, silencio, habla, marca aquí).
  *
+ * Las órdenes con un lugar («llévame a Sóller», «añade parada en Inca») las reconoce [OrdenesLugar].
+ *
+ * Las órdenes de frase fija (preguntas, control del copiloto, mapa y cronómetro, diálogo) están en [FrasesOrdenes].
+ *
  * Es tolerante a mayúsculas, tildes, puntuación y palabras de relleno («el», «a la», «por favor», «copiloto»). Devuelve
  * `null` si no entiende: sin dirección o sin grado, órdenes contradictorias o más de [RUIDO_MAX] palabras desconocidas.
  */
+@Suppress("TooManyFunctions") // el intérprete reúne la normalización, las fichas y la resolución de cada tipo de orden
 object InterpreteOrdenes {
     /** Palabras desconocidas que se toleran antes de rendirse. */
     const val RUIDO_MAX = 2
@@ -134,10 +139,25 @@ object InterpreteOrdenes {
 
     /** La orden que dice [texto], o `null` si no se entiende. */
     fun interpretar(texto: String): Orden? {
-        val fichas = fichas(texto)
+        val palabras = palabras(texto)
+        val conLugar = OrdenesLugar.interpretar(palabras)
+        if (conLugar != null) return conLugar
+        val directa = OrdenesDirectas.buscar(sinRelleno(palabras)) { ficha(it) == Ficha.Desconocida }
+        return if (directa != null) directa.orden else interpretarSueltas(palabras)
+    }
+
+    /** Las notas dictadas y las órdenes sueltas (las que no son frase fija ni llevan lugar). */
+    private fun interpretarSueltas(palabras: List<String>): Orden? {
+        val fichas = palabras.map(::ficha)
         val limpio = fichas.count { it == Ficha.Desconocida } <= RUIDO_MAX && fichas.any { it !is Ficha.Relleno }
         return if (limpio) resolver(fichas) else null
     }
+
+    /** Si [palabra] (normalizada) es relleno: no cuenta para las órdenes. */
+    internal fun esRelleno(palabra: String): Boolean = palabra in RELLENO
+
+    /** Las palabras de [texto] sin relleno (es lo que comparan las frases fijas). */
+    internal fun sinRelleno(palabras: List<String>): List<String> = palabras.filter { it !in RELLENO }
 
     private fun resolver(fichas: List<Ficha>): Orden? {
         val giros = fichas.filterIsInstance<Ficha.Giro>().map { it.direccion }.distinct()
@@ -229,11 +249,11 @@ object InterpreteOrdenes {
         }
     }
 
-    private fun fichas(texto: String): List<Ficha> {
+    /** Las palabras del texto normalizadas y con las frases de [FRASES] ya sustituidas. */
+    internal fun palabras(texto: String): List<String> {
         var tira = " ${normalizar(texto)} "
         FRASES.forEach { (frase, sustituto) -> tira = tira.replace(frase, sustituto) }
-        val palabras = tira.trim().split(' ').filter { it.isNotEmpty() }
-        return palabras.map(::ficha)
+        return tira.trim().split(' ').filter { it.isNotEmpty() }
     }
 
     @Suppress("CyclomaticComplexMethod")

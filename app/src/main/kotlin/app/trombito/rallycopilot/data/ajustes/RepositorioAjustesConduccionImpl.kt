@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import kotlinx.coroutines.flow.Flow
@@ -53,8 +54,19 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         avisarSalidasAutopista = avisarSalidasAutopista,
         avisarRotondas = avisarRotondas,
         salidaManual = salidaManual,
+        casa = casaValida(),
     )
 }
+
+/** La casa guardada, o `null` si falta una de las dos coordenadas o están fuera de rango (copia dañada). */
+private fun AjustesConduccionEntity.casaValida(): PuntoGeo? {
+    val lat = casaLat?.takeIf { it in LAT_RANGO }
+    val lon = casaLon?.takeIf { it in LON_RANGO }
+    return if (lat != null && lon != null) PuntoGeo(lat, lon) else null
+}
+
+private val LAT_RANGO = -90.0..90.0
+private val LON_RANGO = -180.0..180.0
 
 internal fun AjustesConduccion.aEntidad() =
     AjustesConduccionEntity(
@@ -77,6 +89,8 @@ internal fun AjustesConduccion.aEntidad() =
         avisarSalidasAutopista = avisarSalidasAutopista,
         avisarRotondas = avisarRotondas,
         salidaManual = salidaManual,
+        casaLat = casa?.lat,
+        casaLon = casa?.lon,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

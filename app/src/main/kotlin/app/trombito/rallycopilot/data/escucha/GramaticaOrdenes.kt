@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.escucha
 
+import app.trombito.rallycopilot.motor.edicion.FrasesOrdenes
 import app.trombito.rallycopilot.motor.notas.FrasesNota
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -10,6 +11,13 @@ import kotlinx.serialization.json.JsonPrimitive
  * ninguna (sin él el reconocedor forzaría una orden falsa con cualquier ruido). Se generan desde el vocabulario del
  * motor (`FrasesNota` y la lista de distancias de las notas), de modo que lo que el copiloto canta es lo que entiende;
  * el texto reconocido pasa luego por `InterpreteOrdenes`, que es quien da el significado.
+ *
+ * Las órdenes de frase fija (preguntas, control del copiloto, mapa y cronómetro, «sí»/«no», ayuda) salen de
+ * `FrasesOrdenes` del motor, que es también lo que `InterpreteOrdenes` reconoce.
+ *
+ * Los destinos («llévame a Sóller», «vamos a Sóller», «añade parada en Sóller») salen de los nombres de lugares que se
+ * le pasan ([LugaresPronunciables]: municipios y localidades cuyas palabras conoce el modelo). Cada nombre añade tres
+ * frases y la gramática no pasa de [MAX_FRASES]: si no caben todos, se quedan los primeros (los más importantes).
  *
  * Cobertura de las notas dictadas: dirección + grado (cifra en palabra o simplificado) + `larga`/`muy larga` +
  * `cierra`/`abre` + distancia, `horquilla` + dirección + distancia y dirección + `escuadra` + distancia; con `cuidado`
@@ -38,8 +46,23 @@ object GramaticaOrdenes {
 
     private const val GRADO_MAX = 6
 
-    /** Frases de las órdenes del botón y de «Copiloto» con su orden, sin `[unk]`. */
-    fun frasesOrdenes(): List<String> = (ORDENES + DIRECCIONES.flatMap(::frasesDe)).distinct()
+    /** Tope de frases de la gramática de las órdenes (compilarla en el móvil cuesta más cuanto más grande). */
+    const val MAX_FRASES = 3_900
+
+    private val FIJAS: List<String> by lazy {
+        (ORDENES + FrasesOrdenes.frases() + DIRECCIONES.flatMap(::frasesDe)).distinct()
+    }
+
+    /**
+     * Frases de las órdenes del botón y de «Copiloto» con su orden, sin `[unk]`: las fijas y, para cada nombre de
+     * [lugares] (normalizado, con tildes), las que llevan destino hasta llenar [MAX_FRASES].
+     */
+    fun frasesOrdenes(lugares: List<String> = emptyList()): List<String> {
+        val prefijos = FrasesOrdenes.PREFIJOS_IR + FrasesOrdenes.PREFIJO_PARADA
+        val caben = ((MAX_FRASES - FIJAS.size) / prefijos.size).coerceAtLeast(0)
+        val conDestino = lugares.distinct().take(caben).flatMap { lugar -> prefijos.map { "$it $lugar" } }
+        return FIJAS + conDestino
+    }
 
     private fun frasesDe(direccion: String): List<String> {
         val numericas = GRADOS.flatMap { notaCon("$direccion $it", matices()) }
@@ -70,14 +93,15 @@ object GramaticaOrdenes {
             TENDENCIAS.map { listOf(largura, it).filter(String::isNotEmpty).joinToString(" ") }
         }
 
-    /** Gramática JSON de las órdenes: `["frase", ..., "[unk]"]`. */
-    fun jsonOrdenes(): String = json(frasesOrdenes())
+    /** Gramática JSON de las órdenes: `["frase", ..., "[unk]"]`, con los destinos de [lugares] si los hay. */
+    fun jsonOrdenes(lugares: List<String> = emptyList()): String = json(frasesOrdenes(lugares))
 
     /** Gramática JSON mínima de la palabra de activación: `["copiloto", "[unk]"]`. */
     fun jsonActivacion(): String = json(listOf(PALABRA_ACTIVACION))
 
     /** Todas las palabras distintas que usa la gramática de las órdenes (para comprobarlas contra el modelo). */
-    fun palabras(): Set<String> = (frasesOrdenes() + PALABRA_ACTIVACION).flatMap { it.split(' ') }.toSet()
+    fun palabras(lugares: List<String> = emptyList()): Set<String> =
+        (frasesOrdenes(lugares) + PALABRA_ACTIVACION).flatMap { it.split(' ') }.toSet()
 
     private fun json(frases: List<String>): String =
         Json.encodeToString(JsonArray.serializer(), JsonArray((frases + DESCONOCIDO).map(::JsonPrimitive)))

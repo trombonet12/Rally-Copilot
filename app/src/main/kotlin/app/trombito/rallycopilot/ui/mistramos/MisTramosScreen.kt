@@ -222,7 +222,9 @@ private fun ListaTramos(
         verticalArrangement = Arrangement.spacedBy(Espacio.m),
     ) {
         items(tramos, key = { it.id }) { tramo ->
-            FilaTramoDeslizable(tramo, acciones, Modifier.animateItem(), trazas[tramo.id])
+            // La pista de la estrella solo señala la primera fila.
+            val conPista = tramo.id == tramos.first().id
+            FilaTramoDeslizable(tramo, acciones, Modifier.animateItem(), trazas[tramo.id], conPista)
         }
     }
 }

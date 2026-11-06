@@ -72,6 +72,9 @@ import app.trombito.rallycopilot.ui.edicion.idMarcadorNota
 import app.trombito.rallycopilot.ui.edicion.marcadoresDe
 import app.trombito.rallycopilot.ui.edicion.textoCortoNota
 import app.trombito.rallycopilot.ui.theme.Espacio
+import app.trombito.rallycopilot.ui.tutorial.ConPista
+import app.trombito.rallycopilot.ui.tutorial.LadoPista
+import app.trombito.rallycopilot.ui.tutorial.Pista
 
 const val ETIQUETA_EDITAR_MAPA = "editar-tramo-mapa"
 const val ETIQUETA_EDITAR_SIN_MAPA = "editar-tramo-sin-mapa"
@@ -380,8 +383,8 @@ private fun ListaNotas(
                 modifier = Modifier.semantics { heading() },
             )
         }
-        itemsIndexed(vista.notas, key = { _, nota -> idMarcadorNota(nota) }) { _, nota ->
-            FilaNota(nota, nota == seleccion, estado.simplificadas, acciones)
+        itemsIndexed(vista.notas, key = { _, nota -> idMarcadorNota(nota) }) { indice, nota ->
+            FilaNota(nota, nota == seleccion, estado.simplificadas, acciones, conPista = indice == 0)
         }
         item { SelectorMicrosectores(estado.microsectoresPorKm, acciones.onMicrosectores) }
         if ((estado.datos?.editadas ?: 0) > 0) {
@@ -400,6 +403,7 @@ private fun FilaNota(
     elegida: Boolean,
     simplificadas: Boolean,
     acciones: AccionesEditarTramo,
+    conPista: Boolean,
 ) {
     val tipo = if (nota.cuidado) TipoMarcador.CUIDADO else TipoMarcador.NOTA
     val frase = FrasesNota.frase(nota.copy(cuidado = false, distanciaSiguienteM = null), simplificadas)
@@ -422,19 +426,21 @@ private fun FilaNota(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Espacio.m),
     ) {
-        Box(
-            Modifier
-                .width(ANCHO_PILDORA_LISTA)
-                .heightIn(min = 32.dp)
-                .background(Color(ColoresMarcador.fondo(tipo)), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = textoCortoNota(nota),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color(ColoresMarcador.texto(tipo)),
-            )
+        ConPista(Pista.EDITAR_TRAMO, stringResource(R.string.pista_editar_tramo), LadoPista.ABAJO, activa = conPista) {
+            Box(
+                Modifier
+                    .width(ANCHO_PILDORA_LISTA)
+                    .heightIn(min = 32.dp)
+                    .background(Color(ColoresMarcador.fondo(tipo)), CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = textoCortoNota(nota),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(ColoresMarcador.texto(tipo)),
+                )
+            }
         }
         Column(Modifier.weight(1f)) {
             Text(

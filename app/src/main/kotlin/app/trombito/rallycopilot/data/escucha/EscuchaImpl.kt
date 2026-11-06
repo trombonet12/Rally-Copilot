@@ -16,9 +16,10 @@ import kotlin.coroutines.coroutineContext
 
 /**
  * [Escucha] con foco de audio exclusivo ([foco]), un micrófono ([audio]) y un reconocedor con la gramática cerrada de
- * [GramaticaOrdenes] ([reconocedores]). El tiempo se mide en muestras leídas (no con el reloj): acaba [SILENCIO_S]
- * segundos después de la última actividad de voz, o a los [MAXIMO_S] s. Las frases que el reconocedor cierre por su
- * cuenta se acumulan, de modo que una pausa corta en mitad de la orden («derecha tres… cincuenta») no la corta.
+ * [GramaticaOrdenes] ([reconocedores]), con los destinos de [lugares]. El tiempo se mide en muestras leídas (no con el
+ * reloj): acaba [SILENCIO_S] segundos después de la última actividad de voz, o a los [MAXIMO_S] s. Las frases que el
+ * reconocedor cierre por su cuenta se acumulan, de modo que una pausa corta en mitad de la orden («derecha tres…
+ * cincuenta») no la corta.
  */
 class EscuchaImpl(
     private val foco: FocoAudio,
@@ -26,6 +27,8 @@ class EscuchaImpl(
     private val reconocedores: FabricaReconocedor,
     private val permiso: () -> Boolean,
     private val dispatcher: CoroutineDispatcher,
+    /** Nombres de lugares para «llévame a…» (ver [LugaresPronunciables]); sin ellos, la gramática no lleva destinos. */
+    private val lugares: suspend () -> List<String> = { emptyList() },
 ) : Escucha {
     private val _escuchando = MutableStateFlow(false)
     override val escuchando: StateFlow<Boolean> = _escuchando.asStateFlow()
@@ -52,7 +55,7 @@ class EscuchaImpl(
 
     private suspend fun grabar(): ResultadoEscucha {
         val texto =
-            reconocedores.crear(GramaticaOrdenes.jsonOrdenes())?.use { reconocedor ->
+            reconocedores.crear(GramaticaOrdenes.jsonOrdenes(lugares()))?.use { reconocedor ->
                 audio.abrir()?.use { fuente -> reconocer(fuente, reconocedor) }
             } ?: return ResultadoEscucha.NoDisponible
         val orden = InterpreteOrdenes.interpretar(texto)

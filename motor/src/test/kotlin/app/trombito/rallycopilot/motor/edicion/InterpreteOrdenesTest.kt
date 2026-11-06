@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.motor.edicion
 
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.Modificador
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -168,6 +169,150 @@ class InterpreteOrdenesTest {
     @Test
     fun `marca aqui`() {
         listOf("marca aquí", "marca", "marca este punto", "marcar aqui").forEach { comprobar(it, Orden.MarcaAqui) }
+    }
+
+    // --- Preguntas ------------------------------------------------------------------------------------------------
+
+    private fun comprobarTodas(
+        esperada: Orden,
+        vararg textos: String,
+    ) = textos.forEach { comprobar(it, esperada) }
+
+    @Test
+    fun `preguntas de ruta con variantes naturales`() {
+        comprobarTodas(
+            Orden.Pregunta(TipoPregunta.CUANTO_FALTA),
+            "¿cuánto falta?",
+            "cuanto falta",
+            "oye copiloto cuánto falta por favor",
+            "cuánto queda",
+            "cuánto me queda",
+            "cuántos kilómetros faltan",
+            "cuánto falta para llegar",
+        )
+        comprobarTodas(
+            Orden.Pregunta(TipoPregunta.HORA_LLEGADA),
+            "¿a qué hora llego?",
+            "a que hora llegamos",
+            "copiloto a qué hora llego",
+            "hora de llegada",
+            "cuándo llego",
+        )
+        comprobarTodas(
+            Orden.Pregunta(TipoPregunta.LIMITE),
+            "¿qué límite hay?",
+            "que limite hay",
+            "cuál es el límite",
+            "límite de velocidad",
+            "qué velocidad máxima hay",
+        )
+        comprobarTodas(
+            Orden.Pregunta(TipoPregunta.DONDE_ESTOY),
+            "¿dónde estoy?",
+            "donde estamos",
+            "en qué carretera estoy",
+            "qué carretera es esta",
+        )
+        comprobarTodas(
+            Orden.Pregunta(TipoPregunta.COMO_VOY),
+            "¿cómo voy?",
+            "como vamos",
+            "cómo va el tramo",
+            "cómo llevo el tramo",
+            "cómo voy de tiempo",
+        )
+    }
+
+    // --- Control del copiloto -------------------------------------------------------------------------------------
+
+    @Test
+    fun `modos del copiloto`() {
+        comprobarTodas(Orden.Modo(ModoCopiloto.NOTAS), "modo notas", "Modo notas", "copiloto modo notas")
+        comprobarTodas(Orden.Modo(ModoCopiloto.SOLO_ALERTAS), "solo avisos", "modo solo avisos", "solo alertas")
+        comprobarTodas(Orden.Modo(ModoCopiloto.COMPLETO), "completo", "modo completo")
+        comprobarTodas(Orden.Silencio, "modo silencio", "silencio")
+    }
+
+    @Test
+    fun `volumen sube y baja`() {
+        comprobarTodas(Orden.Volumen(true), "sube el volumen", "subir volumen", "más volumen", "sube la voz")
+        comprobarTodas(Orden.Volumen(false), "baja el volumen", "bajar volumen", "menos volumen", "baja la voz")
+        comprobarTodas(Orden.Volumen(true), "habla más alto")
+        comprobarTodas(Orden.Volumen(false), "habla más bajo")
+    }
+
+    @Test
+    fun `notas simplificadas o completas`() {
+        comprobarTodas(Orden.NotasSimplificadas(true), "modo simplificado", "notas sencillas", "notas simples")
+        comprobarTodas(Orden.NotasSimplificadas(false), "notas completas", "notas normales", "notas detalladas")
+    }
+
+    @Test
+    fun `filtros de cruces rotondas y salidas`() {
+        comprobarTodas(Orden.Avisar(Indicacion.CRUCES, false), "sin cruces", "sin los cruces")
+        comprobarTodas(Orden.Avisar(Indicacion.CRUCES, true), "con cruces", "con los cruces")
+        comprobarTodas(Orden.Avisar(Indicacion.ROTONDAS, false), "sin rotondas", "sin glorieta")
+        comprobarTodas(Orden.Avisar(Indicacion.ROTONDAS, true), "con rotondas", "con glorieta")
+        comprobarTodas(Orden.Avisar(Indicacion.SALIDAS, false), "sin salidas", "sin salidas de autopista")
+        comprobarTodas(Orden.Avisar(Indicacion.SALIDAS, true), "con salidas", "con salidas de autopista")
+    }
+
+    // --- Mapa y cronómetro ----------------------------------------------------------------------------------------
+
+    @Test
+    fun `mapa satelite norte y zoom`() {
+        comprobarTodas(Orden.Satelite(true), "satélite", "modo satélite", "mapa satélite", "vista satélite")
+        comprobarTodas(Orden.Satelite(false), "mapa", "mapa normal", "vista mapa")
+        comprobarTodas(Orden.NorteArriba(true), "norte arriba", "con el norte arriba")
+        comprobarTodas(Orden.NorteArriba(false), "rumbo arriba", "con el rumbo arriba")
+        comprobarTodas(Orden.Zoom(true), "acerca", "acerca el mapa", "más zoom", "acercar")
+        comprobarTodas(Orden.Zoom(false), "aleja", "aleja el mapa", "menos zoom", "alejar")
+    }
+
+    @Test
+    fun `salida parar el crono y radar`() {
+        comprobarTodas(Orden.Salida, "salida", "da la salida", "dame la salida", "cuenta atrás")
+        comprobarTodas(Orden.ParaCrono, "para el crono", "para el cronómetro", "parar el crono", "termina el tramo")
+        comprobarTodas(Orden.RadarAqui, "radar", "avisa radar aquí", "radar aquí", "marca radar", "hay un radar")
+    }
+
+    @Test
+    fun `si y no solo como respuesta suelta`() {
+        comprobarTodas(Orden.Confirma(true), "sí", "si", "sí por favor", "confirmo", "copiloto sí")
+        comprobarTodas(Orden.Confirma(false), "no", "cancela", "no gracias", "olvídalo")
+        // Un «sí» perdido en otra frase es ruido, no una confirmación.
+        comprobar("sí derecha tres", nota(der, 3))
+        comprobar("sí cuánto falta", Orden.Pregunta(TipoPregunta.CUANTO_FALTA))
+    }
+
+    @Test
+    fun `ayuda`() {
+        comprobarTodas(Orden.Ayuda, "ayuda", "ayúdame", "qué puedo decir", "copiloto ayuda")
+    }
+
+    @Test
+    fun `las ordenes nuevas no se mezclan con notas ni entre si`() {
+        comprobar("cuánto falta derecha tres", null)
+        comprobar("cuánto falta cómo voy", null)
+        comprobar("sube el volumen baja el volumen", null)
+        comprobar("sin cruces con cruces", null)
+        comprobar("satélite mapa", null)
+        comprobar("modo notas silencio", null)
+    }
+
+    @Test
+    fun `las ordenes de siempre siguen igual con las nuevas presentes`() {
+        comprobar("no hables", Orden.Silencio)
+        comprobar("avisa antes", Orden.MasPronto)
+        comprobar("marca aquí", Orden.MarcaAqui)
+        comprobar("habla", Orden.Habla)
+        comprobar("derecha tres larga cincuenta", nota(der, 3, setOf(Modificador.LARGA), 50))
+    }
+
+    @Test
+    fun `una palabra suelta de ruido junto a una orden nueva se tolera pero no demasiada`() {
+        comprobar("cuánto falta ya mismo", Orden.Pregunta(TipoPregunta.CUANTO_FALTA))
+        comprobar("cuánto falta tomate pepino cebolla", null)
     }
 
     // --- Lo que no se entiende ------------------------------------------------------------------------------------

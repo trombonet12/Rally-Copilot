@@ -90,6 +90,7 @@ private fun Controles(
             SeccionAjustes.ESCUCHA -> ControlesEscucha(ajustes, acciones)
             SeccionAjustes.TEMA -> ControlesTema(ajustes.tema, acciones.onTema)
             SeccionAjustes.DATOS -> ControlesDatos(acciones, copiaEnCurso)
+            SeccionAjustes.AYUDA -> ControlesAyuda(acciones)
             SeccionAjustes.ACERCA_DE -> Unit
         }
     }

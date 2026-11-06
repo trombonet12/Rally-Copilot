@@ -65,6 +65,29 @@ class BuscadorSqlite(
         }
     }
 
+    override suspend fun nombresDeLugares(limite: Int): List<String> {
+        if (limite <= 0) return emptyList()
+        siembra.esperar()
+        return withContext(dispatcher) {
+            cerrojo.withLock {
+                val db = abierta() ?: return@withLock emptyList()
+                try {
+                    val nombres = ArrayList<String>()
+                    db
+                        .rawQuery(
+                            "SELECT nombre FROM lugares WHERE categoria IN ('ciudad', 'pueblo', 'aldea') " +
+                                "GROUP BY nombre ORDER BY MAX(importancia) DESC, nombre LIMIT $limite",
+                            null,
+                        ).use { while (it.moveToNext()) nombres += it.getString(0) }
+                    nombres
+                } catch (e: SQLiteException) {
+                    Log.w(ETIQUETA, "Consulta de localidades fallida: ${e.javaClass.simpleName}")
+                    emptyList()
+                }
+            }
+        }
+    }
+
     /** Libera el archivo (la siguiente búsqueda lo reabre). */
     suspend fun cerrar() {
         withContext(dispatcher) {

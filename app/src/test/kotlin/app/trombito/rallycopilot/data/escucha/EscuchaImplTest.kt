@@ -225,4 +225,28 @@ class EscuchaImplTest {
             assertTrue("cierra-audio" in eventos)
             assertEquals(false, escucha.escuchando.value)
         }
+
+    @Test
+    fun `la gramatica de la escucha lleva los destinos que da lugares`() =
+        runBlocking {
+            val gramaticas = mutableListOf<String>()
+            val escucha =
+                EscuchaImpl(
+                    FocoFalso(eventos = eventos),
+                    AudioFalso(eventos),
+                    { json ->
+                        gramaticas += json
+                        ReconocedorFalso(finales = mapOf(2 to "llévame a sóller"))
+                    },
+                    { true },
+                    Dispatchers.Unconfined,
+                    lugares = { listOf("sóller", "inca") },
+                )
+
+            val resultado = escucha.escuchar()
+
+            assertEquals(Orden.IrA("soller"), (resultado as ResultadoEscucha.Entendido).orden)
+            assertTrue("\"llévame a inca\"" in gramaticas.single())
+            assertTrue("\"añade parada en sóller\"" in gramaticas.single())
+        }
 }

@@ -19,7 +19,8 @@ data class AjustesConduccionEntity(
     @ColumnInfo(defaultValue = "0") val notasSimplificadas: Boolean = false,
     @ColumnInfo(defaultValue = "'COMPLETO'") val modoCopiloto: String = "COMPLETO",
     val voz: String? = null,
-    @ColumnInfo(defaultValue = "0") val activarConCopiloto: Boolean = false,
+    // El valor por defecto de la columna sigue en 0 (SQLite no lo cambia sin rehacer la tabla); el de dominio es true.
+    @ColumnInfo(defaultValue = "0") val activarConCopiloto: Boolean = true,
     @ColumnInfo(defaultValue = "100") val volumenVoz: Int = 100,
     @ColumnInfo(defaultValue = "'OSCURO'") val tema: String = "OSCURO",
     @ColumnInfo(defaultValue = "1") val cronometrar: Boolean = true,
@@ -28,6 +29,9 @@ data class AjustesConduccionEntity(
     @ColumnInfo(defaultValue = "1") val avisarSalidasAutopista: Boolean = true,
     @ColumnInfo(defaultValue = "1") val avisarRotondas: Boolean = true,
     @ColumnInfo(defaultValue = "0") val salidaManual: Boolean = false,
+    // Casa («volver a casa»): las dos columnas a la vez o ninguna; sin valor por defecto en SQL (nulas).
+    val casaLat: Double? = null,
+    val casaLon: Double? = null,
 )
 
 /** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */

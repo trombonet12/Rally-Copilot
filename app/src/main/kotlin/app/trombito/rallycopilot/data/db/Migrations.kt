@@ -202,3 +202,28 @@ val MIGRATION_13_14: Migration =
             db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `salidaManual` INTEGER NOT NULL DEFAULT 0")
         }
     }
+
+/**
+ * v14 -> v15: etiqueta de las marcas (`radar` para «avisa radar aquí»; las existentes quedan sin etiqueta) y la palabra
+ * «Copiloto» activada por defecto (decisión de Joan, 2026-11-06): la fila de ajustes existente pasa a activada. El SQL
+ * de la columna es el `createSql` de `schemas/.../15.json`.
+ */
+val MIGRATION_14_15: Migration =
+    object : Migration(14, 15) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `marca` ADD COLUMN `etiqueta` TEXT")
+            db.execSQL("UPDATE `ajustes_conduccion` SET `activarConCopiloto` = 1")
+        }
+    }
+
+/**
+ * v15 -> v16: casa de Joan en los ajustes («volver a casa»), dos columnas nulas (latitud y longitud); sin casa, ambas
+ * `NULL`. El SQL es el `createSql` de `schemas/.../16.json`.
+ */
+val MIGRATION_15_16: Migration =
+    object : Migration(15, 16) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `casaLat` REAL")
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `casaLon` REAL")
+        }
+    }

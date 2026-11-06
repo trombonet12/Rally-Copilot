@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.data.db.EdicionesDao
 import app.trombito.rallycopilot.data.db.MarcasDao
 import app.trombito.rallycopilot.data.db.RallyDatabase
+import app.trombito.rallycopilot.data.escucha.ConduccionPorVoz
 import app.trombito.rallycopilot.data.escucha.ContextoConduccionImpl
 import app.trombito.rallycopilot.data.escucha.ControlOrdenesImpl
 import app.trombito.rallycopilot.data.escucha.EjecutorOrdenes
@@ -17,18 +18,28 @@ import app.trombito.rallycopilot.data.escucha.FabricaAudioRecord
 import app.trombito.rallycopilot.data.escucha.FabricaReconocedor
 import app.trombito.rallycopilot.data.escucha.FabricaReconocedorVosk
 import app.trombito.rallycopilot.data.escucha.FocoAudioExclusivo
+import app.trombito.rallycopilot.data.escucha.LugaresPronunciables
 import app.trombito.rallycopilot.data.escucha.MemoriaFrases
+import app.trombito.rallycopilot.data.escucha.NavegacionPorVoz
 import app.trombito.rallycopilot.data.escucha.RepositorioEdicionesRoom
 import app.trombito.rallycopilot.data.escucha.RepositorioMarcasRoom
 import app.trombito.rallycopilot.data.escucha.ReproductorTic
+import app.trombito.rallycopilot.data.escucha.RespondedorPreguntas
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.busqueda.Buscador
 import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
 import app.trombito.rallycopilot.domain.escucha.Escucha
 import app.trombito.rallycopilot.domain.escucha.ProveedorContextoConduccion
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.escucha.RepositorioMarcas
+import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
+import app.trombito.rallycopilot.domain.navegacion.IniciarRutaA
 import app.trombito.rallycopilot.domain.notas.ProveedorNotas
+import app.trombito.rallycopilot.domain.ruta.Enrutador
+import app.trombito.rallycopilot.domain.tramos.ControlSalidaCrono
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
+import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
+import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.voz.Locutor
 import dagger.Module
 import dagger.Provides
@@ -63,10 +74,15 @@ object EscuchaModule {
 
     @Provides
     @Singleton
+    fun lugaresPronunciables(buscador: Buscador): LugaresPronunciables = LugaresPronunciables(buscador)
+
+    @Provides
+    @Singleton
     fun escucha(
         @ApplicationContext contexto: Context,
         audio: FabricaAudio,
         reconocedores: FabricaReconocedor,
+        lugares: LugaresPronunciables,
     ): Escucha =
         EscuchaImpl(
             foco = FocoAudioExclusivo(contexto),
@@ -74,6 +90,7 @@ object EscuchaModule {
             reconocedores = reconocedores,
             permiso = { tienePermisoMicrofono(contexto) },
             dispatcher = Dispatchers.IO,
+            lugares = lugares::nombres,
         )
 
     @Provides
@@ -102,14 +119,60 @@ object EscuchaModule {
         ediciones: RepositorioEdiciones,
         marcas: RepositorioMarcas,
         contexto: ProveedorContextoConduccion,
-    ): ControlOrdenes =
-        ControlOrdenesImpl(
+        navegacion: ControlNavegacion,
+        crono: ProveedorCrono,
+        salida: ControlSalidaCrono,
+        vias: ProveedorViaActual,
+        ubicacion: FuenteUbicacion,
+        buscador: Buscador,
+        enrutador: Enrutador,
+    ): ControlOrdenes {
+        val ambito = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val preguntas =
+            RespondedorPreguntas(
+                estado = { navegacion.estado.value },
+                crono = crono,
+                vias = vias,
+                ubicacion = ubicacion,
+                ahoraMs = System::currentTimeMillis,
+            )
+        val conduccion =
+            ConduccionPorVoz(
+                estado = { navegacion.estado.value },
+                terminar = navegacion::terminar,
+                crono = crono,
+                salida = salida,
+                locutor = locutor,
+                ambito = ambito,
+            )
+        val navegacionPorVoz =
+            NavegacionPorVoz(
+                buscador = buscador,
+                iniciar = IniciarRutaA(navegacion, enrutador, ubicacion),
+                control = navegacion,
+                ajustes = ajustes,
+                ubicacion = ubicacion,
+                ahoraMs = System::currentTimeMillis,
+            )
+        return ControlOrdenesImpl(
             escucha = escucha,
             ejecutor =
-                EjecutorOrdenes(ajustes, locutor, memoria, ediciones, marcas, contexto, System::currentTimeMillis),
+                EjecutorOrdenes(
+                    ajustes,
+                    locutor,
+                    memoria,
+                    ediciones,
+                    marcas,
+                    contexto,
+                    System::currentTimeMillis,
+                    preguntas,
+                    conduccion,
+                    navegacionPorVoz,
+                ),
             locutor = locutor,
-            ambito = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+            ambito = ambito,
         )
+    }
 
     @Provides
     fun escuchaContinua(
