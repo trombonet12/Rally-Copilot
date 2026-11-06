@@ -21,13 +21,15 @@ class FabricaCronoSesion
         private val ajustes: RepositorioAjustesConduccion,
     ) {
         fun crear(): SesionCrono =
-            SesionCrono(
-                repositorio,
-                salida::publicar,
-                System::currentTimeMillis,
-                nombrar = nombrador::nombrar,
-                anclarEdiciones = ediciones::anclarPendientes,
-                alFallar = { Log.w("SesionCrono", "Fallo en el cronometraje: ${it.javaClass.simpleName}") },
-                salidaManual = ajustes.ajustes.map { it.salidaManual }.distinctUntilChanged(),
-            ).also { sesion -> salida.registrarSalida { sesion.darSalida() } }
+            salida.enlazar { publicar ->
+                SesionCrono(
+                    repositorio,
+                    publicar,
+                    System::currentTimeMillis,
+                    nombrar = nombrador::nombrar,
+                    anclarEdiciones = ediciones::anclarPendientes,
+                    alFallar = { Log.w("SesionCrono", "Fallo en el cronometraje: ${it.javaClass.simpleName}") },
+                    salidaManual = ajustes.ajustes.map { it.salidaManual }.distinctUntilChanged(),
+                )
+            }
     }

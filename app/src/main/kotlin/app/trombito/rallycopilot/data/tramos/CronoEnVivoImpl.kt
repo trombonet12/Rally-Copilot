@@ -22,14 +22,39 @@ class CronoEnVivoImpl
 
         @Volatile private var accionSalida: (() -> Unit)? = null
 
-        fun publicar(crono: CronoEnCurso?) {
-            actual.value = crono
-            if (crono == null) accionSalida = null
+        /** Quién publica ahora: solo la sesión vigente puede dar la salida o retirar el cronómetro. */
+        private var propietario: Any? = null
+
+        /**
+         * Enlaza una [SesionCrono] con el cronómetro en vivo: [crear] recibe el publicador de esa sesión (el que debe
+         * usar como `publicar`) y devuelve la sesión. La salida manual ([darSalida]) va a la sesión que publicó la
+         * última vez, y su cierre solo retira el cronómetro si sigue siendo la vigente: ni una sesión que nunca
+         * publica (la de limpiar huérfanos) ni el cierre tardío de la anterior le quitan la salida a la nueva.
+         */
+        fun enlazar(crear: ((CronoEnCurso?) -> Unit) -> SesionCrono): SesionCrono {
+            val duenio = Any()
+            var sesion: SesionCrono? = null
+            val publicador: (CronoEnCurso?) -> Unit = { crono ->
+                publicarDe(duenio, crono) { sesion?.darSalida() }
+            }
+            return crear(publicador).also { sesion = it }
         }
 
-        /** La conducción en curso registra aquí cómo dar su salida (manual); se olvida al cerrar. */
-        fun registrarSalida(accion: () -> Unit) {
-            accionSalida = accion
+        @Synchronized
+        private fun publicarDe(
+            duenio: Any,
+            crono: CronoEnCurso?,
+            salida: () -> Unit,
+        ) {
+            if (crono != null) {
+                propietario = duenio
+                accionSalida = salida
+                actual.value = crono
+            } else if (propietario === duenio) {
+                propietario = null
+                accionSalida = null
+                actual.value = null
+            }
         }
 
         override fun darSalida() {
