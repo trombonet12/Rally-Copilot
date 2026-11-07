@@ -113,7 +113,9 @@ internal const val PUNTOS_COLA_MINIMOS = 12
 /** La cabeza solo crece de [BLOQUE_CABEZA] en [BLOQUE_CABEZA] puntos: es lo que espacia el reenvío a MapLibre. */
 internal const val BLOQUE_CABEZA = 40
 
-/** La estela partida para pintarla: la [cabeza] cambia poco y la [cola] (repite el último punto de la cabeza), mucho. */
+/**
+ * La estela partida para pintarla: la [cabeza] cambia poco y la [cola] (repite el último punto de la cabeza), mucho.
+ */
 internal class EstelaPartida(
     val cabeza: List<List<PuntoGeo>>,
     val cola: List<List<PuntoGeo>>,

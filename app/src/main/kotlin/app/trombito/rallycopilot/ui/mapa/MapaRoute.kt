@@ -81,12 +81,7 @@ fun MapaRoute(
     val edicion = edicionViewModel.uiState.collectAsStateWithLifecycle()
     val estela = viewModel.estela.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
-    InformarDelPermiso(permiso.estado, viewModel, navegacionViewModel)
-    LaunchedEffect(estado.posicion) { navegacionViewModel.onPosicion(estado.posicion?.punto) }
-    SeguimientoSegunVistaPrevia(navegacion.encuadrar, viewModel)
-    // Con un punto elegido la cámara lo centra sobre su tarjeta: deja de seguir al coche (recentrar lo vuelve a pedir).
-    val hayPunto = navegacion.puntoElegido != null
-    LaunchedEffect(hayPunto) { if (hayPunto) viewModel.onSeguimientoPerdido() }
+    EfectosDelMapa(permiso.estado, estado, navegacion, viewModel, navegacionViewModel)
     // Sin `by`: solo el mapa lee la reserva, así que su cambio no recompone la raíz.
     val reservaPuntoPx = remember { mutableIntStateOf(0) }
     val ruta = rutaParaMapa(navegacion)
@@ -95,19 +90,15 @@ fun MapaRoute(
     val salida = remember(cronoViewModel) { AccionesSalidaCrono(cronoViewModel::decir, cronoViewModel::darSalida) }
     // Las acciones y los bloques derivados se recuerdan: con instancias nuevas en cada fijación nada se podría saltar.
     val accionesDelMapa =
-        remember(viewModel, alertasViewModel, permiso.pedir, permiso.abrirAjustes, onAbrirMapasOffline, onSalir) {
-            accionesMapa(viewModel, permiso, alertasViewModel, reservaPuntoPx)
-                .copy(onAbrirMapasOffline = onAbrirMapasOffline, onSalir = onSalir)
-        }
+        rememberAccionesDelMapa(viewModel, alertasViewModel, permiso, reservaPuntoPx, onAbrirMapasOffline, onSalir)
     val accionesNav = remember(navegacionViewModel) { accionesNavegacion(navegacionViewModel) }
     val accionesCop = remember(copilotoViewModel) { accionesCopiloto(copilotoViewModel) }
-    val vozSharvard = remember(estado.datos) { EstadoVozDescarga.de(estado.datos) }
     val navegacionEnMapa =
-        remember(navegacion, accionesNav, panel, notas) {
-            NavegacionEnMapa(navegacion, accionesNav, panel, notas)
-        }
+        remember(navegacion, accionesNav, panel, notas) { NavegacionEnMapa(navegacion, accionesNav, panel, notas) }
     val copilotoEnMapa =
-        remember(copiloto, accionesCop, vozSharvard) { CopilotoEnMapa(copiloto, accionesCop, vozSharvard) }
+        remember(copiloto, accionesCop, estado.datos) {
+            CopilotoEnMapa(copiloto, accionesCop, EstadoVozDescarga.de(estado.datos))
+        }
     CompositionLocalProvider(LocalAbrirAnalisis provides onVerAnalisis, LocalAccionesSalidaCrono provides salida) {
         MapaScreen(
             estado = estado,
@@ -140,63 +131,6 @@ fun MapaRoute(
         )
     }
 }
-
-/**
- * Pasa el permiso de ubicación a los ViewModels. El modo libre arranca solo al abrir el mapa con permiso (o al
- * concederlo) y se para al salir (onCleared).
- */
-@Composable
-private fun InformarDelPermiso(
-    estado: EstadoPermisoUbicacion,
-    viewModel: MapaViewModel,
-    navegacionViewModel: NavegacionViewModel,
-) {
-    LaunchedEffect(estado) {
-        val concedido = estado == EstadoPermisoUbicacion.CONCEDIDO
-        viewModel.onPermisoUbicacion(concedido)
-        navegacionViewModel.onPermisoUbicacion(concedido)
-    }
-}
-
-private fun accionesCopiloto(vm: CopilotoViewModel) =
-    AccionesCopiloto(
-        onModo = vm::onModo,
-        onElegirVoz = vm::onElegirVoz,
-        onProbarVoz = vm::onProbarVoz,
-        onDescargarVoz = vm::onDescargarVoz,
-        onPosponerVoz = vm::onPosponerVoz,
-        onEscuchar = vm::onEscuchar,
-        onAnticipacion = vm::onAnticipacion,
-        onNotasSimplificadas = vm::onNotasSimplificadas,
-        onVolumenVoz = vm::onVolumenVoz,
-        onEscucharEjemplo = vm::onEscucharEjemplo,
-        onNotasGrandes = vm::onNotasGrandes,
-        onAvisarCruces = vm::onAvisarCruces,
-        onAvisarSalidasAutopista = vm::onAvisarSalidasAutopista,
-        onAvisarRotondas = vm::onAvisarRotondas,
-        onAvisarRadares = vm::onAvisarRadares,
-        onAvisarIncidencias = vm::onAvisarIncidencias,
-        onAvisarVelocidad = vm::onAvisarVelocidad,
-        onVelocidadHabla = vm::onVelocidadHabla,
-        onSalidaManual = vm::onSalidaManual,
-    )
-
-private fun accionesMapa(
-    viewModel: MapaViewModel,
-    permiso: PermisoUbicacionUi,
-    alertas: AlertasViewModel,
-    reservaPuntoPx: MutableIntState,
-) = AccionesMapa(
-    onCapa = viewModel::onCapa,
-    onRelieve = viewModel::onRelieve,
-    onOrientacion = viewModel::onOrientacion,
-    onRecentrar = viewModel::onRecentrar,
-    onPedirPermiso = permiso.pedir,
-    onAbrirAjustes = permiso.abrirAjustes,
-    onDescartarAviso = viewModel::onDescartarAviso,
-    onCerrarIncidencia = { alertas.onSeleccionar(null) },
-    onReservaInferiorPunto = { reservaPuntoPx.intValue = it },
-)
 
 @Composable
 private fun camaraVistaMapa(
@@ -240,28 +174,6 @@ private fun preferenciasVista(
     estela = estela,
 )
 
-private fun accionesNavegacion(vm: NavegacionViewModel) =
-    AccionesNavegacion(
-        onTexto = vm::onTexto,
-        onElegirDestino = vm::elegirDestino,
-        onCancelar = vm::cancelar,
-        onPerfil = vm::elegirPerfil,
-        onEmpezar = vm::empezar,
-        onTerminar = vm::terminar,
-        onSeguir = vm::seguirPendiente,
-        onDescartarSeguir = vm::descartarSeguir,
-        onIrAqui = vm::irAqui,
-        onAnadirParadaDelPunto = vm::anadirParadaDelPunto,
-        onFijarCasa = vm::fijarCasaDelPunto,
-        onAbrirBusqueda = vm::abrirBusquedaGuiando,
-        onCerrarBusqueda = vm::cerrarBusquedaGuiando,
-        onCerrarPunto = vm::cerrarPunto,
-        onAnadirParada = vm::anadirParada,
-        onReintentar = vm::reintentarRutas,
-        onQuitarParada = vm::quitarParada,
-        onMoverParada = vm::moverParada,
-    )
-
 /** La ruta del guiado o de la vista previa lista para pintar; conserva la instancia mientras no cambien los puntos. */
 @Composable
 private fun rutaParaMapa(navegacion: NavegacionUiState): RutaEnMapa? {
@@ -292,24 +204,3 @@ internal fun recorridoDeLaRuta(control: EstadoNavegacion): Double {
 }
 
 private const val ESCALON_RECORRIDO_M = 20.0
-
-/**
- * Durante la vista previa la cámara deja de seguir al coche (encuadra la ruta); al empezar o al cancelar vuelve al
- * seguimiento. No toca nada al entrar en la pantalla si no ha habido vista previa.
- */
-@Composable
-private fun SeguimientoSegunVistaPrevia(
-    enVistaPrevia: Boolean,
-    viewModel: MapaViewModel,
-) {
-    var hubo by remember { mutableStateOf(false) }
-    LaunchedEffect(enVistaPrevia) {
-        if (enVistaPrevia) {
-            hubo = true
-            viewModel.onSeguimientoPerdido()
-        } else if (hubo) {
-            hubo = false
-            viewModel.onRecentrar()
-        }
-    }
-}
