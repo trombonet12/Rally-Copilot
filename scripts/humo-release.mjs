@@ -10,6 +10,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const DIRECTORIO_POR_DEFECTO = 'app/build/outputs/mapping/release';
+/** Con solo `:app:minifyReleaseWithR8` (sin assembleRelease), AGP deja mapping.txt aquí y usage.txt en el de salida. */
+export const MAPPING_INTERMEDIO = 'app/build/intermediates/mapping/release/minifyReleaseWithR8/mapping.txt';
 
 /** Clases que el JNI (sherpa-onnx), JNA y Vosk buscan por nombre: tienen que seguir con su nombre y sin borrarse. */
 export const CLASES_OBLIGATORIAS = [
@@ -90,7 +92,8 @@ export function comprobar(textoMapping, textoUsage) {
 
 function main() {
   const directorio = process.argv[2] ?? DIRECTORIO_POR_DEFECTO;
-  const mapping = join(directorio, 'mapping.txt');
+  const enSalida = join(directorio, 'mapping.txt');
+  const mapping = process.argv[2] || existsSync(enSalida) ? enSalida : MAPPING_INTERMEDIO;
   const usage = join(directorio, 'usage.txt');
   for (const archivo of [mapping, usage]) {
     if (!existsSync(archivo)) {
