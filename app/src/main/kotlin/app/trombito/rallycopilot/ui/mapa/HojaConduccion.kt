@@ -139,7 +139,8 @@ private fun CentroLibre(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Cronometro(datos, EscalaCronoMini.GRANDE, reloj)
         Row(horizontalArrangement = Arrangement.spacedBy(Espacio.m), verticalAlignment = Alignment.CenterVertically) {
-            FilaVia(datos.estado)
+            // La vía cede ancho (con puntos suspensivos) para que los kilómetros se lean siempre enteros.
+            FilaVia(datos.estado, Modifier.weight(1f, fill = false))
             libre?.let {
                 val km = FormatoEs.kilometrosDesdeMetros(it.distanciaM)
                 val descripcion = stringResource(R.string.hoja_km_recorridos, km)
@@ -199,13 +200,16 @@ private fun Cronometro(
  * camino al que se ajustó la posición ([MapaUiState.viaDelPanel]): si no, no se enseña nada antes que una placa falsa.
  */
 @Composable
-private fun FilaVia(estado: MapaUiState) {
+private fun FilaVia(
+    estado: MapaUiState,
+    modifier: Modifier = Modifier,
+) {
     val via = estado.viaDelPanel
     val refs = refsDePlaca(via?.ref)
     val nombre = via?.nombre?.trim()?.takeIf { it.isNotEmpty() }
     if (refs.isEmpty() && nombre == null) return
     Row(
-        modifier = Modifier.testTag(ETIQUETA_VIA),
+        modifier = modifier.testTag(ETIQUETA_VIA),
         horizontalArrangement = Arrangement.spacedBy(Espacio.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {

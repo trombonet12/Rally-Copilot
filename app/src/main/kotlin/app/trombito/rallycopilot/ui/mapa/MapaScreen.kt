@@ -2,6 +2,7 @@
 
 package app.trombito.rallycopilot.ui.mapa
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -376,6 +377,9 @@ private fun BoxScope.ZonaInferior(
     val nav = contenido.navegacion.estado
     val hoja = !hayFaseInferior(nav)
     val confirmacion = rememberConfirmacionTerminar()
+    // El «atrás» del sistema también pide el segundo toque con el crono o la grabación en marcha, como la ✕.
+    val requiere = terminarPideConfirmacion(nav.control, contenido.crono)
+    BackHandler(enabled = requiere) { confirmacion.pulsar(requiere, contenido.acciones.onSalir) }
     val avisos: @Composable () -> Unit = {
         if (estado.hayDatos) AvisosDelPie(contenido)
         AvisoToqueOtraVez(confirmacion)

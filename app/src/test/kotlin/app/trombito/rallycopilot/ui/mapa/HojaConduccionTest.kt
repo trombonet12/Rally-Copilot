@@ -135,6 +135,17 @@ class HojaConduccionTest {
     }
 
     @Test
+    fun `con un nombre de via largo los kilometros se ven enteros dentro de la hoja`() {
+        val largo = ViaActual("Carrer de Joan Mas i Matas de Son Juny i Es Campet de Baix", null, null)
+        poner(libre, estado { copy(via = largo) })
+        val km = banco.conEtiqueta(ETIQUETA_KM_RECORRIDOS).boundsInRoot
+        val via = banco.conEtiqueta(ETIQUETA_VIA).boundsInRoot
+        val buscar = banco.conEtiqueta(ETIQUETA_BUSCAR_DESTINO).boundsInRoot
+        assertTrue("los km no se meten bajo la lupa", km.right <= buscar.left)
+        assertTrue("la vía cede ancho a los km", via.right <= km.left)
+    }
+
+    @Test
     fun `la X de libre cierra el mapa y la lupa lleva al campo de destino`() {
         poner(libre)
         assertFalse(banco.hay(ETIQUETA_TERMINAR))
