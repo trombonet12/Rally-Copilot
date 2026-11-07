@@ -1,14 +1,14 @@
 # Release Android y Obtainium
 
-> Propósito: publicar el APK firmado en GitHub e instalarlo y actualizarlo en el móvil con Obtainium · Audiencia: Joan · Actualizado: 2026-10-28 · Relacionado: [pasos-manuales.md](pasos-manuales.md), [play.md](play.md), `.github/workflows/android.yml`
+> Propósito: publicar el APK firmado en GitHub e instalarlo y actualizarlo en el móvil con Obtainium · Audiencia: Joan · Actualizado: 2026-11-07 · Relacionado: [pasos-manuales.md](pasos-manuales.md), [play.md](play.md), `.github/workflows/android.yml`
 
 ## Resumen
-Hoy Rally Copilot se distribuye **solo por GitHub Releases**, y el móvil la instala y actualiza con **Obtainium**.
+Hoy Rally Copilot se distribuye **solo por GitHub Releases**, y el móvil la instala y actualiza con **Obtainium** (Joan ya lo usa con las versiones 1.x).
 Google Play está pospuesto: su job solo corre con la variable de repo `PLAY_HABILITADO=true` (ver [play.md](play.md)).
 
 Publicar una versión:
 1. Subir `versionMinor` (o `versionMajor`) en `version.properties` y hacer commit.
-2. Push a `main`. Lo haces tú, o Claude con tu permiso explícito.
+2. Push a `main`. Claude lo hace sin pedir permiso cuando el gate y los scripts están en verde (CLAUDE.md, `docs/MEMORIA.md` 2026-11-01); nunca force-push. Tú también puedes hacerlo.
 3. El workflow «Android» pasa el gate y, si `version.properties` cambió en ese push, ejecuta la release.
 4. La release compila y firma el APK y el AAB y publica `v<major>.<minor>.<parche>` con estos archivos:
    - `rally-copilot-<versión>.apk`
@@ -32,7 +32,7 @@ El repositorio es **público**, así que Obtainium no necesita token.
   `python -I scripts/crear-keystore.py` en `~/.rallycopilot/` y se sube a GitHub con
   `node scripts/subir-secretos-release.mjs`.
 - Todas las versiones tienen que firmarse con la misma clave. Si se pierde, el móvil no deja actualizar encima: hay
-  que desinstalar y se pierden los tramos guardados. **Haz copia de seguridad de `~/.rallycopilot/`.**
+  que desinstalar y se pierden los tramos guardados (salvo que antes hayas exportado la copia de seguridad desde Ajustes > Datos). **Haz copia de seguridad de `~/.rallycopilot/`** (VERIFICAR si ya está hecha).
 
 ## Obtainium y Play
 No se pueden mezclar en el mismo móvil: Play firmará con su propia clave (Play App Signing) y Android no deja

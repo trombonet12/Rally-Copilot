@@ -1,5 +1,7 @@
 # voice-lab
 
+> Propósito: taller de voz en el PC para preparar la voz de Luis Moya y el vocabulario de copiloto (H11) · Audiencia: Joan y agentes · Actualizado: 2026-11-07 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../docs/investigacion/voz-tts-y-clonado.md](../docs/investigacion/voz-tts-y-clonado.md)
+
 Taller de voz en el PC (Windows 11, RTX 4080 SUPER). Aquí se prepara la **voz de Luis Moya** (con su autorización) y
 se saca de material real el vocabulario de copiloto. El pipeline completo se monta en el hito **H11**
 ([ROADMAP.md](../ROADMAP.md)) y se documenta en `docs/VOZ.md` para poder repetirlo. Ver también

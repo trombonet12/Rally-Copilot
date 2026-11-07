@@ -1,6 +1,6 @@
 # Pasos manuales
 
-> Propósito: lo que solo puede hacer el usuario, y cuándo hace falta · Audiencia: Joan · Actualizado: 2026-10-28 · Relacionado: [obtainium.md](obtainium.md), [play.md](play.md)
+> Propósito: lo que solo puede hacer el usuario, y cuándo hace falta · Audiencia: Joan · Actualizado: 2026-11-07 · Relacionado: [obtainium.md](obtainium.md), [play.md](play.md)
 
 Marca `[x]` al terminar cada paso. Claude nunca lee ni imprime los valores de `~/.rallycopilot/`.
 
@@ -12,8 +12,8 @@ Marca `[x]` al terminar cada paso. Claude nunca lee ni imprime los valores de `~
       `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` y `ANDROID_KEY_PASSWORD` a `trombonet12/Rally-Copilot` por stdin.
 - [x] **Repo público**: lo hace Claude con tu permiso (`gh repo edit --visibility public`), después de comprobar que
       no hay secretos en el historial.
-- [x] **Push a `main`**: lo decides tú; dispara el gate y, si cambia `version.properties`, la release.
-- [ ] **Obtainium** en el móvil: ver [obtainium.md](obtainium.md#configurar-obtainium-una-vez).
+- [x] **Push a `main`**: lo hace Claude sin pedir permiso cuando el gate y los scripts están en verde (MEMORIA 2026-11-01); dispara el gate y, si cambia `version.properties`, la release.
+- [x] **Obtainium** en el móvil: ver [obtainium.md](obtainium.md#configurar-obtainium-una-vez). Joan ya lo usa con las 1.x (confirmar con Joan).
 
 ## Material para la voz (cuando lo tengas; se usa en H11)
 - [ ] Audios y vídeos de Luis Moya en `voice-lab/data/raw/moya/` y de tramos reales en `voice-lab/data/raw/tramos/`
@@ -23,6 +23,9 @@ Marca `[x]` al terminar cada paso. Claude nunca lee ni imprime los valores de `~
 ## Móvil (cuando la app esté avanzada; Claude te avisará)
 - [ ] Depuración USB activada y el móvil listado en `adb devices`.
 - [ ] Permitir ubicación precisa y notificaciones al arrancar la primera navegación.
+- [ ] Permitir el micrófono (`RECORD_AUDIO`) al activar «Copiloto» en Ajustes; sin él la escucha por voz no funciona.
+- [ ] Exportar una copia de seguridad (Ajustes > Datos) antes de desinstalar o cambiar de móvil.
+- [ ] Copia de seguridad de `~/.rallycopilot/` (keystore; VERIFICAR si ya está hecha).
 - [ ] Si LineageOS limita apps en segundo plano, quitar Rally Copilot de la optimización de batería.
 
 ## Más adelante: Google Play (pospuesto)

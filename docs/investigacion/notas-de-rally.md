@@ -1,6 +1,8 @@
 # Generación automática de notas de rally (geometría OSM + elevación)
 
-> Propósito: fijar el algoritmo, la escala 1–6 calibrable y el glosario base del motor de notas · Audiencia: agente principal y usuario · Actualizado: 2026-10-28 · Relacionado: docs/DECISIONES.md § Motor de notas, ROADMAP.md § H3, H8
+> Propósito: fijar el algoritmo, la escala 1–6 calibrable y el glosario base del motor de notas · Audiencia: agente principal y usuario · Actualizado: 2026-11-07 · Relacionado: docs/DECISIONES.md § Motor de notas, ROADMAP.md § H3, H8
+
+> **Superada por DECISIONES (2026-11-03 y 2026-11-06)** (`docs/DECISIONES.md § Notas de rally`): la tabla radio→grado, la escala por radio y las «rectas R > ~400 m» de esta investigación son históricas. Desde H13 el grado sale del ángulo girado y desde H14a las curvas se detectan por rumbo. Vigente: [../glosario.md](../glosario.md).
 
 ## Contexto
 - Entrada: polilínea de la ruta (OSM, casada con el mapa), perfil de elevación (MDT del IGN), etiquetas OSM y velocidad de la vía. Salida: lista de notas con distancia, grado, dirección, modificadores y avisos. Offline, sin servicios externos (prompt §4.4).

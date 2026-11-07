@@ -1,6 +1,6 @@
 # Google Play
 
-> Propósito: pasos para publicar Rally Copilot en Google Play y dejar la subida automática · Audiencia: Joan · Actualizado: 2026-10-28 · Relacionado: [pasos-manuales.md](pasos-manuales.md), [DECISIONES.md](DECISIONES.md)
+> Propósito: pasos para publicar Rally Copilot en Google Play y dejar la subida automática · Audiencia: Joan · Actualizado: 2026-11-07 · Relacionado: [pasos-manuales.md](pasos-manuales.md), [DECISIONES.md](DECISIONES.md)
 
 > **Pospuesto (decisión de Joan, 2026-10-28):** hoy solo se distribuye por GitHub Release + Obtainium
 > ([obtainium.md](obtainium.md)). El job `play` del workflow solo corre si la variable de repo `PLAY_HABILITADO`
@@ -26,12 +26,16 @@ alta la app no se puede automatizar: se hace una vez, a mano, en Play Console.
    3. Pegar las notas de `distribution/whatsnew/whatsnew-es-ES` en «Novedades».
    4. Añadir a Joan como tester y abrir el enlace de participación en el móvil.
 5. **Contenido de la app** (menú Política). Se rellena cuando la app use ubicación (H1–H2):
-   - Política de privacidad: `docs/privacidad.md` (se escribe en H12).
+   - Política de privacidad: `docs/privacidad.md` (no existe todavía; se escribe cuando Joan active Play).
    - Seguridad de los datos: la ubicación precisa se usa **solo en el dispositivo** (navegación, notas, tiempos); los
      recorridos se guardan en el móvil y no se envían a ningún servidor. La red solo descarga mapas e incidencias.
-     VERIFICAR qué declarar en el formulario cuando la ubicación no sale del dispositivo.
-   - Permisos: ubicación precisa y servicio en primer plano de tipo `location` (navegación con pantalla apagada).
-     VERIFICAR en H2 si hace falta `ACCESS_BACKGROUND_LOCATION` o basta con el servicio arrancado con la app visible.
+     El **audio del micrófono** se reconoce en el dispositivo (Vosk, sin red) y no se guarda ni se envía. VERIFICAR qué
+     declarar en el formulario cuando ubicación y audio no salen del dispositivo.
+   - Permisos (el manifest vigente): ubicación precisa y aproximada (`ACCESS_FINE_LOCATION`, `ACCESS_COARSE_LOCATION`),
+     `FOREGROUND_SERVICE` con los tipos `location` (navegación con pantalla apagada), `microphone`
+     (`FOREGROUND_SERVICE_MICROPHONE`, la escucha de «Copiloto» con Vosk) y `dataSync` (descargas), `POST_NOTIFICATIONS`,
+     `INTERNET` y `ACCESS_NETWORK_STATE`. **No** se declara `ACCESS_BACKGROUND_LOCATION`: el servicio arranca con la
+     app visible. `RECORD_AUDIO` se pide solo al activar «Copiloto».
    - Datos de contacto, público (adultos) y clasificación de contenido: como Sous Chef.
 6. **Ficha de Play Store** en `distribution/listing/`: icono `graphics/icon-512.png` y gráfico
    `graphics/feature-1024x500.png`, regenerados con `node scripts/ficha-play.mjs` (Chrome headless + Pillow). Textos y
@@ -48,7 +52,7 @@ alta la app no se puede automatizar: se hace una vez, a mano, en Play Console.
    - variable `PLAY_PISTA_CERRADA`: vacía = `alpha`; `ninguna` desactiva la promoción;
    - variable `PLAY_HABILITADO`: `true` para que el job `play` se ejecute (sin ella, solo GitHub Release).
 4. A partir de ahí, cada push a `main` que suba `versionMinor` o `versionMajor` publica en GitHub **y** en Play. El
-   push lo hace Joan (o Claude con su permiso explícito).
+   push lo hace Claude sin pedir permiso cuando el gate y los scripts están en verde, o Joan.
 5. Parche a mano: workflow «Android» con `workflow_dispatch` en `main` y `publicar=true`.
 
 ## Prueba cerrada
@@ -63,7 +67,8 @@ alta la app no se puede automatizar: se hace una vez, a mano, en Play Console.
 
 ## Play y GitHub en el mismo móvil
 - No se pueden mezclar: Play firma con su clave y las firmas no coinciden. Para cambiar hay que desinstalar y se
-  pierden los tramos guardados (salvo copia, fuera de alcance por ahora). `allowBackup` está desactivado.
+  pierden los tramos guardados, salvo que antes se exporte la copia de seguridad (Ajustes > Datos, desde H14b:
+  zip con la base). `allowBackup` está desactivado.
 
 ## Problemas típicos
 - `release` compila y firma con `contents: read` (único job que ve el keystore); `github-release` publica con
