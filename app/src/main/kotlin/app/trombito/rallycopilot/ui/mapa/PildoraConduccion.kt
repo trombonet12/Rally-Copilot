@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,10 +31,13 @@ import app.trombito.rallycopilot.ui.alertas.AlertasPanel
 import app.trombito.rallycopilot.ui.alertas.MediaTramoUi
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_PILDORA_VELOCIDAD
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_SENAL_LIMITE
+import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.PildoraVelocidad
+import app.trombito.rallycopilot.ui.comun.RojoAcentoClaro
 import app.trombito.rallycopilot.ui.comun.rememberLectorPantallaActivo
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
+import app.trombito.rallycopilot.ui.theme.Medidas
 
 /** La píldora de velocidad (la velocidad actual, con o sin límite). */
 const val ETIQUETA_VELOCIDAD = ETIQUETA_PILDORA_VELOCIDAD
@@ -53,7 +58,7 @@ private val RADIO_MEDIA = 10.dp
 private val BORDE_MEDIA = 3.dp
 
 /**
- * Píldora de velocidad y límite de la conducción, con la media del radar de tramo a su lado si hay uno en curso.
+ * Píldora de velocidad y límite de la conducción, con la media del radar de tramo encima si hay uno en curso.
  * Sin fijación de GPS ([sinSenal]) la velocidad es «—». Con [limiteDesconocido] (vía sin límite en los datos) lleva la
  * señal gris «?». Pasarse del límite pulsa el borde en rojo (sin relleno) y
  * avisa a TalkBack una sola vez, cuando empieza (salvo con TalkBack activo: ya lo dice el copiloto).
@@ -71,11 +76,22 @@ internal fun PildoraConduccion(
     val velocidad = velocidadKmh.takeUnless { sinSenal }
     val excede = alertas.rojo && velocidad != null
     val lectorActivo = rememberLectorPantallaActivo()
-    Row(
+    // Apilado hacia arriba (la media del tramo encima de la píldora): a la derecha tapaba la posición (Joan).
+    Column(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(Espacio.s),
-        verticalAlignment = Alignment.Bottom,
+        verticalArrangement = Arrangement.spacedBy(Espacio.s),
+        horizontalAlignment = Alignment.Start,
     ) {
+        alertas.tramo?.let { MediaTramo(it) }
+        // La flecha del exceso va encima de la píldora: crece hacia arriba y no tapa la posición (Joan).
+        if (excede) {
+            Icon(
+                imageVector = Iconos.FlechaArriba,
+                contentDescription = null,
+                tint = RojoAcentoClaro,
+                modifier = Modifier.padding(start = Espacio.l).size(Medidas.iconoLista),
+            )
+        }
         Box {
             PildoraVelocidad(velocidad, limiteKmh, excede = excede, limiteDesconocido = limiteDesconocido)
             // Nodo propio sobre la píldora: su región viva se anuncia al aparecer el exceso, no con cada cifra.
@@ -93,7 +109,6 @@ internal fun PildoraConduccion(
                 )
             }
         }
-        alertas.tramo?.let { MediaTramo(it) }
     }
 }
 

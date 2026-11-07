@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
@@ -193,29 +194,7 @@ private fun ContenidoPildora(
                     if (excede) stateDescription = excesoTexto
                 },
     ) {
-        if (excede) {
-            Icon(
-                imageVector = Iconos.FlechaArriba,
-                contentDescription = null,
-                tint = RojoAcentoClaro,
-                modifier = Modifier.size(Medidas.iconoLista),
-            )
-        }
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-            Text(
-                text = velocidadKmh?.toString() ?: stringResource(R.string.panel_velocidad_vacia),
-                style = CifraMedia,
-                color = TextoSobreCarbon,
-                maxLines = 1,
-                softWrap = false,
-            )
-            Text(
-                text = stringResource(R.string.panel_unidad),
-                style = EtiquetaIcono,
-                color = TextoSecundarioSobreCarbon,
-                modifier = Modifier.padding(bottom = Espacio.s),
-            )
-        }
+        CifraVelocidad(velocidadKmh)
         if (limiteKmh != null) {
             SenalLimiteWrc(limiteKmh, Modifier.testTag(ETIQUETA_SENAL_LIMITE))
         } else if (limiteDesconocido) {
@@ -225,7 +204,7 @@ private fun ContenidoPildora(
 }
 
 /** Rojo claro de la flecha de exceso sobre carbón (el `tertiary` oscuro, 7:1 sobre el carbón). */
-private val RojoAcentoClaro = Color(0xFFFF8F85)
+internal val RojoAcentoClaro = Color(0xFFFF8F85)
 
 /**
  * Opacidad del borde de exceso [ms] después de empezar: [PULSOS_EXCESO] pulsos (de 1 a [OPACIDAD_PULSO_MIN] y vuelta,
@@ -253,4 +232,24 @@ private fun alphaBordeExceso(): Float {
         alfa = 1f
     }
     return alfa
+}
+
+/** La velocidad con su unidad. */
+@Composable
+private fun CifraVelocidad(velocidadKmh: Int?) {
+    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+        Text(
+            text = velocidadKmh?.toString() ?: stringResource(R.string.panel_velocidad_vacia),
+            style = CifraMedia,
+            color = TextoSobreCarbon,
+            maxLines = 1,
+            softWrap = false,
+        )
+        Text(
+            text = stringResource(R.string.panel_unidad),
+            style = EtiquetaIcono,
+            color = TextoSecundarioSobreCarbon,
+            modifier = Modifier.padding(bottom = Espacio.s),
+        )
+    }
 }

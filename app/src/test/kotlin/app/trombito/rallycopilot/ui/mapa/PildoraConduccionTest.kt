@@ -107,4 +107,24 @@ class PildoraConduccionTest {
         assertEquals(listOf("MEDIA", "—"), banco.textos(banco.conEtiqueta(ETIQUETA_MEDIA)))
         assertFalse(banco.hay(ETIQUETA_LIMITE))
     }
+
+    @Test
+    fun `con exceso la pildora crece hacia arriba y no a lo ancho`() {
+        poner(velocidad = 63, limite = 50, alertas = AlertasPanel(rojo = true))
+        val exceso = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
+        val otro = BancoCompose()
+        otro.poner { RallyCopilotTheme { PildoraConduccion(63, 50, AlertasPanel(), false) } }
+        val normal = otro.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
+        assertEquals("el ancho no cambia (no tapa la posición)", normal.width, exceso.width, 1f)
+        assertEquals("ni más alta: la flecha va fuera, encima", normal.height, exceso.height, 1f)
+    }
+
+    @Test
+    fun `la media del tramo va encima de la pildora y no a su derecha`() {
+        poner(alertas = AlertasPanel(tramo = MediaTramoUi(mediaKmh = 78, supera = false, terminado = false)))
+        val media = banco.conEtiqueta(ETIQUETA_MEDIA).boundsInRoot
+        val pildora = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
+        assertTrue("encima", media.bottom <= pildora.top)
+        assertTrue("no a la derecha", media.left < pildora.right)
+    }
 }
