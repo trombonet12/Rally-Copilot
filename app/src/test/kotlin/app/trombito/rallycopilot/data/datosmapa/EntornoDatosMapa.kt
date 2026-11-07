@@ -19,6 +19,10 @@ object PaqueteDePrueba {
             "vias" to "vias-mallorca.bin",
             "satelite" to "pnoa-mallorca-z16.pmtiles",
             "satelite-z17" to "pnoa-mallorca-z17.pmtiles",
+            "relieve" to "relieve-mallorca.pmtiles",
+            "curvas" to "curvas-mallorca.pmtiles",
+            "voz-sharvard" to "voz-sharvard.onnx",
+            "voz-sharvard-tokens" to "voz-sharvard-tokens.txt",
         )
 
     fun aleatorio(

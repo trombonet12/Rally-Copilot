@@ -18,6 +18,7 @@ import app.trombito.rallycopilot.data.db.estado
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.MotivoError
+import app.trombito.rallycopilot.motor.datos.Complemento
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -534,6 +535,209 @@ class RepositorioDatosMapaImplTest {
 
             assertNull(repositorio.estado.first().avisoActualizado)
         }
+    }
+
+    private fun trabajosComplementos(): List<WorkInfo> =
+        workManager.getWorkInfosForUniqueWork(TrabajoDatosMapa.NOMBRE_TRABAJO_COMPLEMENTOS).get()
+
+    private fun instalarComplementos(vararg ids: String) =
+        runBlocking {
+            dao.registrarInstalacion(
+                archivos = ids.map { ArchivoInstaladoEntity(it, "$it.bin", "e".repeat(64), 1_000, "v1") },
+                idsBorrados = emptyList(),
+                version = "v1",
+                avisar = false,
+            )
+        }
+
+    private fun repositorioConElegidos(vararg elegidos: Complemento) =
+        RepositorioDatosMapaImpl(
+            dao,
+            base.ajustesMapasDao(),
+            workManager,
+            entorno.config,
+            Dispatchers.IO,
+            complementosElegidos = { elegidos.toSet() },
+        )
+
+    @Test
+    fun `descargar el relieve va a su cola con cualquier red y sin tocar la del paquete`() {
+        instalarArchivo(conSatelite = false)
+
+        repositorio.descargar(Complemento.RELIEVE)
+        esperar { trabajosComplementos().isNotEmpty() }
+
+        val trabajo = trabajosComplementos().single()
+        assertEquals(NetworkType.CONNECTED, trabajo.constraints.requiredNetworkType)
+        assertTrue("complemento:RELIEVE" in trabajo.tags)
+        assertTrue(trabajos().isEmpty())
+        val estado = esperarEstado { it.complemento(Complemento.RELIEVE).descarga != null }
+        assertTrue(estado.complemento(Complemento.RELIEVE).descarga?.esperandoRed == true)
+        assertNull(estado.descarga)
+    }
+
+    @Test
+    fun `un satelite esperando WiFi no frena la descarga de la voz`() {
+        repositorio.descargar()
+        repositorio.descargar(Complemento.VOZ_SHARVARD)
+        esperar { trabajos().isNotEmpty() && trabajosComplementos().isNotEmpty() }
+
+        assertEquals(NetworkType.UNMETERED, trabajos().single().constraints.requiredNetworkType)
+        assertEquals(NetworkType.CONNECTED, trabajosComplementos().single().constraints.requiredNetworkType)
+    }
+
+    @Test
+    fun `pedir dos veces la misma voz no duplica el trabajo`() {
+        repositorio.descargar(Complemento.VOZ_SHARVARD)
+        esperar { trabajosComplementos().isNotEmpty() }
+
+        repositorio.descargar(Complemento.VOZ_SHARVARD)
+        Thread.sleep(300)
+
+        assertEquals(1, trabajosComplementos().count { !it.state.isFinished })
+    }
+
+    @Test
+    fun `la peticion del usuario sustituye a la descarga automatica que espera WiFi`() {
+        instalarArchivo(conSatelite = false)
+        repositorio.descargarConWifi(Complemento.VOZ_SHARVARD)
+        esperar { trabajosComplementos().isNotEmpty() }
+        assertEquals(NetworkType.UNMETERED, trabajosComplementos().single().constraints.requiredNetworkType)
+
+        repositorio.descargar(Complemento.VOZ_SHARVARD)
+
+        esperar {
+            trabajosComplementos().any {
+                it.state == WorkInfo.State.ENQUEUED && it.constraints.requiredNetworkType == NetworkType.CONNECTED
+            }
+        }
+    }
+
+    @Test
+    fun `al abrir la app la voz sharvard elegida y sin instalar se baja sola con WiFi`() {
+        instalarArchivo(conSatelite = false)
+        instalarComplementos("relieve", "curvas")
+
+        repositorioConElegidos(Complemento.VOZ_SHARVARD, Complemento.RELIEVE).comprobarActualizacion()
+        esperar { trabajosComplementos().isNotEmpty() }
+
+        val trabajo = trabajosComplementos().single()
+        assertTrue("complemento:VOZ_SHARVARD" in trabajo.tags)
+        assertEquals(NetworkType.UNMETERED, trabajo.constraints.requiredNetworkType)
+    }
+
+    @Test
+    fun `con la voz elegida ya instalada no se vuelve a bajar`() {
+        instalarArchivo(conSatelite = false)
+        instalarComplementos("voz-sharvard", "voz-sharvard-tokens")
+
+        repositorioConElegidos(Complemento.VOZ_SHARVARD).comprobarActualizacion()
+        esperar { trabajos().isNotEmpty() }
+        Thread.sleep(300)
+
+        assertTrue(trabajosComplementos().isEmpty())
+    }
+
+    @Test
+    fun `el estado dice si el relieve y la voz estan instalados y cuanto ocupan`() {
+        instalarArchivo(conSatelite = false)
+        assertFalse(esperarEstado { true }.complemento(Complemento.RELIEVE).instalado)
+
+        instalarComplementos("relieve", "curvas", "voz-sharvard")
+
+        val estado = esperarEstado { it.instalados?.conRelieve == true }
+        assertTrue(estado.complemento(Complemento.RELIEVE).instalado)
+        assertEquals(2_000L, estado.complemento(Complemento.RELIEVE).bytes)
+        assertFalse("falta el archivo de tokens", estado.instalados?.conVozSharvard == true)
+        assertFalse(estado.complemento(Complemento.VOZ_SHARVARD).instalado)
+    }
+
+    @Test
+    fun `borrar la voz libera sus archivos y respeta el resto`() {
+        instalarArchivo()
+        instalarComplementos("relieve", "curvas", "voz-sharvard", "voz-sharvard-tokens")
+        entorno.mapa.mkdirs()
+        listOf(
+            "voz-sharvard.bin",
+            "voz-sharvard-tokens.bin",
+            "relieve.bin",
+            "mallorca.pmtiles",
+            "pnoa-mallorca-z16.pmtiles",
+        ).forEach { File(entorno.mapa, it).writeText("x") }
+
+        runBlocking { repositorio.borrar(Complemento.VOZ_SHARVARD) }
+
+        assertFalse(File(entorno.mapa, "voz-sharvard.bin").exists())
+        assertFalse(File(entorno.mapa, "voz-sharvard-tokens.bin").exists())
+        assertTrue(File(entorno.mapa, "relieve.bin").exists())
+        assertTrue(File(entorno.mapa, "mallorca.pmtiles").exists())
+        assertTrue(File(entorno.mapa, "pnoa-mallorca-z16.pmtiles").exists())
+        assertEquals(
+            listOf("curvas", "estilo", "relieve", "satelite", "vectorial", "vias"),
+            runBlocking { dao.archivos() }.map { it.id },
+        )
+        assertFalse(esperarEstado { true }.complemento(Complemento.VOZ_SHARVARD).instalado)
+    }
+
+    @Test
+    fun `borrar el relieve y las curvas no toca el satelite`() {
+        instalarArchivo()
+        instalarComplementos("relieve", "curvas")
+        entorno.mapa.mkdirs()
+        listOf(
+            "relieve.bin",
+            "curvas.bin",
+            "pnoa-mallorca-z16.pmtiles",
+        ).forEach { File(entorno.mapa, it).writeText("x") }
+
+        runBlocking { repositorio.borrar(Complemento.RELIEVE) }
+
+        assertFalse(File(entorno.mapa, "relieve.bin").exists())
+        assertFalse(File(entorno.mapa, "curvas.bin").exists())
+        assertTrue(File(entorno.mapa, "pnoa-mallorca-z16.pmtiles").exists())
+        val instalados = requireNotNull(esperarEstado { true }.instalados)
+        assertFalse(instalados.conRelieve)
+        assertTrue(instalados.conSatelite)
+    }
+
+    @Test
+    fun `sin los archivos de relieve el estilo no apunta a ellos y con ellos si`() {
+        entorno.mapa.mkdirs()
+        val fuentes =
+            """"protomaps":{"type":"vector","url":"pmtiles://{{DIR}}/mallorca.pmtiles"},""" +
+                """"relieve":{"type":"raster-dem","url":"pmtiles://{{DIR}}/relieve-mallorca.pmtiles"},""" +
+                """"curvas":{"type":"vector","url":"pmtiles://{{DIR}}/curvas-mallorca.pmtiles"}"""
+        val capas =
+            """[{"id":"calles","type":"line","source":"protomaps"},""" +
+                """{"id":"relieve-sombra","type":"hillshade","source":"relieve"},""" +
+                """{"id":"curvas-linea","type":"line","source":"curvas"}]"""
+        File(entorno.mapa, "vectorial.json").writeText("""{"version":8,"sources":{$fuentes},"layers":$capas}""")
+
+        val sin = requireNotNull(runBlocking { repositorio.estilos() }).vectorial
+        assertFalse(sin.contains("relieve"))
+        assertFalse(sin.contains("curvas"))
+        assertTrue(sin.contains("protomaps"))
+
+        File(entorno.mapa, "relieve-mallorca.pmtiles").writeText("r")
+        File(entorno.mapa, "curvas-mallorca.pmtiles").writeText("c")
+
+        val con = requireNotNull(runBlocking { repositorio.estilos() }).vectorial
+        assertTrue(con.contains("relieve-sombra"))
+        assertTrue(con.contains("curvas-linea"))
+    }
+
+    @Test
+    fun `el tamano pendiente de la voz es la suma de sus dos archivos del manifest`() {
+        val voz =
+            mapOf(
+                "voz-sharvard" to PaqueteDePrueba.aleatorio(23, 80_000),
+                "voz-sharvard-tokens" to PaqueteDePrueba.aleatorio(24, 900),
+            )
+        entorno.publicar("datos-2026.11.01-1", PaqueteDePrueba.contenidos("v1") + voz)
+
+        assertEquals(80_900L, runBlocking { repositorio.tamanoPendiente(Complemento.VOZ_SHARVARD) })
+        instalarComplementos("voz-sharvard")
+        assertEquals(900L, runBlocking { repositorio.tamanoPendiente(Complemento.VOZ_SHARVARD) })
     }
 
     private companion object {

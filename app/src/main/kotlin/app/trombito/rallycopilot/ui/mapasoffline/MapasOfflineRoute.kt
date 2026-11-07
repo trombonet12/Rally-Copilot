@@ -46,6 +46,8 @@ fun MapasOfflineRoute(
                 onDescargarZona = onDescargarZona,
                 onBorrarDetalle = viewModel::onBorrarDetalle,
                 onCancelarDetalle = viewModel::onCancelarDetalle,
+                onDescargarComplemento = viewModel::onDescargarComplemento,
+                onBorrarComplemento = viewModel::onBorrarComplemento,
             ),
         modifier = modifier,
     )

@@ -26,12 +26,14 @@ private val MARGEN_VERTICAL_APAISADO = 8.dp
  * derecha, para que ambos se vean.
  */
 @Composable
+@Suppress("LongParameterList") // sección, ajustes, acciones y los dos estados extra (copia y voz Sharvard)
 fun AjustesSeccionScreen(
     seccion: SeccionAjustes,
     ajustes: AjustesConduccion,
     acciones: AccionesAjustes,
     modifier: Modifier = Modifier,
     copiaEnCurso: Boolean = false,
+    vozSharvard: EstadoVozDescarga = EstadoVozDescarga(),
 ) {
     FondoWrc(modifier) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -51,7 +53,7 @@ fun AjustesSeccionScreen(
                             alto = minOf(alto, altoDisponible - MARGEN_VERTICAL_APAISADO),
                             modifier = Modifier.weight(1f),
                         )
-                        Controles(seccion, ajustes, acciones, copiaEnCurso, Modifier.weight(1f))
+                        Controles(seccion, ajustes, acciones, copiaEnCurso, vozSharvard, Modifier.weight(1f))
                     }
                 } else {
                     Column(
@@ -59,7 +61,7 @@ fun AjustesSeccionScreen(
                         verticalArrangement = Arrangement.spacedBy(Espacio.l),
                     ) {
                         if (alto != null) PrevistaDeSeccion(seccion, ajustes, acciones, alto)
-                        Controles(seccion, ajustes, acciones, copiaEnCurso, Modifier.weight(1f))
+                        Controles(seccion, ajustes, acciones, copiaEnCurso, vozSharvard, Modifier.weight(1f))
                     }
                 }
             }
@@ -69,11 +71,13 @@ fun AjustesSeccionScreen(
 
 /** Los controles de la sección, con su propio desplazamiento (la vista previa no se mueve). */
 @Composable
+@Suppress("LongParameterList") // lo mismo que la pantalla, más el modificador de cada columna
 private fun Controles(
     seccion: SeccionAjustes,
     ajustes: AjustesConduccion,
     acciones: AccionesAjustes,
     copiaEnCurso: Boolean,
+    vozSharvard: EstadoVozDescarga,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -83,7 +87,7 @@ private fun Controles(
         when (seccion) {
             SeccionAjustes.COPILOTO -> ControlesCopiloto(ajustes, acciones)
             SeccionAjustes.NOTAS -> ControlesNotas(ajustes, acciones)
-            SeccionAjustes.VOZ -> ControlesVoz(ajustes, acciones)
+            SeccionAjustes.VOZ -> ControlesVoz(ajustes, acciones, vozSharvard)
             SeccionAjustes.INDICACIONES -> ControlesIndicaciones(ajustes, acciones)
             SeccionAjustes.TRAMOS -> ControlesTramos(ajustes, acciones)
             SeccionAjustes.MAPA -> ControlesMapa(ajustes, acciones)

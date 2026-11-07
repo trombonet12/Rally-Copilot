@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.data.voz.MotorTtsSherpa
 import app.trombito.rallycopilot.data.voz.ReproductorAudioTrack
 import app.trombito.rallycopilot.data.voz.ReproductorPcm
 import app.trombito.rallycopilot.data.voz.SintetizadorTts
+import app.trombito.rallycopilot.data.voz.VocesInstaladas
 import app.trombito.rallycopilot.domain.voz.Locutor
 import dagger.Module
 import dagger.Provides
@@ -45,12 +46,14 @@ object VozModule {
         sintetizador: SintetizadorTts,
         reproductor: ReproductorPcm,
         foco: FocoAudio,
+        voces: VocesInstaladas,
     ): Locutor =
         LocutorImpl(
             cache = CacheFrases(File(contexto.cacheDir, "voz")),
             sintetizador = sintetizador,
             reproductor = reproductor,
             foco = foco,
+            vozDisponible = voces::efectiva,
             ambito = CoroutineScope(SupervisorJob() + Dispatchers.Default),
             dispatcherSintesis =
                 Executors

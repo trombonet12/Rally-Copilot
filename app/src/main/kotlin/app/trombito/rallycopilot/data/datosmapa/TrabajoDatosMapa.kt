@@ -16,6 +16,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.datos.MotivoError
+import app.trombito.rallycopilot.motor.datos.Complemento
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import java.io.IOException
@@ -36,8 +37,9 @@ class TrabajoDatosMapa
 
         override suspend fun doWork(): Result {
             val automatico = inputData.getBoolean(CLAVE_AUTOMATICO, false)
+            val solo = inputData.getBoolean(CLAVE_SOLO_COMPLEMENTOS, false)
             return try {
-                val resultado = actualizador.actualizar(automatico, ::publicarProgreso)
+                val resultado = actualizador.actualizar(automatico, complementos(), solo, ::publicarProgreso)
                 if (resultado is ResultadoActualizacion.Instalado) Result.success() else Result.failure()
             } catch (e: IOException) {
                 Log.w(ETIQUETA_LOG, "Descarga interrumpida (intento $runAttemptCount)", e)
@@ -51,6 +53,25 @@ class TrabajoDatosMapa
         }
 
         override suspend fun getForegroundInfo(): ForegroundInfo = infoPrimerPlano(0, 0)
+
+        /** Los complementos que pide este trabajo (nombres de [Complemento] en los datos de entrada). */
+        private fun complementos(): Set<Complemento> =
+            inputData
+                .getStringArray(CLAVE_COMPLEMENTOS)
+                .orEmpty()
+                .mapNotNull { nombre -> Complemento.entries.firstOrNull { it.name == nombre } }
+                .toSet()
+
+        private fun titulo(): String {
+            val pedidos = complementos()
+            val recurso =
+                when {
+                    pedidos == setOf(Complemento.RELIEVE) -> R.string.descargas_titulo_relieve
+                    pedidos == setOf(Complemento.VOZ_SHARVARD) -> R.string.descargas_titulo_voz
+                    else -> R.string.descargas_titulo
+                }
+            return contexto.getString(recurso)
+        }
 
         private suspend fun publicarProgreso(
             hechos: Long,
@@ -86,7 +107,7 @@ class TrabajoDatosMapa
                 NotificationCompat
                     .Builder(contexto, CANAL_DESCARGAS)
                     .setSmallIcon(R.drawable.ic_stat_rally)
-                    .setContentTitle(contexto.getString(R.string.descargas_titulo))
+                    .setContentTitle(titulo())
                     .setOngoing(true)
                     .setOnlyAlertOnce(true)
                     .setProgress(PORCENTAJE_TOTAL, porcentaje, totales <= 0)
@@ -114,6 +135,9 @@ class TrabajoDatosMapa
         companion object {
             const val NOMBRE_TRABAJO = "datos-mapa"
             const val CLAVE_AUTOMATICO = "automatico"
+            const val CLAVE_COMPLEMENTOS = "complementos"
+            const val CLAVE_SOLO_COMPLEMENTOS = "solo-complementos"
+            const val NOMBRE_TRABAJO_COMPLEMENTOS = "datos-mapa-complementos"
             const val CLAVE_HECHOS = "hechos"
             const val CLAVE_TOTALES = "totales"
             const val CANAL_DESCARGAS = "descargas"

@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.archivos
 import app.trombito.rallycopilot.data.db.estado
 import app.trombito.rallycopilot.domain.datos.MotivoError
+import app.trombito.rallycopilot.motor.datos.Complemento
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
@@ -53,7 +54,11 @@ class ActualizadorDatosTest {
     private fun actualizar(
         automatico: Boolean = false,
         progreso: MutableList<Pair<Long, Long>> = mutableListOf(),
-    ) = runBlocking { actualizador.actualizar(automatico) { h, t -> progreso += h to t } }
+    ) = runBlocking {
+        // Una descarga manual de antes: el satélite; la automática, solo el paquete base y lo ya instalado.
+        val pedidos = if (automatico) emptySet() else setOf(Complemento.SATELITE)
+        actualizador.actualizar(automatico, pedidos) { h, t -> progreso += h to t }
+    }
 
     private fun leer(nombre: String) = File(entorno.mapa, nombre).readBytes()
 
@@ -317,5 +322,116 @@ class ActualizadorDatosTest {
         assertEquals(ResultadoActualizacion.Fallo(MotivoError.HASH_INCORRECTO), actualizar())
         assertFalse(File(entorno.mapa, "pnoa-mallorca-z17.pmtiles").exists())
         assertFalse(File(entorno.mapa, "pnoa-mallorca-z16.pmtiles").exists())
+    }
+
+    private fun complemento(
+        complementos: Set<Complemento>,
+        solo: Boolean = true,
+    ) = runBlocking { actualizador.actualizar(false, complementos, solo) }
+
+    private fun paqueteConComplementos(version: String = "v1"): Map<String, ByteArray> =
+        PaqueteDePrueba.contenidos(version) +
+            mapOf(
+                "relieve" to PaqueteDePrueba.aleatorio(21, 60_000),
+                "curvas" to PaqueteDePrueba.aleatorio(22, 30_000),
+                "voz-sharvard" to PaqueteDePrueba.aleatorio(23, 80_000),
+                "voz-sharvard-tokens" to PaqueteDePrueba.aleatorio(24, 900),
+            )
+
+    @Test
+    fun `una descarga normal o automatica no estrena relieve ni voz`() {
+        entorno.publicar("v1", paqueteConComplementos())
+        actualizar() // lo sembrado
+
+        assertEquals(ResultadoActualizacion.Instalado, actualizar(automatico = true))
+
+        runBlocking {
+            assertEquals(listOf("estilo", "vectorial", "vias"), dao.archivos().map { it.id })
+        }
+        assertFalse(File(entorno.mapa, "relieve-mallorca.pmtiles").exists())
+        assertFalse(File(entorno.mapa, "voz-sharvard.onnx").exists())
+    }
+
+    @Test
+    fun `pedir la voz baja solo sus dos archivos y no toca el resto`() {
+        val contenidos = paqueteConComplementos()
+        entorno.publicar("v1", contenidos)
+        actualizar() // lo sembrado
+        val versionBase = runBlocking { dao.estado()?.versionInstalada }
+        // El paquete base tiene una versión nueva, pero pedir la voz no debe bajarla.
+        val v2 = entorno.publicar("v2", paqueteConComplementos("v2"))
+
+        val resultado = complemento(setOf(Complemento.VOZ_SHARVARD))
+
+        assertEquals(ResultadoActualizacion.Instalado, resultado)
+        val voz = paqueteConComplementos("v2")
+        assertArrayEquals(voz.getValue("voz-sharvard"), leer("voz-sharvard.onnx"))
+        assertArrayEquals(voz.getValue("voz-sharvard-tokens"), leer("voz-sharvard-tokens.txt"))
+        assertFalse(File(entorno.mapa, "relieve-mallorca.pmtiles").exists())
+        assertArrayEquals(contenidos.getValue("vectorial"), leer("mallorca.pmtiles"))
+        runBlocking {
+            assertEquals(
+                listOf("estilo", "vectorial", "vias", "voz-sharvard", "voz-sharvard-tokens"),
+                dao.archivos().map { it.id },
+            )
+            assertEquals("el paquete base no se ha actualizado", versionBase, dao.estado()?.versionInstalada)
+        }
+        assertTrue(entorno.servidor.peticionesA(entorno.rutaDe(v2.first { it.id == "vectorial" })).isEmpty())
+    }
+
+    @Test
+    fun `lo bajo demanda ya instalado se actualiza solo con una actualizacion automatica`() {
+        entorno.publicar("v1", paqueteConComplementos())
+        actualizar()
+        complemento(setOf(Complemento.RELIEVE))
+        val nuevo = paqueteConComplementos("v2")
+        entorno.publicar("v2", nuevo)
+
+        assertEquals(ResultadoActualizacion.Instalado, actualizar(automatico = true))
+
+        assertArrayEquals(nuevo.getValue("relieve"), leer("relieve-mallorca.pmtiles"))
+        assertArrayEquals(nuevo.getValue("curvas"), leer("curvas-mallorca.pmtiles"))
+        assertFalse("la voz no pedida no se estrena", File(entorno.mapa, "voz-sharvard.onnx").exists())
+    }
+
+    @Test
+    fun `pedir un complemento que el manifest no publica falla en vez de dar por buena la descarga`() {
+        entorno.publicar("v1") // sin relieve, curvas ni voz
+        actualizar()
+
+        assertEquals(
+            ResultadoActualizacion.Fallo(MotivoError.MANIFEST_INVALIDO),
+            complemento(setOf(Complemento.VOZ_SHARVARD)),
+        )
+    }
+
+    @Test
+    fun `un archivo de voz corrupto no se instala`() {
+        entorno.publicar("v1", paqueteConComplementos(), corruptos = setOf("voz-sharvard"))
+        actualizar()
+
+        assertEquals(
+            ResultadoActualizacion.Fallo(MotivoError.HASH_INCORRECTO),
+            complemento(setOf(Complemento.VOZ_SHARVARD)),
+        )
+        assertFalse(File(entorno.mapa, "voz-sharvard.onnx").exists())
+        assertFalse(File(entorno.mapa, "voz-sharvard-tokens.txt").exists())
+    }
+
+    @Test
+    fun `instalar un complemento no borra el satelite a medias que hay en nuevo`() {
+        entorno.publicar("v1", paqueteConComplementos())
+        actualizar()
+        val parcial = File(entorno.config.directorioNuevo, "pnoa-mallorca-z16.pmtiles.part")
+        parcial.parentFile.mkdirs()
+        parcial.writeBytes(ByteArray(1_000))
+
+        complemento(setOf(Complemento.RELIEVE))
+
+        assertTrue("el .part del satelite sigue para reanudar", parcial.isFile)
+        assertArrayEquals(
+            PaqueteDePrueba.aleatorio(21, 60_000),
+            leer("relieve-mallorca.pmtiles"),
+        )
     }
 }

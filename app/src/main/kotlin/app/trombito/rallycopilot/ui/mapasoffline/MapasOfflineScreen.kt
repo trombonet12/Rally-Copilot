@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.datos.MotivoError
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
 import app.trombito.rallycopilot.ui.comun.CargandoWrc
 import app.trombito.rallycopilot.ui.comun.FondoWrc
@@ -56,6 +57,8 @@ data class AccionesMapasOffline(
     val onDescargarZona: () -> Unit = {},
     val onBorrarDetalle: () -> Unit = {},
     val onCancelarDetalle: () -> Unit = {},
+    val onDescargarComplemento: (Complemento) -> Unit = {},
+    val onBorrarComplemento: (Complemento) -> Unit = {},
 )
 
 @StringRes
@@ -139,6 +142,7 @@ private fun ContenidoMapas(
     if (estado.datos.instalados != null && estado.fase != FaseMapas.DESCARGANDO) {
         SeccionDetalle(estado.detalle, acciones, onBorrarDetalle)
     }
+    if (estado.datos.instalados != null) TarjetaComplementos(estado, acciones)
     TarjetaAjustesDescarga(estado, acciones)
     if (estado.fase == FaseMapas.INSTALADO && estado.datos.instalados?.conSatelite == true) {
         BotonBorrar(R.string.mapas_borrar, ETIQUETA_BORRAR, onBorrarSatelite)

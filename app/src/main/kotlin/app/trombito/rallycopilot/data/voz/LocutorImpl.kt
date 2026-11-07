@@ -44,6 +44,12 @@ class LocutorImpl(
     private val dispatcherSintesis: CoroutineDispatcher,
     /** Reloj monótono (ms) contra el que se miden las caducidades de [decir]. */
     private val reloj: () -> Long = { SystemClock.elapsedRealtime() },
+    /**
+     * La voz con la que se habla de verdad cuando se pide una [VozCopiloto] (`VocesInstaladas.efectiva`): una voz
+     * que no está instalada (Sharvard aún sin descargar) se sustituye por Dave. Se consulta en cada frase, así que en
+     * cuanto acaba la descarga se empieza a usar. La caché de frases es de la voz efectiva: no se mezclan.
+     */
+    private val vozDisponible: (VozCopiloto) -> VozCopiloto = { it },
 ) : Locutor {
     private class Peticion(
         val voz: VozCopiloto,
@@ -97,7 +103,7 @@ class LocutorImpl(
     }
 
     override fun preparar(textos: List<String>) {
-        val vozActual = voz
+        val vozActual = vozDisponible(voz)
         val velocidadActual = velocidad
         val nuevas =
             textos
@@ -121,7 +127,7 @@ class LocutorImpl(
         prioridad: PrioridadVoz,
         caducaMs: Long?,
     ) {
-        if (texto.isNotBlank()) encolar(Peticion(voz, texto, velocidad, caducaMs), prioridad)
+        if (texto.isNotBlank()) encolar(Peticion(vozDisponible(voz), texto, velocidad, caducaMs), prioridad)
     }
 
     private fun encolar(
@@ -136,7 +142,7 @@ class LocutorImpl(
     }
 
     override fun duracionEstimadaS(texto: String): Double {
-        val vozActual = voz
+        val vozActual = vozDisponible(voz)
         val velocidadActual = velocidad
         val bytes = cache.bytes(vozActual, texto, velocidadActual)
         return if (bytes != null) {
@@ -147,7 +153,7 @@ class LocutorImpl(
     }
 
     override fun probar(v: VozCopiloto) {
-        encolar(Peticion(v, FRASE_PRUEBA, velocidad))
+        encolar(Peticion(vozDisponible(v), FRASE_PRUEBA, velocidad))
     }
 
     override fun usarVolumen(porcentaje: Int) {
@@ -158,7 +164,7 @@ class LocutorImpl(
         v: VozCopiloto,
         texto: String,
     ) {
-        if (texto.isNotBlank()) encolar(Peticion(v, texto, velocidad))
+        if (texto.isNotBlank()) encolar(Peticion(vozDisponible(v), texto, velocidad))
     }
 
     override fun cerrar() {

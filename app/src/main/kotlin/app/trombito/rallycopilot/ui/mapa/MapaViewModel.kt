@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -126,7 +127,21 @@ class MapaViewModel
 
         fun onCapa(nueva: CapaMapa) = guardarAjustes { it.copy(capa = nueva) }
 
-        fun onRelieve(activo: Boolean) = guardarAjustes { it.copy(relieve = activo) }
+        /**
+         * Activar el relieve sin sus datos (ya no van en el APK) lanza su descarga: mientras baja, el mapa sigue sin
+         * relieve y `uiState.datos.complemento(RELIEVE).descarga` dice cómo va (también la notificación de descargas).
+         */
+        fun onRelieve(activo: Boolean) {
+            guardarAjustes { it.copy(relieve = activo) }
+            if (!activo) return
+            viewModelScope.launch {
+                val datos = repositorio.estado.first()
+                val relieve = datos.complemento(Complemento.RELIEVE)
+                if (datos.instalados != null && !relieve.instalado && !relieve.descargando) {
+                    repositorio.descargar(Complemento.RELIEVE)
+                }
+            }
+        }
 
         fun onOrientacion(nueva: Orientacion) = guardarAjustes { it.copy(orientacion = nueva) }
 

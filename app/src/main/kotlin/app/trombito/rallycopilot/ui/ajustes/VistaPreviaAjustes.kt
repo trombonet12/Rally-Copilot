@@ -29,6 +29,7 @@ import app.trombito.rallycopilot.motor.notas.Modificador
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.notas.NotaVisible
+import app.trombito.rallycopilot.motor.velocidad.kmhAMs
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
@@ -47,7 +48,6 @@ const val ETIQUETA_PREVISTA_ESCUCHAR = "prevista-escuchar"
 /** Posición de la tarjeta de ejemplo: lejos de los índices 0..2 de la franja de notas del mapa. */
 private const val INDICE_EJEMPLO = 90
 private const val VELOCIDAD_EJEMPLO_KMH = 90
-private const val KMH_A_MS = 3.6
 private const val DISTANCIA_EJEMPLO_M = 50.0
 private const val GRADO_EJEMPLO = 4
 private const val PASO_METROS = 10
@@ -72,7 +72,7 @@ internal object NotaEjemplo {
 
 /** Metros a los que se canta la nota yendo a 90 km/h con [nivel] (redondeado a 10). */
 internal fun metrosDeAnticipacion(nivel: NivelAnticipacion): Int {
-    val metros = Anticipacion().distanciaM(VELOCIDAD_EJEMPLO_KMH / KMH_A_MS, nivel)
+    val metros = Anticipacion().distanciaM(VELOCIDAD_EJEMPLO_KMH.toDouble().kmhAMs(), nivel)
     return (metros / PASO_METROS).roundToInt() * PASO_METROS
 }
 

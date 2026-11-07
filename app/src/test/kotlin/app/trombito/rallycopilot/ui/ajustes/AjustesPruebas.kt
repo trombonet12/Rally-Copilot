@@ -22,6 +22,7 @@ internal fun BancoCompose.ponerAjustes(
     seccion: SeccionAjustes? = null,
     acciones: AccionesAjustes = AccionesAjustes(),
     copiaEnCurso: Boolean = false,
+    vozSharvard: EstadoVozDescarga = EstadoVozDescarga(),
 ) {
     poner {
         var ajustes by remember { mutableStateOf(inicial) }
@@ -125,7 +126,13 @@ internal fun BancoCompose.ponerAjustes(
             if (abierta == null) {
                 AjustesScreen(ajustes, aplicadas)
             } else {
-                AjustesSeccionScreen(abierta, ajustes, aplicadas, copiaEnCurso = copiaEnCurso)
+                AjustesSeccionScreen(
+                    abierta,
+                    ajustes,
+                    aplicadas,
+                    copiaEnCurso = copiaEnCurso,
+                    vozSharvard = vozSharvard,
+                )
             }
         }
     }

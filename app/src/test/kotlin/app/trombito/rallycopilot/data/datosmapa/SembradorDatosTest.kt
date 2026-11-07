@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.data.db.archivos
 import app.trombito.rallycopilot.data.db.estado
 import app.trombito.rallycopilot.motor.datos.ArchivoDatos
 import app.trombito.rallycopilot.motor.datos.ArchivoLocal
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.datos.ManifestDatos
 import app.trombito.rallycopilot.motor.datos.PlanificadorDescarga
 import kotlinx.coroutines.Dispatchers
@@ -368,7 +369,13 @@ class SembradorDatosTest {
                 assertFalse(File(entorno.mapa, "pnoa-mallorca-z16.pmtiles").exists())
 
                 val progreso = mutableListOf<Pair<Long, Long>>()
-                val manual = runBlocking { actualizador.actualizar(automatico = false) { h, t -> progreso += h to t } }
+                val manual =
+                    runBlocking {
+                        actualizador.actualizar(false, setOf(Complemento.SATELITE)) { h, t ->
+                            progreso +=
+                                h to t
+                        }
+                    }
                 assertEquals(ResultadoActualizacion.Instalado, manual)
                 assertEquals(contenidos.getValue("satelite").size.toLong(), progreso.last().second)
                 runBlocking { assertTrue(dao.archivos().any { it.id == "satelite" }) }

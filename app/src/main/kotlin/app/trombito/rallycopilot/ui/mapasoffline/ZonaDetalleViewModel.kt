@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.motor.precarga.EstimacionTamano
 import app.trombito.rallycopilot.motor.precarga.EstimacionZona
 import app.trombito.rallycopilot.motor.precarga.Rectangulo
 import app.trombito.rallycopilot.motor.precarga.TeselasPrecarga
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import app.trombito.rallycopilot.ui.mapa.CamaraMapa
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -135,7 +136,6 @@ class ZonaDetalleViewModel
             }
 
         companion object {
-            private const val PARADA_MS = 5_000L
             internal val CAMARA_INICIAL = CamaraMapa(latitud = 39.5696, longitud = 2.6502, zoom = 14.0)
         }
     }

@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.domain.datos
 
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.datos.LIMITE_POR_DEFECTO
 import kotlinx.coroutines.flow.Flow
 
@@ -12,11 +13,16 @@ data class AjustesMapas(
     val limiteBytes: Long = LIMITE_POR_DEFECTO,
 )
 
-/** Datos de mapa instalados: lo que viene en el APK (ya sembrado) y, si se ha bajado, el satélite. */
+/**
+ * Datos de mapa instalados: lo que viene en el APK (ya sembrado) y, si se han bajado, el satélite, el relieve con las
+ * curvas de nivel y la voz Sharvard (ver [Complemento]).
+ */
 data class DatosInstalados(
     val version: String,
     val bytes: Long,
     val conSatelite: Boolean,
+    val conRelieve: Boolean = false,
+    val conVozSharvard: Boolean = false,
 )
 
 data class ProgresoDescarga(
@@ -25,6 +31,18 @@ data class ProgresoDescarga(
     /** La descarga espera red (o WiFi si «solo WiFi» está activado). */
     val esperandoRed: Boolean,
 )
+
+/**
+ * Un complemento que se baja al elegirlo (relieve, voz Sharvard): si está instalado, los [bytes] que ocupa y su
+ * descarga en curso (esperando red incluida).
+ */
+data class EstadoComplemento(
+    val instalado: Boolean = false,
+    val bytes: Long = 0,
+    val descarga: ProgresoDescarga? = null,
+) {
+    val descargando: Boolean get() = descarga != null
+}
 
 enum class MotivoError { SIN_RED, SUPERA_LIMITE, SIN_ESPACIO, HASH_INCORRECTO, MANIFEST_INVALIDO, DESCONOCIDO }
 
@@ -40,7 +58,11 @@ data class EstadoDatosMapa(
     val avisoActualizado: String? = null,
     /** La siembra de los datos del APK no ha terminado: aún no se sabe qué hay instalado, no se ofrece descargar. */
     val preparando: Boolean = false,
-)
+    /** Relieve y voz Sharvard (el satélite sigue en [instalados] y [descarga]); ausente = no instalado. */
+    val complementos: Map<Complemento, EstadoComplemento> = emptyMap(),
+) {
+    fun complemento(c: Complemento): EstadoComplemento = complementos[c] ?: EstadoComplemento()
+}
 
 /** Estilos MapLibre listos para `Style.Builder().fromJson`, con las rutas locales ya resueltas. */
 data class EstilosMapa(
@@ -52,6 +74,7 @@ data class EstilosMapa(
 )
 
 /** Paquete de datos de Mallorca (repo `rally-copilot-data`): comprobación, descarga, verificación y borrado. */
+@Suppress("TooManyFunctions") // las órdenes del paquete: base, satélite y complementos
 interface RepositorioDatosMapa {
     val estado: Flow<EstadoDatosMapa>
     val ajustes: Flow<AjustesMapas>
@@ -65,19 +88,40 @@ interface RepositorioDatosMapa {
      * Descarga (o reanuda) lo que falta; la pide el usuario desde Mapas offline. Con lo del APK ya sembrado, lo único
      * que falta es el satélite.
      */
-    fun descargar()
+    fun descargar() = descargar(Complemento.SATELITE)
+
+    /**
+     * Descarga (o reanuda) un [complemento] que no va en el APK. El satélite sigue la opción «Solo con WiFi»; el
+     * relieve y la voz se bajan con la red que haya (los pide el usuario al elegirlos) y no tocan el paquete base.
+     */
+    fun descargar(complemento: Complemento)
+
+    /**
+     * Descarga el [complemento] solo con WiFi, sin que lo pida el usuario ahora (p. ej. su voz elegida de antes de
+     * actualizar la app, que ya no viene en el APK).
+     */
+    fun descargarConWifi(complemento: Complemento)
 
     fun cancelar()
 
     /** Borra solo el satélite (archivos, registros y detalle z18–19); lo sembrado desde el APK no se toca. */
-    suspend fun borrar()
+    suspend fun borrar() = borrar(Complemento.SATELITE)
+
+    /** Borra un [complemento] (archivos y registros) y libera su espacio; lo sembrado desde el APK no se toca. */
+    suspend fun borrar(complemento: Complemento)
 
     /**
      * Bytes de satélite que FALTAN por instalar según los manifests remotos (principal + extra): la suma de sus
      * entradas `satelite*` que aún no están instaladas. 0 si no falta ninguna; null si no se puede saber (sin red o
      * manifest ilegible). Hace una petición de red.
      */
-    suspend fun tamanoSatelite(): Long?
+    suspend fun tamanoSatelite(): Long? = tamanoPendiente(Complemento.SATELITE)
+
+    /**
+     * Bytes del [complemento] que FALTAN por instalar según el manifest remoto; 0 si ya está todo; null si no se puede
+     * saber (sin red o manifest ilegible). Hace una petición de red.
+     */
+    suspend fun tamanoPendiente(complemento: Complemento): Long?
 
     suspend fun descartarAviso()
 

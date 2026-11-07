@@ -8,15 +8,18 @@ import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -33,9 +36,16 @@ class AjustesViewModel
     constructor(
         private val repositorio: RepositorioAjustesConduccion,
         private val locutor: Locutor,
+        private val datos: RepositorioDatosMapa,
     ) : ViewModel() {
         val uiState: StateFlow<AjustesConduccion> =
             repositorio.ajustes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), AjustesConduccion())
+
+        /** Sharvard no va en el APK: si está instalada, descargándose o por bajar (con su tamaño). */
+        val vozSharvard: StateFlow<EstadoVozDescarga> =
+            datos.estado
+                .map(EstadoVozDescarga::de)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), EstadoVozDescarga())
 
         /** El nivel se acota a -2..2 (más lejos a más cerca). */
         fun onNivelZoom(nivel: Int) {
@@ -66,8 +76,22 @@ class AjustesViewModel
             viewModelScope.launch { repositorio.elegirModoCopiloto(modo) }
         }
 
+        /** Elegir Sharvard sin tenerla baja la voz (con la red que haya); hasta entonces habla Dave. */
         fun onVozCopiloto(voz: VozCopiloto) {
-            viewModelScope.launch { repositorio.elegirVoz(voz) }
+            viewModelScope.launch {
+                repositorio.elegirVoz(voz)
+                if (voz == VozCopiloto.SHARVARD) pedirSharvardSiFalta()
+            }
+        }
+
+        /** «Descargar» de una voz: solo Sharvard se baja; Dave va en el APK. */
+        fun onDescargarVoz(voz: VozCopiloto) {
+            if (voz == VozCopiloto.SHARVARD) viewModelScope.launch { pedirSharvardSiFalta() }
+        }
+
+        private suspend fun pedirSharvardSiFalta() {
+            val sharvard = datos.estado.first().complemento(Complemento.VOZ_SHARVARD)
+            if (!sharvard.instalado && !sharvard.descargando) datos.descargar(Complemento.VOZ_SHARVARD)
         }
 
         /** Dice la frase de muestra con [voz] sin cambiar la elegida y con el volumen elegido. */

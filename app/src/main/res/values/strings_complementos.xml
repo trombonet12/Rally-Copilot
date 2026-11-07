@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Datos que no van en el APK: relieve + curvas de nivel y la voz Sharvard se descargan al elegirlos. -->
+    <string name="descargas_titulo_relieve">Descargando relieve y curvas de nivel</string>
+    <string name="descargas_titulo_voz">Descargando la voz Sharvard</string>
+
+    <string name="voz_descargar">Descargar (%1$s)</string>
+    <string name="voz_descargando">Descargando… %1$d %%</string>
+    <string name="voz_esperando_red">Esperando conexión para descargar la voz</string>
+    <string name="voz_lista">Lista, funciona sin conexión</string>
+    <string name="voz_descarga_aviso">Se baja una vez (%1$s) y después funciona sin conexión. Hasta entonces habla Dave.</string>
+    <string name="voz_descarga_error">No se pudo descargar la voz. Toca para reintentar.</string>
+    <string name="voz_probar_primero">Descarga la voz para poder oírla.</string>
+
+    <string name="complementos_titulo">Más datos (se descargan al usarlos)</string>
+    <string name="complementos_relieve">Relieve y curvas de nivel</string>
+    <string name="complementos_voz_sharvard">Voz Sharvard</string>
+    <string name="complementos_instalado">Instalado · ocupa %1$s</string>
+    <string name="complementos_no_instalado">No instalado · %1$s</string>
+    <string name="complementos_descargar">Descargar</string>
+    <string name="complementos_descargando">Descargando… %1$d %%</string>
+    <string name="complementos_esperando">Esperando conexión</string>
+    <string name="complementos_cancelar">Cancelar</string>
+    <string name="complementos_borrar_descripcion">Borrar %1$s</string>
+    <string name="complementos_borrar_titulo">¿Borrar %1$s?</string>
+    <string name="complementos_borrar_texto">Se liberan %1$s. Podrás volver a descargarlo cuando quieras.</string>
+    <string name="complementos_borrar_voz_extra">Si es tu voz elegida, hablará Dave hasta que la vuelvas a descargar.</string>
+
+    <string name="mapa_relieve_descargando">Descargando relieve y curvas de nivel…</string>
+</resources>

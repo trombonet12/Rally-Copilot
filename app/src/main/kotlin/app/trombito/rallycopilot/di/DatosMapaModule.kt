@@ -8,10 +8,12 @@ import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.data.datosmapa.RepositorioDatosMapaImpl
 import app.trombito.rallycopilot.data.datosmapa.SembradorDatos
 import app.trombito.rallycopilot.data.datosmapa.URL_MANIFEST
+import app.trombito.rallycopilot.data.datosmapa.complementosElegidos
 import app.trombito.rallycopilot.data.db.AjustesMapasDao
 import app.trombito.rallycopilot.data.db.DatosMapaDao
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.TODAS_LAS_MIGRACIONES
+import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import dagger.Module
@@ -20,6 +22,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import java.io.File
 import javax.inject.Singleton
 
@@ -75,8 +78,17 @@ object DatosMapaModule {
         config: ConfigDatosMapa,
         sembrador: SembradorDatos,
         precarga: PrecargaDetalle,
+        ajustesConduccion: RepositorioAjustesConduccion,
     ): RepositorioDatosMapa =
-        RepositorioDatosMapaImpl(dao, ajustesDao, workManager, config, Dispatchers.IO, sembrador, precarga)
+        RepositorioDatosMapaImpl(
+            dao,
+            ajustesDao,
+            workManager,
+            config,
+            Dispatchers.IO,
+            sembrador,
+            precarga,
+        ) { ajustesConduccion.ajustes.first().complementosElegidos() }
 
     @Provides
     fun esperaDatosSembrados(sembrador: SembradorDatos): EsperaDatosSembrados = sembrador

@@ -6,6 +6,8 @@ import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
+import app.trombito.rallycopilot.motor.datos.Complemento
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,6 +22,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
+@Suppress("TooManyFunctions") // un método por acción de la pantalla
 class MapasOfflineViewModel
     @Inject
     constructor(
@@ -69,6 +72,14 @@ class MapasOfflineViewModel
 
         fun onCancelar() = repositorio.cancelar()
 
+        /** Relieve o voz Sharvard: se bajan con la red que haya (el usuario ve el tamaño en la tarjeta). */
+        fun onDescargarComplemento(complemento: Complemento) = repositorio.descargar(complemento)
+
+        /** Borra un complemento y libera su espacio; se puede volver a descargar. */
+        fun onBorrarComplemento(complemento: Complemento) {
+            viewModelScope.launch { repositorio.borrar(complemento) }
+        }
+
         /** Borra el detalle z18-19 (el MBTiles y las rutas pendientes); el satelite z16-17 no se toca. */
         fun onBorrarDetalle() {
             viewModelScope.launch { precarga.borrar() }
@@ -99,9 +110,5 @@ class MapasOfflineViewModel
 
         private fun guardar(cambio: (AjustesMapas) -> AjustesMapas) {
             viewModelScope.launch { repositorio.guardarAjustes(cambio(repositorio.ajustes.first())) }
-        }
-
-        private companion object {
-            const val PARADA_MS = 5_000L
         }
     }

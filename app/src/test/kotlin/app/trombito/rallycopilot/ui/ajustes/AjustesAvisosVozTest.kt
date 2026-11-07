@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.FalsoControlOrdenes
 import app.trombito.rallycopilot.ui.comun.FalsoLocutor
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.copiloto.CopilotoViewModel
 import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_AVISAR_INCIDENCIAS
@@ -133,7 +134,7 @@ class AvisosVozViewModelsTest {
     }
 
     private fun TestScope.ajustes(): AjustesViewModel {
-        val vm = AjustesViewModel(repositorio, locutor)
+        val vm = AjustesViewModel(repositorio, locutor, FalsoRepositorioDatosMapa())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }

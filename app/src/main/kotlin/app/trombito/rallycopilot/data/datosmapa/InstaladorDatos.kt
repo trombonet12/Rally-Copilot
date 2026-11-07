@@ -10,6 +10,7 @@ import java.util.zip.ZipFile
  * Gestiona `filesDir/mapa/`: la zona de descarga `.nuevo/` y la instalación atómica. Mientras no estén verificados
  * todos los archivos del plan no se toca ningún archivo instalado, así los datos viejos siguen sirviendo.
  */
+@Suppress("TooManyFunctions") // `.nuevo/`, instalación, y los borrados de satélite y de complementos
 class InstaladorDatos(
     private val config: ConfigDatosMapa,
     /** Carpeta de trabajo dentro de `mapa/`; la siembra usa otra para no pisar una descarga en curso. */
@@ -67,20 +68,47 @@ class InstaladorDatos(
             extraido.walkTopDown().filter { it.isFile }.forEach { mover(it, File(mapa, it.relativeTo(extraido).path)) }
         }
         nombresABorrar.filter(::nombreSeguro).forEach { File(mapa, it).delete() }
-        nuevo.deleteRecursively()
+        limpiarNuevo(archivos)
+    }
+
+    /**
+     * Quita de `.nuevo/` lo de estos [archivos] (ya instalados) y la carpeta de extracción; `.nuevo/` solo desaparece
+     * si queda vacía: otra descarga (el satélite, de GB) puede tener ahí sus `.part` para reanudar.
+     */
+    private fun limpiarNuevo(archivos: List<ArchivoDatos>) {
+        extraido.deleteRecursively()
+        archivos.forEach { a ->
+            parcial(a).delete()
+            nuevo
+                .listFiles { f -> f.isFile && f.name.startsWith("${a.nombre}.") && f.name.endsWith(".ok") }
+                ?.forEach { it.delete() }
+        }
+        if (nuevo.list().isNullOrEmpty()) nuevo.deleteRecursively()
     }
 
     /**
      * Borra el satélite: los archivos de [nombres] (los registrados con id `satelite*`), cualquier
-     * `pnoa-mallorca*.pmtiles` y la zona de descarga `.nuevo/` (el llamante ya canceló la descarga). Lo sembrado y
-     * el resto de `mapa/` no se tocan.
+     * `pnoa-mallorca*.pmtiles` y sus restos de descarga en `.nuevo/` (el llamante ya canceló la descarga). Lo sembrado
+     * y el resto de `mapa/` no se tocan.
      */
     fun borrarSatelite(nombres: Collection<String>) {
         nombres.filter(::nombreSeguro).forEach { File(mapa, it).delete() }
         mapa
             .listFiles { f -> f.isFile && f.name.startsWith(PREFIJO_TESELAS_SATELITE) && f.name.endsWith(".pmtiles") }
             ?.forEach { it.delete() }
-        nuevo.deleteRecursively()
+        // Solo lo del satélite de `.nuevo/`: la descarga de otro complemento puede estar ahí a medias.
+        nuevo.listFiles { f -> f.isFile && f.name.startsWith(PREFIJO_TESELAS_SATELITE) }?.forEach { it.delete() }
+        if (nuevo.list().isNullOrEmpty()) nuevo.deleteRecursively()
+    }
+
+    /** Borra los archivos de [nombres] (los ids de un complemento: relieve, voz) y sus restos en `.nuevo/`. */
+    fun borrarArchivos(nombres: Collection<String>) {
+        val seguros = nombres.filter(::nombreSeguro)
+        seguros.forEach { File(mapa, it).delete() }
+        nuevo
+            .listFiles { f -> f.isFile && seguros.any { n -> f.name == "$n.part" || f.name.startsWith("$n.") } }
+            ?.forEach { it.delete() }
+        if (nuevo.list().isNullOrEmpty()) nuevo.deleteRecursively()
     }
 
     private fun nombreSeguro(nombre: String) =

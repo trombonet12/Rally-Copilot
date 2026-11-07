@@ -406,4 +406,45 @@ class LocutorImplTest {
 
             assertEquals(normal / VelocidadHabla.RAPIDA.factor, locutor.duracionEstimadaS("hola"), 1e-6)
         }
+
+    private fun TestScope.locutorSinSharvard(): LocutorImpl {
+        val dispatcher = StandardTestDispatcher(testScheduler)
+        return LocutorImpl(
+            CacheFrases(carpeta.root),
+            sint,
+            repro,
+            foco,
+            CoroutineScope(dispatcher),
+            dispatcher,
+            { ahoraMs },
+            vozDisponible = { VozCopiloto.DAVEFX },
+        )
+    }
+
+    @Test
+    fun `si la voz elegida no esta instalada habla dave y no mezcla la cache`() =
+        runTest {
+            val locutor = locutorSinSharvard()
+            val cache = CacheFrases(carpeta.root)
+
+            locutor.usarVoz(VozCopiloto.SHARVARD)
+            locutor.preparar(listOf("a"))
+            locutor.decir("b")
+            advanceUntilIdle()
+
+            assertEquals(setOf(VozCopiloto.DAVEFX to "a", VozCopiloto.DAVEFX to "b"), sint.llamadas.toSet())
+            assertTrue(cache.contiene(VozCopiloto.DAVEFX, "a"))
+            assertFalse(cache.contiene(VozCopiloto.SHARVARD, "a"))
+        }
+
+    @Test
+    fun `la muestra de una voz no instalada suena con dave`() =
+        runTest {
+            val locutor = locutorSinSharvard()
+
+            locutor.probar(VozCopiloto.SHARVARD)
+            advanceUntilIdle()
+
+            assertEquals(listOf(VozCopiloto.DAVEFX), sint.llamadas.map { it.first })
+        }
 }

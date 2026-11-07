@@ -12,6 +12,7 @@ import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +26,14 @@ class FalsoRepositorioDatosMapa(
     /** Lo que responde [tamanoSatelite] (null = sin red). */
     var bytesSatelite: Long? = null,
 ) : RepositorioDatosMapa {
+    /** Lo que responde [tamanoPendiente] para los complementos que no son el satélite (null = sin red). */
+    var bytesComplementos: Long? = null
+
+    /** Cada descarga pedida de un complemento (la del satélite también) y cada borrado, en orden. */
+    val complementosDescargados = mutableListOf<Complemento>()
+    val complementosDescargadosConWifi = mutableListOf<Complemento>()
+    val complementosBorrados = mutableListOf<Complemento>()
+
     val estadoMutable = MutableStateFlow(estadoInicial)
     val ajustesMutable = MutableStateFlow(AjustesMapas())
     override val estado: Flow<EstadoDatosMapa> = estadoMutable
@@ -44,21 +53,28 @@ class FalsoRepositorioDatosMapa(
         comprobaciones++
     }
 
-    override fun descargar() {
-        descargas++
+    override fun descargar(complemento: Complemento) {
+        complementosDescargados += complemento
+        if (complemento == Complemento.SATELITE) descargas++
+    }
+
+    override fun descargarConWifi(complemento: Complemento) {
+        complementosDescargadosConWifi += complemento
     }
 
     override fun cancelar() {
         cancelaciones++
     }
 
-    override suspend fun borrar() {
-        borrados++
+    override suspend fun borrar(complemento: Complemento) {
+        complementosBorrados += complemento
+        if (complemento == Complemento.SATELITE) borrados++
     }
 
     var consultasTamanoSatelite = 0
 
-    override suspend fun tamanoSatelite(): Long? {
+    override suspend fun tamanoPendiente(complemento: Complemento): Long? {
+        if (complemento != Complemento.SATELITE) return bytesComplementos
         consultasTamanoSatelite++
         return bytesSatelite
     }

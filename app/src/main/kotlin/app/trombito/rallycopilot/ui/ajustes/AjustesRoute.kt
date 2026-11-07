@@ -53,6 +53,7 @@ fun AjustesSeccionRoute(
     copia: CopiaViewModel = hiltViewModel(),
 ) {
     val ajustes by viewModel.uiState.collectAsStateWithLifecycle()
+    val vozSharvard by viewModel.vozSharvard.collectAsStateWithLifecycle()
     val estadoCopia by copia.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
     val avisos = remember { SnackbarHostState() }
@@ -70,6 +71,7 @@ fun AjustesSeccionRoute(
         AjustesSeccionScreen(
             seccion = seccion,
             ajustes = ajustes,
+            vozSharvard = vozSharvard,
             acciones =
                 accionesDe(viewModel, onVolver).copy(
                     onMapasOffline = onMapasOffline,
@@ -118,6 +120,7 @@ private fun accionesDe(
     onModoCopiloto = viewModel::onModoCopiloto,
     onVozCopiloto = viewModel::onVozCopiloto,
     onProbarVoz = viewModel::onProbarVoz,
+    onDescargarVoz = viewModel::onDescargarVoz,
     onActivarConCopiloto = viewModel::onActivarConCopiloto,
     onVolumenVoz = viewModel::onVolumenVoz,
     onEscucharEjemplo = viewModel::onEscucharEjemplo,

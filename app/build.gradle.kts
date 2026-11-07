@@ -185,14 +185,13 @@ abstract class DescargaVerificada : DefaultTask() {
 }
 
 /**
- * Voces: extrae de los tar.bz2 el contrato voz/davefx, voz/sharvard y voz/espeak-ng-data (una sola copia, recortada a
- * lo que usa es_ES: los diccionarios de los demás idiomas, 17 de los 17,2 MiB, no se empaquetan; se conserva `en_dict`
- * por si una palabra inglesa cambia de idioma). Al tocar el filtro, subir CopiaEspeak.VERSION.
+ * Voz: extrae del tar.bz2 de Dave el contrato voz/davefx y voz/espeak-ng-data (recortada a lo que usa es_ES: los
+ * diccionarios de los demás idiomas, 17 de los 17,2 MiB, no se empaquetan; se conserva `en_dict` por si una palabra
+ * inglesa cambia de idioma). Al tocar el filtro, subir CopiaEspeak.VERSION. La voz Sharvard NO va en el APK: se baja de
+ * la release de datos al elegirla (ids `voz-sharvard*`, ver `Complemento` del motor).
  */
 abstract class GenerarAssetsVoz : DefaultTask() {
     @get:InputFile abstract val davefx: RegularFileProperty
-
-    @get:InputFile abstract val sharvard: RegularFileProperty
 
     @get:OutputDirectory abstract val outputDir: DirectoryProperty
 
@@ -207,13 +206,10 @@ abstract class GenerarAssetsVoz : DefaultTask() {
         sistema.copy {
             into(destino)
             includeEmptyDirs = false
-            for ((nombre, tar) in listOf("davefx" to davefx.get().asFile, "sharvard" to sharvard.get().asFile)) {
-                from(archivos.tarTree(tar)) {
-                    include("*/es_ES-$nombre-medium.onnx", "*/tokens.txt")
-                    eachFile { path = "voz/$nombre/" + if (name.endsWith(".onnx")) "model.onnx" else name }
-                }
+            from(archivos.tarTree(davefx.get().asFile)) {
+                include("*/es_ES-davefx-medium.onnx", "*/tokens.txt")
+                eachFile { path = "voz/davefx/" + if (name.endsWith(".onnx")) "model.onnx" else name }
             }
-            // Una única copia de espeak-ng-data (las dos voces traen la misma).
             from(archivos.tarTree(davefx.get().asFile)) {
                 include("*/espeak-ng-data/**")
                 exclude { elemento ->
@@ -223,10 +219,9 @@ abstract class GenerarAssetsVoz : DefaultTask() {
                 eachFile { path = "voz/" + path.substringAfter('/') }
             }
         }
-        val modelos = listOf("davefx", "sharvard").map { File(destino, "voz/$it/model.onnx") }
-        val tokens = listOf("davefx", "sharvard").map { File(destino, "voz/$it/tokens.txt") }
-        check((modelos + tokens).all { it.isFile } && File(destino, "voz/espeak-ng-data").isDirectory) {
-            "Las voces extraídas no cumplen el contrato voz/{davefx,sharvard}/{model.onnx,tokens.txt} y voz/espeak-ng-data"
+        val archivosVoz = listOf("model.onnx", "tokens.txt").map { File(destino, "voz/davefx/$it") }
+        check(archivosVoz.all { it.isFile } && File(destino, "voz/espeak-ng-data").isDirectory) {
+            "La voz extraída no cumple el contrato voz/davefx/{model.onnx,tokens.txt} y voz/espeak-ng-data"
         }
     }
 }
@@ -261,11 +256,14 @@ abstract class GenerarAssetsAsr : DefaultTask() {
 }
 
 /**
- * Datos de mapas: baja el manifest (hash fijo) y todos sus archivos salvo el satélite; los deja en datos/<nombre>.asset
- * (más datos/manifest-incluido.json, con los nombres reales).
+ * Datos de mapas: baja el manifest (hash fijo) y todos sus archivos salvo los bajo demanda (ids que empiezan por un
+ * prefijo de `bajoDemanda` en datos-incluidos.properties: satélite, relieve, curvas y voz Sharvard, que se descargan
+ * al elegirlos); los deja en datos/<nombre>.asset (más datos/manifest-incluido.json, con los nombres reales).
  */
 abstract class GenerarAssetsDatos : DefaultTask() {
     @get:Input abstract val etiqueta: Property<String>
+
+    @get:Input abstract val bajoDemanda: ListProperty<String>
 
     @get:Input abstract val manifestSha256: Property<String>
 
@@ -285,7 +283,9 @@ abstract class GenerarAssetsDatos : DefaultTask() {
 
         @Suppress("UNCHECKED_CAST")
         val todos = json["archivos"] as List<Map<String, Any?>>
-        val incluidos = todos.filter { !(it["id"] as String).startsWith("satelite") }
+        val prefijos = bajoDemanda.get()
+        check(prefijos.isNotEmpty()) { "datos-incluidos.properties: 'bajoDemanda' no puede quedar vacío" }
+        val incluidos = todos.filter { entrada -> prefijos.none { (entrada["id"] as String).startsWith(it) } }
         check(incluidos.isNotEmpty()) { "El manifest no lista archivos que incluir" }
 
         val destino = outputDir.get().asFile
@@ -348,7 +348,7 @@ fun registrarVoz(
 }
 
 val descargarVozDavefx = registrarVoz("davefx", "8bb8ac1cefb727caec9bd9c6c3185c673c8b42c53bd29bb25d5a7715dac37125")
-val descargarVozSharvard = registrarVoz("sharvard", "bf5507cbdedea650365bd6175b3164a8ecca5847533ddf97afcba9d76ea599d1")
+// Sharvard va en la release de datos (rally-copilot-data, scripts/voz.py), con este mismo SHA-256 del tar.bz2 de sherpa-onnx.
 
 // --- Reconocimiento de voz offline (Vosk): modelo pequeño español, bajado y verificado como las voces ---
 val voskModeloSha256 = "09b239888f633ef2f0b4e09736e3d9936acfd810bc65d53fad45261762c6511f"
@@ -384,7 +384,6 @@ androidComponents.onVariants { variante ->
             group = "descargas"
             description = "Genera los assets voz/** de ${variante.name}."
             davefx.set(descargarVozDavefx.flatMap { it.archivo })
-            sharvard.set(descargarVozSharvard.flatMap { it.archivo })
         }
     variante.sources.assets?.addGeneratedSourceDirectory(voz, GenerarAssetsVoz::outputDir)
 
@@ -399,8 +398,9 @@ androidComponents.onVariants { variante ->
     val datos =
         tasks.register<GenerarAssetsDatos>("generarAssetsDatos$sufijo") {
             group = "descargas"
-            description = "Genera los assets datos/** de ${variante.name} (manifest filtrado sin satélite)."
+            description = "Genera los assets datos/** de ${variante.name} (manifest filtrado sin lo bajo demanda)."
             etiqueta.set(datosProp("etiqueta"))
+            bajoDemanda.set(datosProp("bajoDemanda").split(',').map { it.trim() }.filter { it.isNotEmpty() })
             manifestSha256.set(datosProp("manifestSha256"))
             cacheDir.set(directorioDescargas)
         }

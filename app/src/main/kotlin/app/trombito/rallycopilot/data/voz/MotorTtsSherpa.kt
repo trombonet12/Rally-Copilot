@@ -18,16 +18,19 @@ import javax.inject.Singleton
 import kotlin.math.roundToInt
 
 /**
- * [SintetizadorTts] con sherpa-onnx (Piper/VITS es_ES int8). El modelo y los tokens se leen de `assets/voz/<voz>/`; el
- * `espeak-ng-data` necesita una ruta real, así que se copia una vez a `filesDir/voz/espeak-ng-data` (ver
- * [CopiaEspeak]). Solo hay un modelo en memoria: al cambiar de voz se libera el anterior. La carga es perezosa (en el
- * hilo de quien llame a [sintetizar]). Siempre hablante 0 (en sharvard es el masculino).
+ * [SintetizadorTts] con sherpa-onnx (Piper/VITS es_ES int8). El modelo y los tokens de Dave se leen de
+ * `assets/voz/davefx/`; los de Sharvard, que no van en el APK, de los archivos que se bajaron a `filesDir/mapa/` (ver
+ * [VocesInstaladas]). El `espeak-ng-data` necesita una ruta real, así que se copia una vez a
+ * `filesDir/voz/espeak-ng-data` (ver [CopiaEspeak]). Solo hay un modelo en memoria: al cambiar de voz se libera el
+ * anterior. La carga es perezosa (en el hilo de quien llame a [sintetizar]). Siempre hablante 0 (en sharvard es el
+ * masculino).
  */
 @Singleton
 class MotorTtsSherpa
     @Inject
     constructor(
         @ApplicationContext private val contexto: Context,
+        private val voces: VocesInstaladas,
     ) : SintetizadorTts {
         private var cargada: VozCopiloto? = null
         private var motor: OfflineTts? = null
@@ -59,16 +62,20 @@ class MotorTtsSherpa
             val actual = motor
             if (actual != null && cargada == voz) return actual
             liberar()
-            val nombre = voz.name.lowercase()
             val datos = CopiaEspeak.asegurar(contexto.assets, File(contexto.filesDir, "voz"))
+            // Dave sale de los assets; Sharvard, de archivos en disco (sin AssetManager, sherpa lee rutas reales).
+            val enDisco = voz == VozCopiloto.SHARVARD
+            if (enDisco && !voces.estaInstalada(voz)) throw ErrorSintesis("La voz ${voz.name} no está descargada")
+            val modelo = if (enDisco) voces.modeloSharvard.absolutePath else "voz/davefx/model.onnx"
+            val tokens = if (enDisco) voces.tokensSharvard.absolutePath else "voz/davefx/tokens.txt"
             val config =
                 OfflineTtsConfig(
                     model =
                         OfflineTtsModelConfig(
                             vits =
                                 OfflineTtsVitsModelConfig(
-                                    model = "voz/$nombre/model.onnx",
-                                    tokens = "voz/$nombre/tokens.txt",
+                                    model = modelo,
+                                    tokens = tokens,
                                     dataDir = datos.absolutePath,
                                 ),
                             numThreads = HILOS,
@@ -76,7 +83,7 @@ class MotorTtsSherpa
                             provider = "cpu",
                         ),
                 )
-            val nuevo = cargar(contexto.assets, config)
+            val nuevo = cargar(if (enDisco) null else contexto.assets, config)
             motor = nuevo
             cargada = voz
             return nuevo
@@ -86,7 +93,7 @@ class MotorTtsSherpa
         // ErrorSintesis.
         @Suppress("TooGenericExceptionCaught")
         private fun cargar(
-            assets: AssetManager,
+            assets: AssetManager?,
             config: OfflineTtsConfig,
         ): OfflineTts =
             try {

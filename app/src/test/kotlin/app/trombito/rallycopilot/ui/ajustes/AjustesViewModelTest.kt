@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.comun.FalsoLocutor
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -42,7 +43,7 @@ class AjustesViewModelTest {
     }
 
     private fun TestScope.crear(): AjustesViewModel {
-        val vm = AjustesViewModel(repositorio, locutor)
+        val vm = AjustesViewModel(repositorio, locutor, FalsoRepositorioDatosMapa())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
