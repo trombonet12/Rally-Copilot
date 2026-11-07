@@ -25,6 +25,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -180,9 +181,8 @@ class SembradorDatos internal constructor(
     private fun copiarYVerificar(archivo: ArchivoDatos): Boolean {
         val parcial = instalador.parcial(archivo)
         parcial.parentFile?.mkdirs()
-        val copiado = copiarAsset("$CARPETA_ASSETS/${archivo.nombre}$SUFIJO_ASSET", parcial)
-        val valido =
-            copiado && parcial.length() == archivo.bytes && DescargadorArchivo.sha256(parcial) == archivo.sha256
+        val sha = copiarAsset("$CARPETA_ASSETS/${archivo.nombre}$SUFIJO_ASSET", parcial)
+        val valido = sha != null && parcial.length() == archivo.bytes && sha == archivo.sha256
         if (valido) {
             instalador.marcarVerificado(archivo)
         } else {
@@ -200,16 +200,22 @@ class SembradorDatos internal constructor(
             null
         }
 
-    /** Copia un asset a [destino] sin cargarlo en memoria; false si no existe o falla la copia. */
+    /**
+     * Copia un asset a [destino] sin cargarlo en memoria y calcula su SHA-256 durante la copia (sin releer el archivo,
+     * que son cientos de MB); null si no existe o falla la copia.
+     */
     private fun copiarAsset(
         ruta: String,
         destino: File,
-    ): Boolean =
+    ): String? =
         try {
-            abrirAsset(ruta).use { entrada -> destino.outputStream().use { salida -> entrada.copyTo(salida) } }
-            true
+            val digest = MessageDigest.getInstance("SHA-256")
+            DigestInputStream(abrirAsset(ruta), digest).use { entrada ->
+                destino.outputStream().use { salida -> entrada.copyTo(salida) }
+            }
+            digest.digest().joinToString("") { "%02x".format(it) }
         } catch (_: IOException) {
-            false
+            null
         }
 
     private companion object {

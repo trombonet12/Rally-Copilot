@@ -250,6 +250,30 @@ class SembradorDatosTest {
     }
 
     @Test
+    fun `un asset truncado no se instala aunque lo copiado sea prefijo del original`() {
+        incluir("datos-2026.11.01-1")
+        val clave = "datos/mallorca.pmtiles.asset"
+        assets.archivos[clave] = assets.archivos.getValue(clave).let { it.copyOf(it.size - 1) }
+
+        val resultado = runBlocking { sembrador().sembrar() }
+
+        assertEquals(setOf("vectorial"), resultado.fallidos)
+        assertFalse(File(mapa, "mallorca.pmtiles").exists())
+    }
+
+    @Test
+    fun `cada asset se abre una sola vez porque el hash se calcula al copiar`() {
+        incluir("datos-2026.11.01-1")
+
+        val resultado = runBlocking { sembrador().sembrar() }
+
+        assertEquals(setOf("vectorial", "estilo", "vias"), resultado.sembrados)
+        val abiertos = assets.archivosAbiertos()
+        assertEquals(abiertos.toSet().size, abiertos.size)
+        assertArrayEquals(assets.archivos.getValue("datos/mallorca.pmtiles.asset"), leer("mallorca.pmtiles"))
+    }
+
+    @Test
     fun `un asset que falta se salta sin romper`() {
         incluir("datos-2026.11.01-1")
         assets.archivos.remove("datos/vias-mallorca.bin.asset")

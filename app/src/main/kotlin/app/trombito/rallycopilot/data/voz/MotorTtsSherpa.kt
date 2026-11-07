@@ -125,7 +125,7 @@ class MotorTtsSherpa
  */
 object CopiaEspeak {
     /** Subir al cambiar las voces o su `espeak-ng-data`. */
-    const val VERSION = "sherpa-1.13.8-1"
+    const val VERSION = "sherpa-1.13.8-2"
     private const val ORIGEN = "voz/espeak-ng-data"
     private const val MARCADOR = ".version"
     private const val TAG = "CopiaEspeak"

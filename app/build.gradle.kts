@@ -184,7 +184,11 @@ abstract class DescargaVerificada : DefaultTask() {
     }
 }
 
-/** Voces: extrae de los tar.bz2 el contrato voz/davefx, voz/sharvard y voz/espeak-ng-data (una sola copia). */
+/**
+ * Voces: extrae de los tar.bz2 el contrato voz/davefx, voz/sharvard y voz/espeak-ng-data (una sola copia, recortada a
+ * lo que usa es_ES: los diccionarios de los demás idiomas, 17 de los 17,2 MiB, no se empaquetan; se conserva `en_dict`
+ * por si una palabra inglesa cambia de idioma). Al tocar el filtro, subir CopiaEspeak.VERSION.
+ */
 abstract class GenerarAssetsVoz : DefaultTask() {
     @get:InputFile abstract val davefx: RegularFileProperty
 
@@ -212,6 +216,10 @@ abstract class GenerarAssetsVoz : DefaultTask() {
             // Una única copia de espeak-ng-data (las dos voces traen la misma).
             from(archivos.tarTree(davefx.get().asFile)) {
                 include("*/espeak-ng-data/**")
+                exclude { elemento ->
+                    val nombre = elemento.file.name
+                    nombre.endsWith("_dict") && nombre != "es_dict" && nombre != "en_dict"
+                }
                 eachFile { path = "voz/" + path.substringAfter('/') }
             }
         }
@@ -409,11 +417,6 @@ android {
         targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
-
-        // Móviles actuales y emulador (decisión 2026-11-01): sin armeabi-v7a ni x86, el APK no crece ~2 x con onnxruntime.
-        ndk {
-            abiFilters += listOf("arm64-v8a", "x86_64")
-        }
     }
 
     signingConfigs {
@@ -430,8 +433,16 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".dev"
+            // Móviles actuales (arm64) y el emulador trombito-36 (x86_64), que usa el debug (auditoría REN-1).
+            ndk {
+                abiFilters += listOf("arm64-v8a", "x86_64")
+            }
         }
         release {
+            // Solo arm64-v8a: el x86_64 (~65 MiB) únicamente sirve al emulador, que usa el debug (auditoría REN-1).
+            ndk {
+                abiFilters += listOf("arm64-v8a")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
@@ -454,6 +465,13 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    packaging {
+        jniLibs {
+            // El JNI de sherpa-onnx (única biblioteca que se carga) no depende de la envoltura C++ (auditoría REN-27).
+            excludes += "**/libsherpa-onnx-cxx-api.so"
+        }
     }
 
     // Modelos y datos que se leen tal cual (mmap/copia): comprimirlos solo alarga el build y el arranque.
