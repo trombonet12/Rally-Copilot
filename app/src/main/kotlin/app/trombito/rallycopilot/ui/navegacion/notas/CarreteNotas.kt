@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -177,7 +178,7 @@ private fun TarjetaActual(
         ) {
             IconosDeLaNota(elemento, 0, simplificadas, color, medidas)
             TextoRotulo(
-                texto = textoNota(recursos, elemento, simplificadas, medidas.abreviar),
+                texto = textoNota(recursos, elemento, simplificadas, color, medidas.abreviar),
                 color = color,
                 medidas = medidas,
                 modifier = Modifier.weight(1f),
@@ -226,7 +227,7 @@ private fun TarjetaSiguiente(
         ) {
             IconosDeLaNota(elemento, 1, simplificadas, color, medidas)
             TextoRotulo(
-                texto = textoNota(recursos, elemento, simplificadas, medidas.abreviar),
+                texto = textoNota(recursos, elemento, simplificadas, color, medidas.abreviar),
                 color = color,
                 medidas = medidas,
                 modifier = Modifier.weight(1f),
@@ -242,7 +243,7 @@ private fun TarjetaSiguiente(
  */
 @Composable
 private fun TextoRotulo(
-    texto: String,
+    texto: AnnotatedString,
     color: Color,
     medidas: Medidas,
     modifier: Modifier = Modifier,

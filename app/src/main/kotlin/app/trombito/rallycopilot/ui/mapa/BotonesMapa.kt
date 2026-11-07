@@ -18,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import app.trombito.rallycopilot.ui.comun.ConLadoBotonMapa
 import app.trombito.rallycopilot.ui.copiloto.BotonMicrofono
 import app.trombito.rallycopilot.ui.copiloto.BotonModoCopiloto
 import app.trombito.rallycopilot.ui.copiloto.BotonSilencio
@@ -25,6 +26,7 @@ import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.modoAlAlternarSilencio
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 import app.trombito.rallycopilot.ui.theme.Espacio
+import app.trombito.rallycopilot.ui.theme.Medidas
 import app.trombito.rallycopilot.ui.theme.Movimiento
 import app.trombito.rallycopilot.ui.tutorial.ConPista
 import app.trombito.rallycopilot.ui.tutorial.LadoPista
@@ -32,30 +34,20 @@ import app.trombito.rallycopilot.ui.tutorial.Pista
 
 const val ETIQUETA_COLUMNA_BOTONES = "mapa-columna-botones"
 
-/** Segundos que los botones táctiles siguen a la vista tras el último toque al mapa, en marcha. */
-internal const val RETARDO_OCULTAR_BOTONES_MS = 6_000L
-
-/** Por encima de esta velocidad (km/h) el coche va «en marcha»: los botones secundarios se esconden solos. */
-internal const val VELOCIDAD_EN_MARCHA_KMH = 8
-
-/** En marcha solo van los botones fijos; parado (o con el mapa tocado hace menos de 6 s) van todos. */
-internal fun botonesTactilesVisibles(
-    enMarcha: Boolean,
-    tocado: Boolean,
-): Boolean = !enMarcha || tocado
-
-/** Los botones redondos de la columna derecha, de arriba abajo: primero los táctiles y luego los fijos. */
+/** Los botones redondos de la columna derecha, de arriba abajo: primero los secundarios y luego los de conducción. */
 internal class BotonesMapa(
-    /** Capas, notas grandes y micrófono: aparecen al tocar el mapa y se esconden a los 6 s en marcha. */
+    /** Capas y notas grandes: se esconden al ir deprisa (más de 20 km/h) y vuelven al parar. */
     val tactiles: List<@Composable () -> Unit> = emptyList(),
-    /** Copiloto, silenciar y brújula (o recentrar): siempre a la vista. */
+    /** Micrófono, modo del copiloto, silencio y brújula (o recentrar): siempre a la vista. */
     val fijos: List<@Composable () -> Unit> = emptyList(),
 )
 
 /**
- * Los botones de la columna derecha. Fijos: hoja del copiloto, silenciar (alterna Silencio y el modo anterior) y
- * brújula, que si el mapa se movió es el de «mi ubicación». Táctiles: capas, notas grandes y micrófono. Sin mapa
- * (modo de notas grandes) no hay capas ni brújula. [modoAnterior] es el último modo del copiloto con voz.
+ * Los botones de la columna derecha. De conducción, siempre a la vista y de 64 dp: micrófono, hoja del copiloto y
+ * silenciar (alterna Silencio y el modo anterior); con ellos la brújula de 48 dp, que si el mapa se movió es el de «mi
+ * ubicación» y entonces se esconde al ir deprisa ([rapido]). Secundarios, de 48 dp y escondidos al ir deprisa: capas y
+ * notas grandes. Sin mapa (modo de notas grandes) no hay capas ni brújula. [modoAnterior] es el último modo del
+ * copiloto con voz.
  */
 @Suppress("LongParameterList") // estado, vista, acciones, navegación, copiloto y menú son los bloques de la pantalla
 internal fun botonesDeLaColumna(
@@ -66,6 +58,7 @@ internal fun botonesDeLaColumna(
     copiloto: CopilotoEnMapa,
     menu: MenuAbierto,
     modoAnterior: ModoCopiloto,
+    rapido: Boolean = false,
 ): BotonesMapa {
     val control = navegacion.estado.control
     val grandes = copiloto.estado.notasGrandes
@@ -76,22 +69,35 @@ internal fun botonesDeLaColumna(
         listOf(
             if (grandes) null else ({ BotonCapas(menu.actual == MenuMapa.CAPAS, { menu.alternar(MenuMapa.CAPAS) }) }),
             { BotonNotasGrandes(grandes, { copiloto.acciones.onNotasGrandes(!grandes) }) },
-            if (hablar) ({ BotonMicrofono(copiloto.estado.escuchando, copiloto.acciones.onEscuchar) }) else null,
         )
     val fijos: List<(@Composable () -> Unit)?> =
         listOf(
+            if (hablar) {
+                {
+                    ConLadoBotonMapa(Medidas.botonConduccion) {
+                        BotonMicrofono(copiloto.estado.escuchando, copiloto.acciones.onEscuchar)
+                    }
+                }
+            } else {
+                null
+            },
             {
-                ConPista(Pista.MAPA, stringResource(R.string.pista_mapa)) {
-                    BotonModoCopiloto(modo, menu.actual == MenuMapa.COPILOTO, { menu.alternar(MenuMapa.COPILOTO) })
+                ConLadoBotonMapa(Medidas.botonConduccion) {
+                    ConPista(Pista.MAPA, stringResource(R.string.pista_mapa)) {
+                        BotonModoCopiloto(modo, menu.actual == MenuMapa.COPILOTO, { menu.alternar(MenuMapa.COPILOTO) })
+                    }
                 }
             },
             {
-                BotonSilencio(
-                    silenciado = modo == ModoCopiloto.SILENCIO,
-                    onClick = { copiloto.acciones.onModo(modoAlAlternarSilencio(modo, modoAnterior)) },
-                )
+                ConLadoBotonMapa(Medidas.botonConduccion) {
+                    BotonSilencio(
+                        silenciado = modo == ModoCopiloto.SILENCIO,
+                        onClick = { copiloto.acciones.onModo(modoAlAlternarSilencio(modo, modoAnterior)) },
+                    )
+                }
             },
-            if (grandes) {
+            // Recentrar solo se usa parado: al ir deprisa se esconde; la brújula (siguiendo al coche) se queda.
+            if (grandes || (!sigueAlCoche && rapido)) {
                 null
             } else {
                 {
@@ -108,8 +114,9 @@ internal fun botonesDeLaColumna(
 }
 
 /**
- * Columna de botones redondos de 48 dp con 12 dp de hueco, anclada a la derecha sobre la hoja. Los fijos quedan abajo
- * y los táctiles aparecen encima con [tactilesVisibles]. En horizontal, con poca altura, los táctiles van en una
+ * Columna de botones redondos (48 dp, 64 dp los de conducción) con 12 dp de hueco, anclada a la derecha sobre la hoja.
+ * Los fijos quedan abajo y los secundarios aparecen encima con [tactilesVisibles] (nunca al ir deprisa). En horizontal,
+ * con poca altura, los táctiles van en una
  * segunda columna a la izquierda de los fijos.
  */
 @Composable

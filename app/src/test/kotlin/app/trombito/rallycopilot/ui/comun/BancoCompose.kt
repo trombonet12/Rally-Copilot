@@ -96,6 +96,29 @@ class BancoCompose {
 
     fun esPulsable(nodo: SemanticsNode): Boolean = nodo.config.contains(SemanticsActions.OnClick)
 
+    /**
+     * Nodos pulsables que TalkBack no sabría nombrar: ni ellos, ni nada de lo que cuelga de ellos, ni un ancestro que
+     * fusione su semántica (como hace TalkBack) tiene texto o `contentDescription`. Un botón de solo icono sin
+     * descripción aparece aquí (UX-25).
+     */
+    fun pulsablesSinNombre(): List<SemanticsNode> =
+        nodos().filter { esPulsable(it) && !tieneNombre(it) && !fusionadoConNombre(it) }
+
+    private fun tieneNombre(nodo: SemanticsNode): Boolean =
+        aplanar(nodo).any { n ->
+            n.config
+                .getOrNull(SemanticsProperties.ContentDescription)
+                .orEmpty()
+                .any { it.isNotBlank() } ||
+                n.config
+                    .getOrNull(SemanticsProperties.Text)
+                    .orEmpty()
+                    .any { it.text.isNotBlank() }
+        }
+
+    private fun fusionadoConNombre(nodo: SemanticsNode): Boolean =
+        generateSequence(nodo.parent) { it.parent }.any { it.config.isMergingSemanticsOfDescendants && tieneNombre(it) }
+
     fun estaHabilitado(nodo: SemanticsNode): Boolean = !nodo.config.contains(SemanticsProperties.Disabled)
 
     fun descripcion(nodo: SemanticsNode): String? =

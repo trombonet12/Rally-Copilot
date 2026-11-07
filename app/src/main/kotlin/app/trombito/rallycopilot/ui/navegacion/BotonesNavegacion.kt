@@ -36,6 +36,7 @@ import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.LADO_TACTIL
 import app.trombito.rallycopilot.ui.theme.Espacio
+import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 import app.trombito.rallycopilot.ui.theme.Medidas
 
 const val ETIQUETA_EMPEZAR = "nav-empezar"
@@ -117,14 +118,21 @@ fun BotonEmpezar(
 
 /**
  * ✕ de la hoja de conducción: termina el guiado (también cierra el aviso de llegada). Círculo de 48 dp con borde y sin
- * relleno (el rojo no es nunca un fondo); el borde es el de la hoja, no el de la marca.
+ * relleno (el rojo no es nunca un fondo); el borde es el de la hoja, no el de la marca. Con [armado] (esperando el
+ * segundo toque que confirma terminar) el borde es ámbar y más grueso.
  */
 @Composable
 fun BotonTerminar(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    armado: Boolean = false,
 ) {
-    BotonCerrarHoja(stringResource(R.string.navegacion_terminar), onClick, modifier.testTag(ETIQUETA_TERMINAR))
+    BotonCerrarHoja(
+        stringResource(R.string.navegacion_terminar),
+        onClick,
+        modifier.testTag(ETIQUETA_TERMINAR),
+        armado,
+    )
 }
 
 /** ✕ de la hoja de conducción en el modo libre (sin destino): cierra el mapa, que para la sesión. */
@@ -132,8 +140,14 @@ fun BotonTerminar(
 fun BotonSalirMapa(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    armado: Boolean = false,
 ) {
-    BotonCerrarHoja(stringResource(R.string.navegacion_salir_mapa), onClick, modifier.testTag(ETIQUETA_SALIR_MAPA))
+    BotonCerrarHoja(
+        stringResource(R.string.navegacion_salir_mapa),
+        onClick,
+        modifier.testTag(ETIQUETA_SALIR_MAPA),
+        armado,
+    )
 }
 
 @Composable
@@ -141,14 +155,16 @@ private fun BotonCerrarHoja(
     descripcion: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    armado: Boolean = false,
 ) {
+    val borde = if (armado) LocalColoresRally.current.aviso else MaterialTheme.colorScheme.outline
     Box(
         contentAlignment = Alignment.Center,
         modifier =
             modifier
                 .size(LADO_TACTIL)
                 .clip(CircleShape)
-                .border(Medidas.bordeActivo, MaterialTheme.colorScheme.outline, CircleShape)
+                .border(if (armado) Medidas.bordeActivo * 2 else Medidas.bordeActivo, borde, CircleShape)
                 .clickable(role = Role.Button, onClick = onClick)
                 .semantics { contentDescription = descripcion },
     ) {

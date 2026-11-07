@@ -84,7 +84,7 @@ fun LeyendaVelocidad(
         horizontalArrangement = Arrangement.spacedBy(Espacio.s),
     ) {
         EtiquetaLeyenda(stringResource(R.string.analisis_leyenda_titulo).uppercase())
-        EtiquetaLeyenda(formatearKmhCelda(minima))
+        EtiquetaLeyenda(stringResource(R.string.analisis_leyenda_unidad, formatearKmhCelda(minima)))
         Box(Modifier.weight(1f).height(ALTO_BARRA_LEYENDA).background(degradado, RoundedCornerShape(4.dp)))
         EtiquetaLeyenda(stringResource(R.string.analisis_leyenda_unidad, formatearKmhCelda(maxima)))
     }

@@ -40,6 +40,7 @@ import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.HojaInferiorWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
+import app.trombito.rallycopilot.ui.copiloto.ControlesAvisosVoz
 import app.trombito.rallycopilot.ui.copiloto.CopilotoUiState
 import app.trombito.rallycopilot.ui.copiloto.SelectorModoCopiloto
 import app.trombito.rallycopilot.ui.theme.Espacio
@@ -167,6 +168,7 @@ private fun SeccionesAjustes(
         )
         InterruptoresIndicaciones(estado, acciones)
     }
+    ControlesAvisosVoz(estado, acciones)
     Seccion(stringResource(R.string.rapidos_seccion_salida)) {
         InterruptorSalida(estado.salidaManual, acciones.onSalidaManual)
     }

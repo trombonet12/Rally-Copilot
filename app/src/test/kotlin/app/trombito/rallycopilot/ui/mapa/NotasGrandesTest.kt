@@ -88,7 +88,7 @@ abstract class NotasGrandesBase {
                         cargando = false,
                         datos = datos,
                         estilos = EstilosMapa("{}", null),
-                        velocidadKmh = 72,
+                        velocidadKmh = 0,
                     ),
                 vista = EstadoVistaMapa(),
                 acciones = AccionesMapa(),

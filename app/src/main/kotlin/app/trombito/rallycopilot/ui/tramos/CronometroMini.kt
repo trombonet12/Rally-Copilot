@@ -64,12 +64,13 @@ fun CronometroMini(
     val transcurrido = rememberTranscurridoMs(crono, reloj, PERIODO_MINI_MS)
     val recursos = LocalContext.current.resources
     val listo = !crono.enMarcha
-    val descripcion =
+    val descripcion: () -> String = {
         if (listo) {
             recursos.getString(R.string.crono_listo_descripcion)
         } else {
-            recursos.getString(R.string.crono_mini_descripcion, descripcionTiempo(recursos, transcurrido))
+            recursos.getString(R.string.crono_mini_descripcion, descripcionTiempo(recursos, transcurrido()))
         }
+    }
     val alfa = if (listo) rememberAlfaListo() else 1f
     Row(
         modifier = modifier,
@@ -95,8 +96,8 @@ fun CronometroMini(
 @Suppress("LongParameterList") // estado ya resuelto por el llamador
 private fun Cifras(
     listo: Boolean,
-    transcurrido: Long,
-    descripcion: String,
+    transcurrido: () -> Long,
+    descripcion: () -> String,
     alfa: Float,
     escala: EscalaCronoMini,
     modifier: Modifier = Modifier,
@@ -107,7 +108,7 @@ private fun Cifras(
             modifier
                 .padding(horizontal = 8.dp, vertical = 2.dp)
                 .testTag(ETIQUETA_CRONO_MINI)
-                .clearAndSetSemantics { contentDescription = descripcion },
+                .clearAndSetSemantics { contentDescription = descripcion() },
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -124,7 +125,7 @@ private fun Cifras(
                         R.string.crono_listo,
                     )
                 } else {
-                    formatearTiempo(transcurrido, conDecimas = false)
+                    formatearTiempo(transcurrido(), conDecimas = false)
                 },
             style =
                 when (escala) {

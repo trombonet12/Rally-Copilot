@@ -17,8 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
-/** Cada cuánto se refresca el cronómetro grande (décimas legibles sin saltos). */
-internal const val PERIODO_HUD_MS = 50L
+/** Cada cuánto se refresca el cronómetro grande: una décima, que es lo que muestra. */
+internal const val PERIODO_HUD_MS = 100L
 
 /** Cada cuánto se refresca el cronómetro pequeño (solo segundos). */
 internal const val PERIODO_MINI_MS = 250L
@@ -27,13 +27,16 @@ internal const val PERIODO_MINI_MS = 250L
  * El tiempo que marca el cronómetro ahora: el de la última fijación ([CronoEnCurso.transcurridoMs]) más lo que ha
  * pasado desde entonces según [reloj] (ms epoch), para que siga contando entre fijaciones. Con el resultado ya
  * publicado se queda quieto en el total. El reloj se consulta cada [periodoMs].
+ *
+ * Devuelve una función y no el número: quien la llama la lee solo donde pinta la cifra (un composable pequeño o la
+ * descripción semántica), de modo que el paso del tiempo recompone únicamente ese texto y no todo el HUD.
  */
 @Composable
 internal fun rememberTranscurridoMs(
     crono: CronoEnCurso,
     reloj: () -> Long,
     periodoMs: Long,
-): Long {
+): () -> Long {
     val relojActual by rememberUpdatedState(reloj)
     val corriendo = crono.resultado == null && crono.enMarcha
     var ahora by remember { mutableLongStateOf(reloj()) }
@@ -43,13 +46,12 @@ internal fun rememberTranscurridoMs(
             esperarEnPrincipal(periodoMs)
         }
     }
-    return if (corriendo) {
-        crono.transcurridoMs +
-            (ahora - crono.actualizadoEnMs).coerceAtLeast(
-                0L,
-            )
-    } else {
-        crono.transcurridoMs
+    return {
+        if (corriendo) {
+            crono.transcurridoMs + (ahora - crono.actualizadoEnMs).coerceAtLeast(0L)
+        } else {
+            crono.transcurridoMs
+        }
     }
 }
 

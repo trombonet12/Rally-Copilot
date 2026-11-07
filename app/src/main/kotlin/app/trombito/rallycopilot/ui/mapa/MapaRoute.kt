@@ -159,6 +159,10 @@ private fun accionesCopiloto(vm: CopilotoViewModel) =
         onAvisarCruces = vm::onAvisarCruces,
         onAvisarSalidasAutopista = vm::onAvisarSalidasAutopista,
         onAvisarRotondas = vm::onAvisarRotondas,
+        onAvisarRadares = vm::onAvisarRadares,
+        onAvisarIncidencias = vm::onAvisarIncidencias,
+        onAvisarVelocidad = vm::onAvisarVelocidad,
+        onVelocidadHabla = vm::onVelocidadHabla,
         onSalidaManual = vm::onSalidaManual,
     )
 

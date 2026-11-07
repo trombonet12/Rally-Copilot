@@ -7,6 +7,7 @@
     <string name="analisis_resumen_descripcion_delta">Diferencia contra la pasada comparada: %1$s.</string>
     <string name="analisis_contra">contra %1$s</string>
     <string name="analisis_sin_comparar">Sin comparar</string>
+    <string name="analisis_comparar">Comparar</string>
     <string name="analisis_comparar_con">Comparar con</string>
     <string name="analisis_comparar_ninguna">Ninguna</string>
 

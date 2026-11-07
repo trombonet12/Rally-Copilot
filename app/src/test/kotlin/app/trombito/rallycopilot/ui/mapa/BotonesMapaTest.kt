@@ -39,10 +39,14 @@ private const val ETIQUETA_MAPA_FALSO = "mapa-falso"
 
 class LogicaBotonesMapaTest {
     @Test
-    fun `en marcha solo van los botones fijos hasta que se toca el mapa`() {
-        assertTrue(botonesTactilesVisibles(enMarcha = false, tocado = false))
-        assertFalse(botonesTactilesVisibles(enMarcha = true, tocado = false))
-        assertTrue(botonesTactilesVisibles(enMarcha = true, tocado = true))
+    fun `la velocidad cae en rapida, intermedia o lenta con histeresis entre 10 y 20`() {
+        assertEquals(ZonaVelocidad.RAPIDA, zonaDeVelocidad(21))
+        assertEquals(ZonaVelocidad.INTERMEDIA, zonaDeVelocidad(20))
+        assertEquals(ZonaVelocidad.INTERMEDIA, zonaDeVelocidad(15))
+        assertEquals(ZonaVelocidad.INTERMEDIA, zonaDeVelocidad(10))
+        assertEquals(ZonaVelocidad.LENTA, zonaDeVelocidad(9))
+        assertEquals(ZonaVelocidad.LENTA, zonaDeVelocidad(0))
+        assertEquals("sin dato cuenta como parado", ZonaVelocidad.LENTA, zonaDeVelocidad(null))
     }
 
     @Test
@@ -69,7 +73,10 @@ class BotonesMapaTest {
     private var copiloto by mutableStateOf(CopilotoUiState(cargado = true, modo = ModoCopiloto.NOTAS))
     private val datos = EstadoDatosMapa(instalados = DatosInstalados("2026.10.1", 1_000_000, conSatelite = false))
 
-    private fun poner(velocidadKmh: Int?) =
+    private var velocidad by mutableStateOf<Int?>(0)
+
+    private fun poner(velocidadKmh: Int?) {
+        velocidad = velocidadKmh
         banco.poner {
             RallyCopilotTheme {
                 MapaScreen(
@@ -78,7 +85,7 @@ class BotonesMapaTest {
                             cargando = false,
                             datos = datos,
                             estilos = EstilosMapa("{}", null),
-                            velocidadKmh = velocidadKmh,
+                            velocidadKmh = velocidad,
                         ),
                     vista = EstadoVistaMapa(),
                     acciones = AccionesMapa(),
@@ -92,33 +99,62 @@ class BotonesMapaTest {
                 )
             }
         }
+    }
 
-    private val tactiles = listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_MICROFONO_BOTON)
-    private val fijos = listOf(ETIQUETA_MODO_BOTON, ETIQUETA_SILENCIO_BOTON, ETIQUETA_ORIENTACION)
+    private fun conVelocidad(kmh: Int?) {
+        velocidad = kmh
+        banco.reposo()
+    }
+
+    private val secundarios = listOf(ETIQUETA_CAPAS_BOTON)
+    private val deConduccion = listOf(ETIQUETA_MICROFONO_BOTON, ETIQUETA_MODO_BOTON, ETIQUETA_SILENCIO_BOTON)
+    private val fijos = deConduccion + ETIQUETA_ORIENTACION
 
     @Test
     fun `parado se ven todos los botones`() {
         poner(velocidadKmh = 0)
-        (tactiles + fijos).forEach { assertTrue("falta $it", banco.hay(it)) }
+        (secundarios + fijos).forEach { assertTrue("falta $it", banco.hay(it)) }
         banco.esperar(7_000)
-        (tactiles + fijos).forEach { assertTrue("$it se esconde parado", banco.hay(it)) }
+        (secundarios + fijos).forEach { assertTrue("$it se esconde parado", banco.hay(it)) }
     }
 
     @Test
-    fun `en marcha los botones secundarios se esconden a los 6 segundos y reaparecen al tocar el mapa`() {
-        poner(velocidadKmh = 60)
-        tactiles.forEach { assertTrue("al ponerse en marcha $it sigue unos segundos", banco.hay(it)) }
-        banco.esperar(5_000)
-        tactiles.forEach { assertTrue("a los 5 s $it sigue", banco.hay(it)) }
-        banco.esperar(2_000)
-        tactiles.forEach { assertFalse("a los 7 s $it se esconde", banco.hay(it)) }
+    fun `por encima de 20 km h se esconden capas y notas grandes y los de conduccion siguen`() {
+        poner(velocidadKmh = 21)
+        secundarios.forEach { assertFalse("$it se esconde deprisa", banco.hay(it)) }
+        assertFalse("notas grandes también", banco.hay(ETIQUETA_NOTAS_GRANDES_BOTON))
         fijos.forEach { assertTrue("$it es fijo", banco.hay(it)) }
-
+        // Tocar el mapa no los devuelve: hay que parar.
         val mapa = banco.conEtiqueta(ETIQUETA_MAPA_FALSO).boundsInRoot
         banco.tocarEn(mapa.center.x, mapa.top + 200f)
-        tactiles.forEach { assertTrue("tras tocar el mapa $it vuelve", banco.hay(it)) }
-        banco.esperar(7_000)
-        tactiles.forEach { assertFalse("y se vuelve a esconder", banco.hay(it)) }
+        secundarios.forEach { assertFalse("$it no vuelve con un toque", banco.hay(it)) }
+    }
+
+    @Test
+    fun `no parpadean entre 10 y 20 y vuelven tras 3 segundos por debajo de 10`() {
+        poner(velocidadKmh = 60)
+        secundarios.forEach { assertFalse(banco.hay(it)) }
+        conVelocidad(15)
+        banco.esperar(5_000)
+        secundarios.forEach { assertFalse("entre 10 y 20 siguen escondidos", banco.hay(it)) }
+        conVelocidad(8)
+        banco.esperar(2_000)
+        secundarios.forEach { assertFalse("a los 2 s por debajo de 10 aún no", banco.hay(it)) }
+        banco.esperar(1_500)
+        secundarios.forEach { assertTrue("a los 3 s vuelven", banco.hay(it)) }
+        // Y de nuevo deprisa, se esconden al momento.
+        conVelocidad(40)
+        secundarios.forEach { assertFalse(banco.hay(it)) }
+    }
+
+    @Test
+    fun `una frenada corta por debajo de 10 que se vuelve a acelerar no los muestra`() {
+        poner(velocidadKmh = 50)
+        conVelocidad(8)
+        banco.esperar(1_500)
+        conVelocidad(30)
+        banco.esperar(5_000)
+        secundarios.forEach { assertFalse("$it no parpadea", banco.hay(it)) }
     }
 
     @Test
@@ -138,14 +174,50 @@ class BotonesMapaTest {
     }
 
     @Test
-    fun `los botones no llevan texto y miden 48 dp`() {
+    fun `los botones no llevan texto y miden 48 dp y 64 dp los de conduccion`() {
         poner(velocidadKmh = 0)
-        (tactiles + fijos).forEach {
+        (secundarios + fijos).forEach {
             val nodo = banco.conEtiqueta(it)
+            val minimo = (if (it in deConduccion) 64 else 48) * 3
             assertTrue("$it con texto", banco.textos(nodo).isEmpty())
             assertTrue("$it sin descripcion", !banco.descripcion(nodo).isNullOrBlank())
-            assertTrue("$it mide ${nodo.size}", nodo.size.width >= 48 * 3 && nodo.size.height >= 48 * 3)
+            assertTrue("$it mide ${nodo.size}", nodo.size.width >= minimo && nodo.size.height >= minimo)
         }
+    }
+
+    @Test
+    fun `entre botones hay al menos 12 dp`() {
+        poner(velocidadKmh = 0)
+        val cajas = (secundarios + fijos).map { banco.conEtiqueta(it).boundsInRoot }.sortedBy { it.top }
+        cajas.zipWithNext().forEach { (a, b) ->
+            assertTrue("hueco ${b.top - a.bottom}", b.top - a.bottom >= 12 * 3f - 1f)
+        }
+    }
+
+    @Test
+    fun `con el mapa movido y deprisa recentrar se esconde y al parar vuelve`() {
+        velocidad = 60
+        banco.poner {
+            RallyCopilotTheme {
+                MapaScreen(
+                    estado =
+                        MapaUiState(
+                            cargando = false,
+                            datos = datos,
+                            estilos = EstilosMapa("{}", null),
+                            posicion = fijacion(1_000),
+                            velocidadKmh = velocidad,
+                        ),
+                    vista = EstadoVistaMapa(siguiendo = false),
+                    acciones = AccionesMapa(),
+                    mapa = { _, m -> Box(m.fillMaxSize().testTag(ETIQUETA_MAPA_FALSO)) },
+                )
+            }
+        }
+        assertFalse(banco.hay(ETIQUETA_RECENTRAR))
+        conVelocidad(0)
+        banco.esperar(3_500)
+        assertTrue(banco.hay(ETIQUETA_RECENTRAR))
     }
 
     @Test

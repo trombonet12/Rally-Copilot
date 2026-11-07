@@ -22,6 +22,7 @@ import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.alertas.MediaTramoUi
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_BOTON
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 import app.trombito.rallycopilot.ui.navegacion.NavegacionUiState
 import app.trombito.rallycopilot.ui.navegacion.SOLLER
@@ -104,7 +105,8 @@ abstract class MapaScreenAlertasBase {
         assertTrue("la pastilla dentro de la pantalla: $pastilla vs $raiz", pastilla.dentroDe(raiz))
         assertTrue("la pastilla sobre la hoja: $pastilla vs $hoja", pastilla.bottom <= hoja.top + 1)
         assertTrue("velocidad dentro de la pastilla: $velocidad vs $pastilla", velocidad.dentroDe(pastilla))
-        listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION).forEach {
+        // Con exceso se va deprisa: capas se esconde y los botones de conducción y la brújula se quedan.
+        listOf(ETIQUETA_MODO_BOTON, ETIQUETA_ORIENTACION).forEach {
             val boton = banco.conEtiqueta(it).boundsInRoot
             assertTrue("$it dentro de la pantalla: $boton", boton.dentroDe(raiz))
             assertFalse("$it no pisa la pastilla", boton.overlaps(pastilla))

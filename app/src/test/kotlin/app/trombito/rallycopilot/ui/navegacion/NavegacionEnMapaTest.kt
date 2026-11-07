@@ -381,7 +381,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
         assertFalse("la barra se esconde mientras hay notas", banco.hay(ETIQUETA_BUSCADOR))
         assertEquals(
-            listOf("DERECHA 4 LARGA · 50", "120\u00A0m"),
+            listOf("DERECHA 4 LARGA · 50 m", "120\u00A0m"),
             banco.textos(banco.conEtiqueta(ETIQUETA_NOTA_PREFIJO + 0)),
         )
         assertTrue("la franja sube al sitio de la barra: $franja", franja.top < 24 * 3f)

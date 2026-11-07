@@ -113,13 +113,13 @@ private fun Contenido(
             Row(Modifier.fillMaxSize()) {
                 ZonaMapa(estado, analisis, acciones, mapa, Modifier.weight(1f).fillMaxHeight().padding(Espacio.s))
                 Column(Modifier.weight(1f)) {
-                    ResumenAnalisis(estado, Modifier.padding(bottom = Espacio.s))
+                    ResumenAnalisis(estado, Modifier.padding(bottom = Espacio.s), acciones.onComparar)
                     DatosDelAnalisis(estado, analisis, acciones, Modifier.weight(1f))
                 }
             }
         } else {
             Column(Modifier.fillMaxSize()) {
-                ResumenAnalisis(estado, Modifier.padding(bottom = Espacio.s))
+                ResumenAnalisis(estado, Modifier.padding(bottom = Espacio.s), acciones.onComparar)
                 ZonaMapa(
                     estado,
                     analisis,

@@ -1,8 +1,10 @@
 package app.trombito.rallycopilot.ui.maniobras
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -33,7 +35,9 @@ import app.trombito.rallycopilot.ui.comun.PlacaCarretera
 import app.trombito.rallycopilot.ui.comun.TamanoPlaca
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.comun.VarianteTarjeta
+import app.trombito.rallycopilot.ui.theme.CarbonOpaco
 import app.trombito.rallycopilot.ui.theme.CifraMedia
+import app.trombito.rallycopilot.ui.theme.LimitarEscalaHud
 import app.trombito.rallycopilot.ui.theme.TextoSecundarioSobreCarbon
 import app.trombito.rallycopilot.ui.theme.TextoSobreCarbon
 
@@ -47,7 +51,11 @@ private val RELLENO_BANNER = 12.dp
 private val RELLENO_COMPACTO = 8.dp
 private val TAMANO_ICONO = 56.dp
 private val TAMANO_ICONO_COMPACTO = 36.dp
-private val TAMANO_ICONO_SIGUIENTE = 22.dp
+private val TAMANO_ICONO_SIGUIENTE = 28.dp
+private val ALTO_FICHA_SIGUIENTE = 56.dp
+private val RADIO_FICHA_SIGUIENTE = 10.dp
+private val TEXTO_MINIMO_SIGUIENTE = 12.sp
+private val TEXTO_MAXIMO_SIGUIENTE = 14.sp
 
 /** Estilo único de los iconos del banner (flecha ámbar de trazo grueso): el estilo elegido en Ajustes se ignora. */
 private val VARIANTE_BANNER = VarianteManiobra.CHEVRON_HUD
@@ -77,8 +85,10 @@ internal class ParalelogramoShape(
 /**
  * Banner superior de la próxima maniobra, variante única: tarjeta de carbón translúcido a todo el ancho con borde
  * ámbar, barra roja de 4 dp a la izquierda (acento, nunca relleno), flecha ámbar de 56 dp, distancia en cursiva Black
- * de 40 sp, la frase, la placa de la vía a la derecha y, si la hay, la maniobra siguiente como línea secundaria
- * pequeña («Luego ↰ izquierda»). [salidaRotonda] pone el número de salida en el icono. [via] es el `ref` de la vía de
+ * de 40 sp, la frase, la placa de la vía a la derecha y, si la hay, la maniobra siguiente como ficha de carbón sólido
+ * de 56 dp de alto como mínimo («Luego ↰ izquierda», icono de 28 dp y texto de 12 sp o más, sin recortar).
+ * El escalado de la fuente del sistema se limita a 1,3 ([LimitarEscalaHud]). [salidaRotonda] pone el número de salida
+ * en el icono. [via] es el `ref` de la vía de
  * la maniobra. Con [compacto] (pantalla apaisada) va en una sola línea baja y sin maniobra siguiente.
  *
  * El antiguo estilo de iconos de Ajustes (`EstiloManiobras`: chevron, placa roja o nota) sigue guardado en la base de
@@ -98,31 +108,33 @@ fun BannerManiobra(
     siguienteSalida: Int? = null,
     siguienteVia: String? = null,
 ) {
-    TarjetaWrc(
-        modifier = modifier.fillMaxWidth().testTag(ETIQUETA_BANNER).semantics(mergeDescendants = true) {},
-        variante = VarianteTarjeta.MAPA,
-        activa = true,
-        acentoRojo = true,
-        forma = RoundedCornerShape(RADIO_BANNER),
-        relleno = if (compacto) RELLENO_COMPACTO else RELLENO_BANNER,
-    ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    LimitarEscalaHud {
+        TarjetaWrc(
+            modifier = modifier.fillMaxWidth().testTag(ETIQUETA_BANNER).semantics(mergeDescendants = true) {},
+            variante = VarianteTarjeta.MAPA,
+            activa = true,
+            acentoRojo = true,
+            forma = RoundedCornerShape(RADIO_BANNER),
+            relleno = if (compacto) RELLENO_COMPACTO else RELLENO_BANNER,
         ) {
-            IconoManiobra(
-                tipo = tipo,
-                variante = VARIANTE_BANNER,
-                tamano = if (compacto) TAMANO_ICONO_COMPACTO else TAMANO_ICONO,
-                salidaRotonda = salidaRotonda,
-                decorativo = true,
-            )
-            if (compacto) {
-                TextosCompactos(distanciaM, frase, Modifier.weight(1f))
-            } else {
-                TextosCompletos(distanciaM, frase, siguiente, siguienteSalida to siguienteVia, Modifier.weight(1f))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconoManiobra(
+                    tipo = tipo,
+                    variante = VARIANTE_BANNER,
+                    tamano = if (compacto) TAMANO_ICONO_COMPACTO else TAMANO_ICONO,
+                    salidaRotonda = salidaRotonda,
+                    decorativo = true,
+                )
+                if (compacto) {
+                    TextosCompactos(distanciaM, frase, Modifier.weight(1f))
+                } else {
+                    TextosCompletos(distanciaM, frase, siguiente, siguienteSalida to siguienteVia, Modifier.weight(1f))
+                }
+                if (via != null) PlacaCarretera(via, tamano = TamanoPlaca.PEQUENA)
             }
-            if (via != null) PlacaCarretera(via, tamano = TamanoPlaca.PEQUENA)
         }
     }
 }
@@ -187,9 +199,10 @@ private fun TextosCompactos(
 }
 
 /**
- * «Luego» + icono + texto de la maniobra siguiente: una línea que no hace crecer la tarjeta con la fuente normal; con
- * fuentes grandes el texto se encoge (de 12 a 9 sp) y, si aún no cabe, pasa a una segunda línea antes de cortarse.
- * Las rotondas van compactas: «Rotonda · 2.ª salida» o «Rotonda · 1.ª · Carrer X».
+ * Ficha de la maniobra siguiente: «Luego» + icono de 28 dp + texto, sobre carbón sólido, de 56 dp de alto como mínimo y
+ * ocupando el ancho de la columna (no se pega al borde ni se recorta). El texto va de 12 a 14 sp (nunca por debajo de
+ * 12) y, si no cabe en una línea, pasa a una segunda. Las rotondas van compactas: «Rotonda · 2.ª salida» o «Rotonda ·
+ * 1.ª · Carrer X».
  */
 @Composable
 private fun FilaSiguiente(
@@ -205,14 +218,21 @@ private fun FilaSiguiente(
             else -> stringResource(R.string.maniobra_luego_rotonda, salidaRotonda ?: 0)
         }
     Row(
-        modifier = Modifier.testTag(ETIQUETA_BANNER_SIGUIENTE).padding(top = 2.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier =
+            Modifier
+                .padding(top = 4.dp)
+                .fillMaxWidth()
+                .testTag(ETIQUETA_BANNER_SIGUIENTE)
+                .background(CarbonOpaco, RoundedCornerShape(RADIO_FICHA_SIGUIENTE))
+                .defaultMinSize(minHeight = ALTO_FICHA_SIGUIENTE)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = stringResource(R.string.maniobra_luego),
             color = TextoSecundarioSobreCarbon,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = TEXTO_MINIMO_SIGUIENTE),
             maxLines = 1,
         )
         IconoManiobra(
@@ -226,12 +246,17 @@ private fun FilaSiguiente(
         )
         Text(
             text = texto,
-            modifier = Modifier.weight(1f, fill = false),
-            color = TextoSecundarioSobreCarbon,
-            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier.weight(1f),
+            color = TextoSobreCarbon,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
-            autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 12.sp, stepSize = 0.5.sp),
+            autoSize =
+                TextAutoSize.StepBased(
+                    minFontSize = TEXTO_MINIMO_SIGUIENTE,
+                    maxFontSize = TEXTO_MAXIMO_SIGUIENTE,
+                    stepSize = 0.5.sp,
+                ),
         )
     }
 }

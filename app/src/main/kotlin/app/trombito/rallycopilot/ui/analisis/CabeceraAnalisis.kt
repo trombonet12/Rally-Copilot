@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.analisis
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -48,6 +49,7 @@ const val ETIQUETA_COMPARAR_NINGUNA = "analisis-comparar-ninguna"
 const val ETIQUETA_COMPARAR_PREFIJO = "analisis-comparar-"
 
 private val ALTO_BARRA = 56.dp
+private val ALTO_FICHA_COMPARAR = 48.dp
 
 /** Barra superior: volver, nombre del tramo y fecha de la pasada analizada. */
 @Composable
@@ -87,6 +89,7 @@ fun BarraAnalisis(
 fun ResumenAnalisis(
     estado: AnalisisUiState,
     modifier: Modifier = Modifier,
+    onComparar: (Long?) -> Unit = {},
 ) {
     val analisis = estado.analisis ?: return
     val comparada = estado.comparada
@@ -126,27 +129,49 @@ fun ResumenAnalisis(
                 modifier = Modifier.weight(1f).testTag(ETIQUETA_ANALISIS_COMPARADA),
             )
         } else {
-            FichaSinComparar()
+            // Con otras pasadas la ficha es un botón que compara con la mejor; sin ellas solo informa.
+            val mejor = estado.opciones.firstOrNull { it.esMejor } ?: estado.opciones.firstOrNull()
+            FichaSinComparar(if (mejor != null) ({ onComparar(mejor.id) }) else null)
         }
     }
 }
 
-/** Ficha corta «Sin comparar» (en vez de un párrafo) cuando no hay pasada contra la que medirse. */
+/**
+ * Ficha «Comparar» con icono (compara con la mejor pasada de un toque, de 48 dp de alto) cuando hay otras pasadas, o la
+ * ficha informativa «Sin comparar» cuando no hay contra qué medirse ([onComparar] nulo).
+ */
 @Composable
-private fun FichaSinComparar() {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = CircleShape,
-    ) {
-        Text(
-            text = stringResource(R.string.analisis_sin_comparar),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun FichaSinComparar(onComparar: (() -> Unit)?) {
+    val texto = stringResource(if (onComparar != null) R.string.analisis_comparar else R.string.analisis_sin_comparar)
+    val contenido: @Composable () -> Unit = {
+        Row(
             modifier =
                 Modifier
                     .padding(horizontal = Espacio.m, vertical = Espacio.xs)
                     .testTag(ETIQUETA_ANALISIS_COMPARADA),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Espacio.xs),
+        ) {
+            if (onComparar != null) {
+                Icon(Iconos.Grafico, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize))
+            }
+            Text(
+                text = texto,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+    if (onComparar != null) {
+        Surface(
+            onClick = onComparar,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shape = CircleShape,
+            modifier = Modifier.heightIn(min = ALTO_FICHA_COMPARAR),
+            content = { Box(Modifier.heightIn(min = ALTO_FICHA_COMPARAR), Alignment.Center) { contenido() } },
         )
+    } else {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, shape = CircleShape, content = contenido)
     }
 }
 

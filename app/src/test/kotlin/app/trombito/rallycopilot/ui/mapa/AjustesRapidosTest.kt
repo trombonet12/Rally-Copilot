@@ -27,6 +27,10 @@ import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.CopilotoUiState
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_AVISAR_INCIDENCIAS
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_AVISAR_RADARES
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_AVISAR_VELOCIDAD
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_HABLA_PREFIJO
 import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_BOTON
 import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_DETALLE
 import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_PREFIJO
@@ -61,6 +65,9 @@ abstract class AjustesRapidosBase {
             onAvisarSalidasAutopista = { copiloto = copiloto.copy(avisarSalidasAutopista = it) },
             onAvisarRotondas = { copiloto = copiloto.copy(avisarRotondas = it) },
             onSalidaManual = { copiloto = copiloto.copy(salidaManual = it) },
+            onAvisarRadares = { copiloto = copiloto.copy(avisarRadares = it) },
+            onAvisarIncidencias = { copiloto = copiloto.copy(avisarIncidencias = it) },
+            onAvisarVelocidad = { copiloto = copiloto.copy(avisarVelocidad = it) },
             onVolumenVoz = { copiloto = copiloto.copy(volumenVoz = it) },
             onEscucharEjemplo = { escuchas += Unit },
         )
@@ -74,7 +81,7 @@ abstract class AjustesRapidosBase {
                             cargando = false,
                             datos = datos,
                             estilos = EstilosMapa("{}", null),
-                            velocidadKmh = 72,
+                            velocidadKmh = 0,
                         ),
                     vista = EstadoVistaMapa(),
                     acciones = AccionesMapa(),
@@ -222,6 +229,22 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_CRUCES))
         assertTrue(copiloto.avisarCruces)
         assertEquals(true, marcado(ETIQUETA_AVISAR_CRUCES))
+        assertTrue("la hoja sigue abierta", banco.hay(ETIQUETA_RAPIDOS_PANEL))
+    }
+
+    @Test
+    fun `la hoja trae los avisos de voz y la velocidad de habla, y cada interruptor cambia solo el suyo`() {
+        abrir()
+        listOf(ETIQUETA_AVISAR_RADARES, ETIQUETA_AVISAR_INCIDENCIAS, ETIQUETA_AVISAR_VELOCIDAD).forEach {
+            assertTrue("falta $it", banco.hay(it))
+        }
+        assertEquals(2, banco.etiquetas(ETIQUETA_HABLA_PREFIJO).size)
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_RADARES))
+        assertFalse(copiloto.avisarRadares)
+        assertTrue(copiloto.avisarIncidencias && copiloto.avisarVelocidad)
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_VELOCIDAD))
+        assertFalse(copiloto.avisarVelocidad)
+        assertTrue(copiloto.avisarIncidencias)
         assertTrue("la hoja sigue abierta", banco.hay(ETIQUETA_RAPIDOS_PANEL))
     }
 

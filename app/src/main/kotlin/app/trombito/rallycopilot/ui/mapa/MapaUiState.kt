@@ -78,4 +78,7 @@ data class MapaUiState(
 
     /** Sin `maxspeed` en OSM no hay límite que mostrar. */
     val limiteKmh: Int? get() = via?.limiteKmh
+
+    /** Se va por una vía conocida pero sin límite en los datos: la píldora lo dice con una señal gris «?». */
+    val limiteDesconocido: Boolean get() = via != null && via.limiteKmh == null && !sinSenalGps
 }

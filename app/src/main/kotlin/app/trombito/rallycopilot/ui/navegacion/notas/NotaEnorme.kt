@@ -55,7 +55,7 @@ fun NotaEnorme(
     val descripcion = descripcionNota(recursos, visible, simplificadas)
     val ahora = stringResource(R.string.notas_ahora)
     val medidas = if (horizontal) MEDIDAS_ENORME_APAISADA else MEDIDAS_ENORME
-    val texto = textoNota(recursos, elemento, simplificadas)
+    val texto = textoNota(recursos, elemento, simplificadas, color)
     Column(
         modifier =
             modifier

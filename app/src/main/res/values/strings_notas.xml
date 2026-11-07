@@ -5,7 +5,7 @@
     <string name="notas_descripcion">%1$s, a %2$d metros</string>
     <string name="notas_ahora">Ahora</string>
     <string name="notas_cuidado_icono">Cuidado</string>
-    <string name="notas_distancia_siguiente">·&#160;%1$d</string>
+    <string name="notas_distancia_siguiente">·&#160;%1$d&#160;m</string>
     <string name="notas_distancia_nota">%1$d&#160;m</string>
     <string name="notas_insignia_cuidado">!</string>
 

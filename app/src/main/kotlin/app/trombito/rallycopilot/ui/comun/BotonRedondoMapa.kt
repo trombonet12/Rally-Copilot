@@ -12,6 +12,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -27,6 +28,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import app.trombito.rallycopilot.ui.theme.AmbarSobreCarbon
 import app.trombito.rallycopilot.ui.theme.CarbonTranslucido
 import app.trombito.rallycopilot.ui.theme.Espacio
@@ -38,7 +40,23 @@ import app.trombito.rallycopilot.ui.theme.TextoSobreCarbon
 private const val OPACIDAD_DESHABILITADO = 0.38f
 
 /**
- * Botón redondo que flota sobre el mapa: carbón translúcido con sombra, 48 dp (56 dp si [principal]). [activo] lo
+ * Lado de los [BotonRedondoMapa] que no son principales: 48 dp por defecto; quien agrupa los botones que se tocan
+ * conduciendo (silencio, modo, micrófono) lo sube con `Medidas.botonConduccion`.
+ */
+val LocalLadoBotonMapa = staticCompositionLocalOf<Dp> { Medidas.zonaTactil }
+
+/** Pinta [contenido] con los botones redondos de ese [lado]. */
+@Composable
+fun ConLadoBotonMapa(
+    lado: Dp,
+    contenido: @Composable () -> Unit,
+) {
+    CompositionLocalProvider(LocalLadoBotonMapa provides lado, content = contenido)
+}
+
+/**
+ * Botón redondo que flota sobre el mapa: carbón translúcido con sombra, 48 dp (56 dp si [principal]; 64 dp dentro de
+ * [ConLadoBotonMapa]). [activo] lo
  * resalta en ámbar (borde de 1,5 dp e icono ámbar). [etiqueta] (12 sp) solo cuando el icono no es obvio. Aunque la
  * app esté en tema claro el botón es oscuro: el icono se pinta con la paleta del carbón. [descripcion] es lo que
  * lee TalkBack; el [contenido] pinta el icono (24 dp en listas, 28 dp en cabeceras: ver `Medidas`).
@@ -56,7 +74,7 @@ fun BotonRedondoMapa(
     descripcionEstado: String? = null,
     contenido: @Composable () -> Unit,
 ) {
-    val lado = if (principal) Medidas.accionPrincipal else Medidas.zonaTactil
+    val lado = if (principal) Medidas.accionPrincipal else LocalLadoBotonMapa.current
     val colorIcono = if (activo) AmbarSobreCarbon else TextoSobreCarbon
     val borde =
         if (activo) {

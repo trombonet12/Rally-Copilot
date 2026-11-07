@@ -104,8 +104,8 @@ class CarreteNotasTest : CarreteNotasBase() {
     @Test
     fun `la actual va grande con texto y distancia y la siguiente asoma a la derecha mas pequena`() {
         poner(tres)
-        assertEquals("DERECHA 4 LARGA · 50", textoFila(0))
-        assertEquals("IZQ 2 CIERRA · 30", textoFila(1))
+        assertEquals("DERECHA 4 LARGA · 50 m", textoFila(0))
+        assertEquals("IZQ 2 CIERRA · 30 m", textoFila(1))
         assertEquals("120 m", distanciaFila(0))
         assertNull(distanciaFila(1))
         assertFalse("solo dos notas en el carrete", banco.hay(ETIQUETA_NOTA_PREFIJO + 2))
@@ -144,7 +144,7 @@ class CarreteNotasTest : CarreteNotasBase() {
     @Test
     fun `cuidado va primero aunque lo pida un aviso unido y el texto sigue la frase del motor`() {
         poner(NotasUiState(listOf(visible(deNota(nota(3, siguienteM = 50), TipoAviso.BACHE), 60.0))))
-        assertEquals("DERECHA 3 · 50", textoFila(0))
+        assertEquals("DERECHA 3 · 50 m", textoFila(0))
         assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-BACHE"))
         assertEquals("cuidado, resalto, derecha tres, cincuenta, a 60 metros", banco.descripcion(fila(0)))
         assertTrue(banco.hay(ETIQUETA_NOTA_CUIDADO_PREFIJO + 0))
@@ -163,7 +163,7 @@ class CarreteNotasTest : CarreteNotasBase() {
     @Test
     fun `una nota con puente dentro de la curva dice sobre puente`() {
         poner(NotasUiState(listOf(visible(deNotaSobrePuente(nota(3, siguienteM = 50))))))
-        assertEquals("DERECHA 3 · 50", textoFila(0))
+        assertEquals("DERECHA 3 · 50 m", textoFila(0))
         assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-PUENTE"))
         assertEquals("derecha tres sobre puente, cincuenta, a 120 metros", banco.descripcion(fila(0)))
     }
@@ -178,7 +178,7 @@ class CarreteNotasTest : CarreteNotasBase() {
                 ),
             ),
         )
-        assertEquals("HORQUILLA DERECHA MUY LARGA · 40", textoFila(0))
+        assertEquals("HORQUILLA DERECHA MUY LARGA · 40 m", textoFila(0))
         assertEquals("CEDA EL PASO", textoFila(1))
     }
 
@@ -216,11 +216,11 @@ class CarreteNotasTest : CarreteNotasBase() {
     fun `al cantarse la actual el carrete desliza y la siguiente pasa a ser la actual`() {
         var estado by mutableStateOf(tres)
         banco.poner { RallyCopilotTheme { CarreteNotas(estado) } }
-        assertEquals("DERECHA 4 LARGA · 50", textoFila(0))
+        assertEquals("DERECHA 4 LARGA · 50 m", textoFila(0))
         estado = NotasUiState(tres.visibles.drop(1))
         banco.esperar(Movimiento.MEDIA + 200L)
         banco.reposo()
-        assertEquals("IZQUIERDA 2 CIERRA · 30", textoFila(0))
+        assertEquals("IZQUIERDA 2 CIERRA · 30 m", textoFila(0))
         assertEquals("250 m", distanciaFila(0))
         assertEquals("PUENTE", textoFila(1))
         assertEquals("solo queda un carrete", 1, banco.etiquetas(ETIQUETA_FRANJA_NOTAS).size)
@@ -241,7 +241,7 @@ class CarreteNotasTest : CarreteNotasBase() {
         // El ajuste de la fuente se comprueba en el emulador: Robolectric no mide tipografías reales.
         val larga = nota(null, Direccion.DERECHA, setOf(Modificador.MUY_LARGA), siguienteM = 50, cuidado = true)
         poner(NotasUiState(listOf(visible(deNota(larga, TipoAviso.CAMBIO_RASANTE, TipoAviso.RASANTE)))))
-        assertEquals("HORQUILLA DERECHA MUY LARGA · 50", textoFila(0))
+        assertEquals("HORQUILLA DERECHA MUY LARGA · 50 m", textoFila(0))
         assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-CAMBIO_RASANTE"))
         assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-RASANTE"))
         assertTrue(banco.hay(ETIQUETA_NOTA_CUIDADO_PREFIJO + 0))
@@ -263,8 +263,8 @@ class CarreteNotasHorizontalTest : CarreteNotasBase() {
     @Test
     fun `en horizontal compacta es mas bajo y la siguiente asoma a la derecha`() {
         banco.poner { RallyCopilotTheme { CarreteNotas(tres, compacta = true) } }
-        assertEquals("DERECHA 4 LARGA · 50", textoFila(0))
-        assertEquals("IZQ 2 CIERRA · 30", textoFila(1))
+        assertEquals("DERECHA 4 LARGA · 50 m", textoFila(0))
+        assertEquals("IZQ 2 CIERRA · 30 m", textoFila(1))
         assertEquals("120 m", distanciaFila(0))
         assertNull(distanciaFila(1))
         assertFalse("sin tercera nota", banco.hay(ETIQUETA_NOTA_PREFIJO + 2))

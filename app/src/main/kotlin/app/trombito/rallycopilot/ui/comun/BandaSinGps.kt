@@ -39,16 +39,22 @@ val LocalSinSenalGps = staticCompositionLocalOf { false }
 
 /**
  * Banda ámbar bajo la parte superior del mapa: «Sin señal GPS» con su icono. Aparece al perderse el GPS y es una
- * región viva educada: TalkBack lo dice una vez, sin interrumpir al copiloto. No pinta nada con señal.
+ * región viva educada: TalkBack lo dice una vez, sin interrumpir al copiloto. Con [lectorActivo] (TalkBack encendido)
+ * deja de ser región viva: el aviso de voz del copiloto ya lo dice y no deben hablar dos voces. No pinta nada con
+ * señal.
  */
 @Composable
 fun BandaSinGps(
     modifier: Modifier = Modifier,
     sinSenal: Boolean = LocalSinSenalGps.current,
+    lectorActivo: Boolean = rememberLectorPantallaActivo(),
 ) {
     if (!sinSenal) return
     TarjetaWrc(
-        modifier = modifier.fillMaxWidth().testTag(ETIQUETA_SIN_GPS).semantics { liveRegion = LiveRegionMode.Polite },
+        modifier =
+            modifier.fillMaxWidth().testTag(ETIQUETA_SIN_GPS).semantics {
+                if (!lectorActivo) liveRegion = LiveRegionMode.Polite
+            },
         variante = VarianteTarjeta.MAPA,
         activa = true,
         relleno = Espacio.s,

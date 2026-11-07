@@ -51,6 +51,7 @@ import app.trombito.rallycopilot.domain.tramos.ParcialCrono
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
 import app.trombito.rallycopilot.ui.maniobras.ParalelogramoShape
 import app.trombito.rallycopilot.ui.navegacion.guiado.ColoresGuiado
+import app.trombito.rallycopilot.ui.theme.LimitarEscalaHud
 
 const val ETIQUETA_CRONO_HUD = "crono-hud"
 const val ETIQUETA_CRONO_TIEMPO = "crono-tiempo"
@@ -116,7 +117,8 @@ private fun estiloCifras(tamano: TextUnit) =
  * rápido que la mejor pasada, rojo si más lento), barra de progreso con las marcas de sectores y microsectores y los
  * parciales de sector ya pasados. El parcial recién cortado destaca [DURACION_PARCIAL_DESTACADO_MS]. En apaisado
  * ([compacto]) cronómetro, delta y parciales van en una fila sobre la barra. No pinta nada sin tramo. [reloj] es el
- * reloj de pared (ms epoch) con el que el cronómetro sigue contando entre fijaciones.
+ * reloj de pared (ms epoch) con el que el cronómetro sigue contando entre fijaciones. El escalado de la fuente del
+ * sistema se limita a 1,3 ([LimitarEscalaHud]).
  */
 @Composable
 fun HudCrono(
@@ -125,9 +127,20 @@ fun HudCrono(
     compacto: Boolean = false,
     reloj: () -> Long = System::currentTimeMillis,
 ) {
-    val tramo = crono.tramo ?: return
+    if (crono.tramo == null) return
     val medidas = if (compacto) COMPACTO else NORMAL
     val transcurrido = rememberTranscurridoMs(crono, reloj, PERIODO_HUD_MS)
+    LimitarEscalaHud { ContenidoHud(crono, transcurrido, modifier, medidas) }
+}
+
+@Composable
+private fun ContenidoHud(
+    crono: CronoEnCurso,
+    transcurrido: () -> Long,
+    modifier: Modifier,
+    medidas: MedidasHud,
+) {
+    val compacto = medidas.compacto
     val destacado = rememberParcialDestacado(crono.ultimaMarca)
     val forma = ParalelogramoShape(medidas.sesgo)
     val parciales: @Composable () -> Unit = {
@@ -162,41 +175,58 @@ fun HudCrono(
     }
 }
 
-/** Cronómetro grande y delta en vivo, con una sola descripción para TalkBack (sin región viva: cambia sin parar). */
+/**
+ * Cronómetro grande y delta en vivo, con una sola descripción para TalkBack (sin región viva: cambia sin parar). El
+ * tiempo llega como función: solo [TiempoVivo] y la descripción semántica lo leen, así el HUD no se recompone con cada
+ * décima.
+ */
 @Composable
 private fun TiempoYDelta(
-    transcurridoMs: Long,
+    transcurridoMs: () -> Long,
     deltaMs: Long?,
     medidas: MedidasHud,
     modifier: Modifier,
     listo: Boolean = false,
 ) {
     val recursos = LocalContext.current.resources
-    val tiempo = descripcionTiempo(recursos, transcurridoMs)
     val alfa = if (listo) rememberAlfaListo() else 1f
-    val descripcion =
-        if (listo) {
-            recursos.getString(R.string.crono_listo_descripcion)
-        } else if (deltaMs == null) {
-            recursos.getString(R.string.crono_hud_descripcion_sin_delta, tiempo)
-        } else {
-            recursos.getString(R.string.crono_hud_descripcion, tiempo, descripcionDelta(recursos, deltaMs))
-        }
     Row(
-        modifier = modifier.clearAndSetSemantics { contentDescription = descripcion },
+        modifier =
+            modifier.clearAndSetSemantics {
+                val tiempo = descripcionTiempo(recursos, transcurridoMs())
+                contentDescription =
+                    if (listo) {
+                        recursos.getString(R.string.crono_listo_descripcion)
+                    } else if (deltaMs == null) {
+                        recursos.getString(R.string.crono_hud_descripcion_sin_delta, tiempo)
+                    } else {
+                        recursos.getString(R.string.crono_hud_descripcion, tiempo, descripcionDelta(recursos, deltaMs))
+                    }
+            },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (medidas.compacto) Arrangement.spacedBy(10.dp) else Arrangement.SpaceBetween,
     ) {
-        Text(
-            text = if (listo) stringResource(R.string.crono_listo) else formatearTiempo(transcurridoMs),
-            style = estiloCifras(medidas.tiempo),
-            color = ColoresGuiado.Texto,
-            maxLines = 1,
-            softWrap = false,
-            modifier = Modifier.alpha(alfa).testTag(ETIQUETA_CRONO_TIEMPO),
-        )
+        TiempoVivo(transcurridoMs, listo, medidas.tiempo, Modifier.alpha(alfa).testTag(ETIQUETA_CRONO_TIEMPO))
         PildoraDelta(deltaMs, medidas.delta, medidas.anchoDelta, medidas.sesgo / 2)
     }
+}
+
+/** La cifra del cronómetro: lee el tiempo aquí, en su propio ámbito, y es lo único que se recompone con él. */
+@Composable
+private fun TiempoVivo(
+    transcurridoMs: () -> Long,
+    listo: Boolean,
+    tamano: TextUnit,
+    modifier: Modifier,
+) {
+    Text(
+        text = if (listo) stringResource(R.string.crono_listo) else formatearTiempo(transcurridoMs()),
+        style = estiloCifras(tamano),
+        color = ColoresGuiado.Texto,
+        maxLines = 1,
+        softWrap = false,
+        modifier = modifier,
+    )
 }
 
 /**

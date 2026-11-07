@@ -17,6 +17,7 @@ import app.trombito.rallycopilot.ui.alertas.ClaseRadar
 import app.trombito.rallycopilot.ui.alertas.ETIQUETA_ALERTA_BANNER
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
+import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_BOTON
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 import app.trombito.rallycopilot.ui.navegacion.NavegacionUiState
 import app.trombito.rallycopilot.ui.navegacion.SOLLER
@@ -162,7 +163,7 @@ class MapaScreenCronoHorizontalTest : MapaScreenCronoBase() {
         val panel = bounds("panel")
         assertTrue("dentro de la hoja: $mini vs $panel", mini.left >= panel.left && mini.right <= panel.right)
         assertTrue("dentro del alto: $mini vs $panel", mini.top >= panel.top && mini.bottom <= panel.bottom)
-        listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION).forEach {
+        listOf(ETIQUETA_MODO_BOTON, ETIQUETA_ORIENTACION).forEach {
             assertFalse("$it no pisa el cronómetro", bounds(it).overlaps(mini))
         }
     }

@@ -147,8 +147,9 @@ data class AccionesMapa(
 /**
  * Mapa a pantalla completa con la hoja de conducción abajo (96-112 dp; en horizontal, abajo a la izquierda, 320 dp).
  * Sobre la hoja van la píldora de velocidad y límite (a la izquierda) y la columna de botones redondos (a la
- * derecha): fijos el copiloto, silenciar y la brújula; al tocar el mapa aparecen capas, notas grandes y micrófono,
- * que en marcha se esconden a los 6 s. No hay flecha de volver (se usa el atrás del sistema). El mapa en sí lo pone
+ * derecha): fijos el micrófono, el copiloto y silenciar (64 dp, para conducir) y la brújula; capas, notas grandes y
+ * recentrar se esconden por encima de 20 km/h y vuelven al parar. No hay flecha de volver (se usa el atrás del
+ * sistema). El mapa en sí lo pone
  * [mapa] (en producción
  * [VistaMapa]) para poder probar la pantalla sin MapLibre. [navegacion] trae la barra «¿A dónde?», la vista previa de
  * rutas y el hueco del panel de guiado (banner a todo el ancho arriba). [copiloto] trae el modo y el diálogo de la voz
@@ -176,23 +177,20 @@ fun MapaScreen(
     val menu = MenuAbierto(abierto) { abierto = it }
     DialogoVozSiToca(copiloto)
     val modoAnterior = rememberModoAnterior(copiloto.estado.modo)
-    val tocados = remember { EstadoBarraDestino() }
-    val enMarcha = (estado.velocidadKmh ?: 0) >= VELOCIDAD_EN_MARCHA_KMH
-    // Al ponerse en marcha los botones secundarios siguen a la vista unos segundos y se esconden solos.
-    LaunchedEffect(enMarcha) { if (enMarcha) tocados.tocar() }
-    OcultarBarraTrasInactividad(tocados, enMarcha && tocados.reclamada, RETARDO_OCULTAR_BOTONES_MS)
+    // Capas, notas grandes y recentrar se esconden por encima de 20 km/h y vuelven al parar (con histéresis).
+    val rapido = rememberMarchaRapida(estado.velocidadKmh)
     val botones =
         if (estado.hayDatos || copiloto.estado.notasGrandes) {
-            botonesDeLaColumna(estado, vista, acciones, navegacion, copiloto, menu, modoAnterior)
+            botonesDeLaColumna(estado, vista, acciones, navegacion, copiloto, menu, modoAnterior, rapido)
         } else {
             BotonesMapa()
         }
     val zona = ZonaMapaContenido(estado, vista, acciones, navegacion, menu, copiloto, alertas, crono, botones)
-    val tactilesVisibles = botonesTactilesVisibles(enMarcha, tocados.reclamada) || copiloto.estado.notasGrandes
+    val tactilesVisibles = !rapido || copiloto.estado.notasGrandes
     CompositionLocalProvider(LocalSinSenalGps provides estado.sinSenalGps) {
         BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             val horizontal = maxWidth > maxHeight
-            ZonaMapa(zona.orientada(horizontal, tocados, tactilesVisibles), mapa, Modifier.fillMaxSize())
+            ZonaMapa(zona.orientada(horizontal, tactilesVisibles), mapa, Modifier.fillMaxSize())
             // Encima de todo: el editor de notas (parado) y el micrófono grande del reconocimiento.
             superposicion()
         }
@@ -219,14 +217,12 @@ internal class ZonaMapaContenido(
     val alertas: AlertasUiState,
     val crono: CronoEnCurso?,
     val botones: BotonesMapa,
-    /** Toques al mapa: gobiernan los botones secundarios. */
-    val tocados: EstadoBarraDestino = EstadoBarraDestino(),
+    /** Los botones secundarios (capas, notas grandes) están a la vista: no se va deprisa. */
     val tactilesVisibles: Boolean = true,
 ) {
     /** El mismo contenido con la zona en vertical o en apaisado. */
     fun orientada(
         horizontal: Boolean,
-        tocados: EstadoBarraDestino,
         tactilesVisibles: Boolean,
     ) = ZonaMapaContenido(
         estado,
@@ -238,7 +234,6 @@ internal class ZonaMapaContenido(
         alertas,
         crono,
         botones,
-        tocados,
         tactilesVisibles,
     )
 }
@@ -269,11 +264,10 @@ private fun ZonaConMapa(
     val lados = if (vista.horizontal) LADOS_MAPA_HORIZONTAL else LADOS_MAPA_VERTICAL
     val barra = remember { EstadoBarraDestino() }
     val buscar by rememberUpdatedState(estado.hayDatos && navegacion.estado.enReposo)
-    val tocados = contenido.tocados
     // Sin tarjeta de punto el mapa no reserva nada por abajo.
     val sinPunto = navegacion.estado.puntoElegido == null
     LaunchedEffect(sinPunto) { if (sinPunto) acciones.onReservaInferiorPunto(0) }
-    Box(modifier.alTocar(barra) { if (buscar) barra.tocar() }.alTocar(tocados) { tocados.tocar() }) {
+    Box(modifier.alTocar(barra) { if (buscar) barra.tocar() }) {
         val json = estado.estiloJson
         when {
             estado.cargando -> {
@@ -380,21 +374,14 @@ private fun BoxScope.ZonaInferior(
     val estado = contenido.estado
     val nav = contenido.navegacion.estado
     val hoja = !hayFaseInferior(nav)
-    val avisos: @Composable () -> Unit = { if (estado.hayDatos) AvisosDelPie(contenido) }
-    // La burbuja de escucha va justo sobre la píldora de velocidad, a la izquierda de la columna de botones.
-    val pildora: @Composable () -> Unit = {
-        Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
-            BurbujaEscucha(contenido.copiloto.estado.escuchando, contenido.copiloto.estado.dialogo)
-            PildoraConduccion(
-                velocidadKmh = estado.velocidadKmh,
-                limiteKmh = estado.limiteKmh,
-                alertas = contenido.alertas.panel,
-                sinSenal = estado.sinSenalGps,
-            )
-        }
+    val confirmacion = rememberConfirmacionTerminar()
+    val avisos: @Composable () -> Unit = {
+        if (estado.hayDatos) AvisosDelPie(contenido)
+        AvisoToqueOtraVez(confirmacion)
     }
+    val pildora: @Composable () -> Unit = { PildoraDelPie(contenido) }
     val fase: @Composable () -> Unit = { if (estado.hayDatos) FaseInferior(contenido) }
-    val laHoja: @Composable (Modifier) -> Unit = { HojaDeLaZona(contenido, barra, it) }
+    val laHoja: @Composable (Modifier) -> Unit = { HojaDeLaZona(contenido, barra, confirmacion, it) }
     val laterales = insetsSinTeclado().only(WindowInsetsSides.Horizontal)
     if (vista.horizontal) {
         Row(Modifier.fillMaxSize().windowInsetsPadding(laterales), verticalAlignment = Alignment.Bottom) {
@@ -433,19 +420,38 @@ private fun BoxScope.ZonaInferior(
     }
 }
 
+/** La burbuja de escucha, justo sobre la píldora de velocidad, a la izquierda de la columna de botones. */
+@Composable
+private fun PildoraDelPie(contenido: ZonaMapaContenido) {
+    val estado = contenido.estado
+    Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+        BurbujaEscucha(contenido.copiloto.estado.escuchando, contenido.copiloto.estado.dialogo)
+        PildoraConduccion(
+            velocidadKmh = estado.velocidadKmh,
+            limiteKmh = estado.limiteKmh,
+            alertas = contenido.alertas.panel,
+            sinSenal = estado.sinSenalGps,
+            limiteDesconocido = estado.limiteDesconocido,
+        )
+    }
+}
+
 /** La hoja de conducción con lo que hace cada uno de sus botones. */
 @Composable
 private fun HojaDeLaZona(
     contenido: ZonaMapaContenido,
     barra: EstadoBarraDestino?,
+    confirmacion: ConfirmacionTerminar,
     modifier: Modifier,
 ) {
     val nav = contenido.navegacion.estado
+    // Con el cronómetro o la grabación en marcha la ✕ pide un segundo toque; si no, un toque basta.
+    val requiere = terminarPideConfirmacion(nav.control, contenido.crono)
     HojaConduccion(
-        DatosHoja(contenido.estado, nav.control, contenido.crono),
+        DatosHoja(contenido.estado, nav.control, contenido.crono, cierreArmado = confirmacion.armada),
         AccionesHoja(
-            onSalir = contenido.acciones.onSalir,
-            onTerminar = contenido.navegacion.acciones.onTerminar,
+            onSalir = { confirmacion.pulsar(requiere, contenido.acciones.onSalir) },
+            onTerminar = { confirmacion.pulsar(requiere, contenido.navegacion.acciones.onTerminar) },
             onBuscarDestino = barra?.let { { it.pedirFoco() } },
             onBuscarGuiando = contenido.navegacion.acciones.onAbrirBusqueda,
         ),
@@ -685,7 +691,7 @@ private fun AvisoActualizado(
     ) {
         Row(Modifier.padding(start = Espacio.s), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                text = stringResource(R.string.mapa_aviso_actualizado, version),
+                text = stringResource(R.string.mapa_aviso_actualizado),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextoSobreCarbon,
                 modifier = Modifier.weight(1f),

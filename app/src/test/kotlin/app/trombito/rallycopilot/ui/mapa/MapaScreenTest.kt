@@ -17,6 +17,7 @@ import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_SENAL_LIMITE_DESCONOCIDO
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.comun.fijacion
@@ -239,10 +240,24 @@ class MapaScreenTest {
     }
 
     @Test
-    fun `sin limite de la via no hay senal`() {
+    fun `sin limite conocido en la via la senal es gris con una interrogacion`() {
         poner(conDatos { copy(velocidadKmh = 72, via = ViaActual("Cami", null, null)) })
         assertTrue(banco.hay(ETIQUETA_VELOCIDAD))
+        assertFalse("no hay una señal de límite falsa", banco.hay(ETIQUETA_LIMITE))
+        val senal = banco.conEtiqueta(ETIQUETA_SENAL_LIMITE_DESCONOCIDO)
+        assertEquals(listOf("?"), banco.textos(senal))
+        assertEquals(
+            "Velocidad: 72 kilómetros por hora. Límite de velocidad desconocido en esta vía",
+            banco.descripcion(banco.conEtiqueta(ETIQUETA_VELOCIDAD)),
+        )
+        assertEquals(40 * 3, senal.size.width)
+    }
+
+    @Test
+    fun `sin via conocida no hay ninguna senal`() {
+        poner(conDatos { copy(velocidadKmh = 72) })
         assertFalse(banco.hay(ETIQUETA_LIMITE))
+        assertFalse(banco.hay(ETIQUETA_SENAL_LIMITE_DESCONOCIDO))
     }
 
     @Test
@@ -250,7 +265,14 @@ class MapaScreenTest {
         var cerrado = 0
         val estado = conDatos().copy(datos = datos.copy(avisoActualizado = "2026.11.0"))
         poner(estado, acciones = AccionesMapa(onDescartarAviso = { cerrado++ }))
-        assertTrue("Mapas actualizados a la versión 2026.11.0" in banco.textos(banco.conEtiqueta(ETIQUETA_AVISO)))
+        assertEquals(listOf("Mapas actualizados"), banco.textos(banco.conEtiqueta(ETIQUETA_AVISO)).take(1))
+        assertFalse(
+            "la versión no se enseña al conducir",
+            banco.textos(banco.conEtiqueta(ETIQUETA_AVISO)).any {
+                "2026" in
+                    it
+            },
+        )
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISO_CERRAR))
         assertEquals(1, cerrado)
     }
@@ -335,11 +357,12 @@ class MapaScreenTest {
 
     @Test
     fun `los botones redondos van a la derecha sobre la hoja y la pildora a la izquierda`() {
+        // A 72 km/h capas se esconde; los de conducción y la brújula siguen.
         poner(conDatos { copy(velocidadKmh = 72) })
         val hoja = banco.conEtiqueta(ETIQUETA_PANEL).boundsInRoot
         val raiz = banco.raiz().boundsInRoot
         val pildora = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
-        listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION, ETIQUETA_MODO_BOTON, ETIQUETA_SILENCIO_BOTON).forEach {
+        listOf(ETIQUETA_ORIENTACION, ETIQUETA_MODO_BOTON, ETIQUETA_SILENCIO_BOTON).forEach {
             val boton = banco.conEtiqueta(it).boundsInRoot
             assertTrue("$it sobre la hoja: $boton vs $hoja", boton.bottom <= hoja.top + 1)
             assertTrue("$it a la derecha: $boton", boton.left > raiz.width / 2)
@@ -350,11 +373,14 @@ class MapaScreenTest {
     }
 
     @Test
-    fun `la columna de botones tiene objetivos de 48 dp separados 12 dp`() {
+    fun `la columna de botones tiene objetivos de 64 dp los de conduccion y 48 dp la brujula separados 12 dp`() {
         poner(conDatos())
         val fijos = listOf(ETIQUETA_MODO_BOTON, ETIQUETA_SILENCIO_BOTON, ETIQUETA_ORIENTACION)
         val cajas = fijos.map { banco.conEtiqueta(it).boundsInRoot }.sortedBy { it.top }
-        cajas.forEach { assertTrue("$it < 48 dp", it.width >= 48 * 3f - 1 && it.height >= 48 * 3f - 1) }
+        val minimos = listOf(64, 64, 48)
+        cajas.zip(minimos).forEach { (c, dp) ->
+            assertTrue("$c < $dp dp", c.width >= dp * 3f - 1 && c.height >= dp * 3f - 1)
+        }
         cajas.zipWithNext().forEach { (a, b) -> assertEquals("hueco de 12 dp", 12 * 3f, b.top - a.bottom, 1f) }
     }
 
@@ -399,7 +425,7 @@ class MapaScreenHorizontalTest {
 
     private val banco = BancoCompose()
 
-    private fun poner(velocidadKmh: Int? = 50) {
+    private fun poner(velocidadKmh: Int? = 0) {
         val datos = EstadoDatosMapa(instalados = DatosInstalados("1", 1, conSatelite = false))
         banco.poner {
             RallyCopilotTheme {

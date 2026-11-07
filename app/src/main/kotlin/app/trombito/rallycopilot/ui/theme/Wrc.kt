@@ -59,6 +59,9 @@ object Medidas {
     val iconoVacio = 48.dp
     val zonaTactil = 48.dp
     val accionPrincipal = 56.dp
+
+    /** Botones del mapa que se tocan conduciendo (silencio, modo del copiloto, micrófono). */
+    val botonConduccion = 64.dp
     val indicadorCarga = 32.dp
     val senalLimite = 40.dp
     val bordeActivo = 1.5.dp

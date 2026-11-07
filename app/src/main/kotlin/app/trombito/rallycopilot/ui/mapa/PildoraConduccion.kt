@@ -30,6 +30,7 @@ import app.trombito.rallycopilot.ui.alertas.MediaTramoUi
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_PILDORA_VELOCIDAD
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_SENAL_LIMITE
 import app.trombito.rallycopilot.ui.comun.PildoraVelocidad
+import app.trombito.rallycopilot.ui.comun.rememberLectorPantallaActivo
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 
@@ -53,26 +54,30 @@ private val BORDE_MEDIA = 3.dp
 
 /**
  * Píldora de velocidad y límite de la conducción, con la media del radar de tramo a su lado si hay uno en curso.
- * Sin fijación de GPS ([sinSenal]) la velocidad es «—». Pasarse del límite pulsa el borde en rojo (sin relleno) y
- * avisa a TalkBack una sola vez, cuando empieza.
+ * Sin fijación de GPS ([sinSenal]) la velocidad es «—». Con [limiteDesconocido] (vía sin límite en los datos) lleva la
+ * señal gris «?». Pasarse del límite pulsa el borde en rojo (sin relleno) y
+ * avisa a TalkBack una sola vez, cuando empieza (salvo con TalkBack activo: ya lo dice el copiloto).
  */
 @Composable
+@Suppress("LongParameterList") // velocidad, límite, alertas, señal y su aspecto, ya resueltos por la pantalla
 internal fun PildoraConduccion(
     velocidadKmh: Int?,
     limiteKmh: Int?,
     alertas: AlertasPanel,
     sinSenal: Boolean,
     modifier: Modifier = Modifier,
+    limiteDesconocido: Boolean = false,
 ) {
     val velocidad = velocidadKmh.takeUnless { sinSenal }
     val excede = alertas.rojo && velocidad != null
+    val lectorActivo = rememberLectorPantallaActivo()
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(Espacio.s),
         verticalAlignment = Alignment.Bottom,
     ) {
         Box {
-            PildoraVelocidad(velocidad, limiteKmh, excede = excede)
+            PildoraVelocidad(velocidad, limiteKmh, excede = excede, limiteDesconocido = limiteDesconocido)
             // Nodo propio sobre la píldora: su región viva se anuncia al aparecer el exceso, no con cada cifra.
             if (excede) {
                 val aviso = stringResource(R.string.panel_exceso_descripcion)
@@ -82,7 +87,8 @@ internal fun PildoraConduccion(
                         .testTag(ETIQUETA_EXCESO)
                         .semantics {
                             contentDescription = aviso
-                            liveRegion = LiveRegionMode.Polite
+                            // Con TalkBack el copiloto ya dice el exceso: no hablan dos voces.
+                            if (!lectorActivo) liveRegion = LiveRegionMode.Polite
                         },
                 )
             }

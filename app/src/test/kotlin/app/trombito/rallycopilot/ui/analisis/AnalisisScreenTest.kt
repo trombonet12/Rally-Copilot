@@ -105,7 +105,29 @@ class AnalisisScreenTest {
     fun `sin comparada no hay delta y lo dice`() {
         poner(estado(contra = null))
         assertFalse(banco.hay(ETIQUETA_ANALISIS_DELTA))
-        assertEquals(listOf("Sin comparar"), textos(ETIQUETA_ANALISIS_COMPARADA))
+        assertEquals(listOf("Comparar"), textos(ETIQUETA_ANALISIS_COMPARADA))
+    }
+
+    @Test
+    fun `el chip Comparar es un boton de 48 dp que compara con la mejor de un toque`() {
+        poner(estado(contra = null))
+        val pulsable = banco.nodos().first { banco.esPulsable(it) && banco.textos(it).contains("Comparar") }
+        assertTrue("mide ${pulsable.size.height}", pulsable.size.height >= 48 * 3)
+        banco.pulsar(pulsable)
+        assertEquals("la mejor es la 2", listOf<Long?>(2L), comparaciones)
+    }
+
+    @Test
+    fun `todo lo pulsable del analisis tiene texto o descripcion para TalkBack`() {
+        poner(estado())
+        assertTrue("hay botones", banco.nodos().any { banco.esPulsable(it) })
+        val sinNombre = banco.pulsablesSinNombre().map { it.boundsInRoot }
+        assertTrue("pulsables sin nombre: $sinNombre", sinNombre.isEmpty())
+        poner(estado(contra = null))
+        assertTrue(
+            "sin comparada: ${banco.pulsablesSinNombre().map { it.boundsInRoot }}",
+            banco.pulsablesSinNombre().isEmpty(),
+        )
     }
 
     @Test
@@ -144,6 +166,17 @@ class AnalisisScreenTest {
         poner(estado(contra = null).copy(opciones = emptyList()))
         assertFalse(banco.hay(ETIQUETA_COMPARAR_NINGUNA))
         assertEquals(listOf("Sin comparar"), textos(ETIQUETA_ANALISIS_COMPARADA))
+        val sinComparar = banco.nodos().filter { banco.textos(it).contains("Sin comparar") }
+        assertFalse("sin otras pasadas la ficha no es un botón", sinComparar.any { banco.esPulsable(it) })
+    }
+
+    @Test
+    fun `la leyenda de velocidad da la unidad en los dos extremos`() {
+        poner(estado())
+        val textos = textos(ETIQUETA_LEYENDA_VELOCIDAD)
+        val cifras = textos.filter { it.first().isDigit() }
+        assertEquals("minimo y maximo: $textos", 2, cifras.size)
+        cifras.forEach { assertTrue("«$it» lleva unidad", it.endsWith(" km/h")) }
     }
 
     @Test

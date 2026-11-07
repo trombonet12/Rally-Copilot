@@ -22,7 +22,7 @@
     <string name="mapa_sin_datos_boton">Ir a Mapas offline</string>
     <string name="mapa_danados_titulo">Los mapas instalados están dañados</string>
     <string name="mapa_danados_texto">No se pueden leer. Bórralos en Mapas offline y vuelve a descargarlos.</string>
-    <string name="mapa_aviso_actualizado">Mapas actualizados a la versión %1$s</string>
+    <string name="mapa_aviso_actualizado">Mapas actualizados</string>
     <string name="mapa_aviso_cerrar">Cerrar aviso</string>
 
     <!-- Panel de velocidad -->
@@ -31,20 +31,22 @@
     <string name="panel_velocidad_descripcion">Velocidad: %1$d kilómetros por hora</string>
     <string name="panel_velocidad_sin_dato">Velocidad desconocida</string>
     <string name="panel_limite_descripcion">Límite de velocidad: %1$d kilómetros por hora</string>
+    <string name="panel_limite_desconocido">?</string>
+    <string name="panel_limite_desconocido_descripcion">Límite de velocidad desconocido en esta vía</string>
     <string name="panel_via_descripcion">Vía: %1$s</string>
     <string name="placa_carretera_descripcion">carretera %1$s</string>
 
     <!-- Permiso de ubicación -->
-    <string name="permiso_ubicacion_titulo">Necesito tu ubicación</string>
+    <string name="permiso_ubicacion_titulo">Activa tu ubicación</string>
     <string name="permiso_ubicacion_texto">Con tu posición el mapa te sigue y se calculan tu velocidad y el límite de la vía. Solo se usa con esta pantalla abierta y no sale del móvil.</string>
     <string name="permiso_ubicacion_permitir">Permitir ubicación</string>
     <string name="permiso_ubicacion_bloqueado">El permiso de ubicación está bloqueado. Actívalo en los ajustes de la aplicación.</string>
     <string name="permiso_ubicacion_ajustes">Abrir ajustes</string>
-    <string name="permiso_ubicacion_aproximada">Solo tengo tu ubicación aproximada. Para seguirte por GPS necesito la ubicación precisa.</string>
+    <string name="permiso_ubicacion_aproximada">Solo has dado la ubicación aproximada. Para que te siga el GPS, permite la ubicación precisa.</string>
 
     <!-- Mapas offline -->
     <string name="mapas_titulo">Mapas offline</string>
-    <string name="mapas_cargando">Cargando…</string>
+    <string name="mapas_cargando">Cargando los mapas…</string>
     <string name="mapas_preparando">Preparando mapas…</string>
     <string name="mapas_instalados_titulo">Mapas instalados</string>
     <string name="mapas_version">Versión %1$s</string>
@@ -75,16 +77,16 @@
     <string name="mapas_datos_cancelar">Solo con WiFi</string>
     <string name="mapas_detalle_titulo">Detalle de satélite</string>
     <string name="mapas_detalle_texto">Con WiFi se baja solo una franja de unos 300 m alrededor de tus tramos y rutas, con la máxima nitidez.</string>
-    <string name="mapas_detalle_tamano">Descargado: %1$s (%2$d teselas)</string>
+    <string name="mapas_detalle_tamano">Descargado: %1$s (%2$d zonas)</string>
     <string name="mapas_detalle_vacio">Todavía no hay detalle descargado.</string>
-    <string name="mapas_detalle_progreso">Descargando detalle: %1$d de %2$d teselas</string>
-    <string name="mapas_detalle_esperando">Detalle en espera de WiFi o batería (%1$d de %2$d teselas)</string>
+    <string name="mapas_detalle_progreso">Descargando detalle: %1$d de %2$d zonas</string>
+    <string name="mapas_detalle_esperando">Detalle en espera de WiFi o batería (%1$d de %2$d zonas)</string>
     <string name="mapas_detalle_zona">Descargar zona</string>
     <string name="mapas_detalle_borrar">Borrar detalle</string>
     <string name="zona_titulo">Descargar zona</string>
     <string name="zona_ayuda_vista">Se descarga lo que ves. Toca dos esquinas para elegir otra zona.</string>
     <string name="zona_ayuda_esquinas">Zona elegida con las esquinas. Toca otra vez para cambiarla.</string>
-    <string name="zona_estimacion">%1$d teselas · unos %2$s</string>
+    <string name="zona_estimacion">%1$d zonas · unos %2$s</string>
     <string name="zona_no_cabe">No cabe en el límite de espacio. Súbelo en Mapas offline o elige una zona menor.</string>
     <string name="zona_zoom">Zoom %1$d</string>
     <string name="zona_limpiar">Quitar las esquinas y usar lo que se ve</string>

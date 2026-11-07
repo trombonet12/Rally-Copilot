@@ -59,6 +59,8 @@ internal class DatosHoja(
     val estado: MapaUiState,
     val control: EstadoNavegacion,
     val crono: CronoEnCurso?,
+    /** Tras el primer toque a la ✕ (con crono o grabación en marcha): espera el segundo; la ✕ se resalta en ámbar. */
+    val cierreArmado: Boolean = false,
 )
 
 /** Lo que hace cada botón de la hoja. */
@@ -102,7 +104,11 @@ internal fun HojaConduccion(
             horizontalArrangement = Arrangement.spacedBy(Espacio.m),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (guiando != null) BotonTerminar(acciones.onTerminar) else BotonSalirMapa(acciones.onSalir)
+            if (guiando != null) {
+                BotonTerminar(acciones.onTerminar, armado = datos.cierreArmado)
+            } else {
+                BotonSalirMapa(acciones.onSalir, armado = datos.cierreArmado)
+            }
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center) {
                 if (guiando != null) CentroGuiado(guiando, datos, reloj) else CentroLibre(datos, reloj)
             }

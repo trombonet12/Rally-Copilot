@@ -27,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -116,7 +117,7 @@ internal fun FilaNota(
     ) {
         IconosDeLaNota(elemento, indice, simplificadas, color, medidas)
         TextoAjustado(
-            texto = textoNota(recursos, elemento, simplificadas, medidas.abreviar),
+            texto = textoNota(recursos, elemento, simplificadas, color, medidas.abreviar),
             color = color,
             medidas = medidas,
             modifier = Modifier.weight(1f),
@@ -175,7 +176,7 @@ internal fun RowScope.IconosDeLaNota(
 /** Texto de la nota: reduce la fuente (hasta el mínimo de [medidas]) antes de recortar con «…». */
 @Composable
 internal fun TextoAjustado(
-    texto: String,
+    texto: AnnotatedString,
     color: Color,
     medidas: Medidas,
     modifier: Modifier = Modifier,
