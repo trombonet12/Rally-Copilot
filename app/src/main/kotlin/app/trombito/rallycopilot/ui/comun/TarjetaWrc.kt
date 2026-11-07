@@ -15,9 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import app.trombito.rallycopilot.ui.theme.AmbarSobreCarbon
+import app.trombito.rallycopilot.ui.theme.CarbonOpaco
 import app.trombito.rallycopilot.ui.theme.CarbonTranslucido
 import app.trombito.rallycopilot.ui.theme.DarkColors
 import app.trombito.rallycopilot.ui.theme.Espacio
@@ -49,12 +51,25 @@ internal fun TemaSobreCarbon(contenido: @Composable () -> Unit) {
     }
 }
 
+/** Fondo de la tarjeta: carbón translúcido en el mapa, carbón opaco si [opaca] (el banner no deja ver el mapa). */
+internal fun fondoDeTarjeta(
+    enMapa: Boolean,
+    opaca: Boolean,
+    superficie: Color,
+): Color =
+    when {
+        enMapa && opaca -> CarbonOpaco
+        enMapa -> CarbonTranslucido
+        else -> superficie
+    }
+
 /**
  * Tarjeta del sistema WRC: radio 12, interior 16. [VarianteTarjeta.MAPA] = carbón translúcido (0xE60E0F12);
  * [VarianteTarjeta.OPACA] = `surfaceContainerHigh`. [activa] añade el borde ámbar de 1,5 dp (solo para lo activo);
  * [acentoRojo] pinta una barra roja de 4 dp a la izquierda (acento, nunca relleno); [biselada] corta una esquina en
  * diagonal. [forma] sustituye la forma (p. ej. radio 16 del banner de maniobra) y [relleno] el interior de 16 dp
- * (las tarjetas bajas del carrete de notas). Con [onClick] es pulsable (rol botón).
+ * (las tarjetas bajas del carrete de notas). [opaca] pone carbón sin transparencia en la variante mapa. Con
+ * [onClick] es pulsable (rol botón).
  */
 @Suppress("LongParameterList") // API de componente: cada opción visual es un parámetro con valor por defecto
 @Composable
@@ -66,12 +81,13 @@ fun TarjetaWrc(
     biselada: Boolean = false,
     forma: Shape? = null,
     relleno: Dp = Espacio.l,
+    opaca: Boolean = false,
     onClick: (() -> Unit)? = null,
     contenido: @Composable ColumnScope.() -> Unit,
 ) {
     val formaTarjeta: Shape = forma ?: if (biselada) FormaBiselada() else Radios.formaTarjeta
     val enMapa = variante == VarianteTarjeta.MAPA
-    val fondo = if (enMapa) CarbonTranslucido else MaterialTheme.colorScheme.surfaceContainerHigh
+    val fondo = fondoDeTarjeta(enMapa, opaca, MaterialTheme.colorScheme.surfaceContainerHigh)
     val colorBorde = if (enMapa) AmbarSobreCarbon else MaterialTheme.colorScheme.primary
     val borde = if (activa) BorderStroke(Medidas.bordeActivo, colorBorde) else null
     val interior: @Composable () -> Unit = {

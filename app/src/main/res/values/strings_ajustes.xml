@@ -119,7 +119,13 @@
     <string name="ajustes_tema_muestra_delta">-0,4 s</string>
 
     <!-- Datos -->
-    <string name="ajustes_mapas_offline_detalle">Mapa de Mallorca y satélite descargados.</string>
+    <string name="ajustes_mapas_offline_sin_datos">Aún no hay mapas descargados.</string>
+    <string name="ajustes_mapas_offline_sin_satelite">Mapa de Mallorca descargado. Sin satélite.</string>
+    <string name="ajustes_mapas_offline_con_satelite">Mapa de Mallorca y satélite descargados.</string>
+    <string name="ajustes_mapas_offline_ademas">Además: %1$s.</string>
+    <string name="ajustes_mapas_offline_relieve">relieve</string>
+    <string name="ajustes_mapas_offline_voz">voz Sharvard</string>
+    <string name="ajustes_mapas_offline_y">" y "</string>
     <string name="ajustes_datos_copia_titulo">Copia de seguridad</string>
 
     <!-- Acerca de -->

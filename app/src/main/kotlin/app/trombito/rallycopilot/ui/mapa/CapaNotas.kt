@@ -25,6 +25,15 @@ private const val COLOR_CUIDADO = "#FFB300"
 private const val COLOR_NOTA = "#F2EDE0"
 private const val COLOR_BORDE = "#1A1B1F"
 
+private const val PREFIJO_CAPA_UBICACION = "mapbox-location-"
+
+/**
+ * La capa de las [capas] (de abajo arriba) bajo la que hay que insertar una capa de marcadores para que quede por
+ * debajo de la flecha de posición: la más baja del componente de ubicación; null si aún no está puesto.
+ */
+internal fun capaBajoLaPosicion(capas: List<String>): String? =
+    capas.firstOrNull { it.startsWith(PREFIJO_CAPA_UBICACION) }
+
 /** Una nota de la hoja puesta en el mapa para poder tocarla (solo con el coche parado). */
 @Immutable
 data class MarcadorNota(
@@ -45,14 +54,17 @@ internal object CapaNotas {
         marcadores: List<MarcadorNota>,
     ) {
         estilo.addSource(GeoJsonSource(ID_FUENTE, features(marcadores)))
-        estilo.addLayer(
+        val capa =
             CircleLayer(ID_CAPA, ID_FUENTE).withProperties(
                 PropertyFactory.circleRadius(RADIO_NOTA_DP),
                 PropertyFactory.circleColor(Expression.toColor(Expression.get(PROPIEDAD_COLOR))),
                 PropertyFactory.circleStrokeColor(COLOR_BORDE),
                 PropertyFactory.circleStrokeWidth(BORDE_NOTA_DP),
-            ),
-        )
+            )
+        // La posición del coche va siempre por encima de las notas, aunque el componente de ubicación ya esté puesto
+        // (al recargar el estilo, p. ej. con el relieve, se añade antes que esta capa).
+        val bajoLaPosicion = capaBajoLaPosicion(estilo.layers.map { it.id })
+        if (bajoLaPosicion != null) estilo.addLayerBelow(capa, bajoLaPosicion) else estilo.addLayer(capa)
     }
 
     fun actualizar(

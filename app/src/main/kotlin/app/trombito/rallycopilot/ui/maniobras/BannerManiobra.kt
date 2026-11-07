@@ -83,7 +83,7 @@ internal class ParalelogramoShape(
 }
 
 /**
- * Banner superior de la próxima maniobra, variante única: tarjeta de carbón translúcido a todo el ancho con borde
+ * Banner superior de la próxima maniobra, variante única: tarjeta de carbón opaco a todo el ancho con borde
  * ámbar, barra roja de 4 dp a la izquierda (acento, nunca relleno), flecha ámbar de 56 dp, distancia en cursiva Black
  * de 40 sp, la frase, la placa de la vía a la derecha y, si la hay, la maniobra siguiente como ficha de carbón sólido
  * de 56 dp de alto como mínimo («Luego ↰ izquierda», icono de 28 dp y texto de 12 sp o más, sin recortar).
@@ -116,6 +116,7 @@ fun BannerManiobra(
             acentoRojo = true,
             forma = RoundedCornerShape(RADIO_BANNER),
             relleno = if (compacto) RELLENO_COMPACTO else RELLENO_BANNER,
+            opaca = true,
         ) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -91,6 +91,8 @@ fun MisTramosScreen(
     AvisoDeshacer(estado.borradoPendiente, avisos, acciones)
     AvisoFallo(estado.falloBorrado, avisos, acciones.onFalloVisto)
     AvisoImportacion(importacion, avisos, acciones.onImportacionVista)
+    // La ayuda de la estrella no sale con un diálogo abierto: quedaría detrás, en su propia ventana.
+    val pistaLibre = estado.renombrando == null && importacion !is EstadoImportacion.Pendiente
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         Column(Modifier.fillMaxSize()) {
             BarraSuperior(titulo = stringResource(titulo), onVolver = acciones.onVolver) {
@@ -103,7 +105,7 @@ fun MisTramosScreen(
             when {
                 estado.cargando -> Cargando()
                 estado.tramos.isEmpty() -> VacioTramos(estado.filtro)
-                else -> ListaTramos(estado.tramos, estado.trazas, acciones)
+                else -> ListaTramos(estado.tramos, estado.trazas, acciones, pistaLibre)
             }
         }
         SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).padding(Espacio.l))
@@ -222,6 +224,7 @@ private fun ListaTramos(
     tramos: List<ResumenTramo>,
     trazas: Map<String, List<PuntoGeo>>,
     acciones: AccionesMisTramos,
+    pistaLibre: Boolean,
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize().testTag(ETIQUETA_TRAMOS_LISTA),
@@ -230,7 +233,7 @@ private fun ListaTramos(
     ) {
         items(tramos, key = { it.id }) { tramo ->
             // La pista de la estrella solo señala la primera fila.
-            val conPista = tramo.id == tramos.first().id
+            val conPista = pistaLibre && tramo.id == tramos.first().id
             FilaTramoDeslizable(tramo, acciones, Modifier.animateItem(), trazas[tramo.id], conPista)
         }
     }

@@ -48,6 +48,12 @@ class AjustesViewModel
                 .map(EstadoVozDescarga::de)
                 .stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), EstadoVozDescarga())
 
+        /** Qué hay descargado, para el detalle de Mapas offline en Datos; null mientras se siembran los del APK. */
+        val mapas: StateFlow<ResumenMapas?> =
+            datos.estado
+                .map(ResumenMapas::de)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), null)
+
         /** El nivel se acota a -2..2 (más lejos a más cerca). */
         fun onNivelZoom(nivel: Int) {
             guardar { it.copy(nivelZoom = nivel.coerceIn(AjustesConduccion.NIVEL_MIN, AjustesConduccion.NIVEL_MAX)) }

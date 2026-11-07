@@ -54,6 +54,7 @@ fun AjustesSeccionRoute(
 ) {
     val ajustes by viewModel.uiState.collectAsStateWithLifecycle()
     val vozSharvard by viewModel.vozSharvard.collectAsStateWithLifecycle()
+    val mapas by viewModel.mapas.collectAsStateWithLifecycle()
     val estadoCopia by copia.estado.collectAsStateWithLifecycle()
     val contexto = LocalContext.current
     val avisos = remember { SnackbarHostState() }
@@ -72,6 +73,7 @@ fun AjustesSeccionRoute(
             seccion = seccion,
             ajustes = ajustes,
             vozSharvard = vozSharvard,
+            mapas = mapas,
             acciones =
                 accionesDe(viewModel, onVolver).copy(
                     onMapasOffline = onMapasOffline,

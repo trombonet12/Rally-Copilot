@@ -37,10 +37,11 @@ fun nombreArchivoCopia(fecha: LocalDate = LocalDate.now()): String = "rally-copi
 internal fun ControlesDatos(
     acciones: AccionesAjustes,
     copiaEnCurso: Boolean,
+    mapas: ResumenMapas? = null,
 ) {
     FilaAccion(
         titulo = stringResource(R.string.ajustes_mapas_offline),
-        detalle = stringResource(R.string.ajustes_mapas_offline_detalle),
+        detalle = mapas?.let { textoMapasOffline(it) },
         etiqueta = ETIQUETA_AJUSTES_MAPAS,
         onClick = acciones.onMapasOffline,
         icono = Iconos.Mapa,

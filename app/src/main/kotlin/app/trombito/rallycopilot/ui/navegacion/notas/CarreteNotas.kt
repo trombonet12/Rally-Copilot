@@ -24,7 +24,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -64,31 +63,30 @@ const val ETIQUETA_NOTA_DISTANCIA_PREFIJO = "notas-distancia-"
 /** Icono de un aviso unido (o del puente de la curva) de la nota: `notas-aviso-<fila>-<TIPO>`. */
 const val ETIQUETA_NOTA_AVISO_PREFIJO = "notas-aviso-"
 
-private const val ALFA_SIGUIENTE = 0.8f
 private const val FRACCION_TEXTO_MINIMO = 0.55f
 private const val HOLGURA = 0.97f
 private const val FRACCION_DISTANCIA = 0.6f
 private const val FRACCION_INSIGNIA = 0.62f
 
-private val ASOMO = 48.dp
-private val ASOMO_COMPACTO = 40.dp
 private val SEPARACION_SIGUIENTE = 8.dp
-private val ANCHO_SIGUIENTE = 180.dp
+private val ANCHO_SIGUIENTE = 136.dp
+private const val TEXTO_MINIMO_SIGUIENTE_SP = 12f
 private val LADO_INSIGNIA = 24.dp
 private val LADO_INSIGNIA_COMPACTA = 20.dp
 
 private val MEDIDAS_ACTUAL = Medidas(40.dp, 28.sp, 24.dp, Radios.formaTarjeta, 16.dp, 2, false, true)
 private val MEDIDAS_ACTUAL_COMPACTA = Medidas(32.dp, 22.sp, 20.dp, Radios.formaTarjeta, 8.dp, 2, false, true)
-private val MEDIDAS_SIGUIENTE = Medidas(28.dp, 16.sp, 20.dp, Radios.formaTarjeta, 8.dp, 1, true)
-private val MEDIDAS_SIGUIENTE_COMPACTA = Medidas(22.dp, 14.sp, 16.dp, Radios.formaTarjeta, 6.dp, 1, true)
+private val MEDIDAS_SIGUIENTE = Medidas(28.dp, 16.sp, 20.dp, Radios.formaTarjeta, 8.dp, 2, true)
+private val MEDIDAS_SIGUIENTE_COMPACTA = Medidas(22.dp, 14.sp, 16.dp, Radios.formaTarjeta, 6.dp, 2, true)
 
 /**
  * Carrete de notas bajo el banner de maniobra (o arriba del todo en modo libre): la nota actual en una tarjeta de
  * carbón con su icono de roadbook, el texto en cursiva Black (de 28 sp, que se reduce antes de partirse), la distancia
  * hasta ella a la derecha («120 m») y una insignia ámbar «!» si pide cuidado; la que ya toca cantar
- * ([NotaVisible.activa]) lleva el borde ámbar. A su derecha asoma, más pequeña (44 dp de alto, alfa 0,8) y cortada por
- * el borde, la siguiente aún no cantada. Al cantarse la actual, todo el carrete se desliza hacia la izquierda (la
- * siguiente pasa a ser la actual) como un carrete de fotos. El texto es solo la curva: los avisos unidos y el
+ * ([NotaVisible.activa]) lleva el borde ámbar. A su derecha va, más pequeña (carbón opaco) y entera, dentro de los
+ * márgenes, la siguiente aún no cantada (texto de 12 sp como mínimo, hasta dos líneas). Al cantarse la actual, todo
+ * el carrete se desliza hacia la izquierda (la siguiente pasa a ser la actual) como un carrete de
+ * fotos. El texto es solo la curva: los avisos unidos y el
  * puente van como iconos; un aviso suelto (cruce, rasante…) es una nota más. Con [compacta] (pantalla apaisada) las
  * tarjetas son más bajas. No pinta nada si no hay notas.
  */
@@ -121,9 +119,9 @@ private fun Carrete(
 ) {
     val actual = estado.visibles.first()
     val siguiente = estado.visibles.getOrNull(1)
-    val asomo = if (compacta) ASOMO_COMPACTO else ASOMO
     BoxWithConstraints(Modifier.fillMaxWidth()) {
-        val ancho = if (siguiente != null) maxWidth - asomo else maxWidth
+        // La siguiente cabe entera a la derecha: la actual cede su ancho (y reduce el texto antes de partirse).
+        val ancho = if (siguiente != null) maxWidth - ANCHO_SIGUIENTE - SEPARACION_SIGUIENTE else maxWidth
         TarjetaActual(
             visible = actual,
             simplificadas = estado.simplificadas,
@@ -139,8 +137,7 @@ private fun Carrete(
                     Modifier
                         .align(Alignment.CenterStart)
                         .offset(x = ancho + SEPARACION_SIGUIENTE)
-                        .requiredWidth(ANCHO_SIGUIENTE)
-                        .alpha(ALFA_SIGUIENTE),
+                        .requiredWidth(ANCHO_SIGUIENTE),
             )
         }
     }
@@ -171,6 +168,7 @@ private fun TarjetaActual(
         variante = VarianteTarjeta.MAPA,
         activa = visible.activa,
         relleno = medidas.relleno,
+        opaca = true,
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -220,6 +218,7 @@ private fun TarjetaSiguiente(
             },
         variante = VarianteTarjeta.MAPA,
         relleno = medidas.relleno,
+        opaca = true,
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -231,6 +230,7 @@ private fun TarjetaSiguiente(
                 color = color,
                 medidas = medidas,
                 modifier = Modifier.weight(1f),
+                minimoSp = TEXTO_MINIMO_SIGUIENTE_SP,
             )
         }
     }
@@ -247,12 +247,13 @@ private fun TextoRotulo(
     color: Color,
     medidas: Medidas,
     modifier: Modifier = Modifier,
+    minimoSp: Float = 0f,
 ) {
     val medidor = rememberTextMeasurer()
     BoxWithConstraints(modifier) {
         val disponible = constraints.maxWidth
         val completo = medidas.texto.value
-        val minimo = completo * FRACCION_TEXTO_MINIMO
+        val minimo = maxOf(completo * FRACCION_TEXTO_MINIMO, minimoSp)
         val tamano =
             remember(texto, medidas, disponible) {
                 val ancho =

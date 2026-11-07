@@ -49,6 +49,7 @@ import app.trombito.rallycopilot.ui.theme.Rotulo
 import app.trombito.rallycopilot.ui.tramos.formatearTiempo
 import app.trombito.rallycopilot.ui.tutorial.ConPista
 import app.trombito.rallycopilot.ui.tutorial.LadoPista
+import app.trombito.rallycopilot.ui.tutorial.LocalPistas
 import app.trombito.rallycopilot.ui.tutorial.Pista
 
 const val ETIQUETA_FILA_PREFIJO = "tramo-fila-"
@@ -109,6 +110,7 @@ private fun FilaTramo(
 ) {
     val borrarTexto = stringResource(R.string.mistramos_borrar)
     val renombrarTexto = stringResource(R.string.mistramos_renombrar)
+    val pistas = LocalPistas.current
     val colorBarra = MaterialTheme.colorScheme.primary
     val barraPx = with(LocalDensity.current) { ANCHO_BARRA_FAVORITO.toPx() }
     TarjetaWrc(
@@ -143,7 +145,11 @@ private fun FilaTramo(
             ConPista(Pista.MIS_TRAMOS, stringResource(R.string.pista_mis_tramos), activa = conPista) {
                 BotonFavorito(
                     favorito = tramo.favorito,
-                    onClick = { acciones.onFavorito(tramo) },
+                    onClick = {
+                        // Usar la estrella ya es haber entendido la ayuda.
+                        pistas.entendida(Pista.MIS_TRAMOS)
+                        acciones.onFavorito(tramo)
+                    },
                     modifier = Modifier.testTag(ETIQUETA_FAVORITO_PREFIJO + tramo.id),
                 )
             }

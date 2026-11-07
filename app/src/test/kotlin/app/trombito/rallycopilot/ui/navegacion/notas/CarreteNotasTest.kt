@@ -102,7 +102,7 @@ class CarreteNotasTest : CarreteNotasBase() {
     }
 
     @Test
-    fun `la actual va grande con texto y distancia y la siguiente asoma a la derecha mas pequena`() {
+    fun `la actual va grande con texto y distancia y la siguiente va a la derecha mas pequena`() {
         poner(tres)
         assertEquals("DERECHA 4 LARGA · 50 m", textoFila(0))
         assertEquals("IZQ 2 CIERRA · 30 m", textoFila(1))
@@ -113,8 +113,18 @@ class CarreteNotasTest : CarreteNotasBase() {
         assertTrue("la actual es más alta: $actual vs $siguiente", actual.height > siguiente.height * 1.3f)
         assertTrue("la siguiente va a la derecha de la actual", siguiente.left >= actual.right)
         val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
-        assertTrue("la actual ocupa casi todo el ancho: $actual", actual.width > franja.width * 0.8f)
+        assertTrue("la actual sigue siendo la más ancha: $actual", actual.width > franja.width * 0.55f)
         assertTrue("la actual mide unos 72 dp: ${actual.height}", actual.height in 64 * 3f..80 * 3f)
+    }
+
+    @Test
+    fun `la siguiente cabe entera dentro de la franja, sin cortarse contra el borde`() {
+        poner(tres)
+        val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
+        val siguiente = fila(1).boundsInRoot
+        assertTrue("la siguiente no se sale: $siguiente vs $franja", siguiente.right <= franja.right + 1f)
+        assertTrue("la siguiente mide su ancho entero: ${siguiente.width}", siguiente.width >= 120 * 3f)
+        assertTrue("la siguiente es legible: ${siguiente.height}", siguiente.height >= 44 * 3f)
     }
 
     @Test
@@ -261,7 +271,7 @@ class CarreteNotasTest : CarreteNotasBase() {
 @Config(qualifiers = "w891dp-h411dp-xxhdpi")
 class CarreteNotasHorizontalTest : CarreteNotasBase() {
     @Test
-    fun `en horizontal compacta es mas bajo y la siguiente asoma a la derecha`() {
+    fun `en horizontal compacta es mas bajo y la siguiente cabe a la derecha`() {
         banco.poner { RallyCopilotTheme { CarreteNotas(tres, compacta = true) } }
         assertEquals("DERECHA 4 LARGA · 50 m", textoFila(0))
         assertEquals("IZQ 2 CIERRA · 30 m", textoFila(1))
@@ -270,6 +280,9 @@ class CarreteNotasHorizontalTest : CarreteNotasBase() {
         assertFalse("sin tercera nota", banco.hay(ETIQUETA_NOTA_PREFIJO + 2))
         val (primera, segunda) = (0..1).map { fila(it).boundsInRoot }
         assertTrue("la siguiente a la derecha: $primera vs $segunda", segunda.left >= primera.right)
+        val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
+        assertTrue("la siguiente cabe entera: $segunda vs $franja", segunda.right <= franja.right + 1f)
+        assertTrue("la siguiente mide su ancho entero: ${segunda.width}", segunda.width >= 120 * 3f)
         assertTrue("alineadas en vertical", kotlin.math.abs(primera.center.y - segunda.center.y) < 8 * 3f)
         assertTrue("más baja que la vertical: $primera", primera.height < 64 * 3f)
     }
