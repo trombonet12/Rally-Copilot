@@ -1,14 +1,17 @@
 # Estado
 
-> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-01 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
+> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-07 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
 
 | Campo | Valor |
 |---|---|
-| Hito | H12 cerrado en versión recortada (2026-11-02) · **v1.0.0** · H11 pendiente |
-| Estado | v1.0.0 publicada. Pendientes: E2E en emulador, ux-reviewer de H10, prueba en coche, H11 |
-| Último commit | ver `git log -1`. Push a `main` con todo en verde (2026-11-01); v0.3 publicada como `v0.3.1` |
+| Hito | H15 (auditoría y deuda técnica) cerrado · **v1.3.0** · siguiente: H16 tras la prueba en coche · H11 pendiente |
+| Estado | v1.3.0 publicada con todo en verde. Pendiente: probar en el móvil de Joan (GPS débil, batería con «Copiloto», relieve, Sharvard) |
+| Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
 ## Completado
+- 2026-11-07 · **H15**: auditoría de 7 perfiles ([auditoria/2026-11.md](auditoria/2026-11.md)) y todos sus arreglos: aviso de GPS sin repeticiones, canal de voz con prioridad, alertas de velocidad detrás de las notas, posición única, Room v17–v18, APK sin x86_64 ni idiomas de espeak y con Sharvard y relieve bajo demanda, firma en paso aparte, exportar tramos en GPX, interfaz (✕ con segundo toque, botones de 64 dp, píldora que crece hacia arriba), relieve con solo curvas cada 100 m, geometría común en `:motor`, cobertura, lint estricto y humo del release. Capturas en [capturas/h15/](capturas/h15/).
+- 2026-11-07 · **H14** (v1.2.0): curvas por rumbo, rotondas, puentes, radares a 15 s, salida manual, copia exportable, rediseño WRC, voz ampliada, tutorial y Casa. Capturas en [capturas/h14/](capturas/h14/).
+- 2026-11-03 · **H13** (v1.1.0): notas por grados de giro.
 - 2026-10-28 · Herencia de Sous Chef/Trombito analizada y documentada ([HERENCIA.md](HERENCIA.md)).
 - 2026-10-28 · CLAUDE.md, memoria del proyecto ([MEMORIA.md](MEMORIA.md) + skill `recordar`), memoria personal (presupuesto de subagentes, push con permiso, sin coautoría).
 - 2026-10-28 · `.claude/`: settings (push en `ask`), hooks de secretos y lint con 88 pruebas, 40 skills (37 adaptadas + `hito`, `registrar-decision`, `recordar`, `gps-replay`), 18 agentes (+ `copiloto-reviewer`).
@@ -39,7 +42,7 @@
 | Otros | Node ≥ 22, Python 3.12 (su almacén de certificados está caducado: usar `curl` para descargas), Chrome para `ficha-play.mjs`, actionlint vía WinGet |
 
 ## Tests
-- Gate: `./gradlew ktlintCheck detekt lintDebug testDebugUnitTest :motor:test assembleDebug :app:minifyReleaseWithR8` → verde (20 tests JVM; lint solo con avisos de versiones, `ObsoleteSdkInt` y `ic_stat_rally` sin uso hasta H2).
+- Gate (H15, 2026-11-07): `ktlintCheck detekt lintDebug testDebugUnitTest :motor:test assembleDebug :app:minifyReleaseWithR8 :motor:koverVerify` + `humo-release.mjs` en verde; ≈ 2 000 tests JVM de app y ≈ 1 050 del motor; cobertura de líneas 99 % motor y 84 % app; hooks 88 OK; scripts 31 OK.
 - `assembleRelease` sin firma → falla con «Release sin firma: faltan las variables RALLY_*» (esperado).
 - Scripts: `check-claude-assets`, `gen-claude-index --check`, `check-docs`, `test-hooks` (88 OK), `node --test` de `play-promocionar` (11) y `gps-replay` (8) → verde. `actionlint` sin errores.
 - Emulador: APK debug instalado; inicio, icono y splash verificados con capturas; `gps-replay` fija la posición `gps` en la Ma-2141.
@@ -50,7 +53,6 @@
 
 ## Problemas conocidos
 - Windows MAX_PATH (260): Robolectric crea bases en directorios temporales con el nombre del test; nombres de base largos dan SQLITE_CANTOPEN intermitente. Usar nombres cortos (`m.db`).
-- `scripts/test-hooks.sh` falló una vez (87/88) y pasó al repetir: intermitente, probablemente por lentitud; vigilar.
 - El icono adaptativo debe quedarse en `mipmap-anydpi-v26`: con `mipmap-anydpi` el release no enlaza (`@mipmap/ic_launcher` not found).
 - `gradlew` debe estar en git como ejecutable (`git update-index --chmod=+x gradlew`); si no, el CI falla con «Permission denied».
 - Overpass API da 502/504 a menudo: reintentar con `--max-time` o usar otro espejo.
@@ -59,28 +61,27 @@
 - `GITHUB_TOKEN` dio 403 al crear la release tras un job de más de 1 h; por eso la publicación va en un job aparte.
 - `mbtiles://` en MapLibre solo con ruta absoluta (no `file://`).
 - La etiqueta «MAR BALEAR» de Protomaps cae dentro de la isla (dato de Natural Earth); cosmético.
-- APK de ≈ 300 MB (datos ≈ 145 MB y voces ≈ 59 MB en `assets`, onnxruntime) con `abiFilters` arm64-v8a + x86_64. Los tests Robolectric empaquetan los assets (≈ 25 s cuando cambian).
-- Un solo Gradle a la vez en el árbol: dos agentes en paralelo rompen cachés (KSP, resultados binarios de tests).
+- APK release solo arm64 (167 MiB tras H15); el debug lleva también x86_64 para el emulador. Los tests JVM usan 2 GB de heap.
+- Un solo Gradle a la vez en el árbol: dos agentes en paralelo rompen cachés (KSP, resultados binarios de tests, `.descargas/*.parte` bloqueados en Windows); reintentar.
 - El GPS del emulador da rumbo 0 con ±30°: la app lo ignora (precisión > 20°) y usa el del movimiento.
 
 - `gps-replay`: al acabar la traza el emulador sigue repitiendo la última posición con velocidad; para simular GPS perdido, `adb shell cmd location set-location-enabled false`.
 - `adb shell input text` no teclea acentos (buscar «Soller»).
-- Franja de notas: en las tarjetas pequeñas el texto largo se recorta («DERECHA 3 MU…»); dirección y grado se conservan.
 - `Log.w` se conserva en release: no registrar nunca coordenadas ni URLs (solo el tipo de excepción).
 ## Decisiones recientes
 - Ver [DECISIONES.md](DECISIONES.md) § Decisiones del usuario, § Base técnica e § Investigaciones previas.
 
 ## Dudas abiertas
-- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las del cierre de H3 y del arranque de H4 respondidas el 2026-11-01.
+- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las de la auditoría respondidas el 2026-11-07.
 
 ## Pendiente del usuario
 - **Copia de seguridad de `~/.rallycopilot/`** (keystore): sin ella no se pueden publicar actualizaciones.
-- Instalar la v0.4 con Obtainium (≈ 300 MB), elegir la voz, descargar el satélite (≈ 1,5 GB, WiFi) y probar en el coche: voz, ducking con música, ubicación bajo techo, flecha sobre la carretera y probar en el móvil con GPS real (velocidad, límite, guiado, modo libre).
-- Pasarme un enlace corto real de Google Maps (`maps.app.goo.gl/…`) para probar el caso de éxito.
-- Ir dejando material de voz en `voice-lab/data/raw/` (no bloquea hasta H11).
+- Mover los secretos de firma al Environment `release` de GitHub (`node scripts/subir-secretos-release.mjs --entorno release`, después borrar los de repositorio) y limitarlo a `main`. Mientras no se haga, todo sigue funcionando.
+- Dejar el móvil por USB para probar H15 con GPS real: señal débil, batería con y sin «Copiloto» (`scripts/medir-bateria.sh`), relieve, Sharvard y exportar tramos.
+- Pasarme un enlace corto real de Google Maps (`maps.app.goo.gl/…`) y material de voz en `voice-lab/data/raw/` (H11).
 
 ## Archivos importantes
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H14 cerrado y publicado como v1.2.0 (2026-11-07). Siguiente: lo que salga de la prueba en coche de Joan (pendientes en ROADMAP H14), batería E2E y H11 cuando haya material.
+- **Agente:** H15 cerrado y publicado como v1.3.0 (2026-11-07). Siguiente: prueba en el móvil de Joan y, con lo que salga, H16 (calibración en coche).

@@ -601,18 +601,21 @@ Por lotes (ids de los informes de [docs/auditoria/2026-11/](docs/auditoria/2026-
 - Fuera: cifrar la copia, nota del IGN en Acerca de y avisar de obras una vez al día (Joan, 2026-11-07).
 
 ### Criterios de aceptación
-- [ ] Con señal débil intermitente (`gps-replay` cortando fijaciones) no se repite «Sin señal GPS»; con una pérdida de 40 s se dice una vez.
-- [ ] Ninguna alerta que no sea un radar fijo o un corte quita el turno a una nota.
-- [ ] El APK release pesa ≤ 170 MiB y la voz, el relieve y las curvas funcionan sin red tras descargarlos.
-- [ ] Una sola suscripción al GPS con el mapa visible y conduciendo.
-- [ ] Gate, scripts y el humo del release en verde; `check-docs` sin errores.
-- [ ] Capturas de lo que cambia en la interfaz en `docs/capturas/h15/`.
+- [x] Con señal débil intermitente (`gps-replay` cortando fijaciones) no se repite «Sin señal GPS»; con una pérdida de 40 s se dice una vez.
+- [x] Ninguna alerta que no sea un radar fijo o un corte quita el turno a una nota.
+- [x] El APK release pesa ≤ 170 MiB y la voz, el relieve y las curvas funcionan sin red tras descargarlos.
+- [x] Una sola suscripción al GPS con el mapa visible y conduciendo.
+- [x] Gate, scripts y el humo del release en verde; `check-docs` sin errores.
+- [x] Capturas de lo que cambia en la interfaz en `docs/capturas/h15/`.
 
 ### Tests
 - Detector de señal (oscilación, histéresis, posición antigua), canal de voz (prioridad, caducidad, enfriamiento), exceso y media del tramo, migración 16→17 y cadena completa, cronómetro con huecos, geometría común en `:motor` con los tests existentes como red; emulador con `gps-replay` de la Ma-2141 y prueba en el móvil de Joan al final.
 
 ### Estado
-en curso (2026-11-07) · Depende de: H14 · Dudas: [QUESTIONS.md § Auditoría](QUESTIONS.md#respondidas-en-la-auditoría-2026-11-07-en-el-chat)
+completado (2026-11-07, v1.3.0) · Depende de: H14 · Dudas: [QUESTIONS.md § Auditoría](QUESTIONS.md#respondidas-en-la-auditoría-2026-11-07-en-el-chat)
+**Hecho:** los 13 lotes; además, a petición de Joan durante el hito, la píldora de velocidad crece hacia arriba con el exceso y el relieve solo dibuja una curva cada 100 m, tenue y de cerca (`datos-2026.11.07-16`). Voz Sharvard publicada en la release de datos. Pruebas en el emulador: 9/9 ([capturas/h15/](docs/capturas/h15/README.md)).
+**Decidido sin hacer:** `verification-metadata.xml` de Gradle (choca con Dependabot; ver DECISIONES), test de Hilt con el grafo real (no hay `hilt-android-testing`).
+**Pendiente:** medir batería con «Copiloto» en el móvil con ruido real; mover los secretos de firma al Environment `release` (Joan); `runBlocking` del servicio (necesario para declarar el micrófono a tiempo); revisar las excepciones de lint PluralsCandidate y LocalContextResourcesRead; renombrar «Origen → Destino» los tramos antiguos.
 
 ## H16 — Calibración en coche
 
