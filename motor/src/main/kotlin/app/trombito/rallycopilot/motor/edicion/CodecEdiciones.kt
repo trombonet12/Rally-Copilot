@@ -1,6 +1,8 @@
 package app.trombito.rallycopilot.motor.edicion
 
 import app.trombito.rallycopilot.motor.notas.Direccion
+import app.trombito.rallycopilot.motor.notas.GRADO_MAX
+import app.trombito.rallycopilot.motor.notas.GRADO_MIN
 import app.trombito.rallycopilot.motor.notas.Modificador
 import app.trombito.rallycopilot.motor.notas.Nota
 
@@ -62,7 +64,7 @@ object CodecEdiciones {
         if (campos.size != CAMPOS) return null
         val direccion = Direccion.entries.firstOrNull { it.name == campos[0] } ?: return null
         val grado = if (campos[1] == "-") null else campos[1].toIntOrNull() ?: return null
-        if (grado != null && grado !in 1..6) return null
+        if (grado != null && grado !in GRADO_MIN..GRADO_MAX) return null
         val modificadores =
             if (campos[2].isEmpty()) {
                 emptySet()
@@ -73,8 +75,14 @@ object CodecEdiciones {
                         Modificador.entries.firstOrNull { it.name == n } ?: return null
                     }.toSet()
             }
-        val distancia = if (campos[3].isEmpty()) null else campos[3].toIntOrNull() ?: return null
-        val largo = campos[5].toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0.0 } ?: return null
+        val distancia =
+            if (campos[COL_DISTANCIA].isEmpty()) {
+                null
+            } else {
+                campos[COL_DISTANCIA].toIntOrNull()
+                    ?: return null
+            }
+        val largo = campos[COL_LARGO].toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0.0 } ?: return null
         return Nota(
             posicionM = 0.0,
             finM = largo,
@@ -82,9 +90,12 @@ object CodecEdiciones {
             grado = grado,
             modificadores = modificadores,
             distanciaSiguienteM = distancia,
-            cuidado = campos[4] == "1",
+            cuidado = campos[COL_CUIDADO] == "1",
         )
     }
 
     private const val CAMPOS = 6
+    private const val COL_DISTANCIA = 3
+    private const val COL_CUIDADO = 4
+    private const val COL_LARGO = 5
 }

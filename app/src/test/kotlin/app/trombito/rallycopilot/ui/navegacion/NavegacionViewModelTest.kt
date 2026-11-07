@@ -507,6 +507,22 @@ class NavegacionViewModelTest {
         }
 
     @Test
+    fun `la tarjeta de llegada mide el tiempo del trayecto con el reloj inyectado`() =
+        runTest {
+            var ahora = 100_000L
+            val vm = NavegacionViewModel(buscador, enrutador, control, resolvedor, pendiente, ajustes) { ahora }
+            recoger(vm)
+            val ruta = rutaDePrueba(18_400.0, 1_380.0)
+            control.publicar(EstadoNavegacion.Guiando(destino, PerfilRuta.MAS_RAPIDA, ruta, null, false))
+            ahora += 90_000L
+            control.publicar(EstadoNavegacion.Llegada(destino))
+
+            val resumen = checkNotNull(vm.uiState.value.resumenLlegada)
+            assertEquals(90.0, resumen.tiempoS, 1e-9)
+            assertEquals(18_400.0, resumen.distanciaM, 1e-9)
+        }
+
+    @Test
     fun `terminar sin permiso para todo`() =
         runTest {
             val vm = crear()

@@ -11,6 +11,7 @@ import kotlin.math.roundToInt
  */
 object FormatoHablado {
     private const val MIL = 1000
+    private const val LIMITE_NUMERO = 10 * MIL
     private const val CIEN_M = 100.0
     private const val CINCUENTA_M = 50.0
     private const val DIEZ_M = 10.0
@@ -25,7 +26,7 @@ object FormatoHablado {
     /** Número entero de 0 a 9999 en palabras (los números de carretera llegan a «dos mil ciento cuarenta y uno»). */
     fun numero(n: Int): String =
         when {
-            n < 0 || n >= 10 * MIL -> {
+            n < 0 || n >= LIMITE_NUMERO -> {
                 n.toString()
             }
 

@@ -121,8 +121,20 @@ object EscritorGpx {
     }
 
     private fun esValido(c: Int): Boolean =
-        c == 0x9 || c == 0xA || c == 0xD || c in 0x20..0xD7FF || c in 0xE000..0xFFFD || c in 0x10000..0x10FFFF
+        c in CONTROLES_PERMITIDOS ||
+            c in ESPACIO..FIN_BMP_BAJO ||
+            c in INICIO_BMP_ALTO..FIN_BMP_ALTO ||
+            c in INICIO_SUPLEMENTARIOS..FIN_SUPLEMENTARIOS
 
     private const val PREVISION_BASE = 1024
+
+    // Caracteres permitidos por XML 1.0 (https://www.w3.org/TR/xml/#charsets).
+    private val CONTROLES_PERMITIDOS = intArrayOf(0x9, 0xA, 0xD) // tabulador, salto de línea y retorno
+    private const val ESPACIO = 0x20
+    private const val FIN_BMP_BAJO = 0xD7FF
+    private const val INICIO_BMP_ALTO = 0xE000
+    private const val FIN_BMP_ALTO = 0xFFFD
+    private const val INICIO_SUPLEMENTARIOS = 0x10000
+    private const val FIN_SUPLEMENTARIOS = 0x10FFFF
     private const val PREVISION_PUNTO = 64
 }

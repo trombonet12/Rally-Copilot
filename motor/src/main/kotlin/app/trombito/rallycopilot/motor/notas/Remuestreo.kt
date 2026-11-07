@@ -6,6 +6,10 @@ import kotlin.math.exp
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 
+/** Ventana del suavizado gaussiano: ±3 sigmas; el exponente de la campana es −z²/2. */
+private const val SIGMAS_VENTANA = 3.0
+private const val EXPONENTE_GAUSS = -0.5
+
 /**
  * Traza plana en metros (x al este, y al norte, origen en el primer punto) con muestras equiespaciadas.
  * [s] es la distancia en metros desde el inicio de la polilínea original hasta cada muestra.
@@ -85,11 +89,11 @@ object Remuestreo {
         sigmaM: Double,
     ): DoubleArray {
         if (sigmaM == 0.0) return valores
-        val semiancho = (3.0 * sigmaM / pasoM).roundToInt().coerceAtLeast(1)
+        val semiancho = (SIGMAS_VENTANA * sigmaM / pasoM).roundToInt().coerceAtLeast(1)
         val pesos =
             DoubleArray(2 * semiancho + 1) {
                 val z = (it - semiancho) * pasoM / sigmaM
-                exp(-0.5 * z * z)
+                exp(EXPONENTE_GAUSS * z * z)
             }
         return DoubleArray(valores.size) { i ->
             var suma = 0.0

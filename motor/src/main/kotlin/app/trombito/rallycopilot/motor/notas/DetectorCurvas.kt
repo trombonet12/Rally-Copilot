@@ -5,6 +5,10 @@ import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
 
+/** El radio central es la mediana sin un cuarto a cada lado; la entrada y la salida, un tercio del núcleo. */
+private const val CUARTOS = 4
+private const val TERCIOS = 3
+
 /** Sentido de giro de una curva. */
 enum class Direccion { IZQUIERDA, DERECHA }
 
@@ -147,9 +151,9 @@ class DetectorCurvas(
             finM = traza.s[t.hasta],
             direccion = if (t.izquierda) Direccion.IZQUIERDA else Direccion.DERECHA,
             anguloGrados = t.giroGrados,
-            radioCentralM = mediana(radios, n / 4, n - n / 4),
-            radioEntradaM = mediana(nucleo, 0, m / 3),
-            radioSalidaM = mediana(nucleo, m - m / 3, m),
+            radioCentralM = mediana(radios, n / CUARTOS, n - n / CUARTOS),
+            radioEntradaM = mediana(nucleo, 0, m / TERCIOS),
+            radioSalidaM = mediana(nucleo, m - m / TERCIOS, m),
             radioMinM = radios.min(),
         )
     }

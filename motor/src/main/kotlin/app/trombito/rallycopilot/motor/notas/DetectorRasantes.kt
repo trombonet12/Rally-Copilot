@@ -5,6 +5,12 @@ import kotlin.math.ceil
 import kotlin.math.exp
 import kotlin.math.roundToInt
 
+private const val PORCIENTO = 100.0
+
+/** Ventana del suavizado gaussiano: ±3 sigmas; el exponente de la campana es −z²/2. */
+private const val SIGMAS_VENTANA = 3.0
+private const val EXPONENTE_GAUSS = -0.5
+
 /**
  * Tipo de rasante: cresta, cambio brusco de pendiente convexo que no es cresta, cresta con caída tan brusca que
  * salta, o compresión (vaguada cóncava marcada, en la que el coche se hunde).
@@ -217,11 +223,11 @@ private object Pendientes {
         sigmaM: Double,
     ): DoubleArray {
         if (sigmaM == 0.0) return h
-        val semiancho = (3.0 * sigmaM / pasoM).roundToInt().coerceAtLeast(1)
+        val semiancho = (SIGMAS_VENTANA * sigmaM / pasoM).roundToInt().coerceAtLeast(1)
         val pesos =
             DoubleArray(2 * semiancho + 1) {
                 val z = (it - semiancho) * pasoM / sigmaM
-                exp(-0.5 * z * z)
+                exp(EXPONENTE_GAUSS * z * z)
             }
         val n = h.size
 
@@ -252,7 +258,7 @@ private object Pendientes {
         return DoubleArray(n) { i ->
             val a = maxOf(0, i - 1)
             val b = minOf(n - 1, i + 1)
-            100.0 * (g[b] - g[a]) / ((b - a) * pasoM)
+            PORCIENTO * (g[b] - g[a]) / ((b - a) * pasoM)
         }
     }
 }

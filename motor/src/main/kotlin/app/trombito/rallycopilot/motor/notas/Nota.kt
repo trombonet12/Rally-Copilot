@@ -1,5 +1,15 @@
 package app.trombito.rallycopilot.motor.notas
 
+/** Grado más cerrado (muy cerrada). */
+internal const val GRADO_MIN = 1
+
+/** Grado más suave. */
+internal const val GRADO_MAX = 6
+
+/** Límites de los grados «media» (3-4). */
+internal const val GRADO_MEDIA_MIN = 3
+internal const val GRADO_MEDIA_MAX = 4
+
 /** Matiz que se canta tras el grado («larga», «cierra»…). El orden del enum es el orden en que se cantan. */
 enum class Modificador { ESCUADRA, LARGA, MUY_LARGA, CIERRA, ABRE }
 
@@ -23,7 +33,7 @@ data class Nota(
     val cuidado: Boolean = false,
 ) {
     init {
-        require(grado == null || grado in 1..6) { "Grado fuera de 1..6: $grado" }
+        require(grado == null || grado in GRADO_MIN..GRADO_MAX) { "Grado fuera de $GRADO_MIN..$GRADO_MAX: $grado" }
     }
 
     /**
@@ -35,7 +45,7 @@ data class Nota(
             null -> GradoSimplificado.HORQUILLA
             1 -> GradoSimplificado.MUY_CERRADA
             2 -> GradoSimplificado.CERRADA
-            3, 4 -> GradoSimplificado.MEDIA
+            GRADO_MEDIA_MIN, GRADO_MEDIA_MAX -> GradoSimplificado.MEDIA
             else -> GradoSimplificado.SUAVE
         }
 }

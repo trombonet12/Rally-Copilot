@@ -6,6 +6,15 @@ import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+internal const val LATITUD_MAX_GRADOS = 90.0
+internal const val LONGITUD_MAX_GRADOS = 180.0
+
+/** Rango válido de latitud, en grados. */
+internal val RANGO_LATITUD = -LATITUD_MAX_GRADOS..LATITUD_MAX_GRADOS
+
+/** Rango válido de longitud, en grados. */
+internal val RANGO_LONGITUD = -LONGITUD_MAX_GRADOS..LONGITUD_MAX_GRADOS
+
 /** Punto WGS84 en grados decimales; la altitud (metros) es opcional porque OSM y muchos GPX no la traen. */
 data class PuntoGeo(
     val lat: Double,
@@ -13,8 +22,8 @@ data class PuntoGeo(
     val alt: Double? = null,
 ) {
     init {
-        require(lat in -90.0..90.0) { "Latitud fuera de rango: $lat" }
-        require(lon in -180.0..180.0) { "Longitud fuera de rango: $lon" }
+        require(lat in RANGO_LATITUD) { "Latitud fuera de rango: $lat" }
+        require(lon in RANGO_LONGITUD) { "Longitud fuera de rango: $lon" }
     }
 
     /** Distancia de círculo máximo (haversine) en metros; error < 0,5 % frente a WGS84, de sobra para notas. */

@@ -13,6 +13,10 @@ import kotlin.math.abs
 import kotlin.math.floor
 import kotlin.math.hypot
 
+/** Clave de celda: `cx` en los 32 bits altos y `cy` en los bajos. */
+private const val BITS_CELDA = 32
+private const val MASCARA_CELDA = 0xFFFFFFFFL
+
 /**
  * Tipo de aviso de la hoja de notas y lo que se canta. [frase] es la frase suelta; los avisos de precaución
  * ([esCuidado]) se cantan en una nota como «cuidado» al principio de la frase más su [palabra] (vacía si es solo
@@ -445,7 +449,7 @@ private class RutaPlana(
     private fun clave(
         cx: Int,
         cy: Int,
-    ): Long = (cx.toLong() shl 32) or (cy.toLong() and 0xFFFFFFFFL)
+    ): Long = (cx.toLong() shl BITS_CELDA) or (cy.toLong() and MASCARA_CELDA)
 
     private companion object {
         const val CELDA_M = 25.0

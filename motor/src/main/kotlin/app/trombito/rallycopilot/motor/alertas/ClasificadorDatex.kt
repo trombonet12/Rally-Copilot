@@ -1,6 +1,8 @@
 package app.trombito.rallycopilot.motor.alertas
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.RANGO_LATITUD
+import app.trombito.rallycopilot.motor.geo.RANGO_LONGITUD
 import java.time.Instant
 import java.time.OffsetDateTime
 import java.time.format.DateTimeParseException
@@ -43,7 +45,7 @@ internal class RegistroDatex(
     private fun coordenadaValida(
         lat: Double,
         lon: Double,
-    ): Boolean = lat in -90.0..90.0 && lon in -180.0..180.0
+    ): Boolean = lat in RANGO_LATITUD && lon in RANGO_LONGITUD
 
     /** `false` si el registro no está vigente (solo se descarta `suspended`; sin estado se da por vigente). */
     val vigente: Boolean get() = hojas["validityStatus"] != "suspended"

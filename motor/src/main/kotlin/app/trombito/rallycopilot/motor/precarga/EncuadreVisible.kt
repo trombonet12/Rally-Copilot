@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.motor.precarga
 
+import app.trombito.rallycopilot.motor.geo.LONGITUD_MAX_GRADOS
 import kotlin.math.PI
 import kotlin.math.atan
 import kotlin.math.cos
@@ -14,6 +15,7 @@ import kotlin.math.tan
  */
 object EncuadreVisible {
     private const val PUNTOS_MUNDO_A_ZOOM_0 = 512.0
+    private const val VUELTA_GRADOS = 360.0
 
     fun rectangulo(
         latitud: Double,
@@ -24,12 +26,17 @@ object EncuadreVisible {
     ): Rectangulo {
         require(anchoDp > 0 && altoDp > 0) { "Vista sin tamaño" }
         val mundo = PUNTOS_MUNDO_A_ZOOM_0 * 2.0.pow(zoom)
-        val dLon = anchoDp / mundo * 360.0 / 2.0
+        val dLon = anchoDp / mundo * VUELTA_GRADOS / 2.0
         val yCentro = mercatorY(latitud)
         val dy = altoDp / mundo / 2.0
         val norte = latitudDe((yCentro - dy).coerceIn(0.0, 1.0))
         val sur = latitudDe((yCentro + dy).coerceIn(0.0, 1.0))
-        return Rectangulo((longitud - dLon).coerceAtLeast(-180.0), sur, (longitud + dLon).coerceAtMost(180.0), norte)
+        return Rectangulo(
+            (longitud - dLon).coerceAtLeast(-LONGITUD_MAX_GRADOS),
+            sur,
+            (longitud + dLon).coerceAtMost(LONGITUD_MAX_GRADOS),
+            norte,
+        )
     }
 
     /** Y normalizada de Web Mercator: 0 arriba (norte), 1 abajo. */

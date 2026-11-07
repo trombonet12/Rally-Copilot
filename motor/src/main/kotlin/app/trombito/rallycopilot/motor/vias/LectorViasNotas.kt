@@ -1,5 +1,7 @@
 package app.trombito.rallycopilot.motor.vias
 
+import app.trombito.rallycopilot.motor.geo.LATITUD_MAX_GRADOS
+import app.trombito.rallycopilot.motor.geo.LONGITUD_MAX_GRADOS
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 
 /** Etiquetas OSM de una vía relevantes para las notas (texto crudo; vacío en el archivo = null). */
@@ -87,6 +89,14 @@ object LectorViasNotas {
     private const val CAMPOS_P = 4
     private const val ESCALA_COORD = 1_000_000.0
     private const val DM_POR_M = 10.0
+    private const val COL_V_BRIDGE = 2
+    private const val COL_V_TUNNEL = 3
+    private const val COL_V_JUNCTION = 4
+    private const val COL_V_LANES = 5
+    private const val COL_V_WIDTH = 6
+    private const val COL_V_HAZARD = 7
+    private const val COL_V_SURFACE = 8
+    private const val COL_P_ALTURAS = 3
 
     /** @throws IllegalArgumentException si falta la cabecera `#vias-notas v1` o es de otra versión. */
     fun leer(lineas: Sequence<String>): DatosNotasVias {
@@ -119,21 +129,21 @@ object LectorViasNotas {
         } else {
             id to
                 EtiquetasVia(
-                    bridge = campo(c[2]),
-                    tunnel = campo(c[3]),
-                    junction = campo(c[4]),
-                    lanes = campo(c[5])?.toIntOrNull(),
-                    width = campo(c[6])?.toDoubleOrNull()?.takeIf { it.isFinite() },
-                    hazard = campo(c[7]),
-                    surface = campo(c[8]),
+                    bridge = campo(c[COL_V_BRIDGE]),
+                    tunnel = campo(c[COL_V_TUNNEL]),
+                    junction = campo(c[COL_V_JUNCTION]),
+                    lanes = campo(c[COL_V_LANES])?.toIntOrNull(),
+                    width = campo(c[COL_V_WIDTH])?.toDoubleOrNull()?.takeIf { it.isFinite() },
+                    hazard = campo(c[COL_V_HAZARD]),
+                    surface = campo(c[COL_V_SURFACE]),
                 )
         }
     }
 
     private fun analizarN(c: List<String>): NodoAviso? {
         val partes = c.getOrNull(1)?.split(',')
-        val lat = coordenada(partes?.getOrNull(0), 90.0)
-        val lon = coordenada(partes?.getOrNull(1), 180.0)
+        val lat = coordenada(partes?.getOrNull(0), LATITUD_MAX_GRADOS)
+        val lon = coordenada(partes?.getOrNull(1), LONGITUD_MAX_GRADOS)
         val tipo = c.getOrNull(2)?.trim().orEmpty()
         val punto = if (lat != null && lon != null) PuntoGeo(lat, lon) else null
         if (c.size != CAMPOS_N || partes?.size != 2 || tipo.isEmpty()) return null
@@ -159,7 +169,7 @@ object LectorViasNotas {
                 ?.trim()
                 ?.toIntOrNull()
                 ?.takeIf { it > 0 }
-        val alturas = c.getOrNull(3)?.let { alturas(it) }?.takeIf { it.size >= 2 }
+        val alturas = c.getOrNull(COL_P_ALTURAS)?.let { alturas(it) }?.takeIf { it.size >= 2 }
         if (c.size != CAMPOS_P || paso == null || alturas == null) return null
         return id?.let { it to PerfilVia(paso.toDouble(), alturas) }
     }

@@ -44,6 +44,7 @@ object FrasesNota {
     }
 
     /** Número entero de 0 a 999 en palabras («ciento veinte», «doscientos cincuenta»). */
+    @Suppress("MagicNumber") // aritmética decimal del castellano: decenas, centenas y su desfase en las tablas
     fun enPalabras(n: Int): String {
         require(n in 0..999) { "Número fuera de 0..999: $n" }
         return when {

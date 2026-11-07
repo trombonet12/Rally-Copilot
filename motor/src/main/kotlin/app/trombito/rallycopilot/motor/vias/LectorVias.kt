@@ -1,6 +1,8 @@
 package app.trombito.rallycopilot.motor.vias
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.RANGO_LATITUD
+import app.trombito.rallycopilot.motor.geo.RANGO_LONGITUD
 
 /** Vías leídas y número de líneas descartadas por estar malformadas. */
 data class ResultadoLectura(
@@ -18,6 +20,16 @@ object LectorVias {
     const val CABECERA = "#vias-mallorca v1"
     private const val CAMPOS_ANTIGUO = 9
     private const val CAMPOS = 13
+    private const val COL_MAXSPEED = 2
+    private const val COL_MAXSPEED_ADELANTE = 3
+    private const val COL_MAXSPEED_ATRAS = 4
+    private const val COL_SENTIDO = 5
+    private const val COL_REF = 6
+    private const val COL_NOMBRE = 7
+    private const val COL_JUNCTION = 8
+    private const val COL_BRIDGE = 9
+    private const val COL_TUNNEL = 10
+    private const val COL_LAYER = 11
     private const val ESCALA = 1_000_000.0
 
     /** @throws IllegalArgumentException si falta la cabecera `#vias-mallorca v1` o es de otra versión. */
@@ -47,17 +59,17 @@ object LectorVias {
             Via(
                 id = id,
                 clase = c[1].trim(),
-                maxspeed = campo(c[2]),
-                maxspeedAdelante = campo(c[3]),
-                maxspeedAtras = campo(c[4]),
-                sentidoUnico = sentido(c[5]),
-                ref = campo(c[6]),
-                nombre = campo(c[7]),
+                maxspeed = campo(c[COL_MAXSPEED]),
+                maxspeedAdelante = campo(c[COL_MAXSPEED_ADELANTE]),
+                maxspeedAtras = campo(c[COL_MAXSPEED_ATRAS]),
+                sentidoUnico = sentido(c[COL_SENTIDO]),
+                ref = campo(c[COL_REF]),
+                nombre = campo(c[COL_NOMBRE]),
                 puntos = puntos,
-                junction = if (nuevos) campo(c[8]) else null,
-                bridge = if (nuevos) campo(c[9]) else null,
-                tunnel = if (nuevos) campo(c[10]) else null,
-                layer = if (nuevos) campo(c[11])?.toIntOrNull() else null,
+                junction = if (nuevos) campo(c[COL_JUNCTION]) else null,
+                bridge = if (nuevos) campo(c[COL_BRIDGE]) else null,
+                tunnel = if (nuevos) campo(c[COL_TUNNEL]) else null,
+                layer = if (nuevos) campo(c[COL_LAYER])?.toIntOrNull() else null,
             )
         }
     }
@@ -80,7 +92,7 @@ object LectorVias {
             val partes = par.split(',')
             val lat = micro(partes.getOrNull(0))
             val lon = micro(partes.getOrNull(1))
-            val valido = partes.size == 2 && lat != null && lon != null && lat in -90.0..90.0 && lon in -180.0..180.0
+            val valido = partes.size == 2 && lat != null && lon != null && lat in RANGO_LATITUD && lon in RANGO_LONGITUD
             if (!valido) return null
             resultado.add(PuntoGeo(lat, lon))
         }

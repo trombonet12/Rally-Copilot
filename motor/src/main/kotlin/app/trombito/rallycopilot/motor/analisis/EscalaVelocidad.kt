@@ -1,5 +1,8 @@
 package app.trombito.rallycopilot.motor.analisis
 
+/** Posición en la escala cuando todos los cortes valen lo mismo: el centro. */
+private const val FRACCION_ESCALA_PLANA = 0.5
+
 /**
  * Escala de color por cuantiles de la velocidad de una pasada: [cortesKmh] son las velocidades que dejan por debajo las
  * [PROBABILIDADES] de los segmentos (mínimo, p10, p25, mediana, p75, p90, máximo). Así unos pocos picos o paradas no
@@ -14,7 +17,7 @@ data class EscalaVelocidad(
         val maximo = cortesKmh.last()
         return when {
             maximo <= minimo -> {
-                0.5
+                FRACCION_ESCALA_PLANA
             }
 
             kmh <= minimo -> {

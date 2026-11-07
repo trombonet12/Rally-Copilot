@@ -54,15 +54,26 @@ private const val LONGITUD_MINIMA_BUSQUEDA = 2
 @OptIn(FlowPreview::class)
 @Suppress("TooManyFunctions") // un ViewModel para búsqueda, vista previa, conducción y «Seguir a»
 class NavegacionViewModel
-    @Inject
-    constructor(
+    @Suppress("LongParameterList") // el reloj solo lo cambian las pruebas; el constructor de Hilt no lo lleva
+    internal constructor(
         private val buscador: Buscador,
         private val enrutador: Enrutador,
         private val control: ControlNavegacion,
         private val resolvedor: ResolvedorEnlaces,
         private val guiadoPendiente: RepositorioGuiadoPendiente,
         private val ajustes: RepositorioAjustesConduccion,
+        private val reloj: () -> Long,
     ) : ViewModel() {
+        @Inject
+        constructor(
+            buscador: Buscador,
+            enrutador: Enrutador,
+            control: ControlNavegacion,
+            resolvedor: ResolvedorEnlaces,
+            guiadoPendiente: RepositorioGuiadoPendiente,
+            ajustes: RepositorioAjustesConduccion,
+        ) : this(buscador, enrutador, control, resolvedor, guiadoPendiente, ajustes, System::currentTimeMillis)
+
         private val texto = MutableStateFlow("")
         private val consulta = MutableStateFlow("")
         private val busqueda = MutableStateFlow<BusquedaDestino>(BusquedaDestino.Inactiva)
@@ -159,14 +170,14 @@ class NavegacionViewModel
                 when (estado) {
                     is EstadoNavegacion.Guiando -> {
                         if (inicioMs == null) {
-                            inicioMs = System.currentTimeMillis()
+                            inicioMs = reloj()
                             distanciaM = estado.ruta.longitudM
                         }
                     }
 
                     is EstadoNavegacion.Llegada -> {
                         inicioMs?.let {
-                            val tiempoS = (System.currentTimeMillis() - it) / MS_SEGUNDO
+                            val tiempoS = (reloj() - it) / MS_SEGUNDO
                             resumenLlegada.value = ResumenTrayecto(tiempoS, distanciaM)
                         }
                         inicioMs = null

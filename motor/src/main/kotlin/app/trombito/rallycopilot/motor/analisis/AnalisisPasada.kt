@@ -7,6 +7,9 @@ import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.velocidad.msAKmh
 
+/** Suma de los pesos 1-2-1 con que se suaviza la velocidad. */
+private const val SUMA_PESOS_SUAVIZADO = 4.0
+
 /** Valor [valor] en la distancia [distanciaM] (m desde la salida): velocidad en km/h o delta en ms. */
 data class PuntoSerie(
     val distanciaM: Double,
@@ -173,7 +176,7 @@ data class AnalisisPasada(
                 ) {
                     crudas[i]
                 } else {
-                    (crudas[i - 1] + 2 * crudas[i] + crudas[i + 1]) / 4.0
+                    (crudas[i - 1] + 2 * crudas[i] + crudas[i + 1]) / SUMA_PESOS_SUAVIZADO
                 }
             }
         }

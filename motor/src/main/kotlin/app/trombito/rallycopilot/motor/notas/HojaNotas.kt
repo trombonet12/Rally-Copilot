@@ -205,7 +205,7 @@ internal object Precaucion {
         nota: Nota,
         avisos: List<Aviso>,
     ): Boolean =
-        efectivo(nota) <= 3 &&
+        efectivo(nota) <= GRADO_MEDIA_MIN &&
             avisos.any {
                 (it.tipo in RASANTES) &&
                     it.posicionM <= nota.posicionM &&

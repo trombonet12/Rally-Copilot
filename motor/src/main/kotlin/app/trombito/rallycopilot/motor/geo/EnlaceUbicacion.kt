@@ -2,6 +2,14 @@ package app.trombito.rallycopilot.motor.geo
 
 import java.net.URLDecoder
 
+/** Grupo de la expresión de consulta con el nombre entre paréntesis. */
+private const val GRUPO_NOMBRE = 3
+
+/** Grupos de la expresión sexagesimal: primer grupo de grados según el eje vaya antes o después, y el eje de detrás. */
+private const val GRUPO_GRADOS_DETRAS_DEL_EJE = 2
+private const val GRUPO_GRADOS_ANTES_DEL_EJE = 5
+private const val GRUPO_EJE_DETRAS = 8
+
 /** Resultado de interpretar un texto pegado o compartido como ubicación. */
 sealed interface ResultadoEnlace {
     /** Ubicación resuelta sin red; `nombre` solo si el enlace lo trae. */
@@ -66,7 +74,7 @@ private object Coord {
     private fun enRango(
         lat: Double,
         lon: Double,
-    ): Boolean = lat in -90.0..90.0 && lon in -180.0..180.0
+    ): Boolean = lat in RANGO_LATITUD && lon in RANGO_LONGITUD
 
     fun resultado(marcador: Marcador?): ResultadoEnlace =
         marcador?.let { ResultadoEnlace.Punto(it.punto, it.nombre) } ?: ResultadoEnlace.NoReconocido
@@ -79,7 +87,10 @@ private object Coord {
     /** Valor de un parámetro de consulta: «lat,lon», «loc:lat,lon» o «lat,lon(Nombre)». */
     fun consulta(texto: String): Marcador? =
         CONSULTA.matchEntire(texto.trim())?.let { m ->
-            punto(m.groupValues[1], m.groupValues[2])?.let { Marcador(it, m.groupValues[3].trim().ifEmpty { null }) }
+            punto(
+                m.groupValues[1],
+                m.groupValues[2],
+            )?.let { Marcador(it, m.groupValues[GRUPO_NOMBRE].trim().ifEmpty { null }) }
         }
 
     fun decodificar(texto: String): String =
@@ -119,8 +130,8 @@ private object Sexagesimal {
     /** Eje ('N' para latitud, 'E' para longitud) y valor con signo; null si minutos o segundos no son válidos. */
     private fun valor(m: MatchResult): Pair<Char, Double>? {
         val previo = m.groups[1]
-        val base = if (previo != null) 2 else 5
-        val hemisferio = (previo ?: m.groups[8])?.value?.uppercase()?.single()
+        val base = if (previo != null) GRUPO_GRADOS_DETRAS_DEL_EJE else GRUPO_GRADOS_ANTES_DEL_EJE
+        val hemisferio = (previo ?: m.groups[GRUPO_EJE_DETRAS])?.value?.uppercase()?.single()
         val grados = numero(m, base)
         val minutos = numero(m, base + 1)
         val segundos = numero(m, base + 2)

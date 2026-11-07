@@ -5,6 +5,16 @@ import app.trombito.rallycopilot.motor.notas.FrasesNota
 import app.trombito.rallycopilot.motor.notas.Modificador
 import java.text.Normalizer
 
+/** Números que se dictan: del 1 al 29 sueltos, decenas hasta el 90, centenas desde 200 hasta 900 y el 100. */
+private const val HASTA_SUELTOS = 29
+private const val DECENA_MIN = 30
+private const val DECENA_MAX = 90
+private const val DECENA = 10
+private const val CENTENA_DOBLE = 200
+private const val CENTENA_MAX = 900
+private const val CENTENA = 100
+private const val CIEN = 100
+
 /**
  * Interpreta el texto que devuelve un reconocedor de voz (ASR) y lo convierte en una [Orden]. Gramática del glosario:
  * `[cuidado] dirección grado [larga|muy larga] [cierra|abre] [distancia]`, con el grado en palabra («tres»), en cifra
@@ -100,9 +110,11 @@ object InterpreteOrdenes {
 
     private val NUMEROS: Map<String, Int> =
         buildMap {
-            val valores = (1..29) + (30..90 step 10) + (200..900 step 100) + 100
+            val decenas = DECENA_MIN..DECENA_MAX step DECENA
+            val centenas = CENTENA_DOBLE..CENTENA_MAX step CENTENA
+            val valores = (1..HASTA_SUELTOS) + decenas + centenas + CIEN
             valores.forEach { put(normalizar(FrasesNota.enPalabras(it)), it) }
-            put("ciento", 100)
+            put("ciento", CIEN)
         }
 
     private sealed interface Ficha {

@@ -1,6 +1,8 @@
 package app.trombito.rallycopilot.motor.alertas
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.RANGO_LATITUD
+import app.trombito.rallycopilot.motor.geo.RANGO_LONGITUD
 
 /** Clase de radar. */
 enum class TipoRadar {
@@ -47,6 +49,12 @@ data class ResultadoRadares(
 object LectorRadares {
     const val CABECERA = "#radares v1"
     private const val CAMPOS = 8
+    private const val COL_LAT = 2
+    private const val COL_LON = 3
+    private const val COL_RUMBO = 4
+    private const val COL_LIMITE = 5
+    private const val COL_TRAMO = 6
+    private const val COL_FUENTE = 7
     private const val VUELTA = 360.0
     private val LIMITE_KMH = 1..250
 
@@ -70,16 +78,16 @@ object LectorRadares {
         val c = linea.split('\t')
         if (c.size != CAMPOS) return null
         val tipo = TipoRadar.entries.firstOrNull { it.name == c[0].trim() }
-        val punto = punto(c[2], c[3])
-        val rumbo = opcional(c[4]) { it.toDoubleOrNull()?.takeIf { v -> v in 0.0..VUELTA }?.rem(VUELTA) }
-        val limite = opcional(c[5]) { it.toIntOrNull()?.takeIf { v -> v in LIMITE_KMH } }
-        val tramo = c[6].trim().ifEmpty { null }
+        val punto = punto(c[COL_LAT], c[COL_LON])
+        val rumbo = opcional(c[COL_RUMBO]) { it.toDoubleOrNull()?.takeIf { v -> v in 0.0..VUELTA }?.rem(VUELTA) }
+        val limite = opcional(c[COL_LIMITE]) { it.toIntOrNull()?.takeIf { v -> v in LIMITE_KMH } }
+        val tramo = c[COL_TRAMO].trim().ifEmpty { null }
         val esTramo = tipo == TipoRadar.TRAMO_INICIO || tipo == TipoRadar.TRAMO_FIN
         val radar =
             if (tipo == null || punto == null) {
                 null
             } else {
-                val fuente = c[7].trim().ifEmpty { null }
+                val fuente = c[COL_FUENTE].trim().ifEmpty { null }
                 Radar(c[1].trim(), tipo, punto, rumbo.valor, limite.valor, if (esTramo) tramo else null, fuente)
             }
         val opcionalesMal = rumbo.ilegible || limite.ilegible
@@ -91,8 +99,8 @@ object LectorRadares {
         lat: String,
         lon: String,
     ): PuntoGeo? {
-        val la = lat.trim().toDoubleOrNull()?.takeIf { it in -90.0..90.0 }
-        val lo = lon.trim().toDoubleOrNull()?.takeIf { it in -180.0..180.0 }
+        val la = lat.trim().toDoubleOrNull()?.takeIf { it in RANGO_LATITUD }
+        val lo = lon.trim().toDoubleOrNull()?.takeIf { it in RANGO_LONGITUD }
         return if (la == null || lo == null) null else PuntoGeo(la, lo)
     }
 

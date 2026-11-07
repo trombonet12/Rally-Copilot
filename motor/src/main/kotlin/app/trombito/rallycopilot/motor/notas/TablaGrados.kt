@@ -5,6 +5,12 @@ import app.trombito.rallycopilot.motor.velocidad.msAKmh
 import kotlinx.serialization.Serializable
 import kotlin.math.sqrt
 
+/** Valores por defecto de la tabla (5 cortes separan los 6 grados). */
+private val UMBRALES_KMH = listOf(45.0, 65.0, 85.0, 110.0, 140.0)
+private val BANDAS_RELATIVAS = listOf(0.45, 0.60, 0.72, 0.86, 1.0)
+private val LIMITES_ANGULO_GRADOS = listOf(30.0, 60.0, 90.0, 120.0, 150.0)
+private const val NUM_CORTES = 5
+
 /**
  * Tabla de grados calibrable (serializable a JSON).
  *
@@ -29,10 +35,10 @@ import kotlin.math.sqrt
 data class TablaGrados(
     val mu: Double = 0.6,
     val g: Double = 9.81,
-    val umbralesKmh: List<Double> = listOf(45.0, 65.0, 85.0, 110.0, 140.0),
-    val bandasRelativas: List<Double> = listOf(0.45, 0.60, 0.72, 0.86, 1.0),
+    val umbralesKmh: List<Double> = UMBRALES_KMH,
+    val bandasRelativas: List<Double> = BANDAS_RELATIVAS,
     val muConfort: Double = 0.35,
-    val limitesAnguloGrados: List<Double> = listOf(30.0, 60.0, 90.0, 120.0, 150.0),
+    val limitesAnguloGrados: List<Double> = LIMITES_ANGULO_GRADOS,
     val anguloMinimoGrados: Double = 10.0,
     val anguloHorquillaGrados: Double = 180.0,
     val factor: Double = 1.0,
@@ -41,13 +47,13 @@ data class TablaGrados(
         require(mu > 0.0 && g > 0.0 && factor > 0.0 && muConfort > 0.0) {
             "mu, g, muConfort y factor deben ser positivos"
         }
-        require(umbralesKmh.size == 5 && umbralesKmh.zipWithNext().all { (a, b) -> a < b }) {
+        require(umbralesKmh.size == NUM_CORTES && umbralesKmh.zipWithNext().all { (a, b) -> a < b }) {
             "Se necesitan 5 umbrales crecientes: $umbralesKmh"
         }
-        require(bandasRelativas.size == 5 && bandasRelativas.zipWithNext().all { (a, b) -> a < b }) {
+        require(bandasRelativas.size == NUM_CORTES && bandasRelativas.zipWithNext().all { (a, b) -> a < b }) {
             "Se necesitan 5 bandas relativas crecientes: $bandasRelativas"
         }
-        require(limitesAnguloGrados.size == 5 && limitesAnguloGrados.zipWithNext().all { (a, b) -> a < b }) {
+        require(limitesAnguloGrados.size == NUM_CORTES && limitesAnguloGrados.zipWithNext().all { (a, b) -> a < b }) {
             "Se necesitan 5 límites de ángulo crecientes: $limitesAnguloGrados"
         }
     }
@@ -72,7 +78,7 @@ data class TablaGrados(
         val v = velocidadCurvaKmh(radioM)
         if (vRefKmh == null || vRefKmh <= 0.0) return umbralesKmh.count { v >= it } + 1
         val grado = bandasRelativas.count { v / vRefKmh >= it } + 1
-        return if (grado == 6 && radioM < radioMinimoSeisM(vRefKmh)) 5 else grado
+        return if (grado == GRADO_MAX && radioM < radioMinimoSeisM(vRefKmh)) GRADO_MAX - 1 else grado
     }
 
     /**
@@ -80,7 +86,7 @@ data class TablaGrados(
      * gana el número mayor. No contempla la horquilla: ver [esHorquilla].
      */
     fun gradoPorAngulo(anguloGrados: Double): Int? =
-        if (anguloGrados < anguloMinimoGrados) null else 6 - limitesAnguloGrados.count { anguloGrados > it }
+        if (anguloGrados < anguloMinimoGrados) null else GRADO_MAX - limitesAnguloGrados.count { anguloGrados > it }
 
     /** `true` si el ángulo supera [anguloHorquillaGrados]. */
     fun esHorquilla(anguloGrados: Double): Boolean = anguloGrados > anguloHorquillaGrados

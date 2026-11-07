@@ -13,11 +13,19 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.locks.LockSupport
+
+private const val UN_MS_EN_NS = 1_000_000L
 
 private class EscuchaGuionizada(
     private val resultado: ResultadoEscucha,
@@ -91,17 +99,21 @@ class ControlYContinuaTest {
 
     @Test
     fun `espera a que el copiloto termine de hablar antes de abrir el microfono`() =
-        runBlocking {
+        runTest {
             locutor.hablando.value = true
             val escucha = EscuchaGuionizada(ResultadoEscucha.NoEntendido(""))
             escucha.liberar.complete(Unit)
-            val control = ControlOrdenesImpl(escucha, ejecutor(), locutor, ambito)
+            // Planificador de pruebas: la espera a que acabe de hablar solo avanza cuando se lo decimos.
+            val control = ControlOrdenesImpl(escucha, ejecutor(), locutor, backgroundScope)
 
             control.escucharOrden()
-            Thread.sleep(200)
+            runCurrent()
             assertEquals(0, escucha.llamadas.get())
+            assertTrue(control.escuchando.value)
+
             locutor.hablando.value = false
-            withTimeout(5_000) { control.escuchando.first { !it } }
+            runCurrent()
+            withContext(Dispatchers.Default) { withTimeout(5_000) { control.escuchando.first { !it } } }
 
             assertEquals(1, escucha.llamadas.get())
             assertEquals(listOf("no te he entendido, di ayuda"), locutor.dichas.toList())
@@ -126,6 +138,7 @@ class ControlYContinuaTest {
 
     private class ControlFalso : ControlOrdenes {
         val peticiones = AtomicInteger()
+        val primera = CountDownLatch(1)
         private val _escuchando = MutableStateFlow(false)
         override val escuchando: StateFlow<Boolean> = _escuchando
 
@@ -133,6 +146,7 @@ class ControlYContinuaTest {
 
         override fun escucharOrden() {
             peticiones.incrementAndGet()
+            primera.countDown()
         }
     }
 
@@ -142,7 +156,7 @@ class ControlYContinuaTest {
             object : FuenteAudio {
                 override fun leer(buffer: ShortArray): Int {
                     buffer.fill(3_000)
-                    Thread.sleep(1)
+                    LockSupport.parkNanos(UN_MS_EN_NS) // solo da el ritmo de un micrófono real; no sincroniza nada
                     return buffer.size
                 }
 
@@ -174,7 +188,7 @@ class ControlYContinuaTest {
             ajustes.mutable.value = ajustes.mutable.value.copy(activarConCopiloto = true)
 
             val trabajo = ambito.launch { continua.correr() }
-            withTimeout(5_000) { while (control.peticiones.get() == 0) Thread.sleep(5) }
+            assertTrue(control.primera.await(5, TimeUnit.SECONDS))
             trabajo.cancel()
 
             assertTrue(control.peticiones.get() >= 1)
@@ -235,6 +249,7 @@ class ControlYContinuaTest {
     fun `al oir la palabra suena el tic antes de escuchar la orden`() =
         runBlocking {
             val orden = java.util.Collections.synchronizedList(mutableListOf<String>())
+            val completo = CountDownLatch(2)
             val control =
                 object : ControlOrdenes {
                     override val escuchando: StateFlow<Boolean> = MutableStateFlow(false)
@@ -243,13 +258,23 @@ class ControlYContinuaTest {
 
                     override fun escucharOrden() {
                         orden += "orden"
+                        completo.countDown()
                     }
                 }
-            val continua = continua(microfonoConVoz, permiso = true, control = control, tic = { orden += "tic" })
+            val continua =
+                continua(
+                    microfonoConVoz,
+                    permiso = true,
+                    control = control,
+                    tic = {
+                        orden += "tic"
+                        completo.countDown()
+                    },
+                )
             ajustes.mutable.value = ajustes.mutable.value.copy(activarConCopiloto = true)
 
             val trabajo = ambito.launch { continua.correr() }
-            withTimeout(5_000) { while (orden.size < 2) Thread.sleep(5) }
+            assertTrue(completo.await(5, TimeUnit.SECONDS))
             trabajo.cancel()
 
             assertEquals(listOf("tic", "orden"), orden.take(2))

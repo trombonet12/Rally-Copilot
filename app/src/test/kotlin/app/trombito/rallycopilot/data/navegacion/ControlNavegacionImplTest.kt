@@ -68,6 +68,20 @@ class ControlNavegacionImplTest {
     }
 
     @Test
+    fun `el inicio de la conduccion libre y del reconocimiento sale del reloj inyectado`() {
+        var ahora = 1_234_567L
+        val conReloj = ControlNavegacionImpl(app, fuente, guiadoPendiente, alcance, reloj = { ahora })
+
+        conReloj.empezarLibre()
+        assertEquals(EstadoNavegacion.Libre(1_234_567L, 0.0), conReloj.estado.value)
+
+        conReloj.terminar()
+        ahora = 9_000_000L
+        conReloj.empezarReconocimiento("t1")
+        assertEquals(EstadoNavegacion.Libre(9_000_000L, 0.0, "t1"), conReloj.estado.value)
+    }
+
+    @Test
     fun `la sesion vigente publica y una anterior ya no`() {
         control.empezarLibre()
         val primero = checkNotNull(control.tomarSolicitud()).id

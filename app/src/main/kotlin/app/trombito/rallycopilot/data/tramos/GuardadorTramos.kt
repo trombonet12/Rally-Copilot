@@ -18,11 +18,17 @@ import javax.inject.Inject
  * demás y lo guarda. Las notas no se guardan: se generan al conducirlo o reconocerlo.
  */
 class GuardadorTramos
-    @Inject
-    constructor(
+    internal constructor(
         private val repositorio: RepositorioTramos,
         private val nombra: NombraTraza,
+        private val reloj: () -> Long,
     ) : GuardaTraza {
+        @Inject
+        constructor(
+            repositorio: RepositorioTramos,
+            nombra: NombraTraza,
+        ) : this(repositorio, nombra, System::currentTimeMillis)
+
         override suspend fun guardar(
             traza: List<PuntoGeo>,
             nombre: String?,
@@ -31,7 +37,7 @@ class GuardadorTramos
             val automatico = nombra.nombrar(tramo.traza)
             val propio = nombre?.trim()?.takeIf { it.isNotEmpty() }
             return try {
-                repositorio.crearSinPasadas(tramo, propio, automatico, System.currentTimeMillis())
+                repositorio.crearSinPasadas(tramo, propio, automatico, reloj())
                 ResultadoGuardado.Guardado(tramo.id, propio ?: automatico?.let(NombreAutomatico::titulo))
             } catch (e: SQLiteException) {
                 Log.w("GuardadorTramos", "No se pudo guardar el tramo: ${e.javaClass.simpleName}")

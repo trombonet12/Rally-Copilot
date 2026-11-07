@@ -10,6 +10,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.random.Random
 
 class CronometroTest {
     private val traza = TrazasDePrueba.recta(4000.0)
@@ -147,6 +148,89 @@ class CronometroTest {
     fun `sin terminar no hay pasada`() {
         correr(Conduccion.muestrear(traza, 72.0, hastaM = 1000.0))
         assertNull(crono.pasada())
+    }
+
+    // --- Pérdida de GPS: huecos largos, tiempo que retrocede y fijaciones repetidas ------------------------------
+
+    private fun fijaciones(vararg pares: Pair<Double, Long>) = pares.map { (d, t) -> fijacion(puntoA(traza, d), t) }
+
+    @Test
+    fun `un hueco de 20 s que cruza dos sectores interpola cada corte una sola vez y en orden`() {
+        // Túnel: 900 m a 18 s y 2100 m a 38 s (60 m/s) sin fijaciones intermedias; cruza los cortes de 1000 y 2000 m.
+        val eventos = correr(fijaciones(0.0 to 0L, 900.0 to 18_000L, 2100.0 to 38_000L))
+        val sectores = eventos.filterIsInstance<EventoCrono.CorteSector>()
+        val micros = eventos.filterIsInstance<EventoCrono.CorteMicro>()
+        assertEquals(listOf(1, 2), sectores.map { it.numero })
+        assertEquals(listOf(1, 2), micros.map { it.numero })
+        assertCerca(19_667L, sectores[0].tMs, 1.0)
+        assertCerca(36_333L, sectores[1].tMs, 1.0)
+        val cortes = eventos.filter { it !is EventoCrono.Salida }
+        assertEquals(listOf(1000L, 1000L, 2000L, 2000L), cortes.map { Math.round(it.distanciaM) })
+        // Tras el hueco el resto del recorrido sigue sin repetir cortes ni perder la meta.
+        val resto = correr(Conduccion.muestrear(traza, 72.0, t0Ms = 38_000, desdeM = 2100.0))
+        assertEquals(listOf(3), resto.filterIsInstance<EventoCrono.CorteSector>().map { it.numero })
+        assertEquals(1, resto.filterIsInstance<EventoCrono.Meta>().size)
+        assertEquals(Cronometro.Estado.TERMINADO, crono.estado)
+    }
+
+    @Test
+    fun `un hueco que cruza la meta cierra la pasada con el tiempo interpolado`() {
+        // 3500 m a 60 s y 4000 m (pasada la meta, 3990 m) a 70 s: la meta cae a 3990 m, o sea a 69,8 s.
+        val eventos = correr(fijaciones(0.0 to 0L, 3500.0 to 60_000L, 4000.0 to 70_000L))
+        assertEquals(69_800L, eventos.filterIsInstance<EventoCrono.Meta>().single().tMs)
+        assertEquals(1, eventos.filterIsInstance<EventoCrono.CorteSector>().count { it.numero == 3 })
+    }
+
+    @Test
+    fun `una fijacion con el tiempo hacia atras se ignora y no estropea lo ya registrado`() {
+        correr(fijaciones(0.0 to 0L, 500.0 to 25_000L))
+        val marcasAntes = crono.marcas()
+        // El reloj del GPS salta atrás: 1500 m «a 20 s», anterior a la fijación de 25 s.
+        assertTrue(correr(fijaciones(1500.0 to 20_000L)).isEmpty())
+        assertEquals(500.0, crono.progresoM, 1e-6)
+        assertEquals(marcasAntes, crono.marcas())
+        // Al volver el reloj a la normalidad se continúa desde donde estaba.
+        val eventos = correr(fijaciones(1500.0 to 60_000L))
+        assertEquals(1, eventos.filterIsInstance<EventoCrono.CorteSector>().single().numero)
+        assertEquals(42_500L, tiempoDeSector(eventos, 1))
+        assertTrue(crono.progresoM in 1499.0..1501.0)
+    }
+
+    @Test
+    fun `una fijacion duplicada no repite cortes ni marcas`() {
+        val cruce = fijaciones(0.0 to 0L, 1100.0 to 50_000L)
+        val primeras = correr(cruce)
+        assertEquals(1, primeras.filterIsInstance<EventoCrono.CorteSector>().size)
+        val marcas = crono.marcas()
+        assertTrue(correr(cruce.takeLast(1)).isEmpty())
+        assertTrue(correr(cruce.takeLast(1)).isEmpty())
+        assertEquals(marcas, crono.marcas())
+        assertEquals(Cronometro.Estado.EN_CURSO, crono.estado)
+    }
+
+    @Test
+    fun `propiedad con huecos y relojes erraticos el total es monotono y los cortes salen ordenados`() {
+        for (semilla in 1..40) {
+            val azar = Random(semilla)
+            val c = Cronometro(tramo, reloj = { ahora })
+            var distancia = 0.0
+            var t = 0L
+            val eventos = mutableListOf<EventoCrono>()
+            eventos += c.alFijar(fijacion(puntoA(traza, 0.0), 0L))
+            repeat(400) {
+                distancia = (distancia + azar.nextDouble(-20.0, 600.0)).coerceIn(0.0, 4000.0)
+                t += azar.nextLong(-5_000L, 25_000L) // incluye retrocesos y huecos de más de 20 s
+                eventos += c.alFijar(fijacion(puntoA(traza, distancia), t.coerceAtLeast(0L)))
+            }
+            val ctx = "semilla $semilla"
+            val marcas = c.marcas()
+            assertTrue(ctx, marcas.zipWithNext().all { (a, b) -> b.distanciaM > a.distanciaM && b.tMs >= a.tMs })
+            assertTrue(ctx, eventos.zipWithNext().all { (a, b) -> b.distanciaM >= a.distanciaM && b.tMs >= a.tMs })
+            val sectores = eventos.filterIsInstance<EventoCrono.CorteSector>().map { it.numero }
+            assertEquals(ctx, sectores.distinct(), sectores)
+            assertTrue(ctx, eventos.filterIsInstance<EventoCrono.Meta>().size <= 1)
+            c.pasada()?.let { assertEquals(ctx, it.totalMs, marcas.last().tMs) }
+        }
     }
 
     private fun <T> assertNotNull_(valor: T?): T {

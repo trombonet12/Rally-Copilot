@@ -2,6 +2,8 @@ package app.trombito.rallycopilot.motor.importar
 
 import app.trombito.rallycopilot.motor.alertas.XmlMalFormadoException
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.RANGO_LATITUD
+import app.trombito.rallycopilot.motor.geo.RANGO_LONGITUD
 import app.trombito.rallycopilot.motor.geo.longitudMetros
 import java.io.CharConversionException
 import java.io.IOException
@@ -115,7 +117,7 @@ object LectorTraza {
         alt: Double? = null,
     ): PuntoGeo? {
         if (lat == null || lon == null) return null
-        val valido = lat.isFinite() && lon.isFinite() && lat in -90.0..90.0 && lon in -180.0..180.0
+        val valido = lat.isFinite() && lon.isFinite() && lat in RANGO_LATITUD && lon in RANGO_LONGITUD
         return if (valido) PuntoGeo(lat, lon, alt?.takeIf { it.isFinite() }) else null
     }
 }

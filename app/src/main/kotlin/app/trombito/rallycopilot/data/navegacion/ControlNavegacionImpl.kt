@@ -49,6 +49,7 @@ class ControlNavegacionImpl
         private val guiadoPendiente: RepositorioGuiadoPendiente,
         alcance: CoroutineScope,
         private val precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
+        private val reloj: () -> Long = System::currentTimeMillis,
     ) : ControlNavegacion {
         @Inject
         constructor(
@@ -98,14 +99,14 @@ class ControlNavegacionImpl
 
         override fun empezarLibre() {
             if (_estado.value is EstadoNavegacion.Guiando) borrarPendiente()
-            arrancar(SolicitudNavegacion.Libre, EstadoNavegacion.Libre(System.currentTimeMillis(), 0.0))
+            arrancar(SolicitudNavegacion.Libre, EstadoNavegacion.Libre(reloj(), 0.0))
         }
 
         override fun empezarReconocimiento(tramoId: String) {
             if (_estado.value is EstadoNavegacion.Guiando) borrarPendiente()
             arrancar(
                 SolicitudNavegacion.Reconocimiento(tramoId),
-                EstadoNavegacion.Libre(System.currentTimeMillis(), 0.0, tramoId),
+                EstadoNavegacion.Libre(reloj(), 0.0, tramoId),
             )
         }
 

@@ -106,10 +106,28 @@ object Delta {
     ): List<Parcial> {
         val limites = listOf(0.0) + cortes + longitudM
         return limites.zipWithNext().mapIndexedNotNull { i, (desde, hasta) ->
-            val t = listOf(actual.tiempoEn(desde), actual.tiempoEn(hasta), mejor.tiempoEn(desde), mejor.tiempoEn(hasta))
-            val v = t.filterNotNull().takeIf { it.size == t.size } ?: return@mapIndexedNotNull null
-            Parcial(i + 1, desde, hasta, Math.round(v[1] - v[0]), Math.round(v[3] - v[2]), Math.round(v[1] - v[3]))
+            val (aDesde, aHasta) = tiemposEntre(actual, desde, hasta) ?: return@mapIndexedNotNull null
+            val (mDesde, mHasta) = tiemposEntre(mejor, desde, hasta) ?: return@mapIndexedNotNull null
+            Parcial(
+                i + 1,
+                desde,
+                hasta,
+                Math.round(aHasta - aDesde),
+                Math.round(mHasta - mDesde),
+                Math.round(aHasta - mHasta),
+            )
         }
+    }
+
+    /** Tiempos de [pasada] en [desde] y [hasta]; null si alguno cae fuera de la pasada. */
+    private fun tiemposEntre(
+        pasada: Pasada,
+        desde: Double,
+        hasta: Double,
+    ): Pair<Double, Double>? {
+        val inicio = pasada.tiempoEn(desde)
+        val fin = pasada.tiempoEn(hasta)
+        return if (inicio == null || fin == null) null else inicio to fin
     }
 
     /**
@@ -161,6 +179,7 @@ object Delta {
         }.let { if (it == "uno") "un" else it }
 
     /** Número 0..99 en palabras; por encima, en cifras. */
+    @Suppress("MagicNumber") // aritmética decimal de decenas y unidades
     private fun palabra(n: Int): String =
         when {
             n < UNIDADES.size -> UNIDADES[n]

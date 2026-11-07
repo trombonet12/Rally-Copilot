@@ -325,6 +325,11 @@ class GrafoVias(
         private const val PERIMETRO_MAXIMO_ANILLO_M = 600.0
         const val TOLERANCIA_ANILLO_M = 12.0
         private const val RANGO_BAJO = 1
+        private const val RANGO_TERTIARY = 3
+        private const val RANGO_SECONDARY = 4
+        private const val RANGO_PRIMARY = 5
+        private const val RANGO_TRUNK = 6
+        private const val RANGO_MOTORWAY = 7
         private const val DISTANCIA_DUPLICADOS_M = 50.0
         private const val METROS_POR_GRADO = PuntoGeo.RADIO_TIERRA_M * Math.PI / 180.0
         private const val COS_MINIMO = 0.01
@@ -340,11 +345,11 @@ class GrafoVias(
         /** Rango de importancia de una clase `highway` (los `*_link` valen como su base): 7 motorway ... 0 resto. */
         internal fun rangoClase(clase: String): Int =
             when (clase.removeSuffix("_link")) {
-                "motorway" -> 7
-                "trunk" -> 6
-                "primary" -> 5
-                "secondary" -> 4
-                "tertiary" -> 3
+                "motorway" -> RANGO_MOTORWAY
+                "trunk" -> RANGO_TRUNK
+                "primary" -> RANGO_PRIMARY
+                "secondary" -> RANGO_SECONDARY
+                "tertiary" -> RANGO_TERTIARY
                 "unclassified", "residential", "living_street" -> RANGO_BAJO
                 else -> 0
             }

@@ -3,5 +3,15 @@ naming:
   FunctionNaming:
     ignoreAnnotated: ['Composable']
 style:
+  # Solo en el motor (geometría, notas, cronometraje): ahí un número suelto es una regla de negocio sin nombre.
+  # En la app (interfaz, dimensiones, colores) sería ruido; los tests ya están excluidos por defecto.
   MagicNumber:
-    active: false
+    active: true
+    includes: ['**/motor/src/main/**']
+    ignoreNumbers: ['-1', '0', '1', '2']
+    ignoreNamedArgument: true
+    ignoreEnums: true
+    ignorePropertyDeclaration: true
+    ignoreConstantDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreExtensionFunctions: true

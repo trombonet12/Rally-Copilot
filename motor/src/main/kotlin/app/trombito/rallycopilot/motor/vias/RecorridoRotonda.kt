@@ -93,11 +93,13 @@ internal class RecorridoRotonda(
         }
 
     private fun cerrada(via: Via): Boolean =
-        via.puntos.size >= 3 && GrafoVias.clave(via.puntos.first()) == GrafoVias.clave(via.puntos.last())
+        via.puntos.size >= PUNTOS_MINIMOS_CERRADA &&
+            GrafoVias.clave(via.puntos.first()) == GrafoVias.clave(via.puntos.last())
 
     private fun sentido(via: Via): Int = if (via.sentidoUnico == SentidoUnico.ATRAS) -1 else 1
 
     private companion object {
         const val MAX_PASOS = 5_000
+        const val PUNTOS_MINIMOS_CERRADA = 3
     }
 }

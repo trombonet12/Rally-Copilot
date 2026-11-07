@@ -337,6 +337,23 @@ class ParadasUiTest {
         assertEquals(listOf("22:13"), banco.textos(banco.conEtiqueta(ETIQUETA_PIE_HORA)))
     }
 
+    @Test
+    fun `el pie enseña la hora de llegada en hora de Madrid, con horario de invierno y de verano`() {
+        val madrid = ZoneId.of("Europe/Madrid")
+        // 2023-11-14T22:13:20Z: CET (UTC+1).
+        banco.poner { RallyCopilotTheme { PieGuiado(progreso(), Modifier, madrid) } }
+        assertEquals(listOf("23:13"), banco.textos(banco.conEtiqueta(ETIQUETA_PIE_HORA)))
+    }
+
+    @Test
+    fun `en verano la hora de llegada de Madrid es la de UTC mas dos horas`() {
+        val madrid = ZoneId.of("Europe/Madrid")
+        // 2024-07-03T09:46:40Z: CEST (UTC+2).
+        val verano = progreso().copy(llegadaMs = 1_720_000_000_000L)
+        banco.poner { RallyCopilotTheme { PieGuiado(verano, Modifier, madrid) } }
+        assertEquals(listOf("11:46"), banco.textos(banco.conEtiqueta(ETIQUETA_PIE_HORA)))
+    }
+
     // --- Hoja inferior y tarjetas que la sustituyen ---
 
     private val conVia = mapa.copy(velocidadKmh = 0, via = ViaActual("Carretera", "Ma-1110", 50))

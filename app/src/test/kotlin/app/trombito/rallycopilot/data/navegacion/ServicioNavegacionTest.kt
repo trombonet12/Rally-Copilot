@@ -7,16 +7,23 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Looper
+import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.data.db.RallyDatabase
+import app.trombito.rallycopilot.data.db.RecorridoEntity
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -190,6 +197,102 @@ class ServicioNavegacionTest {
         esperarTipo(servicio, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
         controlador.destroy()
     }
+
+    // --- Reinicio, fallo y huérfanos (QA-31) ---------------------------------------------------------
+
+    /** Deja correr el hilo principal hasta que se cumpla [condicion] (el servicio actúa por su `Executor`). */
+    private fun esperarEnPrincipal(condicion: () -> Boolean) =
+        runBlocking {
+            withTimeout(PLAZO_ESPERA_MS) {
+                while (true) {
+                    shadowOf(Looper.getMainLooper()).idle()
+                    if (condicion()) break
+                    delay(PASO_ESPERA_MS)
+                }
+            }
+        }
+
+    @Test
+    fun `un reinicio sin solicitud pendiente se detiene a si mismo`() {
+        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val servicio = controlador.get()
+
+        // El sistema relanza el servicio (o llega un segundo arranque) sin que haya nada que recoger.
+        controlador.withIntent(Intent(app, ServicioNavegacion::class.java)).startCommand(0, 7)
+
+        assertTrue(shadowOf(servicio).isStoppedBySelf)
+        assertEquals(7, shadowOf(servicio).stopSelfResultId)
+        assertEquals(EstadoNavegacion.Inactiva, servicio.control.estado.value)
+        controlador.destroy()
+    }
+
+    @Test
+    fun `si la conduccion falla con una excepcion publica el error de arranque y se detiene`() {
+        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val servicio = controlador.get()
+        servicio.fuente = FuenteQueFalla
+        servicio.control.empezarLibre()
+
+        controlador.withIntent(shadowOf(app).nextStartedService).startCommand(0, 1)
+
+        val estado =
+            runBlocking {
+                withTimeout(
+                    PLAZO_ESPERA_MS,
+                ) { servicio.control.estado.first { it is EstadoNavegacion.Error } }
+            }
+        assertEquals(app.getString(R.string.navegacion_error_arranque), (estado as EstadoNavegacion.Error).motivo)
+        esperarEnPrincipal { shadowOf(servicio).isStoppedBySelf }
+        controlador.destroy()
+    }
+
+    @Test
+    fun `al crearse cierra el recorrido que dejo abierto un proceso anterior`() {
+        // Un recorrido sin fin, como el que deja un proceso muerto en plena conducción.
+        val previa =
+            Room
+                .databaseBuilder(
+                    app,
+                    RallyDatabase::class.java,
+                    RallyDatabase.NOMBRE,
+                ).allowMainThreadQueries()
+                .build()
+        val huerfano =
+            runBlocking {
+                previa.recorridosDao().insertar(
+                    RecorridoEntity(inicioMs = 1L, finMs = null, distanciaM = 0.0, destinoNombre = null),
+                )
+            }
+        assertTrue(huerfano > 0)
+        previa.close()
+
+        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val servicio = controlador.get()
+
+        val pendientes =
+            runBlocking {
+                withTimeout(PLAZO_ESPERA_MS) {
+                    var ids = servicio.recorridos.idsEnCurso()
+                    while (ids.isNotEmpty()) {
+                        delay(PASO_ESPERA_MS)
+                        ids = servicio.recorridos.idsEnCurso()
+                    }
+                    ids
+                }
+            }
+        assertTrue(pendientes.isEmpty())
+        controlador.destroy()
+    }
+}
+
+private const val PLAZO_ESPERA_MS = 10_000L
+private const val PASO_ESPERA_MS = 20L
+
+/** GPS cuyo flujo revienta: la conducción cae con una excepción que no es de cancelación. */
+private object FuenteQueFalla : FuenteUbicacion {
+    override fun fijaciones(): Flow<Fijacion> = flow { throw IllegalStateException("GPS roto") }
+
+    override fun tienePermiso(): Boolean = true
 }
 
 /** GPS que nunca da posiciones: la conducción queda esperando y el servicio sigue en primer plano. */
