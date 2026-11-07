@@ -12,6 +12,7 @@ import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.Maniobra
@@ -126,7 +127,11 @@ private class LocutorGrabador : Locutor {
 
     override fun preparar(textos: List<String>) = Unit
 
-    override fun decir(texto: String) {
+    override fun decir(
+        texto: String,
+        prioridad: PrioridadVoz,
+        caducaMs: Long?,
+    ) {
         dichas += texto
     }
 

@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.Aviso
@@ -50,7 +51,11 @@ private class LocutorFalso : Locutor {
         preparadas += textos
     }
 
-    override fun decir(texto: String) {
+    override fun decir(
+        texto: String,
+        prioridad: PrioridadVoz,
+        caducaMs: Long?,
+    ) {
         dichas += texto
     }
 
@@ -205,8 +210,22 @@ class CopilotoVozTest {
         assertEquals(emptyList<String>(), locutor.dichas)
     }
 
+    /**
+     * Ruta de un recálculo: parte del coche, así que el cruce (a 1000 m de la ruta anterior) queda a
+     * `1000 − progresoM` de su origen, más [extraM] si el giro cambia de sitio.
+     */
+    private fun rutaRecalculada(
+        progresoM: Double,
+        tipo: TipoManiobra = TipoManiobra.IZQUIERDA,
+        extraM: Double = 0.0,
+    ): RutaVoz {
+        val posiciones = listOf(0.0, 1000.0 - progresoM + extraM)
+        val giro = maniobra.copy(tipo = tipo)
+        return RutaVoz(AvisosManiobra(listOf(salida, giro), posiciones), posiciones)
+    }
+
     @Test
-    fun `tras recalcular la ruta suenan los avisos de la ruta nueva aunque repitan indice`() {
+    fun `tras recalcular una maniobra equivalente ya dicha no se repite`() {
         val locutor = LocutorFalso()
         val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
 
@@ -215,13 +234,61 @@ class CopilotoVozTest {
         copiloto.fijar(primera, 921.0)
         assertEquals(listOf("cruce, izquierda"), locutor.dichas)
 
-        copiloto.fijar(primera, 922.0)
-        assertEquals(listOf("cruce, izquierda"), locutor.dichas)
+        // Recálculo en el progreso 921: la nueva ruta empieza en 0 y el mismo cruce queda a 79 m.
+        val nueva = rutaRecalculada(921.0)
+        copiloto.alFijar(null, nueva, 1.0, 20.0)
+        copiloto.alFijar(null, nueva, 2.0, 20.0)
+        copiloto.alFijar(null, nueva, 3.0, 20.0)
 
-        val nueva = ruta()
-        copiloto.fijar(nueva, 923.0)
-        copiloto.fijar(nueva, 924.0)
-        assertEquals(listOf("cruce, izquierda", "cruce, izquierda"), locutor.dichas)
+        assertEquals(listOf("cruce, izquierda"), locutor.dichas)
+    }
+
+    @Test
+    fun `tras recalcular el preaviso dicho no se repite pero el inminente aun no dicho si suena`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+
+        copiloto.fijar(ruta(), 720.0) // a 280 m: preaviso
+        assertEquals(listOf("a trescientos, cruce, izquierda"), locutor.dichas)
+
+        val nueva = rutaRecalculada(721.0)
+        copiloto.alFijar(null, nueva, 1.0, 20.0) // el preaviso sigue vigente (279 m) pero heredado como dicho
+        assertEquals(listOf("a trescientos, cruce, izquierda"), locutor.dichas)
+        copiloto.alFijar(null, nueva, 200.0, 20.0) // a 79 m: inminente
+        assertEquals(listOf("a trescientos, cruce, izquierda", "cruce, izquierda"), locutor.dichas)
+    }
+
+    @Test
+    fun `tras recalcular una maniobra de otro tipo suena aunque repita indice`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+
+        val primera = ruta()
+        copiloto.fijar(primera, 920.0)
+        copiloto.fijar(primera, 921.0)
+
+        val otroTipo = rutaRecalculada(921.0, TipoManiobra.DERECHA)
+        copiloto.alFijar(null, otroTipo, 1.0, 20.0)
+        copiloto.alFijar(null, otroTipo, 2.0, 20.0)
+
+        assertEquals(listOf("cruce, izquierda", "cruce, derecha"), locutor.dichas)
+    }
+
+    @Test
+    fun `tras recalcular un cruce del mismo tipo a mas de 30 m de donde estaba no hereda lo dicho`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+
+        val primera = ruta()
+        copiloto.fijar(primera, 920.0)
+        copiloto.fijar(primera, 921.0)
+
+        val masLejos = rutaRecalculada(921.0, extraM = 60.0) // su cruce cae 60 m más allá del anterior
+        copiloto.alFijar(null, masLejos, 1.0, 20.0)
+        copiloto.alFijar(null, masLejos, 50.0, 20.0)
+
+        assertEquals("cruce, izquierda", locutor.dichas.last())
+        assertEquals(3, locutor.dichas.size)
     }
 
     /** Hoja con una derecha (m en su propio origen), cuyo origen está [origenM] al este del de la primera hoja. */
@@ -320,7 +387,7 @@ class CopilotoVozTest {
     private fun radar(puntoM: Double? = 1000.0) =
         Frase("radar-f1", "radar a quinientos, ochenta", TipoFrase.ALERTA, puntoM)
 
-    private val exceso = Frase("exceso-1", "exceso de velocidad, límite ochenta", TipoFrase.ALERTA, null)
+    private val exceso = Frase("exceso-1", "límite ochenta", TipoFrase.AVISO_VELOCIDAD, null)
 
     @Test
     fun `en solo alertas dice las alertas aunque callen las notas`() {
@@ -362,7 +429,104 @@ class CopilotoVozTest {
 
         repeat(5) { copiloto.alFijar(null, null, 500.0 + it, 25.0, listOf(exceso)) }
 
-        assertEquals(listOf("exceso de velocidad, límite ochenta"), locutor.dichas)
+        assertEquals(listOf("límite ochenta"), locutor.dichas)
+    }
+
+    @Test
+    fun `el exceso va por detras de la maniobra y la nota aunque llegue antes`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.NOTAS))
+        val ruta = ruta()
+
+        repeat(6) { copiloto.alFijar(notas(920.0), ruta, 920.0, 20.0, listOf(exceso)) }
+
+        assertEquals(listOf("cruce, izquierda", "derecha tres", "límite ochenta"), locutor.dichas)
+    }
+
+    @Test
+    fun `el exceso espera si una nota queda a menos de 8 s aunque aun no este activa`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.NOTAS))
+
+        // A 840 m la curva (960 m) queda a 6 s: el exceso espera.
+        copiloto.alFijar(notas(840.0), ruta(), 840.0, 20.0, listOf(exceso))
+
+        assertTrue("límite ochenta" !in locutor.dichas)
+    }
+
+    @Test
+    fun `el exceso suena enseguida si nada queda a menos de 8 s`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.NOTAS))
+
+        copiloto.alFijar(notas(600.0), ruta(), 600.0, 20.0, listOf(exceso))
+
+        assertEquals(listOf("límite ochenta"), locutor.dichas)
+    }
+
+    @Test
+    fun `el exceso y la media del tramo suenan en solo alertas`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+        val media = Frase("tramo-media-t-1", "media alta", TipoFrase.AVISO_VELOCIDAD, null)
+
+        repeat(4) { copiloto.alFijar(null, null, null, 25.0, listOf(media, exceso)) }
+
+        assertEquals(setOf("media alta", "límite ochenta"), locutor.dichas.toSet())
+        assertEquals(2, locutor.dichas.size)
+    }
+
+    @Test
+    fun `un fijo del sentido contrario no se dice aunque sea candidata`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.COMPLETO))
+        val contra = Frase("radar-f1-contra", "radar, sentido contrario", TipoFrase.ALERTA, 1000.0)
+
+        repeat(3) { copiloto.alFijar(notas(920.0), null, null, 20.0, listOf(contra)) }
+
+        assertEquals(listOf("derecha tres"), locutor.dichas)
+    }
+
+    @Test
+    fun `recalculando solo se dice si la salida dura mas de 5 s y una vez por episodio`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
+
+        copiloto.alRecalcular(true, 0L)
+        copiloto.alRecalcular(true, 5_000L)
+        copiloto.alFijar(null, null, null, 20.0)
+        assertEquals(emptyList<String>(), locutor.dichas)
+
+        copiloto.alRecalcular(true, 5_001L)
+        copiloto.alFijar(null, null, null, 20.0)
+        assertEquals(listOf("recalculando"), locutor.dichas)
+
+        copiloto.alRecalcular(true, 9_000L)
+        copiloto.alFijar(null, null, null, 20.0)
+        assertEquals(listOf("recalculando"), locutor.dichas)
+
+        // Un recálculo corto no habla; uno largo nuevo sí.
+        copiloto.alRecalcular(false, 10_000L)
+        copiloto.alRecalcular(true, 20_000L)
+        copiloto.alRecalcular(false, 22_000L)
+        copiloto.alFijar(null, null, null, 20.0)
+        assertEquals(listOf("recalculando"), locutor.dichas)
+        copiloto.alRecalcular(true, 30_000L)
+        copiloto.alRecalcular(true, 36_000L)
+        copiloto.alFijar(null, null, null, 20.0)
+        assertEquals(listOf("recalculando", "recalculando"), locutor.dichas)
+    }
+
+    @Test
+    fun `en silencio recalculando tampoco se dice`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SILENCIO))
+
+        copiloto.alRecalcular(true, 0L)
+        copiloto.alRecalcular(true, 6_000L)
+        copiloto.alFijar(null, null, null, 20.0)
+
+        assertEquals(emptyList<String>(), locutor.dichas)
     }
 
     @Test

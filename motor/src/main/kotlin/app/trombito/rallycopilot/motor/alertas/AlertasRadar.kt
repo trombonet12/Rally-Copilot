@@ -26,7 +26,8 @@ import kotlin.math.sin
  *   `radar-<id>-cerca`; el primero deja de sonar al entrar en esos 100 m);
  * - fijo del sentido contrario (su rumbo es el opuesto, ±45°): «radar, sentido contrario» una sola vez (id
  *   `radar-<id>-contra`) desde la misma distancia que el primer aviso; los que miran de lado no cuentan. Solo los
- *   fijos: los tramos y zonas del otro sentido no se avisan;
+ *   fijos: los tramos y zonas del otro sentido no se avisan. La frase existe para el banner, pero **no se dice**:
+ *   el copiloto de voz la filtra con [esContrario] (información sin acción);
  * - inicio de tramo y zona móvil: desde `clamp(v·6 s, 80, 250)` m, «tramo de radar, límite ochenta» y «zona de radar
  *   móvil». El final de tramo no se anuncia (de eso se encarga [VelocidadMediaTramo]).
  */

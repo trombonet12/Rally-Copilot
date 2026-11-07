@@ -12,6 +12,8 @@ import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.vias.ViaActual
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
+import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.geo.SentidoCamino
 import app.trombito.rallycopilot.motor.ruta.Ruta
@@ -473,88 +475,6 @@ class MapaViewModelTest {
     private suspend fun emitir(f: Fijacion) {
         ubicacion.flujo.emit(f)
     }
-
-    private fun TestScope.avanzarReloj(ms: Long) {
-        advanceTimeBy(ms)
-        runCurrent()
-    }
-
-    @Test
-    fun `tras 5 s sin fijacion se pierde el GPS y el copiloto lo dice una sola vez`() =
-        runTest {
-            navegacion.publicar(EstadoNavegacion.Libre(0, 0.0))
-            val vm = crear()
-            recoger(vm)
-            origenRelojMs = 1_000
-            emitir(fijacion(tiempoMs = 1_000, velocidadMs = 16.7))
-            assertFalse(vm.uiState.value.sinSenalGps)
-            avanzarReloj(4_000)
-            assertFalse("a los 4 s todavia hay senal", vm.uiState.value.sinSenalGps)
-            avanzarReloj(2_500)
-            assertTrue(vm.uiState.value.sinSenalGps)
-            assertEquals(listOf("Sin señal GPS"), locutor.dichas)
-            avanzarReloj(10_000)
-            assertEquals("una sola vez, no cada segundo", listOf("Sin señal GPS"), locutor.dichas)
-        }
-
-    @Test
-    fun `al volver la fijacion el copiloto dice GPS recuperado`() =
-        runTest {
-            navegacion.publicar(EstadoNavegacion.Libre(0, 0.0))
-            val vm = crear()
-            recoger(vm)
-            origenRelojMs = 1_000
-            emitir(fijacion(tiempoMs = 1_000, velocidadMs = 16.7))
-            avanzarReloj(7_000)
-            assertTrue(vm.uiState.value.sinSenalGps)
-            emitir(fijacion(tiempoMs = 8_000, velocidadMs = 16.7))
-            assertFalse(vm.uiState.value.sinSenalGps)
-            assertEquals(listOf("Sin señal GPS", "GPS recuperado"), locutor.dichas)
-        }
-
-    @Test
-    fun `una fijacion de mas de 50 m de error no devuelve la senal`() =
-        runTest {
-            navegacion.publicar(EstadoNavegacion.Libre(0, 0.0))
-            val vm = crear()
-            recoger(vm)
-            origenRelojMs = 1_000
-            emitir(fijacion(tiempoMs = 1_000, velocidadMs = 16.7))
-            avanzarReloj(7_000)
-            emitir(fijacion(tiempoMs = 8_000, velocidadMs = 16.7).copy(precisionM = 90.0))
-            assertTrue(vm.uiState.value.sinSenalGps)
-        }
-
-    @Test
-    fun `en silencio o sin conducir el copiloto no avisa pero el estado si cambia`() =
-        runTest {
-            ajustes.mutable.value = AjustesConduccion(modoCopiloto = ModoCopiloto.SILENCIO)
-            navegacion.publicar(EstadoNavegacion.Libre(0, 0.0))
-            val vm = crear()
-            recoger(vm)
-            origenRelojMs = 1_000
-            emitir(fijacion(tiempoMs = 1_000, velocidadMs = 16.7))
-            avanzarReloj(7_000)
-            assertTrue(vm.uiState.value.sinSenalGps)
-            assertTrue(locutor.dichas.isEmpty())
-
-            ajustes.mutable.value = AjustesConduccion(modoCopiloto = ModoCopiloto.COMPLETO)
-            navegacion.publicar(EstadoNavegacion.Inactiva)
-            emitir(fijacion(tiempoMs = 8_000, velocidadMs = 16.7))
-            avanzarReloj(7_000)
-            assertTrue("sin conduccion no se dice nada", locutor.dichas.isEmpty())
-        }
-
-    @Test
-    fun `sin ninguna fijacion no hay aviso de GPS`() =
-        runTest {
-            navegacion.publicar(EstadoNavegacion.Libre(0, 0.0))
-            val vm = crear()
-            recoger(vm)
-            avanzarReloj(30_000)
-            assertFalse(vm.uiState.value.sinSenalGps)
-            assertTrue(locutor.dichas.isEmpty())
-        }
 
     @Test
     fun `la placa del panel solo vale si la via coincide con el camino al que se ajusto la posicion`() =

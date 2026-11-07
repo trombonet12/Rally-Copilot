@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.voz
 
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -79,10 +80,13 @@ class LocutorImplTest {
     private val repro = ReproductorFalso()
     private val foco = FocoFalso()
 
+    /** Reloj monótono del locutor en los tests. */
+    private var ahoraMs = 1_000L
+
     private fun TestScope.locutor(): Pair<LocutorImpl, CacheFrases> {
         val cache = CacheFrases(carpeta.root)
         val dispatcher = StandardTestDispatcher(testScheduler)
-        return LocutorImpl(cache, sint, repro, foco, CoroutineScope(dispatcher), dispatcher) to cache
+        return LocutorImpl(cache, sint, repro, foco, CoroutineScope(dispatcher), dispatcher, { ahoraMs }) to cache
     }
 
     @Test
@@ -265,5 +269,72 @@ class LocutorImplTest {
 
             // 400 muestras a 1000 Hz
             assertEquals(0.4, locutor.duracionEstimadaS("hola"), 1e-9)
+        }
+
+    @Test
+    fun `una frase urgente vacia lo que espera y suena la primera tras la que ya suena`() =
+        runTest {
+            val (locutor, _) = locutor()
+            repro.puerta = CompletableDeferred()
+
+            locutor.decir("uno") // empieza y se queda sonando
+            runCurrent()
+            locutor.decir("dos tres")
+            locutor.decir("cuatro")
+            locutor.decir("alerta", PrioridadVoz.URGENTE)
+            runCurrent()
+            assertEquals("la que suena no se corta", listOf(300), repro.sonadas)
+
+            repro.puerta?.complete(Unit)
+            advanceUntilIdle()
+
+            // «dos tres» y «cuatro» (8 y 6 caracteres) se descartaron: solo suena la urgente.
+            assertEquals(listOf(300, 600), repro.sonadas)
+        }
+
+    @Test
+    fun `dos urgentes seguidas suenan solo la ultima si la primera no habia empezado`() =
+        runTest {
+            val (locutor, _) = locutor()
+            repro.puerta = CompletableDeferred()
+            locutor.decir("uno")
+            runCurrent()
+
+            locutor.decir("dos tres", PrioridadVoz.URGENTE)
+            locutor.decir("alerta", PrioridadVoz.URGENTE)
+            repro.puerta?.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(listOf(300, 600), repro.sonadas)
+        }
+
+    @Test
+    fun `una frase caducada antes de empezar se descarta sin sintetizar`() =
+        runTest {
+            val (locutor, _) = locutor()
+            repro.puerta = CompletableDeferred()
+            locutor.decir("uno")
+            runCurrent()
+
+            locutor.decir("tarde", caducaMs = ahoraMs + 1_000)
+            locutor.decir("fin")
+            runCurrent()
+            ahoraMs += 2_000 // pasó el plazo mientras sonaba «uno»
+            repro.puerta?.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(listOf(300, 300), repro.sonadas)
+            assertFalse("no se sintetizo", sint.llamadas.any { it.second == "tarde" })
+        }
+
+    @Test
+    fun `una frase con plazo vigente suena con normalidad`() =
+        runTest {
+            val (locutor, _) = locutor()
+
+            locutor.decir("vigente", caducaMs = ahoraMs + 5_000)
+            advanceUntilIdle()
+
+            assertEquals(listOf(700), repro.sonadas)
         }
 }

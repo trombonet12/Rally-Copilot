@@ -91,7 +91,8 @@ private val LADO_LUZ = 48.dp
 /**
  * Cuenta atrás de la salida manual, centrada sobre toda la pantalla: cinco luces rojas que se encienden una por
  * segundo (cinco, cuatro, tres, dos, uno) y, un segundo después de la última, pasan todas a verde con «¡YA!». Cada
- * número se pasa a [onDecir] (el copiloto lo dice) y el «ya» llama además a [onYa], que da la salida. Tocar fuera del
+ * número se pasa a [onDecir] (el copiloto lo dice como urgente, o nada si no hay voz: ver `CronoViewModel.decir`) y el
+ * «ya» llama además a [onYa], que da la salida. Tocar fuera del
  * panel la cancela sin dar la salida. [onCerrar] se llama al cancelar y, tras [DURACION_YA_MS], al acabar: quien la
  * muestra la retira. TalkBack recibe cada paso como región viva; el fondo es un botón «Cancelar la cuenta atrás».
  */

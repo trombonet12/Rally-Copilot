@@ -32,7 +32,7 @@ data class MapaUiState(
     val via: ViaActual? = null,
     /** [via] es el camino al que se ajustó la posición; si no coincide, el panel no enseña su placa. */
     val viaCoincide: Boolean = true,
-    /** Tras 5 s sin fijación buena (o con más de 50 m de error): banda «Sin señal GPS» y velocidad «—». */
+    /** Tras ~10 s sin fijación útil (error de 30 m o menos): banda «Sin señal GPS»; vuelve tras 3 fijaciones útiles. */
     val sinSenalGps: Boolean = false,
     /** La cámara sigue al coche (se pierde al mover el mapa; sobrevive al giro de pantalla). */
     val siguiendo: Boolean = true,

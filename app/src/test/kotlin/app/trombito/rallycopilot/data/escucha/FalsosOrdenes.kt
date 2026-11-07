@@ -16,6 +16,7 @@ import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.edicion.Marca
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
@@ -39,12 +40,20 @@ class LocutorGrabador(
 ) : Locutor {
     val dichas = java.util.Collections.synchronizedList(mutableListOf<String>())
 
+    /** Prioridad de cada frase de [dichas], en el mismo orden. */
+    val prioridades = java.util.Collections.synchronizedList(mutableListOf<PrioridadVoz>())
+
     override fun usarVoz(v: VozCopiloto) = Unit
 
     override fun preparar(textos: List<String>) = Unit
 
-    override fun decir(texto: String) {
+    override fun decir(
+        texto: String,
+        prioridad: PrioridadVoz,
+        caducaMs: Long?,
+    ) {
         dichas += texto
+        prioridades += prioridad
     }
 
     override fun duracionEstimadaS(texto: String): Double = 0.0

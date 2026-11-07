@@ -41,6 +41,7 @@ import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -49,6 +50,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 import javax.inject.Singleton
 
 /** Órdenes de voz: escucha con Vosk, ejecución sobre la conducción, marcas y ediciones de notas en Room. */
@@ -144,6 +146,9 @@ object EscuchaModule {
                 salida = salida,
                 locutor = locutor,
                 ambito = ambito,
+                puedeHablar = {
+                    ajustes.ajustes.first().let { it.voz != null && it.modoCopiloto != ModoCopiloto.SILENCIO }
+                },
             )
         val navegacionPorVoz =
             NavegacionPorVoz(

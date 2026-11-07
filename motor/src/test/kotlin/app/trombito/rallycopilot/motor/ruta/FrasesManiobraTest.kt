@@ -103,4 +103,23 @@ class FrasesManiobraTest {
     fun `tipo otra devuelve la instruccion de valhalla`() {
         assertEquals("Instruccion de Valhalla.", FrasesManiobra.frase(m(TipoManiobra.OTRA, listOf("Ma-1"))))
     }
+
+    @Test
+    fun `sin via (aviso inminente) los giros no llevan el nombre de la carretera`() {
+        assertEquals("cruce, derecha", FrasesManiobra.frase(m(TipoManiobra.DERECHA, listOf("Ma-10")), conVia = false))
+        assertEquals(
+            "salida",
+            FrasesManiobra.frase(m(TipoManiobra.SALIDA_AUTOVIA_DERECHA, listOf("Ma-1")), conVia = false),
+        )
+        assertEquals("recto", FrasesManiobra.frase(m(TipoManiobra.RECTO, listOf("Ma-13")), conVia = false))
+        assertEquals(
+            "toma la salida",
+            FrasesManiobra.frase(m(TipoManiobra.ROTONDA_ENTRADA, listOf("Ma-13")), conVia = false),
+        )
+    }
+
+    @Test
+    fun `la frase de recalculando es corta`() {
+        assertEquals("recalculando", FrasesManiobra.RECALCULANDO)
+    }
 }

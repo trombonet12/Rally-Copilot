@@ -18,6 +18,7 @@ import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.EstimadorVelocidad
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.velocidad.PrecisionGps
 import app.trombito.rallycopilot.motor.velocidad.kmh
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -91,7 +92,7 @@ class MapaViewModel
             val via: ViaActual?,
             /** [posicion] ajustada al camino; es la que pinta el mapa. */
             val ajustada: Fijacion? = posicion,
-            /** Se perdió el GPS (más de 5 s sin fijación buena tras haberla tenido). */
+            /** Se perdió el GPS (más de 10 s sin fijación útil tras haberla tenido). */
             val sinSenal: Boolean = false,
             /** [via] es el camino al que se ajustó la posición: si no, la placa del panel no es fiable. */
             val viaCoincide: Boolean = true,
@@ -115,16 +116,17 @@ class MapaViewModel
                     val estimador = EstimadorVelocidad()
                     val sobreCamino = PosicionSobreCamino(navegacion)
                     val detector = DetectorSenalGps()
+                    avisador.reiniciar()
                     var sinSenal = false
                     var viaPrevia: ViaActual? = null
                     var ultima = LECTURA_VACIA
 
-                    // Devuelve si cambió el estado de la señal; el copiloto lo dice una sola vez por cambio.
+                    // Devuelve si cambió el estado de la señal; el avisador decide cuándo habla.
                     suspend fun refrescarSenal(ahoraMs: Long): Boolean {
                         val nueva = detector.sinSenal(ahoraMs)
+                        avisador.actualizar(nueva, ahoraMs, detector.ultimaUtilMs)
                         if (nueva == sinSenal) return false
                         sinSenal = nueva
-                        avisador.avisar(nueva)
                         return true
                     }
                     // Sin fijaciones (túnel, GPS perdido) la velocidad caduca por el reloj, no por una fijación nueva.
@@ -133,11 +135,11 @@ class MapaViewModel
                         send(LECTURA_VACIA)
                         launch {
                             ubicacion.fijaciones().collect { fijacion ->
-                                detector.fijacion(fijacion)
-                                refrescarSenal(fijacion.tiempoMs)
+                                detector.fijacion(fijacion, reloj())
+                                refrescarSenal(reloj())
                                 // La posición aproximada de interior (fused/red) salta decenas de metros: se pinta,
                                 // pero no alimenta la velocidad derivada de la posición.
-                                val precisa = (fijacion.precisionM ?: 0.0) <= PRECISION_VELOCIDAD_M
+                                val precisa = PrecisionGps.esUtil(fijacion.precisionM)
                                 val ms =
                                     if (precisa) {
                                         estimador.actualizar(fijacion)
@@ -277,8 +279,6 @@ class MapaViewModel
             const val PARADA_MS = 5_000L
             const val TICK_CADUCIDAD_MS = 1_000L
 
-            /** Peor precisión (m) con la que una fijación cuenta para la velocidad; la misma que la sesión. */
-            const val PRECISION_VELOCIDAD_M = 30.0
             const val CLAVE_SIGUIENDO = "mapa-siguiendo"
             const val CLAVE_CAMARA = "mapa-camara"
             const val TAMANO_CAMARA = 3

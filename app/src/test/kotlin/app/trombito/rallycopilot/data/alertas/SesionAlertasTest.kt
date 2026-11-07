@@ -175,27 +175,27 @@ class SesionAlertasTest {
         runTest {
             val e = escenario(radares = emptyList(), ruta = null, via = ViaActual("Ma-1", "Ma-1", 50))
 
-            val frases = e.sesion.alFijar(fijacion(punto(500.0), 0), 20.0, null, null)
-
-            assertEquals(listOf("exceso-1"), frases.map { it.id })
+            // El exceso se publica al instante; el aviso de voz espera a 4 s seguidos.
+            val primera = e.sesion.alFijar(fijacion(punto(500.0), 0), 20.0, null, null)
+            assertTrue(primera.isEmpty())
             assertNull(e.ultima.radarProximo)
             assertEquals(ExcesoEnCurso(50, rojo = true, exceso = true), e.ultima.exceso)
         }
 
     @Test
-    fun `el exceso mantiene el mismo id mientras dura y solo uno nuevo tras rearmar`() =
+    fun `el exceso avisa tras 4 s seguidos, con el mismo id mientras dura y no se repite en 90 s`() =
         runTest {
             val e = escenario(via = ViaActual(null, null, 50))
-            // 72 km/h durante 4 s: un solo aviso con el mismo id.
-            val frases = (0..3).flatMap { s -> e.sesion.alFijar(fijacion(punto(s * 20.0), s), 20.0, s * 20.0, null) }
-            assertEquals(List(4) { "exceso-1" }, frases.map { it.id })
-            assertEquals("exceso de velocidad, límite cincuenta", frases.last().texto)
+            // 72 km/h durante 6 s: el aviso llega a los 4 s y mantiene el id.
+            val frases = (0..5).flatMap { s -> e.sesion.alFijar(fijacion(punto(s * 20.0), s), 20.0, s * 20.0, null) }
+            assertEquals(List(2) { "exceso-1" }, frases.map { it.id })
+            assertEquals("límite cincuenta", frases.last().texto)
 
-            // 45 km/h durante 12 s rearma; el siguiente exceso es otro aviso.
-            for (s in 4..15) e.sesion.alFijar(fijacion(punto(s * 12.0), s, 12.5), 12.5, s * 12.0, null)
+            // 45 km/h durante 12 s corta el episodio; otro exceso sostenido a menos de 90 s no avisa.
+            for (s in 6..17) e.sesion.alFijar(fijacion(punto(s * 12.0), s, 12.5), 12.5, s * 12.0, null)
             assertEquals(ExcesoEnCurso(50, rojo = false, exceso = false), e.ultima.exceso)
-            val nuevo = e.sesion.alFijar(fijacion(punto(400.0), 16), 20.0, 400.0, null)
-            assertEquals(listOf("exceso-2"), nuevo.map { it.id })
+            val nuevo = (18..24).flatMap { s -> e.sesion.alFijar(fijacion(punto(s * 20.0), s), 20.0, s * 20.0, null) }
+            assertTrue(nuevo.isEmpty())
         }
 
     @Test

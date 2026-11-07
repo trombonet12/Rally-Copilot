@@ -20,7 +20,8 @@ class PlanificadorFrasesTest {
         posicionM: Double = 0.0,
         vMs: Double? = 20.0,
         modo: ModoCopiloto = ModoCopiloto.COMPLETO,
-    ) = planificador.siguiente(candidatas, posicionM, vMs, modo)
+        venideras: List<Frase> = emptyList(),
+    ) = planificador.siguiente(candidatas, posicionM, vMs, modo, venideras)
 
     @Test
     fun `sin candidatas no hay frase`() {
@@ -164,5 +165,76 @@ class PlanificadorFrasesTest {
         val proximas = planificador.proximas(candidatas, 0.0, ModoCopiloto.COMPLETO, 5)
         assertEquals(listOf("sin", "con"), proximas.map { it.id })
         assertEquals(emptyList<Frase>(), planificador.proximas(candidatas, 0.0, ModoCopiloto.COMPLETO, 0))
+    }
+
+    // ---- AVISO_VELOCIDAD (exceso y media del tramo) ----
+
+    private val aviso = frase("exceso-1", TipoFrase.AVISO_VELOCIDAD, puntoM = null)
+
+    @Test
+    fun `un aviso de velocidad va por detras de nota y maniobra aunque no tengan punto cercano`() {
+        val candidatas =
+            listOf(aviso, frase("nota", TipoFrase.NOTA, 1000.0), frase("maniobra", TipoFrase.MANIOBRA, 2000.0))
+        assertEquals("maniobra", siguiente(candidatas)?.id)
+        assertEquals("nota", siguiente(candidatas)?.id)
+        assertEquals("exceso-1", siguiente(candidatas)?.id)
+    }
+
+    @Test
+    fun `un aviso de velocidad gana al crono y pierde ante una alerta`() {
+        val candidatas = listOf(frase("crono", TipoFrase.CRONO, null), aviso, frase("radar", TipoFrase.ALERTA, 900.0))
+        assertEquals("radar", siguiente(candidatas)?.id)
+        assertEquals("exceso-1", siguiente(candidatas)?.id)
+        assertEquals("crono", siguiente(candidatas)?.id)
+    }
+
+    @Test
+    fun `un aviso de velocidad se difiere si una nota por venir queda a menos de 8 s y suena despues`() {
+        val venidera = frase("nota", TipoFrase.NOTA, 150.0) // 150 m a 20 m/s = 7,5 s
+        assertNull(siguiente(listOf(aviso), posicionM = 0.0, venideras = listOf(venidera)))
+        // Sigue pendiente, no se descarto: con la nota ya pasada, suena.
+        assertEquals("exceso-1", siguiente(listOf(aviso), posicionM = 160.0, venideras = listOf(venidera))?.id)
+    }
+
+    @Test
+    fun `una maniobra ya dicha no difiere el aviso`() {
+        val maniobra = frase("m", TipoFrase.MANIOBRA, 100.0)
+        planificador.marcarResuelta("m")
+        // Una maniobra ya dicha no difiere nada.
+        assertEquals("exceso-1", siguiente(listOf(aviso, maniobra))?.id)
+    }
+
+    @Test
+    fun `una nota a mas de 8 s no difiere el aviso`() {
+        val venidera = frase("nota", TipoFrase.NOTA, 170.0) // 8,5 s a 20 m/s
+        assertEquals("exceso-1", siguiente(listOf(aviso), venideras = listOf(venidera))?.id)
+    }
+
+    @Test
+    fun `una nota que el modo calla no difiere el aviso`() {
+        val venidera = frase("nota", TipoFrase.NOTA, 100.0)
+        val resultado = siguiente(listOf(aviso), modo = ModoCopiloto.SOLO_ALERTAS, venideras = listOf(venidera))
+        assertEquals("exceso-1", resultado?.id)
+    }
+
+    @Test
+    fun `el aviso de velocidad habla en solo alertas y en notas pero no en silencio`() {
+        assertEquals("exceso-1", siguiente(listOf(aviso), modo = ModoCopiloto.SOLO_ALERTAS)?.id)
+        assertNull(siguiente(listOf(frase("otro", TipoFrase.AVISO_VELOCIDAD, null)), modo = ModoCopiloto.SILENCIO))
+    }
+
+    @Test
+    fun `sin velocidad no se difiere el aviso por no poder medir segundos`() {
+        val venidera = frase("nota", TipoFrase.NOTA, 10.0)
+        assertEquals("exceso-1", siguiente(listOf(aviso), vMs = null, venideras = listOf(venidera))?.id)
+    }
+
+    @Test
+    fun `resuelta y marcarResuelta reflejan lo dicho y lo heredado`() {
+        assertEquals(false, planificador.resuelta("a"))
+        siguiente(listOf(frase("a", puntoM = 100.0)))
+        assertEquals(true, planificador.resuelta("a"))
+        planificador.marcarResuelta("b")
+        assertNull(siguiente(listOf(frase("b", puntoM = 100.0))))
     }
 }

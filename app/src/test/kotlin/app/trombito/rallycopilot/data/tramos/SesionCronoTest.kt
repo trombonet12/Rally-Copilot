@@ -25,6 +25,7 @@ import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
 import app.trombito.rallycopilot.domain.tramos.TramoGuardado
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.geo.distanciaRecorrido
@@ -276,7 +277,11 @@ private class LocutorAnotador : Locutor {
 
     override fun preparar(textos: List<String>) = Unit
 
-    override fun decir(texto: String) {
+    override fun decir(
+        texto: String,
+        prioridad: PrioridadVoz,
+        caducaMs: Long?,
+    ) {
         dichas += texto
     }
 

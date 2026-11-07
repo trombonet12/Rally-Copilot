@@ -5,7 +5,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-/** Tabla de qué modo del copiloto permite qué tipo de frase: los cuatro modos × los cuatro tipos. */
+/** Tabla de qué modo del copiloto permite qué tipo de frase: los cuatro modos × los cinco tipos. */
 @RunWith(Parameterized::class)
 class ModoCopilotoTest(
     private val modo: ModoCopiloto,
@@ -25,18 +25,22 @@ class ModoCopilotoTest(
                 arrayOf(ModoCopiloto.SILENCIO, TipoFrase.ALERTA, false),
                 arrayOf(ModoCopiloto.SILENCIO, TipoFrase.MANIOBRA, false),
                 arrayOf(ModoCopiloto.SILENCIO, TipoFrase.NOTA, false),
+                arrayOf(ModoCopiloto.SILENCIO, TipoFrase.AVISO_VELOCIDAD, false),
                 arrayOf(ModoCopiloto.SILENCIO, TipoFrase.CRONO, false),
                 arrayOf(ModoCopiloto.SOLO_ALERTAS, TipoFrase.ALERTA, true),
                 arrayOf(ModoCopiloto.SOLO_ALERTAS, TipoFrase.MANIOBRA, true),
                 arrayOf(ModoCopiloto.SOLO_ALERTAS, TipoFrase.NOTA, false),
+                arrayOf(ModoCopiloto.SOLO_ALERTAS, TipoFrase.AVISO_VELOCIDAD, true),
                 arrayOf(ModoCopiloto.SOLO_ALERTAS, TipoFrase.CRONO, false),
                 arrayOf(ModoCopiloto.NOTAS, TipoFrase.ALERTA, true),
                 arrayOf(ModoCopiloto.NOTAS, TipoFrase.MANIOBRA, true),
                 arrayOf(ModoCopiloto.NOTAS, TipoFrase.NOTA, true),
+                arrayOf(ModoCopiloto.NOTAS, TipoFrase.AVISO_VELOCIDAD, true),
                 arrayOf(ModoCopiloto.NOTAS, TipoFrase.CRONO, false),
                 arrayOf(ModoCopiloto.COMPLETO, TipoFrase.ALERTA, true),
                 arrayOf(ModoCopiloto.COMPLETO, TipoFrase.MANIOBRA, true),
                 arrayOf(ModoCopiloto.COMPLETO, TipoFrase.NOTA, true),
+                arrayOf(ModoCopiloto.COMPLETO, TipoFrase.AVISO_VELOCIDAD, true),
                 arrayOf(ModoCopiloto.COMPLETO, TipoFrase.CRONO, true),
             )
     }
@@ -51,7 +55,7 @@ class ModoCopilotoDefectoTest {
     @Test
     fun `la prioridad va de alerta a crono`() {
         assertEquals(
-            listOf(TipoFrase.ALERTA, TipoFrase.MANIOBRA, TipoFrase.NOTA, TipoFrase.CRONO),
+            listOf(TipoFrase.ALERTA, TipoFrase.MANIOBRA, TipoFrase.NOTA, TipoFrase.AVISO_VELOCIDAD, TipoFrase.CRONO),
             TipoFrase.entries.sortedBy { it.prioridad },
         )
     }

@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
@@ -84,6 +85,13 @@ class FalsoRepositorioAjustesConduccion(
     }
 }
 
+/** Una frase pedida al locutor de pruebas con su prioridad y su caducidad. */
+data class FraseDicha(
+    val texto: String,
+    val prioridad: PrioridadVoz,
+    val caducaMs: Long?,
+)
+
 /** Locutor de pruebas: no suena, solo anota qué voces se han probado. */
 class FalsoLocutor : Locutor {
     override val hablando: StateFlow<Boolean> = MutableStateFlow(false)
@@ -113,7 +121,15 @@ class FalsoLocutor : Locutor {
     /** Cada frase dicha con [decir], en orden. */
     val dichas = mutableListOf<String>()
 
-    override fun decir(texto: String) {
+    /** Cada frase dicha con su prioridad y caducidad, en orden. */
+    val frases = mutableListOf<FraseDicha>()
+
+    override fun decir(
+        texto: String,
+        prioridad: PrioridadVoz,
+        caducaMs: Long?,
+    ) {
+        frases += FraseDicha(texto, prioridad, caducaMs)
         dichas += texto
     }
 

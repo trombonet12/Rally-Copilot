@@ -45,10 +45,19 @@ object FrasesManiobra {
             TipoManiobra.FERRY to "ferri",
         )
 
-    /** Si el tipo es [TipoManiobra.OTRA] o falta información, devuelve la instrucción de Valhalla. */
-    fun frase(m: Maniobra): String {
+    /** Lo que dice el copiloto al empezar a recalcular la ruta (si la salida de ruta dura más de 5 s). */
+    const val RECALCULANDO = "recalculando"
+
+    /**
+     * Si el tipo es [TipoManiobra.OTRA] o falta información, devuelve la instrucción de Valhalla. Con [conVia] `false`
+     * (el aviso inminente, que repite al preaviso) no lleva el nombre de la vía: «cruce, derecha».
+     */
+    fun frase(
+        m: Maniobra,
+        conVia: Boolean = true,
+    ): String {
         FIJAS[m.tipo]?.let { return it }
-        val via = viaPrincipal(m.vias)
+        val via = if (conVia) viaPrincipal(m.vias) else null
         return when (val base = BASES[m.tipo]) {
             null -> if (m.tipo == TipoManiobra.ROTONDA_ENTRADA) rotonda(m, via) else m.instruccionValhalla
             else -> con(base, via)

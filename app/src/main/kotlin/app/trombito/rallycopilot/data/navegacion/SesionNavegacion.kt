@@ -277,6 +277,8 @@ class SesionNavegacion(
                     fijacion.tiempoMs,
                     progreso.sentidoContrario,
                 )
+            // «Recalculando» por voz solo si la salida de la ruta dura más de 5 s (lo mide el copiloto).
+            copiloto?.alRecalcular(fuera, fijacion.tiempoMs)
             if (fuera && guia.recalculo?.isActive != true && fijacion.tiempoMs >= guia.reintentoMs) {
                 guia.recalculo = alcance.launch { recalcular(guia, fijacion.punto) }
             }

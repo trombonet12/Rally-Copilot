@@ -1,7 +1,9 @@
 package app.trombito.rallycopilot.data.voz
 
+import android.os.SystemClock
 import android.util.Log
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -26,8 +28,10 @@ import kotlinx.coroutines.withContext
  *   que el cambio vale para la frase siguiente y puede subir de 100 % sin saturar ([GananciaPcm]).
  * - **[decir]**: una frase a la vez, por orden de llegada. Sintetiza si no está en caché, pide el foco, suena y lo
  *   suelta. [hablando] es `true` desde que se pide el foco hasta que acaba; si se deniega, no suena y vuelve a `false`.
+ *   Una frase [PrioridadVoz.URGENTE] vacía las que esperan sin haber empezado y pasa la primera (la que ya suena no se
+ *   corta); una con `caducaMs` se descarta si su plazo (del [reloj] monótono) llega antes de empezar a sonar.
  */
-@Suppress("TooManyFunctions") // una función por orden del Locutor más las de la cola
+@Suppress("TooManyFunctions", "LongParameterList") // una función por orden del Locutor; colaboradores de voz y reloj
 class LocutorImpl(
     private val cache: CacheFrases,
     private val sintetizador: SintetizadorTts,
@@ -35,10 +39,13 @@ class LocutorImpl(
     private val foco: FocoAudio,
     private val ambito: CoroutineScope,
     private val dispatcherSintesis: CoroutineDispatcher,
+    /** Reloj monótono (ms) contra el que se miden las caducidades de [decir]. */
+    private val reloj: () -> Long = { SystemClock.elapsedRealtime() },
 ) : Locutor {
     private class Peticion(
         val voz: VozCopiloto,
         val texto: String,
+        val caducaMs: Long? = null,
     )
 
     private val estaHablando = MutableStateFlow(false)
@@ -49,7 +56,13 @@ class LocutorImpl(
     @Volatile private var volumenPorcentaje = GananciaPcm.NORMAL
 
     private val turnoSintesis = Mutex()
-    private val turnosDeVoz = Channel<Peticion>(Channel.UNLIMITED)
+
+    /** Frases de [decir] que esperan turno; se accede siempre con [lockTurnos]. */
+    private val esperaDeVoz = ArrayDeque<Peticion>()
+    private val lockTurnos = Any()
+
+    /** Despierta al hablante cuando hay algo en [esperaDeVoz]; conflada: basta una señal para vaciar la cola. */
+    private val avisoDeVoz = Channel<Unit>(Channel.CONFLATED)
 
     private val lockCola = Any()
     private val pendientes = LinkedHashMap<String, Peticion>()
@@ -58,7 +71,12 @@ class LocutorImpl(
 
     init {
         ambito.launch {
-            for (peticion in turnosDeVoz) hablar(peticion)
+            while (avisoDeVoz.receiveCatching().isSuccess) {
+                while (true) {
+                    val peticion = synchronized(lockTurnos) { esperaDeVoz.removeFirstOrNull() } ?: break
+                    hablar(peticion)
+                }
+            }
         }
     }
 
@@ -86,8 +104,23 @@ class LocutorImpl(
         if (lanzar) ambito.launch { trabajarCola() }
     }
 
-    override fun decir(texto: String) {
-        if (texto.isNotBlank()) turnosDeVoz.trySend(Peticion(voz, texto))
+    override fun decir(
+        texto: String,
+        prioridad: PrioridadVoz,
+        caducaMs: Long?,
+    ) {
+        if (texto.isNotBlank()) encolar(Peticion(voz, texto, caducaMs), prioridad)
+    }
+
+    private fun encolar(
+        peticion: Peticion,
+        prioridad: PrioridadVoz = PrioridadVoz.NORMAL,
+    ) {
+        synchronized(lockTurnos) {
+            if (prioridad == PrioridadVoz.URGENTE) esperaDeVoz.clear()
+            esperaDeVoz.addLast(peticion)
+        }
+        avisoDeVoz.trySend(Unit)
     }
 
     override fun duracionEstimadaS(texto: String): Double {
@@ -101,7 +134,7 @@ class LocutorImpl(
     }
 
     override fun probar(v: VozCopiloto) {
-        turnosDeVoz.trySend(Peticion(v, FRASE_PRUEBA))
+        encolar(Peticion(v, FRASE_PRUEBA))
     }
 
     override fun usarVolumen(porcentaje: Int) {
@@ -112,12 +145,13 @@ class LocutorImpl(
         v: VozCopiloto,
         texto: String,
     ) {
-        if (texto.isNotBlank()) turnosDeVoz.trySend(Peticion(v, texto))
+        if (texto.isNotBlank()) encolar(Peticion(v, texto))
     }
 
     override fun cerrar() {
         ambito.cancel()
-        turnosDeVoz.close()
+        avisoDeVoz.close()
+        synchronized(lockTurnos) { esperaDeVoz.clear() }
         synchronized(lockCola) { pendientes.clear() }
         foco.soltar()
         // liberar() espera a que acabe la frase en curso: fuera del hilo que llama.
@@ -164,8 +198,18 @@ class LocutorImpl(
             }
         }
 
+    private fun caducada(peticion: Peticion): Boolean = peticion.caducaMs?.let { reloj() > it } ?: false
+
+    /** El PCM de [peticion], o `null` si caducó (antes o mientras se sintetizaba) o no se pudo sintetizar. */
+    private suspend fun muestrasVigentes(peticion: Peticion): ShortArray? {
+        if (caducada(peticion)) return null
+        val muestras = cache.leer(peticion.voz, peticion.texto) ?: sintetizar(peticion.voz, peticion.texto)
+        // Sintetizar puede tardar: si mientras tanto caducó, ya no vale.
+        return muestras?.takeUnless { caducada(peticion) }
+    }
+
     private suspend fun hablar(peticion: Peticion) {
-        val muestras = cache.leer(peticion.voz, peticion.texto) ?: sintetizar(peticion.voz, peticion.texto) ?: return
+        val muestras = muestrasVigentes(peticion) ?: return
         estaHablando.value = true
         try {
             if (foco.pedir()) {

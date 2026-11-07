@@ -13,11 +13,13 @@ import kotlin.math.roundToInt
  * (`maniobra-<índice>-preaviso` y `maniobra-<índice>-inminente`):
  *
  * - preaviso («a quinientos, cruce, derecha, Ma-10»): desde `v · 15 s` (acotado a 300–1000 m) hasta el aviso
- *   inminente; la distancia se redondea a cientos y, si saldría menos de 100 m, no se canta;
- * - inminente (la frase de [FrasesManiobra]): desde `v · 5 s` (acotado a 40–200 m) hasta la maniobra.
+ *   inminente; la distancia se redondea a cientos y, si saldría menos de 100 m, no se canta; es el único que lleva el
+ *   nombre de la vía;
+ * - inminente (la frase de [FrasesManiobra] sin vía, «cruce, derecha»): desde `v · 5 s` (acotado a 40–200 m) hasta la
+ *   maniobra.
  */
 class AvisosManiobra(
-    private val maniobras: List<Maniobra>,
+    val maniobras: List<Maniobra>,
     private val posicionesM: List<Double>,
 ) {
     init {
@@ -48,7 +50,7 @@ class AvisosManiobra(
                 }
 
                 distancia <= inminenteM -> {
-                    Frase("maniobra-$i-inminente", texto(i), TipoFrase.MANIOBRA, punto)
+                    Frase("maniobra-$i-inminente", texto(i, conVia = false), TipoFrase.MANIOBRA, punto)
                 }
 
                 distancia <= preavisoM -> {
@@ -62,10 +64,13 @@ class AvisosManiobra(
         }
     }
 
-    private fun texto(indice: Int): String {
+    private fun texto(
+        indice: Int,
+        conVia: Boolean,
+    ): String {
         val maniobra = maniobras[indice]
         val intermedio = maniobra.tipo == TipoManiobra.DESTINO && indice < maniobras.lastIndex
-        return if (intermedio) FrasesParada.PARADA else FrasesManiobra.frase(maniobra)
+        return if (intermedio) FrasesParada.PARADA else FrasesManiobra.frase(maniobra, conVia)
     }
 
     private fun preaviso(
@@ -77,7 +82,7 @@ class AvisosManiobra(
         if (cientos < 1) return null
         val metros = cientos * CIENTO_M.toInt()
         val palabras = if (metros >= MIL_M) "mil" else FrasesNota.enPalabras(metros)
-        val texto = "a $palabras, ${texto(indice)}"
+        val texto = "a $palabras, ${texto(indice, conVia = true)}"
         return Frase("maniobra-$indice-preaviso", texto, TipoFrase.MANIOBRA, punto)
     }
 

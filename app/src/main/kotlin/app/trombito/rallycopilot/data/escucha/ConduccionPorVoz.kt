@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.tramos.ControlSalidaCrono
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -13,7 +14,8 @@ import kotlinx.coroutines.launch
  * «Salida» y «para el crono» por voz.
  *
  * - [darSalida]: con la salida manual y la conducción lista, el copiloto cuenta atrás («cinco… uno… ya») y al final da
- *   la salida al cronómetro ([ControlSalidaCrono]); con la automática dice que lo es.
+ *   la salida al cronómetro ([ControlSalidaCrono]); con la automática dice que lo es. Los números y el «ya» van
+ *   urgentes y solo suenan si [puedeHablar].
  * - [pararCrono]: en modo libre termina la conducción; guiando pide confirmación («di sí para terminar») y queda
  *   [esperaConfirmacion] hasta la siguiente respuesta ([confirmar]) o hasta [descartarConfirmacion].
  */
@@ -26,6 +28,8 @@ class ConduccionPorVoz(
     private val locutor: Locutor,
     private val ambito: CoroutineScope,
     private val pasoCuentaAtrasMs: Long = PASO_CUENTA_ATRAS_MS,
+    /** Si el copiloto puede hablar (voz elegida y fuera de silencio); si no, la cuenta atrás no suena. */
+    private val puedeHablar: suspend () -> Boolean = { true },
 ) {
     /** `true` tras preguntar «di sí para terminar», hasta que llega la respuesta. */
     @Volatile
@@ -57,12 +61,12 @@ class ConduccionPorVoz(
 
     private suspend fun contar() {
         NUMEROS.forEach {
-            locutor.decir(it)
+            if (puedeHablar()) locutor.decir(it, PrioridadVoz.URGENTE)
             delay(pasoCuentaAtrasMs)
         }
         // Si mientras tanto salió el coche o se acabó la conducción, ya no hay salida que dar.
         if (crono.crono.value?.esperaSalidaManual == true) {
-            locutor.decir(YA)
+            if (puedeHablar()) locutor.decir(YA, PrioridadVoz.URGENTE)
             salida.darSalida()
         }
     }

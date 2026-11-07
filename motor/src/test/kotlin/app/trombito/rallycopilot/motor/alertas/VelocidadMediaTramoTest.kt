@@ -94,8 +94,8 @@ class VelocidadMediaTramoTest {
         val frases = estados.mapNotNull { it.frase }
         assertTrue(frases.isNotEmpty())
         assertEquals(setOf("tramo-media-t-1"), frases.map { it.id }.toSet())
-        assertEquals(TipoFrase.ALERTA, frases.first().tipo)
-        assertEquals("cuidado, la media del tramo supera el límite", frases.first().texto)
+        assertEquals(TipoFrase.AVISO_VELOCIDAD, frases.first().tipo)
+        assertEquals("media alta", frases.first().texto)
         assertNull(frases.first().puntoM)
         assertTrue(estados.last().superaLimite)
     }
@@ -115,7 +115,7 @@ class VelocidadMediaTramoTest {
         c.avanzar(1000.0, 25.0)
         val a = c.avanzar(800.0, 100 / 3.6) // media 100: avisa (1)
         val b = c.avanzar(1200.0, 40 / 3.6) // la media cae por debajo de 80
-        val d = c.avanzar(1990.0, 180 / 3.6) // y vuelve a subir por encima
+        val d = c.avanzar(1990.0, 250 / 3.6) // y vuelve a subir por encima (separado de sobra del primer aviso)
         assertEquals(setOf("tramo-media-t-1"), a.mapNotNull { it.frase?.id }.toSet())
         assertTrue(b.any { !it.superaLimite && it.frase == null })
         assertEquals(setOf("tramo-media-t-2"), d.mapNotNull { it.frase?.id }.toSet())
@@ -201,5 +201,74 @@ class VelocidadMediaTramoTest {
         val medidor = VelocidadMediaTramo(emptyList())
         medidor.actualizar(0.0, 0L)
         assertNull(medidor.actualizar(100.0, 1000L))
+    }
+
+    // ---- Histéresis, separación y máximo por tramo ----
+
+    @Test
+    fun `una media que pasa del limite en menos de 3 km h se pone en rojo pero no avisa`() {
+        val c = coche(tramo)
+        c.avanzar(1000.0, 25.0)
+        val estados = c.avanzar(1500.0, 82 / 3.6) // media 82 con limite 80
+        assertEquals(82.0, estados.last().mediaKmh!!, 0.1)
+        assertTrue(estados.last().superaLimite)
+        assertTrue(estados.all { it.frase == null })
+    }
+
+    @Test
+    fun `con 4 km h por encima del limite si avisa`() {
+        val c = coche(tramo)
+        c.avanzar(1000.0, 25.0)
+        val estados = c.avanzar(1500.0, 84 / 3.6)
+        assertEquals("tramo-media-t-1", estados.last().frase!!.id)
+    }
+
+    /** Tramo largo y muestras sueltas: la entrada es en la posición 1000 al instante 100 s; `en` da el estado. */
+    private class Tramo2 {
+        val medidor =
+            VelocidadMediaTramo(listOf(TramoRadar("t", 1000.0, 100_000.0, 80))).also {
+                it.actualizar(990.0, 99_000L)
+                it.actualizar(1000.0, 100_000L)
+            }
+
+        fun en(
+            segundos: Int,
+            posicionM: Double,
+        ) = medidor.actualizar(posicionM, 100_000L + segundos * 1000L)!!
+    }
+
+    @Test
+    fun `no avisa antes de 60 s desde el aviso anterior aunque la media vuelva a subir`() {
+        val t = Tramo2()
+        assertEquals("tramo-media-t-1", t.en(10, 1300.0).frase!!.id) // media 108
+        assertNull(t.en(40, 1400.0).frase) // media 36: se retira y se rearma
+        assertNull(t.en(50, 2200.0).frase) // media 86 pero a 40 s del aviso
+        assertNull(t.en(69, 2725.0).frase) // a 59 s del aviso: aun no
+        assertEquals("tramo-media-t-2", t.en(70, 2750.0).frase!!.id) // a 60 s exactos
+    }
+
+    @Test
+    fun `como mucho dos avisos por tramo`() {
+        val t = Tramo2()
+        assertEquals("tramo-media-t-1", t.en(10, 1300.0).frase!!.id)
+        assertNull(t.en(100, 1400.0).frase)
+        assertEquals("tramo-media-t-2", t.en(110, 3540.0).frase!!.id)
+        assertNull(t.en(1000, 3600.0).frase)
+        assertTrue(t.en(1010, 24_400.0).superaLimite) // media 83+ pero sin cupo
+        assertNull(t.en(1010, 24_400.0).frase)
+        assertNull(t.en(1100, 40_000.0).frase)
+    }
+
+    @Test
+    fun `el cupo de dos avisos es por tramo, no global`() {
+        val medidor =
+            VelocidadMediaTramo(listOf(TramoRadar("a", 1000.0, 5000.0, 80), TramoRadar("b", 6000.0, 9000.0, 80)))
+        medidor.actualizar(990.0, 99_000L)
+        medidor.actualizar(1000.0, 100_000L)
+        assertEquals("tramo-media-a-1", medidor.actualizar(1300.0, 110_000L)!!.frase!!.id)
+        medidor.actualizar(5990.0, 299_000L) // cierra a
+        medidor.actualizar(6000.0, 300_000L) // entra en b
+        // Tramo nuevo: su propio contador empieza en uno.
+        assertEquals("tramo-media-b-1", medidor.actualizar(6300.0, 310_000L)!!.frase!!.id)
     }
 }

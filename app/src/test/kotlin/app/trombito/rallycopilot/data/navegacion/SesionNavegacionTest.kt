@@ -17,6 +17,7 @@ import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.alertas.Radar
 import app.trombito.rallycopilot.motor.alertas.TipoRadar
@@ -172,7 +173,11 @@ private class LocutorDeSesion : Locutor {
 
     override fun preparar(textos: List<String>) = Unit
 
-    override fun decir(texto: String) {
+    override fun decir(
+        texto: String,
+        prioridad: PrioridadVoz,
+        caducaMs: Long?,
+    ) {
         dichas += texto
     }
 
@@ -577,7 +582,7 @@ class SesionNavegacionTest {
                 runCurrent()
 
                 val esperadas = if (modo == ModoCopiloto.SILENCIO) 0 else 1
-                assertEquals(modo.name, esperadas, locutor.dichas.count { it.startsWith("exceso de velocidad") })
+                assertEquals(modo.name, esperadas, locutor.dichas.count { it == "límite treinta" })
                 assertTrue(
                     modo.name,
                     publicadas

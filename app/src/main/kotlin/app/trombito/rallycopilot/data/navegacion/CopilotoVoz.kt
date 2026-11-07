@@ -4,9 +4,11 @@ import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.alertas.AlertasRadar
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.NotaVisible
 import app.trombito.rallycopilot.motor.notas.SelectorNotas
+import app.trombito.rallycopilot.motor.ruta.FrasesManiobra
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import app.trombito.rallycopilot.motor.voz.CandidatasNotas
 import app.trombito.rallycopilot.motor.voz.Frase
@@ -15,6 +17,7 @@ import app.trombito.rallycopilot.motor.voz.IdsEstablesNotas
 import app.trombito.rallycopilot.motor.voz.PlanificadorFrases
 import app.trombito.rallycopilot.motor.voz.TipoFrase
 import kotlinx.coroutines.flow.Flow
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /**
@@ -55,7 +58,11 @@ class CopilotoVoz(
     private var ultimaPreparacion: List<String>? = null
     private var rutaAnterior: RutaVoz? = null
     private var generacionRuta = 0
+    private var ultimoProgresoM: Double? = null
     private val porDecir = ArrayList<FrasePorDecir>()
+    private var recalculandoDesdeMs: Long? = null
+    private var recalculoAnunciado = false
+    private var recalculosAnunciados = 0
 
     /**
      * Una parada intermedia alcanzada ([numero]: cuántas van, desde 1): se dice [texto] en cuanto el altavoz esté libre
@@ -77,6 +84,29 @@ class CopilotoVoz(
         porDecir += FrasePorDecir(frase, VIGENCIA_PARADA_FIJACIONES)
     }
 
+    /**
+     * Estado de «recalculando» en cada fijación ([recalculando]: la sesión está saliendo de la ruta y recalculando; [ahoraMs]
+     * el reloj de la fijación). La voz solo dice «recalculando» una vez por episodio y solo si dura más de
+     * [RECALCULO_MIN_MS] (5 s): un recálculo rápido es solo visual. Como una maniobra: se dice en cuanto el altavoz
+     * esté libre y se pierde si no cabe en [VIGENCIA_RECALCULO_FIJACIONES] fijaciones.
+     */
+    fun alRecalcular(
+        recalculando: Boolean,
+        ahoraMs: Long,
+    ) {
+        if (!recalculando) {
+            recalculandoDesdeMs = null
+            recalculoAnunciado = false
+            return
+        }
+        val desde = recalculandoDesdeMs ?: ahoraMs.also { recalculandoDesdeMs = it }
+        if (recalculoAnunciado || ahoraMs - desde <= RECALCULO_MIN_MS) return
+        recalculoAnunciado = true
+        recalculosAnunciados++
+        val frase = Frase("recalculando-$recalculosAnunciados", FrasesManiobra.RECALCULANDO, TipoFrase.MANIOBRA, null)
+        porDecir += FrasePorDecir(frase, VIGENCIA_RECALCULO_FIJACIONES)
+    }
+
     /** Mantiene al día los ajustes (modo, voz, notas, indicaciones que se callan) hasta cancelar. */
     suspend fun seguirAjustes() {
         ajustes.collect { actuales = it }
@@ -87,7 +117,9 @@ class CopilotoVoz(
      * maniobras del guiado (null en modo libre), [progresoM] el progreso sobre la ruta guiada y [vMs] la velocidad.
      * [alertas] son las candidatas ALERTA de la fijación (radares, tramos, incidencias, exceso), en el mismo eje que
      * `progresoM` o, en libre, que la posición de las notas (o 0 si no hay notas): se suman a las activas, no se
-     * sintetizan por adelantado (su texto depende de la distancia) y los modos las filtran como al resto.
+     * sintetizan por adelantado (su texto depende de la distancia) y los modos las filtran como al resto. Un fijo del
+     * sentido contrario se muestra en el banner pero no se dice. El exceso y la media del tramo
+     * ([TipoFrase.AVISO_VELOCIDAD]) esperan a las notas y maniobras que queden a menos de ~8 s.
      */
     fun alFijar(
         notas: NotasEnCurso?,
@@ -96,7 +128,10 @@ class CopilotoVoz(
         vMs: Double?,
         alertas: List<Frase> = emptyList(),
     ) {
-        val sinPosicion = alertas.isEmpty() && porDecir.isEmpty()
+        val habladas = alertas.filterNot { AlertasRadar.esContrario(it.id) }
+        val progresoPrevio = ultimoProgresoM
+        if (progresoM != null) ultimoProgresoM = progresoM
+        val sinPosicion = habladas.isEmpty() && porDecir.isEmpty()
         val posicionM = progresoM ?: notas?.posicionM ?: if (sinPosicion) null else 0.0
         val a = actuales
         val voz = a.voz
@@ -111,25 +146,66 @@ class CopilotoVoz(
             volumenEnLocutor = a.volumenVoz
         }
         if (ruta !== rutaAnterior) {
+            val anterior = rutaAnterior
+            val generacionAnterior = generacionRuta
             rutaAnterior = ruta
             generacionRuta++
+            heredarDichas(anterior, generacionAnterior, ruta, desplazamiento(progresoPrevio, progresoM))
         }
         val v = vMs ?: 0.0
         val visibles = visibles(notas, a, v)
         val maniobras = maniobras(ruta, posicionM, v, a)
         val idDe = idsDe(notas)
         val pendientes = pendientesVigentes()
-        val activas = CandidatasNotas.de(visibles, a.notasSimplificadas, idDe) + maniobras + alertas + pendientes
+        val activas = CandidatasNotas.de(visibles, a.notasSimplificadas, idDe) + maniobras + habladas + pendientes
         val previstas =
             CandidatasNotas.de(visibles.map { it.copy(activa = true) }, a.notasSimplificadas, idDe) +
                 maniobras + inminentesPrevistos(ruta, posicionM, a)
         if (!locutor.hablando.value) {
-            planificador.siguiente(activas, posicionM, vMs, a.modoCopiloto)?.let {
+            planificador.siguiente(activas, posicionM, vMs, a.modoCopiloto, venideras = previstas)?.let {
                 porDecir.removeAll { p -> p.frase.id == it.id }
                 decir(it, posicionM, vMs)
             }
         }
         preparar(previstas, posicionM, a)
+    }
+
+    /**
+     * Dónde cae el origen de la ruta nueva en el eje de la anterior (m): lo que avanzaba la anterior menos lo que la
+     * nueva da ya de progreso. Un recálculo parte de la posición del coche, así que su progreso empieza casi en 0.
+     */
+    private fun desplazamiento(
+        progresoPrevio: Double?,
+        progresoActual: Double?,
+    ): Double? = if (progresoPrevio != null && progresoActual != null) progresoPrevio - progresoActual else null
+
+    /**
+     * Tras un recálculo, una maniobra de [nueva] equivalente a una de [anterior] (mismo tipo, a ± [TOLERANCIA_RECALCULO_M]
+     * una vez puesta la nueva en el eje de la anterior con [desplazamientoM]) hereda su estado «dicho»: no se vuelven a
+     * cantar preaviso ni inminente. Sin desplazamiento fiable no se hereda nada.
+     */
+    private fun heredarDichas(
+        anterior: RutaVoz?,
+        generacionAnterior: Int,
+        nueva: RutaVoz?,
+        desplazamientoM: Double?,
+    ) {
+        if (anterior == null || nueva == null || desplazamientoM == null) return
+        val viejas = anterior.avisos.maniobras
+        nueva.avisos.maniobras.forEachIndexed { j, maniobra ->
+            val enEjeAnterior = nueva.posicionesM[j] + desplazamientoM
+            val i =
+                viejas.indices
+                    .filter { viejas[it].tipo == maniobra.tipo }
+                    .minByOrNull { abs(anterior.posicionesM[it] - enEjeAnterior) }
+                    ?.takeIf { abs(anterior.posicionesM[it] - enEjeAnterior) <= TOLERANCIA_RECALCULO_M }
+            if (i != null) {
+                for (fase in FASES_MANIOBRA) {
+                    val dicha = planificador.resuelta("r$generacionAnterior-maniobra-$i-$fase")
+                    if (dicha) planificador.marcarResuelta("r$generacionRuta-maniobra-$j-$fase")
+                }
+            }
+        }
     }
 
     /** Las paradas y frases de cronometraje por decir aún vigentes; cada fijación gasta una de su vigencia. */
@@ -242,6 +318,14 @@ class CopilotoVoz(
 
         /** Fijaciones (≈ s) que una parada alcanzada espera a que el altavoz esté libre antes de perderse. */
         const val VIGENCIA_PARADA_FIJACIONES = 15
+
+        /** «Recalculando» solo se dice si la salida de ruta dura más de esto, y caduca pronto. */
+        const val RECALCULO_MIN_MS = 5_000L
+        const val VIGENCIA_RECALCULO_FIJACIONES = 5
+
+        /** Una maniobra de la ruta nueva equivale a la anterior si es del mismo tipo y cae a esta distancia o menos. */
+        const val TOLERANCIA_RECALCULO_M = 30.0
+        val FASES_MANIOBRA = listOf("preaviso", "inminente")
     }
 }
 

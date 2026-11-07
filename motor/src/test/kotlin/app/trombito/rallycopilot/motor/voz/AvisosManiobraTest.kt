@@ -62,10 +62,10 @@ class AvisosManiobraTest {
     }
 
     @Test
-    fun `el aviso inminente usa la frase de la maniobra a cinco segundos`() {
+    fun `el aviso inminente usa la frase de la maniobra sin la via a cinco segundos`() {
         // 20 m/s * 5 s = 100 m.
         val frase = candidatas(1920.0, 20.0).single()
-        assertEquals("cruce, derecha, Ma-10", frase.texto)
+        assertEquals("cruce, derecha", frase.texto)
         assertEquals("maniobra-1-inminente", frase.id)
         assertEquals(TipoFrase.MANIOBRA, frase.tipo)
         assertEquals(2000.0, frase.puntoM!!, 1e-9)
@@ -140,5 +140,29 @@ class AvisosManiobraTest {
         assertEquals("a cuatrocientos, parada", conParada.candidatas(600.0, 30.0).single().texto)
         assertEquals("parada", conParada.candidatas(970.0, 5.0).single().texto)
         assertEquals("destino", conParada.candidatas(2970.0, 5.0).single().texto)
+    }
+
+    @Test
+    fun `solo el preaviso lleva el nombre de la via`() {
+        assertEquals("a trescientos, cruce, derecha, Ma-10", candidatas(1720.0, 20.0).single().texto)
+        assertEquals("cruce, derecha", candidatas(1920.0, 20.0).single().texto)
+    }
+
+    @Test
+    fun `una rotonda con salida conocida da el inminente sin via y sin ella cae en toma la salida`() {
+        val rotonda =
+            Maniobra(TipoManiobra.ROTONDA_ENTRADA, "instruccion", listOf("Ma-11"), 0, 0, 100.0, 10.0, 3)
+        val sinSalida = rotonda.copy(salidaRotonda = null)
+        val a = AvisosManiobra(listOf(rotonda), listOf(1000.0))
+        val b = AvisosManiobra(listOf(sinSalida), listOf(1000.0))
+        assertEquals("a trescientos, rotonda, tercera salida, Ma-11", a.candidatas(720.0, 20.0).single().texto)
+        assertEquals("rotonda, tercera salida", a.candidatas(920.0, 20.0).single().texto)
+        assertEquals("a trescientos, en la rotonda, sal hacia Ma-11", b.candidatas(720.0, 20.0).single().texto)
+        assertEquals("toma la salida", b.candidatas(920.0, 20.0).single().texto)
+    }
+
+    @Test
+    fun `las maniobras de la ruta se pueden consultar`() {
+        assertEquals(3, avisos.maniobras.size)
     }
 }

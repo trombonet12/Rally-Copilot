@@ -1,14 +1,26 @@
 package app.trombito.rallycopilot.ui.tramos
 
+import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.tramos.ControlSalidaCrono
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
-import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import app.trombito.rallycopilot.ui.comun.FalsoLocutor
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 private class FalsoProveedorCrono : ProveedorCrono {
@@ -24,30 +36,24 @@ private class FalsoControlSalida : ControlSalidaCrono {
     }
 }
 
-private class FalsoLocutor : Locutor {
-    override val hablando: StateFlow<Boolean> = MutableStateFlow(false)
-    val dichas = mutableListOf<String>()
-
-    override fun usarVoz(v: VozCopiloto) = Unit
-
-    override fun preparar(textos: List<String>) = Unit
-
-    override fun decir(texto: String) {
-        dichas += texto
-    }
-
-    override fun duracionEstimadaS(texto: String) = 1.0
-
-    override fun probar(v: VozCopiloto) = Unit
-
-    override fun cerrar() = Unit
-}
-
+@OptIn(ExperimentalCoroutinesApi::class)
 class CronoViewModelTest {
     private val proveedor = FalsoProveedorCrono()
     private val control = FalsoControlSalida()
     private val locutor = FalsoLocutor()
-    private val viewModel = CronoViewModel(proveedor, control, locutor)
+    private val ajustes = FalsoRepositorioAjustesConduccion(AjustesConduccion(voz = VozCopiloto.DAVEFX))
+    private lateinit var viewModel: CronoViewModel
+
+    @Before
+    fun preparar() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+        viewModel = CronoViewModel(proveedor, control, locutor, ajustes)
+    }
+
+    @After
+    fun limpiar() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     fun `dar la salida llega al control y decir llega al locutor`() {
@@ -55,6 +61,27 @@ class CronoViewModelTest {
         viewModel.darSalida()
         assertEquals(listOf("cinco"), locutor.dichas)
         assertEquals(1, control.salidas)
+    }
+
+    @Test
+    fun `los numeros de la cuenta atras van como urgentes`() {
+        viewModel.decir("tres")
+        viewModel.decir("ya")
+        assertEquals(listOf(PrioridadVoz.URGENTE, PrioridadVoz.URGENTE), locutor.frases.map { it.prioridad })
+    }
+
+    @Test
+    fun `sin voz elegida la cuenta atras es solo luces`() {
+        ajustes.mutable.value = AjustesConduccion(voz = null)
+        viewModel.decir("cinco")
+        assertTrue(locutor.dichas.isEmpty())
+    }
+
+    @Test
+    fun `en silencio la cuenta atras es solo luces`() {
+        ajustes.mutable.value = AjustesConduccion(modoCopiloto = ModoCopiloto.SILENCIO, voz = VozCopiloto.DAVEFX)
+        viewModel.decir("cinco")
+        assertTrue(locutor.dichas.isEmpty())
     }
 
     @Test
