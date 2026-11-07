@@ -1,12 +1,31 @@
 # Preguntas abiertas
 
-> Propósito: dudas de producto, interfaz o alcance que decide Joan · Audiencia: Joan · Actualizado: 2026-11-01 · Relacionado: [ROADMAP.md](ROADMAP.md), [docs/DECISIONES.md](docs/DECISIONES.md)
+> Propósito: dudas de producto, interfaz o alcance que decide Joan · Audiencia: Joan · Actualizado: 2026-11-07 · Relacionado: [ROADMAP.md](ROADMAP.md), [docs/DECISIONES.md](docs/DECISIONES.md)
 
 Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuesta se sigue con lo que no depende de
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y 2026-11-01). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31, 2026-11-01 y 2026-11-07). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+
+## Respondidas en la auditoría (2026-11-07, en el chat)
+Contexto y opciones en [docs/auditoria/2026-11.md](docs/auditoria/2026-11.md). Todo va a H15 salvo lo indicado.
+- **Alcance:** todo en H15, con las refactorizaciones grandes, y una sola versión al final.
+- **Peso:** además de lo seguro (arm64, espeak solo español), la segunda voz y el relieve con curvas se descargan al elegirlos y quedan offline.
+- **Futuro:** H16 Calibración en coche, H17 Pasada con fantasma, H18 Notas de copiloto de verdad, H19 Ruta divertida y H20 Casco e intercom (Joan va en moto con intercom). Sin Android Auto.
+- **Aviso de GPS:** banda a ~10 s, voz solo si la pérdida dura más de ~30 s, con histéresis y enfriamiento; «GPS recuperado» solo si antes se dijo «Sin señal GPS».
+- **Exceso y media del tramo:** detrás de notas y maniobras, con frases cortas («límite ochenta», «media alta»); radares fijos y cortes mantienen la prioridad máxima.
+- **Menos voz:** «radar, sentido contrario» sin voz; el aviso inminente sin el nombre de la vía; «recalculando» por voz si se sale de la ruta más de 5 s. Las obras se siguen anunciando en cada viaje.
+- **Ajustes de voz nuevos:** interruptores de radares, incidencias y velocidad, y velocidad de habla normal/rápida, con vista previa y desde la hoja del copiloto.
+- **«Copiloto» por defecto:** se mantiene; se mide la batería con y sin escucha y se decide con las cifras.
+- **✕ de terminar:** con crono o grabación en marcha pide un segundo toque («Toca otra vez para terminar», 3 s).
+- **Botones conduciendo:** silencio, modo y micrófono a 64 dp; capas, notas grandes y recentrar se ocultan por encima de 20 km/h.
+- **Banner de nota:** «· 100 m» con unidad y atenuado; solo destaca la distancia a la curva.
+- **Sin límite conocido:** señal gris con «?».
+- **Nombres de tramos:** «Origen → Destino» con las carreteras de subtítulo.
+- **Privacidad:** confirmar los GPX/KML que llegan de otras apps; avisar al exportar que la copia incluye recorridos y Casa. Sin cifrado ni nota del IGN.
+- **Exportar y compartir tramos y notas** como archivo: sí, en H15.
+- **Decisiones de H14c tomadas por el agente:** confirmadas todas.
 
 ## Respondidas al cerrar H9 y empezar H10 (2026-11-02, en el chat)
 - **Borrar satélite** incluye el detalle; precarga **solo con satélite**. **Notas grandes:** botón en el panel. **Rápidos:** botón que abre un panel. **Tema:** oscuro, claro y sistema.
@@ -280,7 +299,7 @@ Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31 y
   - **Cierre:** una sola revisión final en el emulador con los datos de Joan, y después push y release.
   - **Curvas:** casi todo lo que mueva el volante se canta.
   - **Puentes:** una vía que pasa por encima o por debajo no cuenta como cruce ni como vía actual.
-- **Revisión UX de H14c (2026-11-06; las decidió el agente en modo desatendido, siguiendo el criterio ya expresado por Joan; revisables):**
+- **Revisión UX de H14c (2026-11-06; las decidió el agente y Joan las confirmó el 2026-11-07):**
   - La tarjeta de maniobra queda solo en negro y se retira la variante roja, por «los fondos rojos son un pegote».
   - «Silenciar» alterna entre silencio y el modo anterior.
   - La ruta sigue roja, como eligió Joan.

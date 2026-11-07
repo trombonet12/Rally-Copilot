@@ -1,6 +1,6 @@
 # Roadmap
 
-> Propósito: plan de Rally Copilot por hitos, con alcance, criterios de aceptación, tests y estado · Audiencia: Joan y agentes · Actualizado: 2026-10-31 · Relacionado: [docs/DECISIONES.md](docs/DECISIONES.md), [QUESTIONS.md](QUESTIONS.md), [docs/ESTADO.md](docs/ESTADO.md)
+> Propósito: plan de Rally Copilot por hitos, con alcance, criterios de aceptación, tests y estado · Audiencia: Joan y agentes · Actualizado: 2026-11-07 · Relacionado: [docs/DECISIONES.md](docs/DECISIONES.md), [QUESTIONS.md](QUESTIONS.md), [docs/ESTADO.md](docs/ESTADO.md)
 
 Hitos en orden de dependencia, basados en la propuesta del prompt (§9) y refinados. Cada hito termina con el gate en
 verde, ROADMAP y ESTADO actualizados, y las dudas acumuladas presentadas a Joan. Skill `hito` para arrancar, planificar
@@ -440,7 +440,7 @@ completado en versión recortada (2026-11-02, v1.0.0) por el límite de uso sema
 <!-- Hecho: gate del CI en verde (v0.11.0), release v1.0.0. Pendiente: batería E2E instrumentada en emulador, revisión
 ux-reviewer de H10, prueba real en coche y en el móvil (Joan), H11 (voz de Moya) cuando haya material. -->
 
-## H13 · Notas por grados (en curso, 2026-11-03)
+## H13 · Notas por grados
 ### Objetivo
 Petición de Joan tras sus primeras pruebas con la v1.0: «canta muy poco las curvas». La escala pasa a depender solo del giro total de la curva:
 - 6 = 10–30°, 5 = 30–60°, 4 = 60–90°, 3 = 90–120°, 2 = 120–150°, 1 = 150–180°;
@@ -463,7 +463,7 @@ Lo descrito en Objetivo.
 ### Estado
 Completado (2026-11-03, v1.1.0). Pendiente: «escuadra» en las órdenes de voz (InterpreteOrdenes) y prueba en coche.
 
-## H14 · Interfaz 1.0 de verdad (pendiente)
+## H14 · Interfaz 1.0 de verdad
 ### Objetivo
 Feedback de Joan del 2026-11-02 y 2026-11-03: «se nota que está en pruebas».
 
@@ -575,6 +575,142 @@ Completado (2026-11-07, v1.2.0), con todos los sub-hitos H14a–e y una revisió
 - Transcripción parcial en la burbuja de escucha.
 - «Dónde estoy» sin punto kilométrico.
 - `NotificacionNavegacion` con su propio formateo.
+
+## H15 — Auditoría y deuda técnica
+
+### Objetivo
+Arreglar todo lo que encontró la auditoría de noviembre ([docs/auditoria/2026-11.md](docs/auditoria/2026-11.md)):
+voz que no se repite ni pisa las notas, GPS leído una sola vez, APK más ligero, base de datos y CI más seguras, deuda
+técnica saldada y documentación al día.
+
+### Alcance
+Por lotes (ids de los informes de [docs/auditoria/2026-11/](docs/auditoria/2026-11/)):
+- **L1 Voz y avisos:** un solo canal con prioridad, caducidad y enfriamiento. «Sin señal GPS»: banda a ~10 s, voz solo si dura > 30 s, histéresis al recuperar, «GPS recuperado» solo si se dijo lo otro, última posición conocida antigua descartada, un único juego de umbrales de precisión. Exceso y media del tramo por detrás de notas y maniobras, cortos («límite ochenta», «media alta»), exceso sostenido con gracia al bajar de límite y media con histéresis. Cuenta atrás con prioridad que respeta «sin voz». Radar en sentido contrario sin voz. El aviso inminente sin el nombre de la vía. «Recalculando» por voz si se sale > 5 s. Las maniobras ya dichas no se repiten tras recalcular (QA-1, QA-2, UX-1 a UX-5, UX-8, UX-11, UX-12, UX-26, ARQ-2).
+- **L2 Ajustes de voz:** interruptores de radares, incidencias y velocidad, y velocidad de habla normal/rápida; con vista previa y desde la hoja del copiloto (UX-10, UX-27).
+- **L3 Posición única:** una sola fuente compartida (fijación, velocidad y rumbo) para mapa, servicio y escucha; fused solo mientras el GPS no fija (ARQ-1, ARQ-10, REN-3, REN-9, REN-16).
+- **L4 Base de datos:** lista única de migraciones, `marca` con FK e índice, test de la cadena completa contra el esquema, calibración guardada en vez de releer recorridos (QA-6, QA-7, ARQ-6, ARQ-7, ARQ-14, REN-6, REN-24, REN-25).
+- **L5 Peso:** release solo arm64, espeak solo español, sin `cxx-api`; la segunda voz y el relieve con curvas se descargan al elegirlos y quedan offline (REN-1, REN-10, REN-11, REN-12, REN-27).
+- **L6 Batería y memoria:** medir «Copiloto» con y sin escucha y no escuchar mientras habla el copiloto; liberar Vosk y Piper; notificación cada ≥ 5 s; HUD del crono sin recomponer a 20 Hz; resto de REN (REN-2, REN-4, REN-5, REN-7, REN-13, REN-17 a REN-19, REN-23, REN-26, REN-28, REN-29).
+- **L7 Seguridad y CI:** firma en un paso aparte, verificación de dependencias de Gradle, `cooldown` de Dependabot, secretos en un Environment `release`, copias importadas inspeccionadas, micrófono solo con «Copiloto», APK firmado verificado antes de publicar (SEG-1 a SEG-3, SEG-5, SEG-7, SEG-10, SEG-12, QA-8, QA-14, QA-17 a QA-20, QA-27, QA-28).
+- **L8 Tests:** humo del release minificado, voz nativa, cronómetro con huecos de GPS, esperas sin reloj real, cobertura con Kover, detekt y lint más estrictos (QA-3 a QA-5, QA-9 a QA-13, QA-15, QA-16, QA-21, QA-23 a QA-25, QA-29 a QA-31).
+- **L9 Geometría en `:motor`:** proyección plana, rumbo, unidades y formato de distancia comunes; la lógica pura de `:app` pasa a `:motor` (ARQ-3 a ARQ-5, ARQ-8, ARQ-9, ARQ-16, ARQ-17).
+- **L10 Limpieza:** scopes y dispatchers inyectados, tareas de descarga fuera de `app/build.gradle.kts`, código y strings sin uso, `MapaRoute` en partes (ARQ-11 a ARQ-13, ARQ-15, ARQ-18 a ARQ-29, ARQ-31, REN-8, REN-15).
+- **L11 Interfaz:** la ✕ pide un segundo toque si hay crono o grabación; botones de conducción a 64 dp y secundarios ocultos por encima de 20 km/h; «· 100 m» atenuado en el banner de nota; señal gris «?» sin límite conocido; tramos «Origen → Destino»; resto de UX (UX-6, UX-7, UX-13 a UX-25).
+- **L12 Privacidad y exportar:** confirmar los GPX/KML que llegan de otras apps; aviso de lo que incluye la copia; exportar y compartir tramos con sus notas como archivo (SEG-4, SEG-6, PRO-10).
+- **L13 Documentación:** README, ESTADO, ROADMAP, glosario por grados, DECISIONES, Acerca de completo, `docs/arquitectura.md` (DOC-1 a DOC-37, ARQ-30).
+- Fuera: cifrar la copia, nota del IGN en Acerca de y avisar de obras una vez al día (Joan, 2026-11-07).
+
+### Criterios de aceptación
+- [ ] Con señal débil intermitente (`gps-replay` cortando fijaciones) no se repite «Sin señal GPS»; con una pérdida de 40 s se dice una vez.
+- [ ] Ninguna alerta que no sea un radar fijo o un corte quita el turno a una nota.
+- [ ] El APK release pesa ≤ 170 MiB y la voz, el relieve y las curvas funcionan sin red tras descargarlos.
+- [ ] Una sola suscripción al GPS con el mapa visible y conduciendo.
+- [ ] Gate, scripts y el humo del release en verde; `check-docs` sin errores.
+- [ ] Capturas de lo que cambia en la interfaz en `docs/capturas/h15/`.
+
+### Tests
+- Detector de señal (oscilación, histéresis, posición antigua), canal de voz (prioridad, caducidad, enfriamiento), exceso y media del tramo, migración 16→17 y cadena completa, cronómetro con huecos, geometría común en `:motor` con los tests existentes como red; emulador con `gps-replay` de la Ma-2141 y prueba en el móvil de Joan al final.
+
+### Estado
+en curso (2026-11-07) · Depende de: H14 · Dudas: [QUESTIONS.md § Auditoría](QUESTIONS.md#respondidas-en-la-auditoría-2026-11-07-en-el-chat)
+
+## H16 — Calibración en coche
+
+### Objetivo
+El ritmo del copiloto se ajusta a la velocidad real y no pierde el sitio.
+
+### Alcance
+- Antelación de las notas en niveles y proporcional a la velocidad; relectura si se pierde.
+- Modo simplificado (solo curvas a partir de un grado).
+- Confianza de posición: notas en pausa con GPS pobre o fuera del recorrido, y re-sincronizar.
+- «Esta nota estaba mal»: marca local y lista de revisión.
+- Fuera: lo que pida una prueba en coche que aún no se ha hecho.
+
+### Criterios de aceptación
+- [ ] Prueba en coche de Joan con la antelación ajustada.
+
+### Tests
+- Motor: antelación por velocidad; pausa por confianza baja.
+
+### Estado
+pendiente · Depende de: H15 y una prueba en coche
+
+## H17 — Pasada con fantasma
+
+### Objetivo
+Cada tramo se conduce contra tu mejor pasada.
+
+### Alcance
+- Delta continuo y coche fantasma en el mapa.
+- Tramo óptimo teórico (mejor sector de cada pasada).
+- Límite de velocidad al inicio del tramo.
+
+### Criterios de aceptación
+- [ ] Una pasada repetida en el emulador muestra el fantasma y el delta continuo.
+
+### Tests
+- Motor: fantasma y óptimo teórico sobre pasadas de prueba.
+
+### Estado
+pendiente · Depende de: H15
+
+## H18 — Notas de copiloto de verdad
+
+### Objetivo
+Que suene como un copiloto y no como un lector de curvas.
+
+### Alcance
+- Curvas cercanas combinadas en una llamada y esperar a la entrada para cantar la siguiente.
+- Editor completo de notas: fusionar, dividir, texto libre, añadir aviso.
+- Reconocimiento guiado en dos pasadas con resumen de diferencias.
+
+### Criterios de aceptación
+- [ ] Revisión de `copiloto-reviewer` sobre las trazas de `docs/rutas/`.
+
+### Tests
+- Goldens de notas combinadas; editor.
+
+### Estado
+pendiente · Depende de: H16
+
+## H19 — Ruta divertida
+
+### Objetivo
+Planificar rutas que buscan curvas por la Tramuntana, offline.
+
+### Alcance
+- Coste de curvatura en Valhalla y selector de sinuosidad.
+
+### Criterios de aceptación
+- [ ] Entre dos puntos, la ruta divertida tiene más curvas que la rápida.
+
+### Tests
+- Enrutado con el selector en los extremos.
+
+### Estado
+pendiente · Depende de: H15
+
+## H20 — Casco e intercom en moto
+
+### Objetivo
+Oír al copiloto y darle órdenes por el intercom Bluetooth del casco.
+
+### Alcance
+- Voz y micrófono por el intercom (SCO/A2DP), con Vosk usando el micrófono del casco.
+- Fuera: Android Auto.
+
+### Criterios de aceptación
+- [ ] Prueba de Joan con su intercom.
+
+### Tests
+- Selección de ruta de audio con dobles.
+
+### Estado
+pendiente · Depende de: H15 · Necesita el modelo de intercom de Joan
+
+## Más adelante
+- Modo nocturno automático, widgets y atajos, trip parcial en el HUD, estadísticas de curvatura y mapa de calor.
+- Pendientes de hitos anteriores: prueba en coche (H14), topónimos que Vosk no reconoce, «Dónde estoy» con punto kilométrico, condiciones del NAP de la DGT y del CNIG, «Abrir con» desde gestores de archivos reales, H11 (voz de Moya) y H12 (Play).
 
 ## Cambios respecto a la propuesta inicial
 - **H1** deja el corredor z17–18 y la zona manual z18–19 para **H9**, porque dependen de rutas y tramos guardados.
