@@ -1,11 +1,11 @@
 package app.trombito.rallycopilot.data.voz
 
 import app.trombito.rallycopilot.data.escucha.FabricaReconocedor
+import app.trombito.rallycopilot.di.ApplicationScope
+import app.trombito.rallycopilot.di.DispatcherIo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -21,16 +21,18 @@ import javax.inject.Singleton
 class LiberadorModelos internal constructor(
     private val sintetizador: SintetizadorTts,
     private val reconocedores: FabricaReconocedor,
-    dispatcher: CoroutineDispatcher,
+    private val alcance: CoroutineScope,
+    private val dispatcher: CoroutineDispatcher,
     private val graciaMs: Long,
 ) {
     @Inject
     constructor(
         sintetizador: SintetizadorTts,
         reconocedores: FabricaReconocedor,
-    ) : this(sintetizador, reconocedores, Dispatchers.IO, GRACIA_MS)
+        @ApplicationScope alcance: CoroutineScope,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
+    ) : this(sintetizador, reconocedores, alcance, dispatcher, GRACIA_MS)
 
-    private val alcance = CoroutineScope(SupervisorJob() + dispatcher)
     private var pendiente: Job? = null
 
     /** Libera tras [graciaMs] (por si la última frase aún se está sintetizando o empieza otra conducción). */
@@ -38,7 +40,7 @@ class LiberadorModelos internal constructor(
     fun programar() {
         pendiente?.cancel()
         pendiente =
-            alcance.launch {
+            alcance.launch(dispatcher) {
                 delay(graciaMs)
                 liberarYa()
             }
@@ -62,7 +64,7 @@ class LiberadorModelos internal constructor(
 
     /** Como [liberarYa] pero fuera del hilo que llama (para `onTrimMemory`, que corre en el principal). */
     fun liberarEnSegundoPlano() {
-        alcance.launch { liberarYa() }
+        alcance.launch(dispatcher) { liberarYa() }
     }
 
     companion object {

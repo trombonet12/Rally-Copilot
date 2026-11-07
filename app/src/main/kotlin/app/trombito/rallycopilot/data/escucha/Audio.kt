@@ -48,27 +48,34 @@ fun interface FabricaReconocedor {
     fun liberar() = Unit
 }
 
+/** Un [AudioRecord] (o su doble): costura para probar [FabricaAudioRecord] sin el framework de audio. */
+internal interface Grabadora {
+    /** `false` si el sistema no ha podido reservar el micrófono (permiso, otra app lo usa). */
+    val inicializada: Boolean
+
+    fun iniciar()
+
+    fun leer(buffer: ShortArray): Int
+
+    fun parar()
+
+    fun liberar()
+}
+
 /** Micrófono real: [AudioRecord] a 16 kHz mono, fuente de reconocimiento de voz. */
-class FabricaAudioRecord : FabricaAudio {
-    @SuppressLint("MissingPermission") // lo comprueba quien llama (Escucha.tienePermiso)
+class FabricaAudioRecord internal constructor(
+    private val crear: () -> Grabadora,
+) : FabricaAudio {
+    constructor() : this(::grabadoraReal)
+
     override fun abrir(): FuenteAudio? =
         try {
-            val canal = AudioFormat.CHANNEL_IN_MONO
-            val formato = AudioFormat.ENCODING_PCM_16BIT
-            val minimo = AudioRecord.getMinBufferSize(FRECUENCIA_HZ, canal, formato)
-            val grabadora =
-                AudioRecord(
-                    MediaRecorder.AudioSource.VOICE_RECOGNITION,
-                    FRECUENCIA_HZ,
-                    canal,
-                    formato,
-                    maxOf(minimo, FRECUENCIA_HZ),
-                )
-            if (grabadora.state == AudioRecord.STATE_INITIALIZED) {
-                grabadora.startRecording()
+            val grabadora = crear()
+            if (grabadora.inicializada) {
+                grabadora.iniciar()
                 FuenteAudioRecord(grabadora)
             } else {
-                grabadora.release()
+                grabadora.liberar()
                 null
             }
         } catch (e: SecurityException) {
@@ -84,17 +91,43 @@ class FabricaAudioRecord : FabricaAudio {
     }
 }
 
+@SuppressLint("MissingPermission") // lo comprueba quien llama (Escucha.tienePermiso)
+private fun grabadoraReal(): Grabadora {
+    val canal = AudioFormat.CHANNEL_IN_MONO
+    val formato = AudioFormat.ENCODING_PCM_16BIT
+    val minimo = AudioRecord.getMinBufferSize(FRECUENCIA_HZ, canal, formato)
+    val grabadora =
+        AudioRecord(
+            MediaRecorder.AudioSource.VOICE_RECOGNITION,
+            FRECUENCIA_HZ,
+            canal,
+            formato,
+            maxOf(minimo, FRECUENCIA_HZ),
+        )
+    return object : Grabadora {
+        override val inicializada: Boolean get() = grabadora.state == AudioRecord.STATE_INITIALIZED
+
+        override fun iniciar() = grabadora.startRecording()
+
+        override fun leer(buffer: ShortArray): Int = grabadora.read(buffer, 0, buffer.size)
+
+        override fun parar() = grabadora.stop()
+
+        override fun liberar() = grabadora.release()
+    }
+}
+
 private class FuenteAudioRecord(
-    private val grabadora: AudioRecord,
+    private val grabadora: Grabadora,
 ) : FuenteAudio {
-    override fun leer(buffer: ShortArray): Int = grabadora.read(buffer, 0, buffer.size)
+    override fun leer(buffer: ShortArray): Int = grabadora.leer(buffer)
 
     override fun close() {
         try {
-            grabadora.stop()
+            grabadora.parar()
         } catch (_: IllegalStateException) {
             // ya parada
         }
-        grabadora.release()
+        grabadora.liberar()
     }
 }

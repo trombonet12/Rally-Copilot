@@ -26,107 +26,174 @@ import kotlin.math.roundToInt
  * masculino).
  */
 @Singleton
-class MotorTtsSherpa
+class MotorTtsSherpa internal constructor(
+    private val voces: VocesInstaladas,
+    private val cargador: CargadorTts,
+    private val datosEspeak: () -> File,
+) : SintetizadorTts {
     @Inject
     constructor(
-        @ApplicationContext private val contexto: Context,
-        private val voces: VocesInstaladas,
-    ) : SintetizadorTts {
-        private var cargada: VozCopiloto? = null
-        private var motor: OfflineTts? = null
+        @ApplicationContext contexto: Context,
+        voces: VocesInstaladas,
+    ) : this(
+        voces,
+        CargadorSherpa(contexto.assets),
+        { CopiaEspeak.asegurar(contexto.assets, File(contexto.filesDir, "voz")) },
+    )
 
-        override fun frecuenciaHz(voz: VozCopiloto): Int = FRECUENCIA_HZ
+    private var cargada: VozCopiloto? = null
+    private var motor: TtsNativo? = null
 
-        @Synchronized
-        override fun sintetizar(
-            voz: VozCopiloto,
-            texto: String,
-            velocidad: VelocidadHabla,
-        ): AudioPcm {
-            val tts = motorPara(voz)
-            val audio = generar(tts, texto, velocidad)
-            if (audio.sampleRate != FRECUENCIA_HZ) {
-                throw ErrorSintesis("El modelo ${voz.name} da ${audio.sampleRate} Hz, se esperaban $FRECUENCIA_HZ Hz")
-            }
-            return AudioPcm(aPcm16(audio.samples), audio.sampleRate)
+    override fun frecuenciaHz(voz: VozCopiloto): Int = FRECUENCIA_HZ
+
+    @Synchronized
+    override fun sintetizar(
+        voz: VozCopiloto,
+        texto: String,
+        velocidad: VelocidadHabla,
+    ): AudioPcm {
+        val tts = motorPara(voz)
+        val audio = generar(tts, texto, velocidad)
+        if (audio.frecuenciaHz != FRECUENCIA_HZ) {
+            throw ErrorSintesis("El modelo ${voz.name} da ${audio.frecuenciaHz} Hz, se esperaban $FRECUENCIA_HZ Hz")
         }
-
-        @Synchronized
-        override fun liberar() {
-            motor?.free()
-            motor = null
-            cargada = null
-        }
-
-        private fun motorPara(voz: VozCopiloto): OfflineTts {
-            val actual = motor
-            if (actual != null && cargada == voz) return actual
-            liberar()
-            val datos = CopiaEspeak.asegurar(contexto.assets, File(contexto.filesDir, "voz"))
-            // Dave sale de los assets; Sharvard, de archivos en disco (sin AssetManager, sherpa lee rutas reales).
-            val enDisco = voz == VozCopiloto.SHARVARD
-            if (enDisco && !voces.estaInstalada(voz)) throw ErrorSintesis("La voz ${voz.name} no está descargada")
-            val modelo = if (enDisco) voces.modeloSharvard.absolutePath else "voz/davefx/model.onnx"
-            val tokens = if (enDisco) voces.tokensSharvard.absolutePath else "voz/davefx/tokens.txt"
-            val config =
-                OfflineTtsConfig(
-                    model =
-                        OfflineTtsModelConfig(
-                            vits =
-                                OfflineTtsVitsModelConfig(
-                                    model = modelo,
-                                    tokens = tokens,
-                                    dataDir = datos.absolutePath,
-                                ),
-                            numThreads = HILOS,
-                            debug = false,
-                            provider = "cpu",
-                        ),
-                )
-            val nuevo = cargar(if (enDisco) null else contexto.assets, config)
-            motor = nuevo
-            cargada = voz
-            return nuevo
-        }
-
-        // El código nativo puede lanzar excepciones de cualquier tipo (modelo corrupto, memoria): se unifican en
-        // ErrorSintesis.
-        @Suppress("TooGenericExceptionCaught")
-        private fun cargar(
-            assets: AssetManager?,
-            config: OfflineTtsConfig,
-        ): OfflineTts =
-            try {
-                OfflineTts(assetManager = assets, config = config)
-            } catch (e: RuntimeException) {
-                throw ErrorSintesis("No se pudo cargar el modelo de voz", e)
-            } catch (e: UnsatisfiedLinkError) {
-                throw ErrorSintesis("Falta la biblioteca nativa de sherpa-onnx", e)
-            }
-
-        @Suppress("TooGenericExceptionCaught")
-        private fun generar(
-            tts: OfflineTts,
-            texto: String,
-            velocidad: VelocidadHabla,
-        ) = try {
-            tts.generate(text = texto, sid = SID, speed = velocidad.factor)
-        } catch (e: RuntimeException) {
-            throw ErrorSintesis("Falló la síntesis", e)
-        }
-
-        private fun aPcm16(muestras: FloatArray): ShortArray =
-            ShortArray(muestras.size) { i ->
-                (muestras[i].coerceIn(-1f, 1f) * Short.MAX_VALUE).roundToInt().toShort()
-            }
-
-        companion object {
-            /** Frecuencia de las dos voces Piper medium. */
-            const val FRECUENCIA_HZ = 22_050
-            private const val HILOS = 2
-            private const val SID = 0
-        }
+        return AudioPcm(aPcm16(audio.muestras), audio.frecuenciaHz)
     }
+
+    @Synchronized
+    override fun liberar() {
+        motor?.liberar()
+        motor = null
+        cargada = null
+    }
+
+    private fun motorPara(voz: VozCopiloto): TtsNativo {
+        val actual = motor
+        if (actual != null && cargada == voz) return actual
+        liberar()
+        val datos = datosEspeak()
+        // Dave sale de los assets; Sharvard, de archivos en disco (sin AssetManager, sherpa lee rutas reales).
+        val enDisco = voz == VozCopiloto.SHARVARD
+        if (enDisco && !voces.estaInstalada(voz)) throw ErrorSintesis("La voz ${voz.name} no está descargada")
+        val modelo = if (enDisco) voces.modeloSharvard.absolutePath else "voz/davefx/model.onnx"
+        val tokens = if (enDisco) voces.tokensSharvard.absolutePath else "voz/davefx/tokens.txt"
+        val nuevo = cargar(enDisco, modelo, tokens, datos.absolutePath)
+        motor = nuevo
+        cargada = voz
+        return nuevo
+    }
+
+    // El código nativo puede lanzar excepciones de cualquier tipo (modelo corrupto, memoria): se unifican en
+    // ErrorSintesis.
+    @Suppress("TooGenericExceptionCaught")
+    private fun cargar(
+        enDisco: Boolean,
+        modelo: String,
+        tokens: String,
+        datos: String,
+    ): TtsNativo =
+        try {
+            cargador.cargar(enDisco, modelo, tokens, datos)
+        } catch (e: RuntimeException) {
+            throw ErrorSintesis("No se pudo cargar el modelo de voz", e)
+        } catch (e: UnsatisfiedLinkError) {
+            throw ErrorSintesis("Falta la biblioteca nativa de sherpa-onnx", e)
+        }
+
+    @Suppress("TooGenericExceptionCaught")
+    private fun generar(
+        tts: TtsNativo,
+        texto: String,
+        velocidad: VelocidadHabla,
+    ) = try {
+        tts.generar(texto, velocidad.factor)
+    } catch (e: RuntimeException) {
+        throw ErrorSintesis("Falló la síntesis", e)
+    }
+
+    private fun aPcm16(muestras: FloatArray): ShortArray =
+        ShortArray(muestras.size) { i ->
+            (muestras[i].coerceIn(-1f, 1f) * Short.MAX_VALUE).roundToInt().toShort()
+        }
+
+    companion object {
+        /** Frecuencia de las dos voces Piper medium. */
+        const val FRECUENCIA_HZ = 22_050
+    }
+}
+
+/** Audio en coma flotante tal como lo da el motor nativo. */
+internal class AudioNativo(
+    val muestras: FloatArray,
+    val frecuenciaHz: Int,
+)
+
+/** Un modelo cargado en el motor nativo; costura para probar [MotorTtsSherpa] sin JNI. */
+internal interface TtsNativo {
+    fun generar(
+        texto: String,
+        velocidad: Float,
+    ): AudioNativo
+
+    fun liberar()
+}
+
+/** Carga un modelo en el motor nativo; puede lanzar cualquier excepción o [UnsatisfiedLinkError]. */
+internal fun interface CargadorTts {
+    /** [enDisco]: `modelo` y `tokens` son rutas reales; si no, rutas dentro de los assets. */
+    fun cargar(
+        enDisco: Boolean,
+        modelo: String,
+        tokens: String,
+        datos: String,
+    ): TtsNativo
+}
+
+/** El motor real: sherpa-onnx (Piper/VITS), con 2 hilos y CPU. */
+internal class CargadorSherpa(
+    private val assets: AssetManager,
+) : CargadorTts {
+    override fun cargar(
+        enDisco: Boolean,
+        modelo: String,
+        tokens: String,
+        datos: String,
+    ): TtsNativo {
+        val config =
+            OfflineTtsConfig(
+                model =
+                    OfflineTtsModelConfig(
+                        vits = OfflineTtsVitsModelConfig(model = modelo, tokens = tokens, dataDir = datos),
+                        numThreads = HILOS,
+                        debug = false,
+                        provider = "cpu",
+                    ),
+            )
+        return SherpaNativo(OfflineTts(assetManager = if (enDisco) null else assets, config = config))
+    }
+
+    private companion object {
+        const val HILOS = 2
+    }
+}
+
+private class SherpaNativo(
+    private val tts: OfflineTts,
+) : TtsNativo {
+    override fun generar(
+        texto: String,
+        velocidad: Float,
+    ): AudioNativo {
+        val audio = tts.generate(text = texto, sid = SID, speed = velocidad)
+        return AudioNativo(audio.samples, audio.sampleRate)
+    }
+
+    override fun liberar() = tts.free()
+
+    private companion object {
+        const val SID = 0
+    }
+}
 
 /**
  * Copia de `assets/voz/espeak-ng-data` a `<destinoBase>/espeak-ng-data`, una sola vez: la carpeta lleva un marcador

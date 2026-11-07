@@ -4,7 +4,9 @@ import app.trombito.rallycopilot.data.escucha.FabricaReconocedor
 import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -43,8 +45,16 @@ class LiberadorModelosTest {
     private val sintetizador = SintetizadorContador()
     private val reconocedores = ReconocedoresContador()
 
-    private fun liberadorCon(dispatcher: CoroutineDispatcher) =
-        LiberadorModelos(sintetizador, reconocedores, dispatcher, graciaMs = 10_000)
+    private fun liberadorCon(
+        dispatcher: CoroutineDispatcher,
+        sintetizador: SintetizadorTts = this.sintetizador,
+    ) = LiberadorModelos(
+        sintetizador,
+        reconocedores,
+        CoroutineScope(SupervisorJob() + dispatcher),
+        dispatcher,
+        graciaMs = 10_000,
+    )
 
     @Test
     fun `liberarYa suelta el sintetizador y el reconocedor`() =
@@ -108,7 +118,7 @@ class LiberadorModelosTest {
                 object : SintetizadorTts by sintetizador {
                     override fun liberar() = throw ErrorSintesis("roto")
                 }
-            val liberador = LiberadorModelos(roto, reconocedores, StandardTestDispatcher(testScheduler), 10_000)
+            val liberador = liberadorCon(StandardTestDispatcher(testScheduler), roto)
 
             runCatching { liberador.liberarYa() }
 

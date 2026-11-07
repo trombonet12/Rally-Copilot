@@ -34,7 +34,6 @@ import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.escucha.RepositorioMarcas
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.IniciarRutaA
-import app.trombito.rallycopilot.domain.notas.ProveedorNotas
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.tramos.ControlSalidaCrono
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
@@ -42,6 +41,7 @@ import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -55,148 +55,142 @@ import javax.inject.Singleton
 /** Órdenes de voz: escucha con Vosk, ejecución sobre la conducción, marcas y ediciones de notas en Room. */
 @Module
 @InstallIn(SingletonComponent::class)
-@Suppress("TooManyFunctions") // un @Provides por pieza de la escucha, las órdenes y las ediciones
-object EscuchaModule {
-    @Provides
-    fun marcasDao(base: RallyDatabase): MarcasDao = base.marcasDao()
+abstract class EscuchaModule {
+    @Binds
+    abstract fun repositorioEdiciones(repositorio: RepositorioEdicionesRoom): RepositorioEdiciones
 
-    @Provides
-    fun edicionesDao(base: RallyDatabase): EdicionesDao = base.edicionesDao()
+    @Binds
+    abstract fun repositorioMarcas(repositorio: RepositorioMarcasRoom): RepositorioMarcas
 
-    @Provides
-    @Singleton
-    fun fabricaAudio(): FabricaAudio = FabricaAudioRecord()
+    @Binds
+    abstract fun contextoConduccion(contexto: ContextoConduccionImpl): ProveedorContextoConduccion
 
-    @Provides
-    @Singleton
-    fun fabricaReconocedor(
-        @ApplicationContext contexto: Context,
-    ): FabricaReconocedor = FabricaReconocedorVosk(contexto)
+    companion object {
+        @Provides
+        fun marcasDao(base: RallyDatabase): MarcasDao = base.marcasDao()
 
-    @Provides
-    @Singleton
-    fun lugaresPronunciables(buscador: Buscador): LugaresPronunciables = LugaresPronunciables(buscador)
+        @Provides
+        fun edicionesDao(base: RallyDatabase): EdicionesDao = base.edicionesDao()
 
-    @Provides
-    @Singleton
-    fun escucha(
-        @ApplicationContext contexto: Context,
-        audio: FabricaAudio,
-        reconocedores: FabricaReconocedor,
-        lugares: LugaresPronunciables,
-        @DispatcherIo dispatcher: CoroutineDispatcher,
-    ): Escucha =
-        EscuchaImpl(
-            foco = FocoAudioExclusivo(contexto),
-            audio = audio,
-            reconocedores = reconocedores,
-            permiso = { tienePermisoMicrofono(contexto) },
-            dispatcher = dispatcher,
-            lugares = lugares::nombres,
-        )
+        @Provides
+        @Singleton
+        fun fabricaAudio(): FabricaAudio = FabricaAudioRecord()
 
-    @Provides
-    fun repositorioEdiciones(dao: EdicionesDao): RepositorioEdiciones = RepositorioEdicionesRoom(dao)
+        @Provides
+        @Singleton
+        fun fabricaReconocedor(
+            @ApplicationContext contexto: Context,
+        ): FabricaReconocedor = FabricaReconocedorVosk(contexto)
 
-    @Provides
-    fun repositorioMarcas(dao: MarcasDao): RepositorioMarcas = RepositorioMarcasRoom(dao)
-
-    @Provides
-    fun contextoConduccion(
-        notas: ProveedorNotas,
-        crono: ProveedorCrono,
-    ): ProveedorContextoConduccion = ContextoConduccionImpl(notas, crono)
-
-    @Provides
-    @Singleton
-    @Suppress("LongParameterList") // colaboradores del ejecutor de órdenes
-    fun controlOrdenes(
-        escucha: Escucha,
-        ajustes: RepositorioAjustesConduccion,
-        locutor: Locutor,
-        memoria: MemoriaFrases,
-        ediciones: RepositorioEdiciones,
-        marcas: RepositorioMarcas,
-        contexto: ProveedorContextoConduccion,
-        navegacion: ControlNavegacion,
-        crono: ProveedorCrono,
-        salida: ControlSalidaCrono,
-        vias: ProveedorViaActual,
-        ubicacion: FuenteUbicacion,
-        buscador: Buscador,
-        enrutador: Enrutador,
-        @ApplicationScope ambito: CoroutineScope,
-    ): ControlOrdenes {
-        val preguntas =
-            RespondedorPreguntas(
-                estado = { navegacion.estado.value },
-                crono = crono,
-                vias = vias,
-                ubicacion = ubicacion,
-                ahoraMs = System::currentTimeMillis,
+        @Provides
+        @Singleton
+        fun escucha(
+            @ApplicationContext contexto: Context,
+            audio: FabricaAudio,
+            reconocedores: FabricaReconocedor,
+            lugares: LugaresPronunciables,
+            @DispatcherIo dispatcher: CoroutineDispatcher,
+        ): Escucha =
+            EscuchaImpl(
+                foco = FocoAudioExclusivo(contexto),
+                audio = audio,
+                reconocedores = reconocedores,
+                permiso = { tienePermisoMicrofono(contexto) },
+                dispatcher = dispatcher,
+                lugares = lugares::nombres,
             )
-        val conduccion =
-            ConduccionPorVoz(
-                estado = { navegacion.estado.value },
-                terminar = navegacion::terminar,
-                crono = crono,
-                salida = salida,
+
+        @Provides
+        @Singleton
+        @Suppress("LongParameterList") // colaboradores del ejecutor de órdenes
+        fun controlOrdenes(
+            escucha: Escucha,
+            ajustes: RepositorioAjustesConduccion,
+            locutor: Locutor,
+            memoria: MemoriaFrases,
+            ediciones: RepositorioEdiciones,
+            marcas: RepositorioMarcas,
+            contexto: ProveedorContextoConduccion,
+            navegacion: ControlNavegacion,
+            crono: ProveedorCrono,
+            salida: ControlSalidaCrono,
+            vias: ProveedorViaActual,
+            ubicacion: FuenteUbicacion,
+            buscador: Buscador,
+            enrutador: Enrutador,
+            @ApplicationScope ambito: CoroutineScope,
+        ): ControlOrdenes {
+            val preguntas =
+                RespondedorPreguntas(
+                    estado = { navegacion.estado.value },
+                    crono = crono,
+                    vias = vias,
+                    ubicacion = ubicacion,
+                    ahoraMs = System::currentTimeMillis,
+                )
+            val conduccion =
+                ConduccionPorVoz(
+                    estado = { navegacion.estado.value },
+                    terminar = navegacion::terminar,
+                    crono = crono,
+                    salida = salida,
+                    locutor = locutor,
+                    ambito = ambito,
+                    puedeHablar = {
+                        ajustes.ajustes.first().let { it.voz != null && it.modoCopiloto != ModoCopiloto.SILENCIO }
+                    },
+                )
+            val navegacionPorVoz =
+                NavegacionPorVoz(
+                    buscador = buscador,
+                    iniciar = IniciarRutaA(navegacion, enrutador, ubicacion),
+                    control = navegacion,
+                    ajustes = ajustes,
+                    ubicacion = ubicacion,
+                    ahoraMs = System::currentTimeMillis,
+                )
+            return ControlOrdenesImpl(
+                escucha = escucha,
+                ejecutor =
+                    EjecutorOrdenes(
+                        ajustes,
+                        locutor,
+                        memoria,
+                        ediciones,
+                        marcas,
+                        contexto,
+                        System::currentTimeMillis,
+                        preguntas,
+                        conduccion,
+                        navegacionPorVoz,
+                    ),
                 locutor = locutor,
                 ambito = ambito,
-                puedeHablar = {
-                    ajustes.ajustes.first().let { it.voz != null && it.modoCopiloto != ModoCopiloto.SILENCIO }
-                },
             )
-        val navegacionPorVoz =
-            NavegacionPorVoz(
-                buscador = buscador,
-                iniciar = IniciarRutaA(navegacion, enrutador, ubicacion),
-                control = navegacion,
-                ajustes = ajustes,
-                ubicacion = ubicacion,
-                ahoraMs = System::currentTimeMillis,
+        }
+
+        @Provides
+        @Suppress("LongParameterList") // proveedor de Hilt: cada colaborador llega inyectado
+        fun escuchaContinua(
+            @ApplicationContext contexto: Context,
+            audio: FabricaAudio,
+            reconocedores: FabricaReconocedor,
+            ajustes: RepositorioAjustesConduccion,
+            control: ControlOrdenes,
+            @DispatcherIo dispatcher: CoroutineDispatcher,
+        ): EscuchaContinua =
+            EscuchaContinua(
+                audio = audio,
+                reconocedores = reconocedores,
+                permiso = { tienePermisoMicrofono(contexto) },
+                ajustes = ajustes.ajustes,
+                control = control,
+                dispatcher = dispatcher,
+                tic = ReproductorTic()::sonar,
             )
-        return ControlOrdenesImpl(
-            escucha = escucha,
-            ejecutor =
-                EjecutorOrdenes(
-                    ajustes,
-                    locutor,
-                    memoria,
-                    ediciones,
-                    marcas,
-                    contexto,
-                    System::currentTimeMillis,
-                    preguntas,
-                    conduccion,
-                    navegacionPorVoz,
-                ),
-            locutor = locutor,
-            ambito = ambito,
-        )
+
+        private fun tienePermisoMicrofono(contexto: Context): Boolean =
+            ContextCompat.checkSelfPermission(contexto, Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
     }
-
-    @Provides
-    @Suppress("LongParameterList") // proveedor de Hilt: cada colaborador llega inyectado
-    fun escuchaContinua(
-        @ApplicationContext contexto: Context,
-        audio: FabricaAudio,
-        reconocedores: FabricaReconocedor,
-        ajustes: RepositorioAjustesConduccion,
-        control: ControlOrdenes,
-        @DispatcherIo dispatcher: CoroutineDispatcher,
-    ): EscuchaContinua =
-        EscuchaContinua(
-            audio = audio,
-            reconocedores = reconocedores,
-            permiso = { tienePermisoMicrofono(contexto) },
-            ajustes = ajustes.ajustes,
-            control = control,
-            dispatcher = dispatcher,
-            tic = ReproductorTic()::sonar,
-        )
-
-    private fun tienePermisoMicrofono(contexto: Context): Boolean =
-        ContextCompat.checkSelfPermission(contexto, Manifest.permission.RECORD_AUDIO) ==
-            PackageManager.PERMISSION_GRANTED
 }

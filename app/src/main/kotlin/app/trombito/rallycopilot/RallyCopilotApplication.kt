@@ -7,11 +7,12 @@ import androidx.work.Configuration
 import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.data.escucha.FabricaReconocedor
 import app.trombito.rallycopilot.data.voz.LiberadorModelos
+import app.trombito.rallycopilot.di.ApplicationScope
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.ui.mapa.precargarBibliotecaMapa
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -28,6 +29,12 @@ class RallyCopilotApplication :
 
     @Inject lateinit var siembra: EsperaDatosSembrados
 
+    @Inject @field:ApplicationScope
+    lateinit var segundoPlano: CoroutineScope
+
+    @Inject @field:DispatcherIo
+    lateinit var dispatcherIo: CoroutineDispatcher
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(fabricaTrabajos).build()
 
@@ -35,13 +42,12 @@ class RallyCopilotApplication :
         super.onCreate()
         // Vosk se copia a disco en segundo plano en cuanto acaba la siembra de los datos (sin iniciarla: la inicia
         // quien abre el mapa); así la primera activación de «Copiloto» no espera a copiar 57 MiB.
-        val segundoPlano = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-        segundoPlano.launch {
+        segundoPlano.launch(dispatcherIo) {
             siembra.listo.first { it }
             reconocedores.precopiar()
         }
         // La biblioteca nativa del mapa se carga ya, fuera del hilo principal (el primer mapa no la espera).
-        segundoPlano.launch { precargarBibliotecaMapa() }
+        segundoPlano.launch(dispatcherIo) { precargarBibliotecaMapa() }
     }
 
     /** Con la app en segundo plano y el sistema escaso de memoria, suelta Piper y Vosk (se recargan al usarlos). */

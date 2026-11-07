@@ -22,6 +22,8 @@ import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.tramos.FabricaCronoSesion
 import app.trombito.rallycopilot.data.voz.LiberadorModelos
+import app.trombito.rallycopilot.di.DispatcherDefault
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
@@ -30,6 +32,7 @@ import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.voz.Locutor
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -84,6 +87,12 @@ class ServicioNavegacion : Service() {
 
     @Inject lateinit var liberadorModelos: LiberadorModelos
 
+    @Inject @field:DispatcherDefault
+    lateinit var dispatcherDefault: CoroutineDispatcher
+
+    @Inject @field:DispatcherIo
+    lateinit var dispatcherIo: CoroutineDispatcher
+
     private lateinit var notificacion: NotificacionNavegacion
     private lateinit var scope: CoroutineScope
     private var trabajo: Job? = null
@@ -112,11 +121,11 @@ class ServicioNavegacion : Service() {
                 ContextCompat.getMainExecutor(this).execute { detener() }
             }
         // Un solo hilo: SesionNavegacion no es concurrente y los recálculos no deben pisar a las posiciones.
-        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1) + alFallar)
+        scope = CoroutineScope(SupervisorJob() + dispatcherDefault.limitedParallelism(1) + alFallar)
         if (control.reclamarCierreDeHuerfanos()) huerfanos = scope.launch { cerrarHuerfanos() }
         // «Copiloto»: solo hace algo con el ajuste activado y el permiso de micrófono; vive lo que dure el servicio.
         // La puerta de voz se cierra mientras habla el copiloto, para que no se escuche a sí mismo.
-        scope.launch(Dispatchers.Default) {
+        scope.launch(dispatcherDefault) {
             escuchaContinua.correr(hablando = { locutor.hablando.value }, registro = registroDeTiempos())
         }
     }
@@ -339,8 +348,16 @@ private fun ServicioNavegacion.tiposDeseados(copiloto: Boolean): Int =
         ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
     }
 
-/** Lectura breve del ajuste en el arranque; si no llega a tiempo, empieza sin micrófono y el vigilante lo corrige. */
+/**
+ * Lectura breve del ajuste en el arranque; si no llega a tiempo, empieza sin micrófono y el vigilante lo corrige.
+ *
+ * Es el único `runBlocking` de producción y se queda: se llama desde `onStartCommand` (hilo principal), que debe
+ * declarar el primer plano con sus tipos antes de volver al sistema. El tipo `microphone` solo se concede si se pide
+ * al entrar en primer plano mientras la app es visible; declararlo luego desde el vigilante (tras volver de
+ * `onStartCommand`) puede rechazarse y cambiaría el comportamiento. El bloqueo está acotado a [PLAZO_AJUSTE_MS] y va
+ * fuera del hilo principal (dispatcher de E/S inyectado).
+ */
 private fun ServicioNavegacion.copilotoActivoAhora(): Boolean =
-    runBlocking(Dispatchers.IO) {
+    runBlocking(dispatcherIo) {
         withTimeoutOrNull(PLAZO_AJUSTE_MS) { ajustes.ajustes.first().activarConCopiloto } ?: false
     }

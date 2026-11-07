@@ -2,6 +2,8 @@ package app.trombito.rallycopilot.data.escucha
 
 import app.trombito.rallycopilot.domain.busqueda.Buscador
 import java.util.Locale
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Los nombres de municipios y localidades de Mallorca tal como se pueden decir («Sóller», «Cala d'Or» → «cala d or»),
@@ -11,11 +13,15 @@ import java.util.Locale
  * y se descartan. La lista se calcula la primera vez que hay índice y se conserva mientras viva el proceso; si el
  * índice aún no está, no se guarda y se vuelve a intentar.
  */
-class LugaresPronunciables(
+@Singleton
+class LugaresPronunciables internal constructor(
     private val buscador: Buscador,
     private val conoce: (String) -> Boolean = VocabularioVosk::conoce,
     private val consulta: Int = NOMBRES_CONSULTADOS,
 ) {
+    @Inject
+    constructor(buscador: Buscador) : this(buscador, VocabularioVosk::conoce, NOMBRES_CONSULTADOS)
+
     @Volatile
     private var guardados: List<String>? = null
 
