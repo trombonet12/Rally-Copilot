@@ -25,6 +25,24 @@
     <string name="copiloto_voz_dialogo_texto">Escucha cada voz y quédate con la que prefieras. Podrás cambiarla en Ajustes.</string>
     <string name="copiloto_voz_elegir">Elegir</string>
 
+    <!-- Avisos por voz y velocidad de habla: hoja del copiloto y Ajustes > Voz -->
+    <string name="avisos_titulo">Avisos por voz</string>
+    <string name="avisos_detalle">Apaga una familia y el copiloto deja de decirla; el banner y la píldora siguen igual y las notas y maniobras no cambian.</string>
+    <string name="avisos_radares">Radares</string>
+    <string name="avisos_incidencias">Incidencias</string>
+    <string name="avisos_velocidad">Velocidad</string>
+    <string name="avisos_radares_descripcion">Avisar de radares por voz</string>
+    <string name="avisos_incidencias_descripcion">Avisar de incidencias por voz</string>
+    <string name="avisos_velocidad_descripcion">Avisar por voz del exceso de velocidad y de la media del tramo</string>
+    <string name="habla_titulo">Velocidad de habla</string>
+    <string name="habla_detalle">Rápida acorta cada frase un poco más de una sexta parte, para decir más en menos carretera. Al elegir una suena una frase de ejemplo.</string>
+    <string name="habla_normal">Normal</string>
+    <string name="habla_rapida">Rápida</string>
+    <string name="habla_normal_descripcion">Hablar a velocidad normal</string>
+    <string name="habla_rapida_descripcion">Hablar más rápido</string>
+    <string name="habla_prevista_normal">Habla normal</string>
+    <string name="habla_prevista_rapida">Habla rápida</string>
+
     <!-- Órdenes de voz: botón del micrófono, permiso y palabra de activación -->
     <string name="microfono_boton">Hablar al copiloto</string>
     <string name="microfono_escuchando">Escuchando al copiloto</string>

@@ -32,6 +32,11 @@ data class AjustesConduccionEntity(
     // Casa («volver a casa»): las dos columnas a la vez o ninguna; sin valor por defecto en SQL (nulas).
     val casaLat: Double? = null,
     val casaLon: Double? = null,
+    // Familias de avisos que se dicen por voz y velocidad de habla (v18); por defecto, todo encendido y normal.
+    @ColumnInfo(defaultValue = "1") val avisarRadares: Boolean = true,
+    @ColumnInfo(defaultValue = "1") val avisarIncidencias: Boolean = true,
+    @ColumnInfo(defaultValue = "1") val avisarVelocidad: Boolean = true,
+    @ColumnInfo(defaultValue = "'NORMAL'") val velocidadHabla: String = "NORMAL",
 )
 
 /** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */

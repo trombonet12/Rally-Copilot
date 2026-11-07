@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -72,7 +73,9 @@ class AjustesViewModel
         /** Dice la frase de muestra con [voz] sin cambiar la elegida y con el volumen elegido. */
         fun onProbarVoz(voz: VozCopiloto) {
             viewModelScope.launch {
-                locutor.usarVolumen(repositorio.ajustes.first().volumenVoz)
+                val ajustes = repositorio.ajustes.first()
+                locutor.usarVolumen(ajustes.volumenVoz)
+                locutor.usarVelocidad(ajustes.velocidadHabla)
                 locutor.probar(voz)
             }
         }
@@ -118,6 +121,29 @@ class AjustesViewModel
 
         fun onAvisarRotondas(avisar: Boolean) {
             guardar { it.copy(avisarRotondas = avisar) }
+        }
+
+        /** Familias de avisos que se dicen por voz: radares, incidencias y velocidad (exceso y media del tramo). */
+        fun onAvisarRadares(avisar: Boolean) {
+            guardar { it.copy(avisarRadares = avisar) }
+        }
+
+        fun onAvisarIncidencias(avisar: Boolean) {
+            guardar { it.copy(avisarIncidencias = avisar) }
+        }
+
+        fun onAvisarVelocidad(avisar: Boolean) {
+            guardar { it.copy(avisarVelocidad = avisar) }
+        }
+
+        /** Velocidad de habla: se guarda, se aplica al locutor al instante y suena la frase de ejemplo con ella. */
+        fun onVelocidadHabla(velocidad: VelocidadHabla) {
+            locutor.usarVelocidad(velocidad)
+            viewModelScope.launch {
+                val nuevos = repositorio.ajustes.first().copy(velocidadHabla = velocidad)
+                repositorio.guardar(nuevos)
+                locutor.decirEjemplo(nuevos)
+            }
         }
 
         fun onCapa(capa: CapaMapa) {

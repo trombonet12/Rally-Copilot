@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.voz
 
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -101,5 +102,47 @@ class CacheFrasesTest {
 
         assertFalse(cache().contiene(VozCopiloto.DAVEFX, "rota"))
         assertFalse(ruta.exists())
+    }
+
+    @Test
+    fun `la velocidad rapida tiene su carpeta y la normal conserva la clave de siempre`() {
+        val normal = CacheFrases.clave(VozCopiloto.DAVEFX, "a")
+        val rapida = CacheFrases.clave(VozCopiloto.DAVEFX, "a", VelocidadHabla.RAPIDA)
+
+        assertEquals(normal, CacheFrases.clave(VozCopiloto.DAVEFX, "a", VelocidadHabla.NORMAL))
+        assertNotEquals(normal, rapida)
+        assertTrue(rapida.startsWith("davefx-rapida/"))
+        assertEquals(normal.substringAfter('/'), rapida.substringAfter('/'))
+    }
+
+    @Test
+    fun `cada velocidad guarda y lee su propio audio sin mezclarlos`() {
+        val c = cache()
+
+        c.guardar(VozCopiloto.DAVEFX, "a", pcm(10))
+        assertFalse(c.contiene(VozCopiloto.DAVEFX, "a", VelocidadHabla.RAPIDA))
+        assertNull(c.leer(VozCopiloto.DAVEFX, "a", VelocidadHabla.RAPIDA))
+
+        c.guardar(VozCopiloto.DAVEFX, "a", pcm(6), VelocidadHabla.RAPIDA)
+
+        assertArrayEquals(pcm(10), c.leer(VozCopiloto.DAVEFX, "a"))
+        assertArrayEquals(pcm(6), c.leer(VozCopiloto.DAVEFX, "a", VelocidadHabla.RAPIDA))
+        assertEquals(20L, c.bytes(VozCopiloto.DAVEFX, "a"))
+        assertEquals(12L, c.bytes(VozCopiloto.DAVEFX, "a", VelocidadHabla.RAPIDA))
+        assertEquals(32L, c.tamanoTotal())
+    }
+
+    @Test
+    fun `al reabrir reconoce las frases de las dos velocidades`() {
+        cache().apply {
+            guardar(VozCopiloto.SHARVARD, "a", pcm(4))
+            guardar(VozCopiloto.SHARVARD, "a", pcm(3), VelocidadHabla.RAPIDA)
+        }
+
+        val reabierta = cache()
+
+        assertTrue(reabierta.contiene(VozCopiloto.SHARVARD, "a"))
+        assertTrue(reabierta.contiene(VozCopiloto.SHARVARD, "a", VelocidadHabla.RAPIDA))
+        assertEquals(14L, reabierta.tamanoTotal())
     }
 }

@@ -21,7 +21,7 @@ import kotlin.math.sin
 
 /**
  * La cadena de migraciones entera (QA-6, ARQ-6, ARQ-14, QA-7): la lista única de producción sin huecos, el salto
- * v16 -> v17, la cadena v1 -> v17 comparada con el esquema exportado y una base con datos variados.
+ * v16 -> v17, la cadena v1 -> actual comparada con el esquema exportado y una base con datos variados.
  */
 @RunWith(RobolectricTestRunner::class)
 class MigracionRoomCadenaTest {

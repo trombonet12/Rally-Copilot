@@ -527,4 +527,32 @@ class MigracionRoomTest {
             assertEquals(2.9, guardados.casaLon)
             assertEquals(RallyDatabase.VERSION, nueva.openHelper.writableDatabase.version)
         }
+
+    @Test
+    fun `de v17 a v18 deja todos los avisos encendidos y la voz normal y admite cambiarlos`() =
+        runBlocking {
+            crearBase(17)
+            val nueva =
+                Room
+                    .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
+                    .addMigrations(*TODAS_LAS_MIGRACIONES)
+                    .allowMainThreadQueries()
+                    .build()
+                    .also { base = it }
+
+            val dao = nueva.ajustesConduccionDao()
+            val migrados = checkNotNull(dao.observar().first())
+            assertEquals(true, migrados.avisarRadares)
+            assertEquals(true, migrados.avisarIncidencias)
+            assertEquals(true, migrados.avisarVelocidad)
+            assertEquals("NORMAL", migrados.velocidadHabla)
+            assertEquals(2, migrados.nivelZoom)
+            dao.guardar(migrados.copy(avisarRadares = false, avisarVelocidad = false, velocidadHabla = "RAPIDA"))
+            val guardados = checkNotNull(dao.observar().first())
+            assertEquals(false, guardados.avisarRadares)
+            assertEquals(true, guardados.avisarIncidencias)
+            assertEquals(false, guardados.avisarVelocidad)
+            assertEquals("RAPIDA", guardados.velocidadHabla)
+            assertEquals(RallyDatabase.VERSION, nueva.openHelper.writableDatabase.version)
+        }
 }

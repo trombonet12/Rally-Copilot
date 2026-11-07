@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.navegacion
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.alertas.AlertasRadar
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
@@ -35,7 +36,8 @@ class RutaVoz(
  * [PlanificadorFrases] por sesión: no repite lo dicho ni dice lo que llegaría tarde. Con el modo SILENCIO, o sin voz
  * elegida (`voz == null`), no habla (ni sintetiza). Las [ajustes] se siguen con [seguirAjustes]; [registro] recibe
  * una línea por frase dicha (id, metros que faltaban y velocidad: nunca coordenadas) para medir la anticipación y
- * [alDecir] el texto de cada frase dicha (la orden de voz «repite» vuelve a decir la última).
+ * [alDecir] el texto de cada frase dicha (la orden de voz «repite» vuelve a decir la última). Las familias de avisos
+ * que los ajustes apagan (radares, incidencias, velocidad) no se dicen, pero las notas y maniobras no se tocan.
  *
  * El [locutor] es de la aplicación y sobrevive a la sesión: [cerrar] solo deja de pedirle trabajo. No es concurrente:
  * [alFijar] y [cerrar] se llaman desde la corrutina de la sesión.
@@ -55,6 +57,7 @@ class CopilotoVoz(
     @Volatile private var actuales = AjustesConduccion()
     private var vozEnLocutor: VozCopiloto? = null
     private var volumenEnLocutor: Int? = null
+    private var velocidadEnLocutor: VelocidadHabla? = null
     private var ultimaPreparacion: List<String>? = null
     private var rutaAnterior: RutaVoz? = null
     private var generacionRuta = 0
@@ -128,23 +131,15 @@ class CopilotoVoz(
         vMs: Double?,
         alertas: List<Frase> = emptyList(),
     ) {
-        val habladas = alertas.filterNot { AlertasRadar.esContrario(it.id) }
+        val a = actuales
+        val habladas = alertas.filterNot { AlertasRadar.esContrario(it.id) }.filter(a.filtroAvisos::permite)
         val progresoPrevio = ultimoProgresoM
         if (progresoM != null) ultimoProgresoM = progresoM
         val sinPosicion = habladas.isEmpty() && porDecir.isEmpty()
         val posicionM = progresoM ?: notas?.posicionM ?: if (sinPosicion) null else 0.0
-        val a = actuales
         val voz = a.voz
         if (voz == null || posicionM == null) return
-        if (voz != vozEnLocutor) {
-            locutor.usarVoz(voz)
-            vozEnLocutor = voz
-            ultimaPreparacion = null
-        }
-        if (a.volumenVoz != volumenEnLocutor) {
-            locutor.usarVolumen(a.volumenVoz)
-            volumenEnLocutor = a.volumenVoz
-        }
+        sincronizarLocutor(a, voz)
         if (ruta !== rutaAnterior) {
             val anterior = rutaAnterior
             val generacionAnterior = generacionRuta
@@ -168,6 +163,27 @@ class CopilotoVoz(
             }
         }
         preparar(previstas, posicionM, a)
+    }
+
+    /** Pasa al locutor la voz, el volumen y la velocidad de habla de los ajustes cuando cambian. */
+    private fun sincronizarLocutor(
+        a: AjustesConduccion,
+        voz: VozCopiloto,
+    ) {
+        if (voz != vozEnLocutor) {
+            locutor.usarVoz(voz)
+            vozEnLocutor = voz
+            ultimaPreparacion = null
+        }
+        if (a.volumenVoz != volumenEnLocutor) {
+            locutor.usarVolumen(a.volumenVoz)
+            volumenEnLocutor = a.volumenVoz
+        }
+        if (a.velocidadHabla != velocidadEnLocutor) {
+            locutor.usarVelocidad(a.velocidadHabla)
+            velocidadEnLocutor = a.velocidadHabla
+            ultimaPreparacion = null // lo preparado a otra velocidad no vale: se vuelve a pedir
+        }
     }
 
     /**

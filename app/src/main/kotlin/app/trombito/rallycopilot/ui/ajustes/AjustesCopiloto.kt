@@ -25,9 +25,12 @@ import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.copiloto.AccionesAvisos
 import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_VOZ_OPCION_PREFIJO
 import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_VOZ_PROBAR_PREFIJO
 import app.trombito.rallycopilot.ui.copiloto.IconoModo
+import app.trombito.rallycopilot.ui.copiloto.InterruptoresAvisos
+import app.trombito.rallycopilot.ui.copiloto.SelectorVelocidadHabla
 import app.trombito.rallycopilot.ui.copiloto.detalle
 import app.trombito.rallycopilot.ui.copiloto.nombre
 import app.trombito.rallycopilot.ui.copiloto.rememberSolicitudMicrofono
@@ -88,6 +91,13 @@ internal fun ControlesVoz(
     }
     Opcion(R.string.ajustes_volumen_titulo, R.string.ajustes_volumen_aviso) {
         ControlVolumen(ajustes.volumenVoz, acciones.onVolumenVoz)
+    }
+    Opcion(R.string.habla_titulo, R.string.habla_detalle) {
+        SelectorVelocidadHabla(ajustes.velocidadHabla, acciones.onVelocidadHabla)
+    }
+    Opcion(R.string.avisos_titulo, R.string.avisos_detalle) {
+        val avisos = AccionesAvisos(acciones.onAvisarRadares, acciones.onAvisarIncidencias, acciones.onAvisarVelocidad)
+        InterruptoresAvisos(ajustes.avisarRadares, ajustes.avisarIncidencias, ajustes.avisarVelocidad, avisos)
     }
 }
 

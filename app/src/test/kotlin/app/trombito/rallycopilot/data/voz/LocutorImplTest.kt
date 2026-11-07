@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.voz
 
 import app.trombito.rallycopilot.domain.voz.PrioridadVoz
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,9 @@ import org.robolectric.RobolectricTestRunner
 
 private class SintetizadorFalso : SintetizadorTts {
     val llamadas = mutableListOf<Pair<VozCopiloto, String>>()
+
+    /** Cada llamada con la velocidad pedida, en orden. */
+    val velocidades = mutableListOf<VelocidadHabla>()
     var falla = false
 
     override fun frecuenciaHz(voz: VozCopiloto) = 1_000
@@ -28,8 +32,10 @@ private class SintetizadorFalso : SintetizadorTts {
     override fun sintetizar(
         voz: VozCopiloto,
         texto: String,
+        velocidad: VelocidadHabla,
     ): AudioPcm {
         llamadas += voz to texto
+        velocidades += velocidad
         if (falla) throw ErrorSintesis("falso")
         return AudioPcm(ShortArray(texto.length * 100) { 1_000 }, 1_000)
     }
@@ -336,5 +342,68 @@ class LocutorImplTest {
             advanceUntilIdle()
 
             assertEquals(listOf(700), repro.sonadas)
+        }
+
+    @Test
+    fun `cada velocidad tiene su cache y se sintetiza a la velocidad pedida`() =
+        runTest {
+            val (locutor, cache) = locutor()
+
+            locutor.decir("a")
+            advanceUntilIdle()
+            locutor.usarVelocidad(VelocidadHabla.RAPIDA)
+            locutor.decir("a") // no vale la normal: se sintetiza otra vez
+            advanceUntilIdle()
+            locutor.decir("a") // ya esta a velocidad rapida
+            advanceUntilIdle()
+
+            assertEquals(listOf(VelocidadHabla.NORMAL, VelocidadHabla.RAPIDA), sint.velocidades)
+            assertTrue(cache.contiene(VozCopiloto.DAVEFX, "a", VelocidadHabla.NORMAL))
+            assertTrue(cache.contiene(VozCopiloto.DAVEFX, "a", VelocidadHabla.RAPIDA))
+            assertEquals(3, repro.sonadas.size)
+        }
+
+    @Test
+    fun `cambiar la velocidad regenera las frases preparadas y descarta la cola anterior`() =
+        runTest {
+            val (locutor, cache) = locutor()
+            locutor.preparar(listOf("a", "b"))
+            advanceUntilIdle()
+            assertEquals(listOf("a", "b"), sint.llamadas.map { it.second })
+
+            locutor.usarVelocidad(VelocidadHabla.RAPIDA)
+            locutor.preparar(listOf("a", "b")) // lo normal no cuenta: hay que sintetizar de nuevo
+            advanceUntilIdle()
+
+            assertEquals(listOf("a", "b", "a", "b"), sint.llamadas.map { it.second })
+            assertEquals(
+                listOf(VelocidadHabla.NORMAL, VelocidadHabla.NORMAL, VelocidadHabla.RAPIDA, VelocidadHabla.RAPIDA),
+                sint.velocidades,
+            )
+            assertTrue(cache.contiene(VozCopiloto.DAVEFX, "b", VelocidadHabla.RAPIDA))
+        }
+
+    @Test
+    fun `la vista previa de la velocidad dice la frase con la velocidad vigente`() =
+        runTest {
+            val (locutor, _) = locutor()
+
+            locutor.usarVelocidad(VelocidadHabla.RAPIDA)
+            locutor.probarFrase(VozCopiloto.DAVEFX, "derecha cuatro")
+            locutor.probar(VozCopiloto.SHARVARD)
+            advanceUntilIdle()
+
+            assertEquals(listOf(VelocidadHabla.RAPIDA, VelocidadHabla.RAPIDA), sint.velocidades)
+        }
+
+    @Test
+    fun `la duracion estimada sin cache es menor a velocidad rapida`() =
+        runTest {
+            val (locutor, _) = locutor()
+            val normal = locutor.duracionEstimadaS("hola")
+
+            locutor.usarVelocidad(VelocidadHabla.RAPIDA)
+
+            assertEquals(normal / VelocidadHabla.RAPIDA.factor, locutor.duracionEstimadaS("hola"), 1e-6)
         }
 }

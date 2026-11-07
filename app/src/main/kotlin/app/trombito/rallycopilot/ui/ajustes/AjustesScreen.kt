@@ -33,6 +33,7 @@ import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -78,6 +79,10 @@ data class AccionesAjustes(
     val onAvisarCruces: (Boolean) -> Unit = {},
     val onAvisarSalidasAutopista: (Boolean) -> Unit = {},
     val onAvisarRotondas: (Boolean) -> Unit = {},
+    val onAvisarRadares: (Boolean) -> Unit = {},
+    val onAvisarIncidencias: (Boolean) -> Unit = {},
+    val onAvisarVelocidad: (Boolean) -> Unit = {},
+    val onVelocidadHabla: (VelocidadHabla) -> Unit = {},
     val onExportarCopia: () -> Unit = {},
     val onImportarCopia: () -> Unit = {},
     val onVerTutorial: () -> Unit = {},

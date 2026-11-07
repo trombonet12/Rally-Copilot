@@ -4,6 +4,7 @@ import android.os.SystemClock
 import android.util.Log
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.PrioridadVoz
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -24,6 +25,8 @@ import kotlinx.coroutines.withContext
  *   [preparar] y las frases urgentes de [decir] se turnan, así que [decir] espera como mucho a la frase en curso.
  * - **Cola de [preparar]**: sin duplicados, sin lo ya cacheado ni lo que se está sintetizando, y cada llamada sustituye
  *   a la lista anterior (lo que ya no se pide se descarta antes de sintetizarlo).
+ * - **Velocidad de habla**: [usarVelocidad] cambia la de lo que se sintetice a partir de ahora; cada velocidad
+ *   tiene su propia caché y la cola de [preparar] de la anterior se descarta.
  * - **Volumen**: [usarVolumen] aplica una ganancia al PCM justo antes de reproducir (la caché guarda el original), así
  *   que el cambio vale para la frase siguiente y puede subir de 100 % sin saturar ([GananciaPcm]).
  * - **[decir]**: una frase a la vez, por orden de llegada. Sintetiza si no está en caché, pide el foco, suena y lo
@@ -45,6 +48,7 @@ class LocutorImpl(
     private class Peticion(
         val voz: VozCopiloto,
         val texto: String,
+        val velocidad: VelocidadHabla,
         val caducaMs: Long? = null,
     )
 
@@ -52,6 +56,8 @@ class LocutorImpl(
     override val hablando: StateFlow<Boolean> = estaHablando.asStateFlow()
 
     @Volatile private var voz = VozCopiloto.DAVEFX
+
+    @Volatile private var velocidad = VelocidadHabla.NORMAL
 
     @Volatile private var volumenPorcentaje = GananciaPcm.NORMAL
 
@@ -85,19 +91,25 @@ class LocutorImpl(
         synchronized(lockCola) { pendientes.clear() }
     }
 
+    override fun usarVelocidad(v: VelocidadHabla) {
+        velocidad = v
+        synchronized(lockCola) { pendientes.clear() }
+    }
+
     override fun preparar(textos: List<String>) {
         val vozActual = voz
+        val velocidadActual = velocidad
         val nuevas =
             textos
                 .filter { it.isNotBlank() }
                 .distinct()
-                .filterNot { cache.contiene(vozActual, it) }
+                .filterNot { cache.contiene(vozActual, it, velocidadActual) }
         val lanzar =
             synchronized(lockCola) {
                 pendientes.clear()
                 for (texto in nuevas) {
-                    val clave = CacheFrases.clave(vozActual, texto)
-                    if (clave != enCurso) pendientes[clave] = Peticion(vozActual, texto)
+                    val clave = CacheFrases.clave(vozActual, texto, velocidadActual)
+                    if (clave != enCurso) pendientes[clave] = Peticion(vozActual, texto, velocidadActual)
                 }
                 (pendientes.isNotEmpty() && !trabajando).also { if (it) trabajando = true }
             }
@@ -109,7 +121,7 @@ class LocutorImpl(
         prioridad: PrioridadVoz,
         caducaMs: Long?,
     ) {
-        if (texto.isNotBlank()) encolar(Peticion(voz, texto, caducaMs), prioridad)
+        if (texto.isNotBlank()) encolar(Peticion(voz, texto, velocidad, caducaMs), prioridad)
     }
 
     private fun encolar(
@@ -125,16 +137,17 @@ class LocutorImpl(
 
     override fun duracionEstimadaS(texto: String): Double {
         val vozActual = voz
-        val bytes = cache.bytes(vozActual, texto)
+        val velocidadActual = velocidad
+        val bytes = cache.bytes(vozActual, texto, velocidadActual)
         return if (bytes != null) {
             bytes / BYTES_POR_MUESTRA / sintetizador.frecuenciaHz(vozActual).toDouble()
         } else {
-            texto.length * SEGUNDOS_POR_CARACTER
+            texto.length * SEGUNDOS_POR_CARACTER / velocidadActual.factor
         }
     }
 
     override fun probar(v: VozCopiloto) {
-        encolar(Peticion(v, FRASE_PRUEBA))
+        encolar(Peticion(v, FRASE_PRUEBA, velocidad))
     }
 
     override fun usarVolumen(porcentaje: Int) {
@@ -145,7 +158,7 @@ class LocutorImpl(
         v: VozCopiloto,
         texto: String,
     ) {
-        if (texto.isNotBlank()) encolar(Peticion(v, texto))
+        if (texto.isNotBlank()) encolar(Peticion(v, texto, velocidad))
     }
 
     override fun cerrar() {
@@ -162,7 +175,7 @@ class LocutorImpl(
         while (true) {
             val peticion = siguiente() ?: return
             try {
-                if (!cache.contiene(peticion.voz, peticion.texto)) sintetizar(peticion.voz, peticion.texto)
+                if (!cache.contiene(peticion.voz, peticion.texto, peticion.velocidad)) sintetizar(peticion)
             } finally {
                 synchronized(lockCola) { enCurso = null }
             }
@@ -183,16 +196,15 @@ class LocutorImpl(
         }
 
     /** Devuelve el PCM de la frase (de la caché o recién sintetizado) o `null` si no se pudo sintetizar. */
-    private suspend fun sintetizar(
-        voz: VozCopiloto,
-        texto: String,
-    ): ShortArray? =
+    private suspend fun sintetizar(p: Peticion): ShortArray? =
         withContext(dispatcherSintesis) {
             turnoSintesis.withLock {
-                cache.leer(voz, texto) ?: try {
-                    sintetizador.sintetizar(voz, texto).muestras.also { cache.guardar(voz, texto, it) }
+                cache.leer(p.voz, p.texto, p.velocidad) ?: try {
+                    sintetizador.sintetizar(p.voz, p.texto, p.velocidad).muestras.also {
+                        cache.guardar(p.voz, p.texto, it, p.velocidad)
+                    }
                 } catch (e: ErrorSintesis) {
-                    Log.w(TAG, "No se pudo sintetizar una frase de ${texto.length} caracteres", e)
+                    Log.w(TAG, "No se pudo sintetizar una frase de ${p.texto.length} caracteres", e)
                     null
                 }
             }
@@ -203,7 +215,7 @@ class LocutorImpl(
     /** El PCM de [peticion], o `null` si caducó (antes o mientras se sintetizaba) o no se pudo sintetizar. */
     private suspend fun muestrasVigentes(peticion: Peticion): ShortArray? {
         if (caducada(peticion)) return null
-        val muestras = cache.leer(peticion.voz, peticion.texto) ?: sintetizar(peticion.voz, peticion.texto)
+        val muestras = cache.leer(peticion.voz, peticion.texto, peticion.velocidad) ?: sintetizar(peticion)
         // Sintetizar puede tardar: si mientras tanto caducó, ya no vale.
         return muestras?.takeUnless { caducada(peticion) }
     }

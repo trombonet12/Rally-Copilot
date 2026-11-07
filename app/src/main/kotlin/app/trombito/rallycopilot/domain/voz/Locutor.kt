@@ -5,6 +5,18 @@ import kotlinx.coroutines.flow.StateFlow
 /** Voces masculinas es_ES disponibles (decisión 2026-11-01): `davefx` y `sharvard` (hablante 0). */
 enum class VozCopiloto { DAVEFX, SHARVARD }
 
+/**
+ * Velocidad de habla de la voz. [factor] es el `speed` de sherpa-onnx (en Piper/VITS, `length_scale = 1 / speed`):
+ * 1,2 acorta cada frase un 17 % (una de 3 s dura 2,5 s: a 100 km/h son ~14 m menos de carretera hablada) y sigue
+ * siendo clara; por encima de ~1,3 el VITS empieza a comerse sílabas.
+ */
+enum class VelocidadHabla(
+    val factor: Float,
+) {
+    NORMAL(1.0f),
+    RAPIDA(1.2f),
+}
+
 /** Con qué urgencia entra una frase en la cola del [Locutor]. */
 enum class PrioridadVoz {
     /** Por orden de llegada, detrás de lo que ya espera. */
@@ -29,6 +41,12 @@ interface Locutor {
 
     /** Voz con la que se sintetiza y se dice a partir de ahora; vacía la cola de [preparar] de la voz anterior. */
     fun usarVoz(v: VozCopiloto)
+
+    /**
+     * Velocidad de habla de lo que se sintetice y suene a partir de ahora (también la vista previa). Cada velocidad
+     * tiene su propia caché: lo ya preparado a otra velocidad se descarta y [preparar] debe volver a pedirse.
+     */
+    fun usarVelocidad(v: VelocidadHabla) = Unit
 
     /** Pide sintetizar [textos] por adelantado con la voz actual; sustituye a la lista pedida antes. */
     fun preparar(textos: List<String>)

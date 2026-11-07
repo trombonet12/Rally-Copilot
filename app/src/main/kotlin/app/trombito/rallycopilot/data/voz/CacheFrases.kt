@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.voz
 
 import android.util.Log
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import java.io.File
 import java.io.IOException
@@ -13,7 +14,9 @@ import java.security.MessageDigest
 
 /**
  * Caché en disco de frases ya sintetizadas: PCM de 16 bits mono (little-endian, sin cabecera, a la frecuencia del
- * modelo) en `<raiz>/<voz>/<sha256(texto)>.pcm`. Expulsa lo menos usado cuando se pasa de [maxBytes].
+ * modelo) en `<raiz>/<voz>/<sha256(texto)>.pcm` (a velocidad normal) o `<raiz>/<voz>-rapida/<sha256(texto)>.pcm`: cada
+ * velocidad de habla tiene su carpeta, así que cambiarla no mezcla audios. Expulsa lo menos usado cuando se pasa de
+ * [maxBytes].
  *
  * El orden de uso se lleva en memoria (se reconstruye al arrancar con la fecha de modificación, que cada lectura
  * renueva). Seguro para varios hilos. Un archivo ilegible o con tamaño impar se trata como si no existiera.
@@ -30,21 +33,24 @@ class CacheFrases(
     fun contiene(
         voz: VozCopiloto,
         texto: String,
-    ): Boolean = synchronized(lock) { indiceCargado().containsKey(clave(voz, texto)) }
+        velocidad: VelocidadHabla = VelocidadHabla.NORMAL,
+    ): Boolean = synchronized(lock) { indiceCargado().containsKey(clave(voz, texto, velocidad)) }
 
     /** Tamaño en bytes del PCM guardado, o `null` si no está. No cuenta como uso. */
     fun bytes(
         voz: VozCopiloto,
         texto: String,
-    ): Long? = synchronized(lock) { indiceCargado()[clave(voz, texto)] }
+        velocidad: VelocidadHabla = VelocidadHabla.NORMAL,
+    ): Long? = synchronized(lock) { indiceCargado()[clave(voz, texto, velocidad)] }
 
     /** Lee la frase y la marca como la más reciente; `null` si no está o no se puede leer. */
     fun leer(
         voz: VozCopiloto,
         texto: String,
+        velocidad: VelocidadHabla = VelocidadHabla.NORMAL,
     ): ShortArray? =
         synchronized(lock) {
-            val clave = clave(voz, texto)
+            val clave = clave(voz, texto, velocidad)
             val mapa = indiceCargado()
             if (!mapa.containsKey(clave)) return@synchronized null
             val archivo = archivo(clave)
@@ -72,9 +78,10 @@ class CacheFrases(
         voz: VozCopiloto,
         texto: String,
         muestras: ShortArray,
+        velocidad: VelocidadHabla = VelocidadHabla.NORMAL,
     ) {
         synchronized(lock) {
-            val clave = clave(voz, texto)
+            val clave = clave(voz, texto, velocidad)
             val mapa = indiceCargado()
             val bytes =
                 ByteBuffer
@@ -166,13 +173,18 @@ class CacheFrases(
         private const val EXTENSION = ".pcm"
         private const val TAG = "CacheFrases"
 
-        /** Clave de caché `<voz>/<sha256 hex del texto>`. */
+        /**
+         * Clave de caché `<voz>/<sha256 hex del texto>` a velocidad normal y `<voz>-<velocidad>/<sha256>` (p. ej.
+         * `davefx-rapida/…`) a cualquier otra.
+         */
         fun clave(
             voz: VozCopiloto,
             texto: String,
+            velocidad: VelocidadHabla = VelocidadHabla.NORMAL,
         ): String {
             val hash = MessageDigest.getInstance("SHA-256").digest(texto.toByteArray(Charsets.UTF_8))
-            return voz.name.lowercase() + "/" + hash.joinToString("") { "%02x".format(it) }
+            val sufijo = if (velocidad == VelocidadHabla.NORMAL) "" else "-" + velocidad.name.lowercase()
+            return voz.name.lowercase() + sufijo + "/" + hash.joinToString("") { "%02x".format(it) }
         }
     }
 }

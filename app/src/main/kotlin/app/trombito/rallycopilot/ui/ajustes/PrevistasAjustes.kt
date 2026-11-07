@@ -73,7 +73,7 @@ internal fun altoPrevista(seccion: SeccionAjustes): Dp? =
     when (seccion) {
         SeccionAjustes.COPILOTO -> ALTO_COPILOTO
         SeccionAjustes.NOTAS -> ALTO_NOTAS
-        SeccionAjustes.MAPA -> ALTO_COPILOTO
+        SeccionAjustes.MAPA, SeccionAjustes.VOZ -> ALTO_COPILOTO
         SeccionAjustes.DATOS, SeccionAjustes.AYUDA, SeccionAjustes.ACERCA_DE -> null
         else -> ALTO_ESTANDAR
     }
@@ -217,7 +217,10 @@ private fun PistaAnticipacion(
     }
 }
 
-/** Voz: el nombre real de la voz, barras de ecualizador que suben y bajan con el volumen y ▶ para oírla. */
+/**
+ * Voz: el nombre real de la voz, barras de ecualizador que suben y bajan con el volumen y ▶ para oírla; debajo, los
+ * tres avisos (apagado = tachado) y la velocidad de habla elegida.
+ */
 @Composable
 private fun PrevistaVoz(
     ajustes: AjustesConduccion,
@@ -270,6 +273,7 @@ private fun PrevistaVoz(
             modifier = Modifier.testTag(ETIQUETA_PREVISTA_ESCUCHAR),
         ) { Icon(Iconos.Empezar, contentDescription = null) }
     }
+    PrevistaAvisosYHabla(ajustes)
 }
 
 private val ALTURAS_ECUALIZADOR = listOf(0.45f, 0.8f, 1f, 0.7f, 0.4f)

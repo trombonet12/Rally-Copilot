@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
@@ -55,6 +56,10 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         avisarRotondas = avisarRotondas,
         salidaManual = salidaManual,
         casa = casaValida(),
+        avisarRadares = avisarRadares,
+        avisarIncidencias = avisarIncidencias,
+        avisarVelocidad = avisarVelocidad,
+        velocidadHabla = enumOrNull<VelocidadHabla>(velocidadHabla) ?: defecto.velocidadHabla,
     )
 }
 
@@ -91,6 +96,10 @@ internal fun AjustesConduccion.aEntidad() =
         salidaManual = salidaManual,
         casaLat = casa?.lat,
         casaLon = casa?.lon,
+        avisarRadares = avisarRadares,
+        avisarIncidencias = avisarIncidencias,
+        avisarVelocidad = avisarVelocidad,
+        velocidadHabla = velocidadHabla.name,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

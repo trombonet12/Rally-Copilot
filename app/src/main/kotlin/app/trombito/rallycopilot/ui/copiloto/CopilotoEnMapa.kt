@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.copiloto
 
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -19,6 +20,10 @@ data class AccionesCopiloto(
     val onAvisarCruces: (Boolean) -> Unit = {},
     val onAvisarSalidasAutopista: (Boolean) -> Unit = {},
     val onAvisarRotondas: (Boolean) -> Unit = {},
+    val onAvisarRadares: (Boolean) -> Unit = {},
+    val onAvisarIncidencias: (Boolean) -> Unit = {},
+    val onAvisarVelocidad: (Boolean) -> Unit = {},
+    val onVelocidadHabla: (VelocidadHabla) -> Unit = {},
     val onSalidaManual: (Boolean) -> Unit = {},
 )
 

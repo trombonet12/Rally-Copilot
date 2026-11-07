@@ -11,6 +11,7 @@ import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
@@ -305,5 +306,51 @@ class RepositorioAjustesConduccionImplTest {
             val ajustes = repositorio.ajustes.first()
             assertEquals(ModoCopiloto.COMPLETO, ajustes.modoCopiloto)
             assertEquals(null, ajustes.voz)
+        }
+
+    @Test
+    fun `los avisos por voz estan encendidos y el habla es normal por defecto y se guardan y se leen`() =
+        runBlocking {
+            val defecto = repositorio.ajustes.first()
+            assertEquals(true, defecto.avisarRadares)
+            assertEquals(true, defecto.avisarIncidencias)
+            assertEquals(true, defecto.avisarVelocidad)
+            assertEquals(VelocidadHabla.NORMAL, defecto.velocidadHabla)
+
+            val cambiados =
+                defecto.copy(
+                    avisarRadares = false,
+                    avisarIncidencias = false,
+                    avisarVelocidad = false,
+                    velocidadHabla = VelocidadHabla.RAPIDA,
+                )
+            repositorio.guardar(cambiados)
+
+            assertEquals(cambiados, repositorio.ajustes.first())
+            assertEquals(
+                false,
+                repositorio.ajustes
+                    .first()
+                    .filtroAvisos.avisarVelocidad,
+            )
+        }
+
+    @Test
+    fun `una velocidad de habla desconocida en disco lee la normal`() =
+        runBlocking {
+            base.ajustesConduccionDao().guardar(
+                AjustesConduccionEntity(
+                    nivelZoom = 0,
+                    icono = "CASCO",
+                    orientacion = "NORTE",
+                    capa = "SATELITE",
+                    relieve = false,
+                    avisarRadares = false,
+                    velocidadHabla = "TURBO",
+                ),
+            )
+            val ajustes = repositorio.ajustes.first()
+            assertEquals(VelocidadHabla.NORMAL, ajustes.velocidadHabla)
+            assertEquals(false, ajustes.avisarRadares)
         }
 }

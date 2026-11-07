@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.voz
 import android.content.Context
 import android.content.res.AssetManager
 import android.util.Log
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import com.k2fsa.sherpa.onnx.OfflineTts
 import com.k2fsa.sherpa.onnx.OfflineTtsConfig
@@ -37,9 +38,10 @@ class MotorTtsSherpa
         override fun sintetizar(
             voz: VozCopiloto,
             texto: String,
+            velocidad: VelocidadHabla,
         ): AudioPcm {
             val tts = motorPara(voz)
-            val audio = generar(tts, texto)
+            val audio = generar(tts, texto, velocidad)
             if (audio.sampleRate != FRECUENCIA_HZ) {
                 throw ErrorSintesis("El modelo ${voz.name} da ${audio.sampleRate} Hz, se esperaban $FRECUENCIA_HZ Hz")
             }
@@ -99,8 +101,9 @@ class MotorTtsSherpa
         private fun generar(
             tts: OfflineTts,
             texto: String,
+            velocidad: VelocidadHabla,
         ) = try {
-            tts.generate(text = texto, sid = SID, speed = 1.0f)
+            tts.generate(text = texto, sid = SID, speed = velocidad.factor)
         } catch (e: RuntimeException) {
             throw ErrorSintesis("Falló la síntesis", e)
         }

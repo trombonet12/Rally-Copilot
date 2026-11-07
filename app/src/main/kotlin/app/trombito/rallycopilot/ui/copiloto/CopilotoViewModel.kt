@@ -7,6 +7,7 @@ import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
 import app.trombito.rallycopilot.domain.escucha.DialogoVoz
 import app.trombito.rallycopilot.domain.voz.Locutor
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -44,6 +45,11 @@ data class CopilotoUiState(
     val avisarCruces: Boolean = true,
     val avisarSalidasAutopista: Boolean = true,
     val avisarRotondas: Boolean = true,
+    /** Familias de avisos que se dicen por voz y lo deprisa que habla el copiloto (todo encendido y normal). */
+    val avisarRadares: Boolean = true,
+    val avisarIncidencias: Boolean = true,
+    val avisarVelocidad: Boolean = true,
+    val velocidadHabla: VelocidadHabla = VelocidadHabla.NORMAL,
     /** La salida del cronómetro la da Joan con el botón SALIDA (cuenta atrás) en vez de arrancar al moverse. */
     val salidaManual: Boolean = false,
     /** Lo último que se oyó y respondió en esta apertura del mapa (para la burbuja de escucha); null si nada aún. */
@@ -88,6 +94,10 @@ class CopilotoViewModel
                     avisarCruces = ajustes.avisarCruces,
                     avisarSalidasAutopista = ajustes.avisarSalidasAutopista,
                     avisarRotondas = ajustes.avisarRotondas,
+                    avisarRadares = ajustes.avisarRadares,
+                    avisarIncidencias = ajustes.avisarIncidencias,
+                    avisarVelocidad = ajustes.avisarVelocidad,
+                    velocidadHabla = ajustes.velocidadHabla,
                     salidaManual = ajustes.salidaManual,
                     dialogo = dialogo?.takeIf { it.id != dialogoPrevio },
                 )
@@ -136,6 +146,29 @@ class CopilotoViewModel
 
         fun onAvisarRotondas(avisar: Boolean) {
             cambiar { it.copy(avisarRotondas = avisar) }
+        }
+
+        /** Interruptores de avisos por voz de la hoja rápida: valen desde la siguiente fijación, conduciendo. */
+        fun onAvisarRadares(avisar: Boolean) {
+            cambiar { it.copy(avisarRadares = avisar) }
+        }
+
+        fun onAvisarIncidencias(avisar: Boolean) {
+            cambiar { it.copy(avisarIncidencias = avisar) }
+        }
+
+        fun onAvisarVelocidad(avisar: Boolean) {
+            cambiar { it.copy(avisarVelocidad = avisar) }
+        }
+
+        /** Velocidad de habla: se guarda, se aplica al locutor al instante y suena la frase de ejemplo con ella. */
+        fun onVelocidadHabla(velocidad: VelocidadHabla) {
+            locutor.usarVelocidad(velocidad)
+            viewModelScope.launch {
+                val nuevos = repositorio.ajustes.first().copy(velocidadHabla = velocidad)
+                repositorio.guardar(nuevos)
+                locutor.decirEjemplo(nuevos)
+            }
         }
 
         /** Salida del cronómetro manual o automática: vale al momento, también con la conducción en curso. */

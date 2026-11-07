@@ -1,9 +1,11 @@
 package app.trombito.rallycopilot.domain.ajustes
 
 import app.trombito.rallycopilot.domain.datos.CapaMapa
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
+import app.trombito.rallycopilot.motor.voz.FiltroAvisos
 import app.trombito.rallycopilot.motor.voz.FiltroIndicaciones
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import kotlinx.coroutines.flow.Flow
@@ -32,7 +34,9 @@ enum class Orientacion { RUMBO, NORTE }
  * [avisarRotondas] dicen qué indicaciones se dicen y se ven (todas por defecto; ver `FiltroIndicaciones` del motor).
  * [salidaManual] hace que el cronómetro de la conducción no arranque solo al moverse el coche sino cuando Joan pulsa
  * «Salida» (cuenta atrás); desactivado = salida automática. [casa] es el punto al que lleva «volver a casa» (`null` =
- * aún no se ha fijado; se fija con `fijarCasa`).
+ * aún no se ha fijado; se fija con `fijarCasa`). [avisarRadares], [avisarIncidencias] y [avisarVelocidad] (exceso y
+ * media del tramo) dicen qué familias de avisos se dicen por voz (todas por defecto; el banner y la píldora no
+ * cambian; ver `FiltroAvisos` del motor) y [velocidadHabla] es lo deprisa que habla el copiloto.
  */
 data class AjustesConduccion(
     val nivelZoom: Int = 0,
@@ -55,6 +59,10 @@ data class AjustesConduccion(
     val avisarRotondas: Boolean = true,
     val salidaManual: Boolean = false,
     val casa: PuntoGeo? = null,
+    val avisarRadares: Boolean = true,
+    val avisarIncidencias: Boolean = true,
+    val avisarVelocidad: Boolean = true,
+    val velocidadHabla: VelocidadHabla = VelocidadHabla.NORMAL,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }
@@ -64,6 +72,10 @@ data class AjustesConduccion(
     /** Las preferencias de indicaciones como filtro del motor. */
     val filtroIndicaciones: FiltroIndicaciones
         get() = FiltroIndicaciones(avisarCruces, avisarSalidasAutopista, avisarRotondas)
+
+    /** Las familias de avisos que se dicen, como filtro del motor. */
+    val filtroAvisos: FiltroAvisos
+        get() = FiltroAvisos(avisarRadares, avisarIncidencias, avisarVelocidad)
 
     companion object {
         const val NIVEL_MIN = -2

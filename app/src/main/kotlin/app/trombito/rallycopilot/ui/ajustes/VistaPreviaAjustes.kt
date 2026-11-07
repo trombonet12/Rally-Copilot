@@ -161,8 +161,12 @@ internal fun VistaPreviaNotasReducida(
     }
 }
 
-/** Dice la nota de ejemplo con la voz, el volumen y las simplificadas de [ajustes] (sin voz elegida, la primera). */
+/**
+ * Dice la nota de ejemplo con la voz, el volumen, la velocidad de habla y las simplificadas de [ajustes] (sin voz
+ * elegida, la primera).
+ */
 internal fun Locutor.decirEjemplo(ajustes: AjustesConduccion) {
     usarVolumen(ajustes.volumenVoz)
+    usarVelocidad(ajustes.velocidadHabla)
     probarFrase(ajustes.voz ?: VozCopiloto.DAVEFX, NotaEjemplo.frase(ajustes.notasSimplificadas))
 }

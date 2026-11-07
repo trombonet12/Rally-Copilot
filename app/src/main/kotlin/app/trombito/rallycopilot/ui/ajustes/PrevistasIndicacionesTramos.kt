@@ -1,6 +1,5 @@
 package app.trombito.rallycopilot.ui.ajustes
 
-import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -22,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -54,29 +54,30 @@ internal fun PrevistaIndicaciones(ajustes: AjustesConduccion) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         IndicacionPrevista(
             clave = "cruces",
-            icono = R.drawable.ic_nota_cruce,
+            icono = painterResource(R.drawable.ic_nota_cruce),
             nombre = stringResource(R.string.ajustes_prevista_cruces),
             activa = ajustes.avisarCruces,
         )
         IndicacionPrevista(
             clave = "salidas",
-            icono = R.drawable.ic_nota_salida_autopista,
+            icono = painterResource(R.drawable.ic_nota_salida_autopista),
             nombre = stringResource(R.string.ajustes_prevista_salidas),
             activa = ajustes.avisarSalidasAutopista,
         )
         IndicacionPrevista(
             clave = "rotondas",
-            icono = R.drawable.ic_nota_rotonda,
+            icono = painterResource(R.drawable.ic_nota_rotonda),
             nombre = stringResource(R.string.ajustes_prevista_rotondas),
             activa = ajustes.avisarRotondas,
         )
     }
 }
 
+/** Un icono con su nombre; si [activa] es falso se ve apagado y tachado con una raya roja. */
 @Composable
-private fun IndicacionPrevista(
+internal fun IndicacionPrevista(
     clave: String,
-    @DrawableRes icono: Int,
+    icono: Painter,
     nombre: String,
     activa: Boolean,
 ) {
@@ -97,7 +98,7 @@ private fun IndicacionPrevista(
     ) {
         Box(Modifier.size(LADO_INDICACION), contentAlignment = Alignment.Center) {
             Icon(
-                painter = painterResource(icono),
+                painter = icono,
                 contentDescription = null,
                 tint = color,
                 modifier = Modifier.size(40.dp).alpha(1f - tachado * (1f - OPACIDAD_APAGADA)),

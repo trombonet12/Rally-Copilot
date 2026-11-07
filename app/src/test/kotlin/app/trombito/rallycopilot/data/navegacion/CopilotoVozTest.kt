@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.PrioridadVoz
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.Aviso
@@ -37,6 +38,7 @@ private class LocutorFalso : Locutor {
     val dichas = mutableListOf<String>()
     val vocesUsadas = mutableListOf<VozCopiloto>()
     val volumenes = mutableListOf<Int>()
+    val velocidades = mutableListOf<VelocidadHabla>()
     val preparadas = mutableListOf<List<String>>()
 
     override fun usarVoz(v: VozCopiloto) {
@@ -45,6 +47,10 @@ private class LocutorFalso : Locutor {
 
     override fun usarVolumen(porcentaje: Int) {
         volumenes += porcentaje
+    }
+
+    override fun usarVelocidad(v: VelocidadHabla) {
+        velocidades += v
     }
 
     override fun preparar(textos: List<String>) {
@@ -634,6 +640,105 @@ class CopilotoVozTest {
         repeat(3) { c.alFijar(null, null, null, 20.0) }
 
         assertEquals(listOf("menos dos décimas"), locutor.dichas)
+    }
+
+    // ---- Interruptores de avisos por familia y velocidad de habla
+
+    private val incidencia = Frase("incidencia-i1", "obras a quinientos", TipoFrase.ALERTA, 1000.0)
+    private val media = Frase("tramo-media-t-1", "media alta", TipoFrase.AVISO_VELOCIDAD, null)
+
+    private fun diceCon(
+        ajustes: AjustesConduccion,
+        vararg alertas: Frase,
+    ): Set<String> {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, ajustes)
+        repeat(6) { copiloto.alFijar(null, null, 500.0 + it, 20.0, alertas.toList()) }
+        return locutor.dichas.toSet()
+    }
+
+    private val todasLasAlertas = arrayOf(radar(), incidencia, exceso, media)
+    private val textoRadar = "radar a quinientos, ochenta"
+
+    @Test
+    fun `con todos los avisos encendidos se dicen las tres familias`() {
+        val dichas = diceCon(con(ModoCopiloto.COMPLETO), *todasLasAlertas)
+
+        assertEquals(setOf(textoRadar, "obras a quinientos", "límite ochenta", "media alta"), dichas)
+    }
+
+    @Test
+    fun `sin radares solo se callan los radares`() {
+        val dichas = diceCon(con(ModoCopiloto.COMPLETO).copy(avisarRadares = false), *todasLasAlertas)
+
+        assertEquals(setOf("obras a quinientos", "límite ochenta", "media alta"), dichas)
+    }
+
+    @Test
+    fun `sin incidencias solo se callan las incidencias`() {
+        val dichas = diceCon(con(ModoCopiloto.COMPLETO).copy(avisarIncidencias = false), *todasLasAlertas)
+
+        assertEquals(setOf(textoRadar, "límite ochenta", "media alta"), dichas)
+    }
+
+    @Test
+    fun `sin velocidad se callan el exceso y la media del tramo y nada mas`() {
+        val dichas = diceCon(con(ModoCopiloto.COMPLETO).copy(avisarVelocidad = false), *todasLasAlertas)
+
+        assertEquals(setOf(textoRadar, "obras a quinientos"), dichas)
+    }
+
+    @Test
+    fun `con las tres familias apagadas siguen las notas y las maniobras`() {
+        val locutor = LocutorFalso()
+        val apagado =
+            con(ModoCopiloto.NOTAS).copy(avisarRadares = false, avisarIncidencias = false, avisarVelocidad = false)
+        val copiloto = copiloto(locutor, apagado)
+        val ruta = ruta()
+
+        repeat(6) { copiloto.alFijar(notas(920.0), ruta, 920.0, 20.0, todasLasAlertas.toList()) }
+
+        assertEquals(listOf("cruce, izquierda", "derecha tres"), locutor.dichas)
+    }
+
+    @Test
+    fun `apagar una familia vale en la siguiente fijacion`() {
+        val locutor = LocutorFalso()
+        val ajustes = MutableStateFlow(con(ModoCopiloto.COMPLETO))
+        val copiloto = CopilotoVoz(locutor, ajustes)
+        val trabajo = Job()
+        CoroutineScope(Dispatchers.Unconfined + trabajo).launch { copiloto.seguirAjustes() }
+
+        ajustes.value = ajustes.value.copy(avisarVelocidad = false)
+        copiloto.alFijar(null, null, 500.0, 20.0, listOf(exceso))
+        ajustes.value = ajustes.value.copy(avisarVelocidad = true)
+        copiloto.alFijar(null, null, 501.0, 20.0, listOf(exceso))
+        trabajo.cancel()
+
+        assertEquals(listOf("límite ochenta"), locutor.dichas)
+    }
+
+    @Test
+    fun `la velocidad de habla llega al locutor una sola vez y su cambio regenera lo preparado`() {
+        val locutor = LocutorFalso()
+        val ajustes = MutableStateFlow(con(ModoCopiloto.NOTAS))
+        val copiloto = CopilotoVoz(locutor, ajustes)
+        val trabajo = Job()
+        CoroutineScope(Dispatchers.Unconfined + trabajo).launch { copiloto.seguirAjustes() }
+        val ruta = ruta()
+
+        copiloto.fijar(ruta, 700.0)
+        copiloto.fijar(ruta, 701.0)
+        val antes = locutor.preparadas.size
+        ajustes.value = ajustes.value.copy(velocidadHabla = VelocidadHabla.RAPIDA)
+        copiloto.fijar(ruta, 702.0)
+        copiloto.fijar(ruta, 703.0)
+        trabajo.cancel()
+
+        assertEquals(listOf(VelocidadHabla.NORMAL, VelocidadHabla.RAPIDA), locutor.velocidades)
+        // Mismos textos, pero el locutor los vuelve a recibir tras el cambio: tiene que sintetizarlos a otra velocidad.
+        assertEquals(antes + 1, locutor.preparadas.size)
+        assertEquals(locutor.preparadas[antes - 1], locutor.preparadas[antes])
     }
 }
 

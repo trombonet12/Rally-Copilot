@@ -260,6 +260,21 @@ val MIGRATION_16_17: Migration =
     }
 
 /**
+ * v17 -> v18: los interruptores de avisos por voz (radares, incidencias, velocidad: encendidos para quien actualiza)
+ * y la velocidad de habla del copiloto (`NORMAL`). Cuatro columnas con valor por defecto en SQL, el `createSql` de
+ * `schemas/.../18.json`.
+ */
+val MIGRATION_17_18: Migration =
+    object : Migration(17, 18) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `avisarRadares` INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `avisarIncidencias` INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `avisarVelocidad` INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `velocidadHabla` TEXT NOT NULL DEFAULT 'NORMAL'")
+        }
+    }
+
+/**
  * Todas las migraciones, en orden, de la v1 a la versión actual de [RallyDatabase]. Es la única lista: la usan la base
  * de producción y los tests; una migración nueva se añade aquí y `MigracionRoomTest` vigila que la cadena no tenga
  * huecos hasta `RallyDatabase.version`.
@@ -282,4 +297,5 @@ val TODAS_LAS_MIGRACIONES: Array<Migration> =
         MIGRATION_14_15,
         MIGRATION_15_16,
         MIGRATION_16_17,
+        MIGRATION_17_18,
     )

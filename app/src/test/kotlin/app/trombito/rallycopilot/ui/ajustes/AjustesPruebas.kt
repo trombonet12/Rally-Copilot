@@ -103,6 +103,22 @@ internal fun BancoCompose.ponerAjustes(
                     ajustes = ajustes.copy(avisarRotondas = it)
                     acciones.onAvisarRotondas(it)
                 },
+                onAvisarRadares = {
+                    ajustes = ajustes.copy(avisarRadares = it)
+                    acciones.onAvisarRadares(it)
+                },
+                onAvisarIncidencias = {
+                    ajustes = ajustes.copy(avisarIncidencias = it)
+                    acciones.onAvisarIncidencias(it)
+                },
+                onAvisarVelocidad = {
+                    ajustes = ajustes.copy(avisarVelocidad = it)
+                    acciones.onAvisarVelocidad(it)
+                },
+                onVelocidadHabla = {
+                    ajustes = ajustes.copy(velocidadHabla = it)
+                    acciones.onVelocidadHabla(it)
+                },
             )
         RallyCopilotTheme {
             val abierta = actual
