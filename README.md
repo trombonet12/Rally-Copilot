@@ -4,7 +4,7 @@
   <p><strong>Tu copiloto en cada curva.</strong> Navegación con notas de rally por voz para las carreteras de Mallorca.</p>
   <img alt="Android" src="https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white">
   <img alt="Licencia" src="https://img.shields.io/badge/licencia-GPL--3.0-E5AB46">
-  <a href="https://github.com/trombonet12/Rally-Copilot/releases"><img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-v1.2.0-D8232A"></a>
+  <a href="https://github.com/trombonet12/Rally-Copilot/releases"><img alt="Versión" src="https://img.shields.io/badge/versi%C3%B3n-v1.3.0-D8232A"></a>
 </div>
 
 ## ✨ Qué hace
@@ -45,8 +45,8 @@ Con [Obtainium](https://github.com/ImranR98/Obtainium): *Add app* →
 - Kotlin, Jetpack Compose (Material 3), Hilt, Room, Navigation type-safe. Módulo `:motor` en Kotlin/JVM puro para la
   lógica crítica (notas, cronometraje, geometría). Mapa y capas en [docs/arquitectura.md](docs/arquitectura.md).
 - Requisitos: JDK 21, Android SDK (compileSdk 37, targetSdk 36, minSdk 26: Android 8.0+), Node ≥ 22, Python 3.12.
-- ABIs: el APK actual incluye `arm64-v8a` y `x86_64` (≈ 300 MB, VERIFICAR con la release); desde H15 la release lleva
-  solo `arm64-v8a`.
+- ABIs: la release lleva solo `arm64-v8a` (APK de 167 MiB desde la v1.3; el satélite, el relieve y la voz Sharvard se
+  descargan al elegirlos); el debug lleva también `x86_64` para el emulador.
 
 ```
 python -I scripts/preparar-local-properties.py
