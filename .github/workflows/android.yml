@@ -409,7 +409,9 @@ jobs:
 
           # Verificacion del artefacto firmado.
           certs="$("$bt/apksigner" verify --verbose --print-certs "$apk")"
-          digest="$(printf '%s\n' "$certs" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n1)"
+          # Lineas del certificado (publicas) en el log; el prefijo cambia segun la version de apksigner.
+          printf '%s\n' "$certs" | grep -iE 'scheme|signer' || true
+          digest="$(printf '%s\n' "$certs" | sed -n 's/^.*certificate SHA-256 digest: //p' | sed -n 1p)"
           test -n "$digest" || { echo "::error::apksigner no informa la huella del certificado"; exit 1; }
           if [ -n "$CERT_ESPERADO" ]; then
             esperado="$(printf '%s' "$CERT_ESPERADO" | tr -d ': ' | tr 'A-F' 'a-f')"
