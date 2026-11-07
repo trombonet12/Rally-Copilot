@@ -153,7 +153,7 @@ class CopiaSeguridadTest {
         val contenido = entradas(exportar())
         assertEquals(setOf("rally.db", "manifest.json"), contenido.keys)
         val texto = contenido.getValue("manifest.json").decodeToString()
-        assertTrue(texto, "\"esquema\":16" in texto.replace(" ", ""))
+        assertTrue(texto, "\"esquema\":${RallyDatabase.VERSION}" in texto.replace(" ", ""))
         assertTrue(texto, "\"versionName\":\"1.2.3\"" in texto.replace(" ", ""))
         assertTrue(texto, "\"recorridos\":1" in texto.replace(" ", ""))
     }
@@ -239,6 +239,42 @@ class CopiaSeguridadTest {
             MotivoCopiaInvalida.INCOMPATIBLE,
             motivoDeImportar(zip(listOf("rally.db" to ajena, "manifest.json" to manifest(12)))),
         )
+    }
+
+    private fun assertIncompatible(cambio: (SQLiteDatabase) -> Unit) {
+        val id = insertar(5.0)
+        val modificada = baseModificada(exportar(), cambio)
+        val zip = zip(listOf("rally.db" to modificada, "manifest.json" to manifest(RallyDatabase.VERSION)))
+        assertEquals(MotivoCopiaInvalida.INCOMPATIBLE, motivoDeImportar(zip))
+        // La base actual no se toca.
+        assertTrue(base.isOpen)
+        assertNotNull(runBlocking { base.recorridosDao().recorrido(id) })
+    }
+
+    @Test
+    fun `una copia con un trigger se rechaza`() =
+        assertIncompatible {
+            it.execSQL("CREATE TRIGGER t AFTER INSERT ON pasada BEGIN DELETE FROM recorrido; END")
+        }
+
+    @Test
+    fun `una copia con una vista se rechaza`() = assertIncompatible { it.execSQL("CREATE VIEW v AS SELECT 1") }
+
+    @Test
+    fun `una copia con una tabla extra se rechaza`() =
+        assertIncompatible { it.execSQL("CREATE TABLE extra (a INTEGER)") }
+
+    @Test
+    fun `una copia con un indice ajeno se rechaza`() =
+        assertIncompatible { it.execSQL("CREATE INDEX ajeno ON recorrido (inicioMs)") }
+
+    @Test
+    fun `una copia con una columna de mas en una tabla de Room se rechaza`() =
+        assertIncompatible { it.execSQL("ALTER TABLE recorrido ADD COLUMN extra TEXT") }
+
+    @Test
+    fun `una copia con una columna de menos o de otro tipo se rechaza`() {
+        assertIncompatible { it.execSQL("ALTER TABLE recorrido RENAME COLUMN distanciaM TO otra") }
     }
 
     @Test

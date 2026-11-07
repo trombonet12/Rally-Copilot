@@ -27,8 +27,9 @@ data class InfoApp(
  * Copia de seguridad: un zip con `rally.db` (checkpoint del WAL hecho) y `manifest.json`. Nunca lleva mapas, voces ni
  * modelos (grandes y se regeneran). Al importar valida el zip (solo esas dos entradas, tamaño máximo, sin rutas),
  * rechaza esquemas más nuevos que el actual y comprueba la base con SQLite (`integrity_check`, `user_version` e
- * identidad de Room) antes de sustituir la real; si el esquema es menor, Room migra al volver a abrir. Tras importar
- * la Room queda cerrada: hay que reiniciar el proceso.
+ * identidad de Room), que no tenga triggers, vistas ni tablas ajenas a Room y, con la misma versión, que las columnas
+ * casen con las de la base actual, antes de sustituir la real; si el esquema es menor, Room migra al volver a abrir.
+ * Tras importar la Room queda cerrada: hay que reiniciar el proceso.
  */
 class CopiaSeguridad(
     private val base: RallyDatabase,
@@ -122,7 +123,7 @@ class CopiaSeguridad(
     ) {
         val actual = base.openHelper.writableDatabase
         comprobarNoFuturo(manifiesto.esquema, actual.version)
-        val identidad = InspectorBase.inspeccionar(copia)
+        val identidad = InspectorBase.inspeccionar(copia, actual)
         comprobarNoFuturo(identidad.version, actual.version)
         val compatible =
             identidad.hash != null &&

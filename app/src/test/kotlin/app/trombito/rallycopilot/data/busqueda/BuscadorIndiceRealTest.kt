@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -14,7 +15,8 @@ import java.io.File
 
 /**
  * Criterios de H5B contra el índice REAL (`busqueda-mallorca.sqlite` de la release fijada en
- * `app/datos-incluidos.properties`), que el build baja a `.descargas/`. Sin ese archivo el test se salta.
+ * `app/datos-incluidos.properties`), que el build baja a `.descargas/`. Sin ese archivo el test se salta en local y
+ * falla en CI (variable `CI`).
  */
 @RunWith(RobolectricTestRunner::class)
 class BuscadorIndiceRealTest {
@@ -26,7 +28,12 @@ class BuscadorIndiceRealTest {
             File("../.descargas")
                 .listFiles { f -> f.name.endsWith("-busqueda-mallorca.sqlite") }
                 ?.maxByOrNull { it.lastModified() }
-        assumeTrue("Sin índice real en .descargas/", indice != null)
+        // En CI un índice ausente es un fallo (el gate no puede pasar con estos criterios saltados); en local se salta.
+        if (System.getenv("CI") != null) {
+            assertNotNull("Sin índice real en .descargas/ (en CI es obligatorio)", indice)
+        } else {
+            assumeTrue("Sin índice real en .descargas/", indice != null)
+        }
         buscador = BuscadorSqlite(checkNotNull(indice), Dispatchers.Unconfined)
     }
 

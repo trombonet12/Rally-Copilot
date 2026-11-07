@@ -12,6 +12,10 @@ on:
       - 'gradle.properties'
       - 'version.properties'
       - 'distribution/**'
+      - '.editorconfig'
+      - '.gitattributes'
+      - 'gradlew'
+      - 'gradlew.bat'
       - '.github/workflows/android.yml'
   pull_request:
     paths:
@@ -23,6 +27,10 @@ on:
       - 'gradle.properties'
       - 'version.properties'
       - 'distribution/**'
+      - '.editorconfig'
+      - '.gitattributes'
+      - 'gradlew'
+      - 'gradlew.bat'
       - '.github/workflows/android.yml'
   # Manual: por defecto solo compila. Con `publicar` activado en main publica la release (p. ej. un parche).
   workflow_dispatch:
@@ -44,7 +52,7 @@ jobs:
   build:
     name: Gate Android y motor
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       # Historial completo: el build calcula versionName/versionCode contando commits.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -67,7 +75,45 @@ jobs:
       # minifyReleaseWithR8 sin firma: los fallos de R8 (reglas -dontwarn) salen aquí y no solo al publicar.
       - name: ktlint, detekt, lint, tests, assembleDebug y R8
         run: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest :motor:test assembleDebug :app:minifyReleaseWithR8
+      # Resumen de tests en el run (QA-19). Un test saltado (assume, @Ignore) hace fallar el gate: no se quita cobertura en silencio.
+      - name: Resumen de tests
+        if: ${{ !cancelled() }}
+        run: |
+          python3 - <<'PY'
+          import glob, os, sys
+          import xml.etree.ElementTree as ET
+
+          modulos = {}
+          saltados = []
+          for ruta in sorted(glob.glob('*/build/test-results/**/TEST-*.xml', recursive=True)):
+              modulo = ruta.split('/')[0]
+              suite = ET.parse(ruta).getroot()
+              m = modulos.setdefault(modulo, dict(tests=0, fallos=0, saltados=0, tiempo=0.0))
+              m['tests'] += int(suite.get('tests', 0))
+              m['fallos'] += int(suite.get('failures', 0)) + int(suite.get('errors', 0))
+              m['saltados'] += int(suite.get('skipped', 0))
+              m['tiempo'] += float(suite.get('time', 0))
+              for caso in suite.iter('testcase'):
+                  if caso.find('skipped') is not None:
+                      saltados.append(f"{caso.get('classname')}.{caso.get('name')}")
+
+          lineas = ['## Tests', '', '| Módulo | Tests | Fallos | Saltados | Tiempo (s) |', '|---|---|---|---|---|']
+          for nombre, m in modulos.items():
+              lineas.append(f"| {nombre} | {m['tests']} | {m['fallos']} | {m['saltados']} | {m['tiempo']:.0f} |")
+          if not modulos:
+              lineas.append('| (sin resultados) | 0 | 0 | 0 | 0 |')
+          if saltados:
+              lineas += ['', '### Saltados', ''] + [f'- `{n}`' for n in saltados]
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as f:
+              f.write(chr(10).join(lineas) + chr(10))
+
+          if saltados:
+              print(f'::error::{len(saltados)} test(s) saltados: el gate no admite tests saltados (ver el resumen del run).')
+              sys.exit(1)
+          PY
+      # El APK debug solo hace falta de main o de un run manual (QA-18); en un PR solo alarga el job.
       - name: Subir APK debug
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: app-debug.apk
@@ -93,7 +139,10 @@ jobs:
       (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publicar))
     runs-on: ubuntu-latest
     timeout-minutes: 60
-    # Solo lectura: este job ve el keystore y compila, asi que su GITHUB_TOKEN no puede escribir.
+    # Los secretos de firma viven en el Environment `release` (restringido a la rama main), no en el repositorio.
+    environment: release
+    # Solo lectura: su GITHUB_TOKEN no puede escribir. Gradle compila SIN firmar y sin secretos en el entorno;
+    # solo el paso «Firmar y verificar» (apksigner/jarsigner del SDK) ve el keystore.
     # La release de GitHub (escritura) la crea el job `github-release`, que no ve el keystore.
     permissions:
       contents: read
@@ -104,7 +153,7 @@ jobs:
     concurrency:
       group: release-android
       cancel-in-progress: false
-    # Secrets requeridos (Settings > Secrets and variables > Actions):
+    # Secrets requeridos (Settings > Environments > release > Environment secrets):
     # ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
     # Opcional: PLAY_SERVICE_ACCOUNT_JSON, que usa el job `play` (abajo).
     steps:
@@ -208,22 +257,74 @@ jobs:
           done
           exit "$missing"
 
-      - name: Decodificar keystore
+      # Sin secretos en el entorno: los plugins y dependencias de Gradle nunca ven el keystore (SEG-1).
+      - name: assembleRelease y bundleRelease (sin firmar)
+        if: steps.ver.outputs.publicar == 'true'
+        run: ./gradlew -Prally.sinFirma=true assembleRelease bundleRelease
+
+      # Unico paso con el keystore: lo decodifica, firma con las herramientas del SDK y del JDK (no con Gradle),
+      # lo borra al salir y verifica lo firmado antes de que nada se publique (QA-14).
+      - name: Firmar y verificar APK y AAB
         if: steps.ver.outputs.publicar == 'true'
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # Opcional (variable de repo o del entorno): huella SHA-256 esperada del certificado, con o sin dos puntos.
+          CERT_ESPERADO: ${{ vars.RELEASE_CERT_SHA256 }}
+          VERSION: ${{ steps.ver.outputs.version }}
+          CODE: ${{ steps.ver.outputs.code }}
         run: |
+          set -euo pipefail
           umask 077
-          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/rally-copilot-release.jks"
-          echo "RALLY_KEYSTORE_FILE=$RUNNER_TEMP/rally-copilot-release.jks" >> "$GITHUB_ENV"
+          ks="$RUNNER_TEMP/rally-copilot-release.jks"
+          trap 'rm -f "$ks"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$ks"
 
-      - name: assembleRelease y bundleRelease
-        if: steps.ver.outputs.publicar == 'true'
-        env:
-          RALLY_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          RALLY_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          RALLY_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew assembleRelease bundleRelease
+          bt="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n1)"
+          test -x "$bt/apksigner" || { echo "::error::Sin apksigner en $bt"; exit 1; }
+          apk_sin="$(find app/build/outputs/apk/release -name '*.apk' | head -n1)"
+          aab_sin="$(find app/build/outputs/bundle/release -name '*.aab' | head -n1)"
+          test -n "$apk_sin" || { echo "::error::No se genero el APK release"; exit 1; }
+          test -n "$aab_sin" || { echo "::error::No se genero el AAB release"; exit 1; }
+          mkdir -p dist
+          apk="dist/rally-copilot-${VERSION}.apk"
+          aab="dist/rally-copilot-${VERSION}.aab"
+
+          # Las contrasenas viajan por variables de entorno (env:/:env), nunca en la linea de comandos.
+          export KS_PASS KEY_PASS
+          "$bt/zipalign" -c 4 "$apk_sin"
+          "$bt/apksigner" sign --ks "$ks" --ks-key-alias "$KEY_ALIAS" \
+            --ks-pass env:KS_PASS --key-pass env:KEY_PASS \
+            --v4-signing-enabled false --out "$apk" "$apk_sin"
+          jarsigner -keystore "$ks" -storepass:env KS_PASS -keypass:env KEY_PASS \
+            -sigalg SHA256withRSA -digestalg SHA-256 -signedjar "$aab" "$aab_sin" "$KEY_ALIAS"
+          rm -f "$ks"
+
+          # Verificacion del artefacto firmado.
+          certs="$("$bt/apksigner" verify --verbose --print-certs "$apk")"
+          digest="$(printf '%s\n' "$certs" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p' | head -n1)"
+          test -n "$digest" || { echo "::error::apksigner no informa la huella del certificado"; exit 1; }
+          if [ -n "$CERT_ESPERADO" ]; then
+            esperado="$(printf '%s' "$CERT_ESPERADO" | tr -d ': ' | tr 'A-F' 'a-f')"
+            [ "$digest" = "$esperado" ] || { echo "::error::El certificado de firma no es el esperado (RELEASE_CERT_SHA256)"; exit 1; }
+          fi
+          verificado="$(jarsigner -verify "$aab")"
+          printf '%s\n' "$verificado" | grep -q 'jar verified' || { echo "::error::El AAB firmado no verifica"; exit 1; }
+
+          insignia="$("$bt/aapt2" dump badging "$apk" | sed -n "s/^package: name='\([^']*\)' versionCode='\([^']*\)' versionName='\([^']*\)'.*/\1 \2 \3/p" | head -n1)"
+          if [ "$insignia" != "app.trombito.rallycopilot $CODE $VERSION" ]; then
+            echo "::error::El APK firmado no casa con :app:imprimirVersion (esperado app.trombito.rallycopilot $CODE $VERSION; obtenido '$insignia')"
+            exit 1
+          fi
+          test "$(stat -c %s "$apk")" -ge 1048576 || { echo "::error::El APK firmado es sospechosamente pequeno"; exit 1; }
+          test "$(stat -c %s "$aab")" -ge 1048576 || { echo "::error::El AAB firmado es sospechosamente pequeno"; exit 1; }
+          {
+            echo "## Release ${VERSION} (versionCode ${CODE})"
+            echo
+            echo "Huella SHA-256 del certificado de firma: \`${digest}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Preparar assets y checksums
         if: steps.ver.outputs.publicar == 'true'
@@ -231,13 +332,9 @@ jobs:
           VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
-          apk="$(find app/build/outputs/apk/release -name '*.apk' | head -n1)"
-          aab="$(find app/build/outputs/bundle/release -name '*.aab' | head -n1)"
-          test -n "$apk" || { echo "::error::No se genero el APK release"; exit 1; }
-          test -n "$aab" || { echo "::error::No se genero el AAB release"; exit 1; }
-          mkdir -p dist
-          cp "$apk" "dist/rally-copilot-${VERSION}.apk"
-          cp "$aab" "dist/rally-copilot-${VERSION}.aab"
+          aab="dist/rally-copilot-${VERSION}.aab"
+          test -f "dist/rally-copilot-${VERSION}.apk" || { echo "::error::Falta el APK firmado"; exit 1; }
+          test -f "$aab" || { echo "::error::Falta el AAB firmado"; exit 1; }
           # Simbolos nativos para Play: carpetas de ABI en la raiz del zip (<abi>/<lib>.so), tal como salen de base/lib del AAB.
           symdir="$(mktemp -d)"
           if unzip -q "$aab" 'base/lib/*' -d "$symdir" 2>/dev/null && [ -d "$symdir/base/lib" ]; then
@@ -321,6 +418,8 @@ jobs:
     if: needs.release.outputs.publicar == 'true' && vars.PLAY_HABILITADO == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # PLAY_SERVICE_ACCOUNT_JSON vive en el Environment `release` (restringido a main).
+    environment: release
     permissions: {}
     steps:
       - name: Comprobar credenciales y estado

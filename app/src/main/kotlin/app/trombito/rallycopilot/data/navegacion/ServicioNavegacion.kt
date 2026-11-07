@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.navegacion
 
 import android.Manifest
+import android.app.Notification
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
@@ -40,6 +41,8 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -80,7 +83,11 @@ class ServicioNavegacion : Service() {
     private var trabajo: Job? = null
     private var avisos: Job? = null
     private var huerfanos: Job? = null
+    private var vigilanteTipo: Job? = null
     private var ultimoStartId = 0
+
+    /** Tipos con los que se declaró el primer plano por última vez (0 = aún no está en primer plano). */
+    private var tipoActual = 0
 
     /** Id de la sesión en curso en [ControlNavegacionImpl]; sus publicaciones se ignoran si deja de ser la vigente. */
     private var idSesion: Long? = null
@@ -137,46 +144,34 @@ class ServicioNavegacion : Service() {
     }
 
     /**
-     * Debe ocurrir en los primeros segundos tras `startForegroundService`, aunque luego no haya nada que hacer. Con el
-     * permiso de micrófono concedido pide también el tipo `microphone` (la escucha de «Copiloto» con la pantalla
-     * apagada); si el sistema lo rechaza, sigue solo con `location`.
+     * Debe ocurrir en los primeros segundos tras `startForegroundService`, aunque luego no haya nada que hacer. El tipo
+     * `microphone` (la escucha de «Copiloto» con la pantalla apagada) solo se pide con el permiso concedido **y** el
+     * ajuste «Copiloto» activo; si el sistema lo rechaza, sigue solo con `location`. Si el ajuste cambia en marcha,
+     * [vigilarAjusteCopiloto] vuelve a declarar el primer plano con el tipo nuevo.
      */
     private fun entrarEnPrimerPlano(): Boolean {
-        if (conPermisoDeMicrofono()) {
-            try {
-                ServiceCompat.startForeground(
-                    this,
-                    NotificacionNavegacion.ID_NOTIFICACION,
-                    notificacion.construir(control.estado.value),
-                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
-                )
-                return true
-            } catch (e: SecurityException) {
-                Log.w(ETIQUETA, "Sin tipo micrófono en primer plano: ${e.javaClass.simpleName}")
-            } catch (e: IllegalStateException) {
-                Log.w(ETIQUETA, "Sin tipo micrófono en primer plano: ${e.javaClass.simpleName}")
-            }
-        }
-        return try {
-            ServiceCompat.startForeground(
-                this,
-                NotificacionNavegacion.ID_NOTIFICACION,
-                notificacion.construir(control.estado.value),
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION,
-            )
-            true
-        } catch (e: SecurityException) {
-            fallarAlArrancar(e)
-        } catch (e: IllegalStateException) {
-            fallarAlArrancar(e)
-        }
+        val deseados = tiposDeseados(copilotoActivoAhora())
+        val tipos =
+            listOf(deseados, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION).distinct().firstOrNull {
+                declararPrimerPlano(notificacion.construir(control.estado.value), it)
+            } ?: return fallarAlArrancar()
+        tipoActual = tipos
+        vigilarAjusteCopiloto()
+        return true
     }
 
-    private fun fallarAlArrancar(e: RuntimeException): Boolean {
-        Log.w(ETIQUETA, "No se pudo pasar a primer plano: ${e.javaClass.simpleName}")
-        publicarFalloDeArranque(control.idPendiente())
-        stopSelf()
-        return false
+    /** Mientras el servicio está en primer plano, ajusta el tipo (micrófono sí/no) a lo que diga «Copiloto». */
+    private fun vigilarAjusteCopiloto() {
+        if (vigilanteTipo != null) return
+        vigilanteTipo =
+            scope.launch(Dispatchers.Main.immediate) {
+                ajustes.ajustes.map { it.activarConCopiloto }.distinctUntilChanged().collect { copiloto ->
+                    val tipos = tiposDeseados(copiloto)
+                    val ok =
+                        tipos == tipoActual || declararPrimerPlano(notificacion.construir(control.estado.value), tipos)
+                    if (ok) tipoActual = tipos
+                }
+            }
     }
 
     private fun iniciar(
@@ -219,12 +214,16 @@ class ServicioNavegacion : Service() {
     private fun detener() {
         avisos?.cancel()
         avisos = null
+        vigilanteTipo?.cancel()
+        vigilanteTipo = null
+        tipoActual = 0
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         stopSelfResult(ultimoStartId)
     }
 
     override fun onDestroy() {
         avisos?.cancel()
+        vigilanteTipo?.cancel()
         huerfanos?.cancel()
         val sesionActiva = trabajo
         if (sesionActiva == null) {
@@ -243,12 +242,16 @@ class ServicioNavegacion : Service() {
 
     companion object {
         const val ACCION_TERMINAR = "app.trombito.rallycopilot.TERMINAR_NAVEGACION"
-        private const val ETIQUETA = "ServicioNavegacion"
 
         /** Id que nunca es el vigente: las publicaciones de la limpieza de huérfanos no llegan a nadie. */
         private const val SIN_ID = -1L
     }
 }
+
+private const val ETIQUETA = "ServicioNavegacion"
+
+/** Tiempo máximo para leer «Copiloto» al entrar en primer plano (hilo principal; en Room son unos ms). */
+private const val PLAZO_AJUSTE_MS = 500L
 
 private fun ServicioNavegacion.crearSesion(id: Long) =
     SesionNavegacion(
@@ -282,3 +285,40 @@ private fun ServicioNavegacion.publicarFalloDeArranque(id: Long?) {
 
 private fun ServicioNavegacion.conPermisoDeMicrofono(): Boolean =
     ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+/** Declara el primer plano con [tipos]; `false` si el sistema lo rechaza (sin permiso del tipo o estado no válido). */
+private fun Service.declararPrimerPlano(
+    notificacion: Notification,
+    tipos: Int,
+): Boolean =
+    try {
+        ServiceCompat.startForeground(this, NotificacionNavegacion.ID_NOTIFICACION, notificacion, tipos)
+        true
+    } catch (e: SecurityException) {
+        Log.w(ETIQUETA, "Sin primer plano con los tipos $tipos: ${e.javaClass.simpleName}")
+        false
+    } catch (e: IllegalStateException) {
+        Log.w(ETIQUETA, "Sin primer plano con los tipos $tipos: ${e.javaClass.simpleName}")
+        false
+    }
+
+private fun ServicioNavegacion.fallarAlArrancar(): Boolean {
+    Log.w(ETIQUETA, "No se pudo pasar a primer plano")
+    publicarFalloDeArranque(control.idPendiente())
+    stopSelf()
+    return false
+}
+
+/** Ubicación siempre; micrófono solo con el permiso concedido y «Copiloto» activo (mínimo privilegio). */
+private fun ServicioNavegacion.tiposDeseados(copiloto: Boolean): Int =
+    if (copiloto && conPermisoDeMicrofono()) {
+        ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+    } else {
+        ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+    }
+
+/** Lectura breve del ajuste en el arranque; si no llega a tiempo, empieza sin micrófono y el vigilante lo corrige. */
+private fun ServicioNavegacion.copilotoActivoAhora(): Boolean =
+    runBlocking(Dispatchers.IO) {
+        withTimeoutOrNull(PLAZO_AJUSTE_MS) { ajustes.ajustes.first().activarConCopiloto } ?: false
+    }

@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.copia
 
+import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteException
 import androidx.sqlite.db.SupportSQLiteDatabase
@@ -13,18 +14,28 @@ internal data class IdentidadBase(
     val hash: String?,
 )
 
-/** Abre con SQLite las bases de una copia para comprobarlas o contarlas. */
+/**
+ * Abre con SQLite (solo lectura) las bases de una copia para comprobarlas o contarlas: `integrity_check`, versión,
+ * identidad de Room y estructura ([EstructuraRoom]).
+ */
 internal object InspectorBase {
     private const val CONSULTA_HASH = "SELECT identity_hash FROM room_master_table WHERE id = 42"
 
     fun abrir(archivo: File): SQLiteDatabase =
-        SQLiteDatabase.openDatabase(archivo.path, null, SQLiteDatabase.OPEN_READWRITE)
+        SQLiteDatabase.openDatabase(archivo.path, null, SQLiteDatabase.OPEN_READONLY)
 
-    /** Comprueba `integrity_check` y lee versión e identidad; cualquier fallo de SQLite es una base estropeada. */
-    fun inspeccionar(archivo: File): IdentidadBase =
+    /**
+     * Comprueba `integrity_check` y la estructura y lee versión e identidad; cualquier fallo de SQLite es una base
+     * estropeada. Si la copia tiene la misma versión que la base [actual], sus tablas deben tener las mismas columnas.
+     */
+    fun inspeccionar(
+        archivo: File,
+        actual: SupportSQLiteDatabase? = null,
+    ): IdentidadBase =
         try {
             abrir(archivo).use { db ->
                 if (integridad(db) != "ok") estropeada(null)
+                EstructuraRoom.verificar(db, actual)
                 IdentidadBase(db.version, hashDeRoom(db))
             }
         } catch (e: SQLiteException) {
@@ -62,4 +73,97 @@ internal object InspectorBase {
 
     private fun estropeada(causa: Throwable?): Nothing =
         throw CopiaInvalidaException(MotivoCopiaInvalida.BASE_DANADA, "la base está estropeada", causa)
+}
+
+/**
+ * Lo único que puede contener la base de una copia: lo que Room crea en alguna versión del esquema. Sin triggers ni
+ * vistas, sin tablas ni índices desconocidos. El identity_hash de Room no basta: está en `app/schemas` del repo
+ * público.
+ */
+internal object EstructuraRoom {
+    /** Tablas de Room en cualquiera de las versiones del esquema (unión de `app/schemas`; lo vigila un test). */
+    val TABLAS_ROOM =
+        setOf(
+            "ajustes_conduccion",
+            "ajustes_mapas",
+            "archivo_instalado",
+            "calibracion",
+            "edicion_nota",
+            "estado_datos",
+            "guiado_pendiente",
+            "marca",
+            "pasada",
+            "recorrido",
+            "recorrido_punto",
+            "tramo",
+        )
+
+    /** Índices de Room en cualquiera de las versiones del esquema. */
+    val INDICES_ROOM =
+        setOf(
+            "index_edicion_nota_tramoId",
+            "index_marca_tramoId",
+            "index_pasada_recorridoId",
+            "index_pasada_tramoId_totalMs",
+        )
+
+    /** Tablas que crean SQLite, Android o Room por su cuenta. */
+    private val TABLAS_INTERNAS = setOf("sqlite_sequence", "room_master_table", "android_metadata")
+    private const val PREFIJO_AUTOINDICE = "sqlite_autoindex_"
+
+    fun verificar(
+        db: SQLiteDatabase,
+        actual: SupportSQLiteDatabase?,
+    ) {
+        // Una copia de una versión más nueva puede traer tablas nuevas: se rechaza después como esquema futuro.
+        if (actual != null && db.version > actual.version) return
+        verificarEstructura(db)
+        if (actual != null && db.version == actual.version) compararColumnas(db, actual)
+    }
+
+    private fun compararColumnas(
+        copia: SQLiteDatabase,
+        actual: SupportSQLiteDatabase,
+    ) {
+        if (columnasDe { copia.rawQuery(it, null) } != columnasDe { actual.query(it) }) {
+            incompatible("las tablas no casan con las de esta versión")
+        }
+    }
+
+    /** Rechaza triggers, vistas y cualquier tabla o índice que Room no cree. */
+    private fun verificarEstructura(db: SQLiteDatabase) {
+        db.rawQuery("SELECT type, name FROM sqlite_master", null).use { c ->
+            while (c.moveToNext()) {
+                val tipo = c.getString(0)
+                val nombre = c.getString(1)
+                val admitido =
+                    when (tipo) {
+                        "table" -> nombre in TABLAS_ROOM || nombre in TABLAS_INTERNAS
+                        "index" -> nombre in INDICES_ROOM || nombre.startsWith(PREFIJO_AUTOINDICE)
+                        else -> false // trigger, view u otra cosa
+                    }
+                if (!admitido) incompatible("contiene un $tipo que Room no crea")
+            }
+        }
+    }
+
+    /** Por tabla de Room: columnas (nombre, tipo, not null, clave primaria) sin importar el orden. */
+    private fun columnasDe(consulta: (String) -> Cursor): Map<String, Set<String>> {
+        val existentes =
+            consulta("SELECT name FROM sqlite_master WHERE type = 'table'").use { c ->
+                buildList { while (c.moveToNext()) add(c.getString(0)) }
+            }
+        return existentes.filter { it in TABLAS_ROOM }.associateWith { tabla ->
+            consulta("PRAGMA table_info(`$tabla`)").use { c ->
+                buildSet {
+                    while (c.moveToNext()) {
+                        add("${c.getString(1)}|${c.getString(2).uppercase()}|${c.getInt(3)}|${c.getInt(5)}")
+                    }
+                }
+            }
+        }
+    }
+
+    private fun incompatible(motivo: String): Nothing =
+        throw CopiaInvalidaException(MotivoCopiaInvalida.INCOMPATIBLE, motivo)
 }

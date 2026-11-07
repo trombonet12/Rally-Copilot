@@ -36,8 +36,12 @@ val releaseStoreFile: String? = System.getenv("RALLY_KEYSTORE_FILE")
 val releaseStorePassword: String? = System.getenv("RALLY_KEYSTORE_PASSWORD")
 val releaseKeyAlias: String? = System.getenv("RALLY_KEY_ALIAS")
 val releaseKeyPassword: String? = System.getenv("RALLY_KEY_PASSWORD")
+// `-Prally.sinFirma=true` (solo CI): compila el release SIN firmar; el workflow firma después con apksigner/jarsigner
+// y solo ese paso ve el keystore, así los plugins y dependencias del build no tocan la clave (auditoría SEG-1).
+val releaseSinFirma: Boolean = providers.gradleProperty("rally.sinFirma").orNull == "true"
 val hasReleaseSigning =
-    listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
+    !releaseSinFirma &&
+        listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
 
 // Versión de la app: major/minor en version.properties; patch y versionCode salen de git (ver version.properties).
 val versionProps =
@@ -519,11 +523,12 @@ dependencies {
     testImplementation(libs.androidx.work.testing)
 }
 
-// Un release sin firma no sirve para instalar ni actualizar: falla al ejecutar (no al configurar, para no romper debug).
+// Un release sin firma no sirve para instalar ni actualizar: falla al ejecutar (no al configurar, para no romper debug),
+// salvo que se pida expresamente con -Prally.sinFirma=true (CI, que firma después fuera de Gradle).
 tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }.configureEach {
     doFirst {
         check(
-            hasReleaseSigning,
+            hasReleaseSigning || releaseSinFirma,
         ) { "Release sin firma: faltan las variables RALLY_* (usa node scripts/android-release.mjs)" }
     }
 }

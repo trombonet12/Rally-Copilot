@@ -5,9 +5,18 @@ import android.app.Application
 import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
+import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
+import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -17,6 +26,7 @@ import org.junit.runner.RunWith
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.android.controller.ServiceController
 
 @Suppress("DEPRECATION") // ServiceController.withIntent: no hay alternativa para reenviar intents al mismo servicio
 @RunWith(RobolectricTestRunner::class)
@@ -97,4 +107,94 @@ class ServicioNavegacionTest {
         assertTrue(servicio.control.estado.value is EstadoNavegacion.Error)
         assertEquals(null, shadowOf(app).nextStartedService)
     }
+
+    private fun servicioEnPrimerPlano(
+        copiloto: Boolean,
+    ): Pair<ServiceController<ServicioNavegacion>, ServicioNavegacion> {
+        shadowOf(app).grantPermissions(Manifest.permission.RECORD_AUDIO)
+        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val servicio = controlador.get()
+        runBlocking { servicio.ajustes.elegirActivarConCopiloto(copiloto) }
+        servicio.control.empezarLibre()
+        controlador.withIntent(shadowOf(app).nextStartedService).startCommand(0, 1)
+        return controlador to servicio
+    }
+
+    // Service.getForegroundServiceType (API 29): lo que Robolectric guarda de la última llamada a startForeground.
+    private fun tipoDe(servicio: ServicioNavegacion): Int = servicio.foregroundServiceType
+
+    private fun esperarTipo(
+        servicio: ServicioNavegacion,
+        esperado: Int,
+    ) {
+        repeat(150) {
+            shadowOf(Looper.getMainLooper()).idle()
+            if (tipoDe(servicio) == esperado) return
+            Thread.sleep(20)
+        }
+        assertEquals(esperado, tipoDe(servicio))
+    }
+
+    @Test
+    fun `con Copiloto desactivado el primer plano no pide el tipo microfono aunque haya permiso`() {
+        val (controlador, servicio) = servicioEnPrimerPlano(copiloto = false)
+
+        assertEquals(ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION, tipoDe(servicio))
+        controlador.destroy()
+    }
+
+    @Test
+    fun `con Copiloto activado y permiso el primer plano pide ubicacion y microfono`() {
+        val (controlador, servicio) = servicioEnPrimerPlano(copiloto = true)
+
+        assertEquals(
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+            tipoDe(servicio),
+        )
+        controlador.destroy()
+    }
+
+    @Test
+    fun `con Copiloto activado pero sin permiso de microfono solo pide ubicacion`() {
+        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val servicio = controlador.get()
+        runBlocking { servicio.ajustes.elegirActivarConCopiloto(true) }
+        servicio.control.empezarLibre()
+        controlador.withIntent(shadowOf(app).nextStartedService).startCommand(0, 1)
+
+        assertEquals(ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION, tipoDe(servicio))
+        controlador.destroy()
+    }
+
+    @Test
+    fun `al cambiar Copiloto en marcha se vuelve a declarar el primer plano con el tipo nuevo`() {
+        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val servicio = controlador.get()
+        servicio.fuente = FuenteSinPosiciones
+        // Ajustes falsos solo para el servicio: sin la base real no hay carreras con la escucha de Vosk, que no
+        // carga en la JVM del test (la real espera 5 s sin permiso y el test acaba antes).
+        val ajustes = FalsoRepositorioAjustesConduccion(AjustesConduccion(activarConCopiloto = false))
+        servicio.ajustes = ajustes
+        shadowOf(app).grantPermissions(Manifest.permission.RECORD_AUDIO)
+        servicio.control.empezarLibre()
+        controlador.withIntent(shadowOf(app).nextStartedService).startCommand(0, 1)
+        assertEquals(ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION, tipoDe(servicio))
+
+        runBlocking { ajustes.elegirActivarConCopiloto(true) }
+        esperarTipo(
+            servicio,
+            ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+        )
+
+        runBlocking { ajustes.elegirActivarConCopiloto(false) }
+        esperarTipo(servicio, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
+        controlador.destroy()
+    }
+}
+
+/** GPS que nunca da posiciones: la conducción queda esperando y el servicio sigue en primer plano. */
+private object FuenteSinPosiciones : FuenteUbicacion {
+    override fun fijaciones(): Flow<Fijacion> = flow { awaitCancellation() }
+
+    override fun tienePermiso(): Boolean = true
 }

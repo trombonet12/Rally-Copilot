@@ -228,12 +228,14 @@ private const val NS_POR_MS = 1_000_000L
 private const val MAX_PLAZO_MS = 100L * 365 * 24 * 3_600_000
 
 private const val HOST_GITHUB = "github.com"
-private const val SUFIJO_CDN = ".githubusercontent.com"
+private const val HOST_CDN_OBJETOS = "objects.githubusercontent.com"
+private const val HOST_CDN_ASSETS = "release-assets.githubusercontent.com"
 private const val HOST_DGT = "nap.dgt.es"
 private const val HOST_IGN = "tms-pnoa-ma.idee.es"
 
-/** GitHub y su CDN `*.githubusercontent.com`. */
-private fun esHostDeGithub(host: String): Boolean = host == HOST_GITHUB || host.endsWith(SUFIJO_CDN)
+/** GitHub y solo los dos CDN de las descargas de releases (no el contenido de usuarios: `raw.`, `gist.`...). */
+private fun esHostDeGithub(host: String): Boolean =
+    host == HOST_GITHUB || host == HOST_CDN_OBJETOS || host == HOST_CDN_ASSETS
 
 /** Solo el NAP de la DGT (incidencias DATEX II). */
 private fun esHostDeDgt(host: String): Boolean = host == HOST_DGT

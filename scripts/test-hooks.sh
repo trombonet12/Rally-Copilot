@@ -11,17 +11,17 @@ json_escape() { node -e 'process.stdout.write(JSON.stringify(process.argv[1]))' 
 
 # expect <hook> <exit esperado> <campo> <valor> [tool_name]
 expect() {
-  local hook="$1" want="$2" field="$3" value="$4" tool="${5:-Write}" input start ms got
+  local hook="$1" want="$2" field="$3" value="$4" tool="${5:-Write}" input got
   input="{\"hook_event_name\":\"PreToolUse\",\"tool_name\":\"$tool\",\"tool_input\":{\"$field\":$(json_escape "$value")}}"
-  start=$(date +%s%N)
   printf '%s' "$input" | bash "$H/$hook" >/dev/null 2>&1
   got=$?
-  ms=$((($(date +%s%N) - start) / 1000000))
-  if [ "$got" -eq "$want" ] && [ "$ms" -lt 5000 ]; then
+  # Sin umbral de tiempo de pared (QA-8): bash+node en CI o con antivirus en Windows daba falsos fallos; el hook ya
+  # tiene `timeout` en .claude/settings.json.
+  if [ "$got" -eq "$want" ]; then
     PASS=$((PASS + 1))
   else
     FAIL=$((FAIL + 1))
-    echo "FALLO: $hook [$field=$value] esperado=$want obtenido=$got (${ms} ms)"
+    echo "FALLO: $hook [$field=$value] esperado=$want obtenido=$got"
   fi
 }
 

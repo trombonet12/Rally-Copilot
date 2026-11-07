@@ -41,7 +41,6 @@ class ClienteHttpHostsTest {
                 "https://github.com/real",
                 "https://objects.githubusercontent.com/real",
                 "https://release-assets.githubusercontent.com/real",
-                "https://otro.githubusercontent.com/real",
             )
         for (destino in destinos) {
             abrirRedirigiendoA(destino)
@@ -59,6 +58,11 @@ class ClienteHttpHostsTest {
                 "https://evilgithubusercontent.com/real",
                 "https://github.com.evil.example/real",
                 "https://127.0.0.1/real",
+                // Contenido de usuarios de GitHub: no es el CDN de las releases.
+                "https://raw.githubusercontent.com/real",
+                "https://gist.githubusercontent.com/real",
+                "https://user-images.githubusercontent.com/real",
+                "https://otro.githubusercontent.com/real",
             )
         for (destino in destinos) {
             assertThrows(destino, IOException::class.java) { abrirRedirigiendoA(destino) }
