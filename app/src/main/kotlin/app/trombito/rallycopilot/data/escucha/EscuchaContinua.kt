@@ -36,11 +36,18 @@ class EscuchaContinua(
     /** Señal sonora tras oír la palabra, antes de escuchar la orden; debe volver cuando haya acabado de sonar. */
     private val tic: suspend () -> Unit = {},
 ) {
-    /** Escucha hasta que se cancele; sigue los cambios del ajuste y del permiso. */
-    suspend fun correr() {
+    /**
+     * Escucha hasta que se cancele; sigue los cambios del ajuste y del permiso. [hablando] dice si el copiloto está
+     * sonando (la puerta se cierra para que no se oiga a sí mismo); [registro] (solo en depuración) recibe cada minuto
+     * el porcentaje de bloques que llegaron al reconocedor.
+     */
+    suspend fun correr(
+        hablando: () -> Boolean = { false },
+        registro: ((String) -> Unit)? = null,
+    ) {
         ajustes.map { it.activarConCopiloto }.distinctUntilChanged().collectLatest { activo ->
             while (activo && coroutineContext.isActive) {
-                if (!permiso() || !esperarPalabra()) {
+                if (!permiso() || !esperarPalabra(hablando, registro)) {
                     delay(REINTENTO_MS)
                 } else {
                     tic()
@@ -52,18 +59,23 @@ class EscuchaContinua(
     }
 
     /** `true` si se oyó la palabra; `false` si el micrófono o el modelo no están disponibles. */
-    private suspend fun esperarPalabra(): Boolean =
+    private suspend fun esperarPalabra(
+        hablando: () -> Boolean,
+        registro: ((String) -> Unit)?,
+    ): Boolean =
         withContext(dispatcher) {
             val reconocedor = reconocedores.crear(GramaticaOrdenes.jsonActivacion()) ?: return@withContext false
             reconocedor.use {
                 val fuente = audio.abrir() ?: return@withContext false
-                fuente.use { escucharPalabra(fuente, reconocedor) }
+                fuente.use { escucharPalabra(fuente, reconocedor, hablando, registro) }
             }
         }
 
     private suspend fun escucharPalabra(
         fuente: FuenteAudio,
         reconocedor: Reconocedor,
+        hablando: () -> Boolean,
+        registro: ((String) -> Unit)?,
     ): Boolean {
         val puerta = PuertaVoz()
         val buffer = ShortArray(MUESTRAS_POR_LECTURA)
@@ -73,13 +85,18 @@ class EscuchaContinua(
             coroutineContext.ensureActive()
             val n = fuente.leer(buffer)
             if (n < 0) return false
-            val pasa = puerta.abierta(buffer, n)
+            val pasa = puerta.abierta(buffer, n, hablando())
+            if (registro != null && puerta.bloques % BLOQUES_POR_REGISTRO == 0L) registro(resumen(puerta))
             // Al abrirse la puerta se le da primero el trozo anterior, por si la palabra empezó en él.
             if (pasa && oyeLaPalabra(reconocedor, buffer, n, previo.takeIf { !abierta })) return true
             abierta = pasa
             previo = buffer.copyOf(n)
         }
     }
+
+    private fun resumen(puerta: PuertaVoz): String =
+        "puerta de voz: ${puerta.decodificados} de ${puerta.bloques} bloques decodificados " +
+            "(${"%.1f".format(puerta.porcentajeAbierta())} %)"
 
     private fun oyeLaPalabra(
         reconocedor: Reconocedor,
@@ -94,6 +111,9 @@ class EscuchaContinua(
 
     private companion object {
         const val MUESTRAS_POR_LECTURA = FRECUENCIA_HZ / 10
+
+        /** Bloques de 100 ms entre dos líneas de registro (1 min). */
+        const val BLOQUES_POR_REGISTRO = 600L
 
         /** Espera antes de reintentar si no hay permiso, micrófono o modelo. */
         const val REINTENTO_MS = 5_000L

@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.location.Location
 import android.os.SystemClock
+import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +32,7 @@ import app.trombito.rallycopilot.ui.alertas.BocadilloMapa
 import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.alertas.RadaresUi
 import app.trombito.rallycopilot.ui.comun.recurso
+import org.maplibre.android.LibraryLoader
 import org.maplibre.android.MapLibre
 import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
@@ -116,6 +118,19 @@ data class PreferenciasVistaMapa(
     /** Bocadillo de lo que se acerca o se acaba de pasar, anclado a su marcador; null = ninguno. */
     val bocadillo: BocadilloMapa? = null,
 )
+
+/**
+ * Carga la biblioteca nativa de MapLibre (12,8 MiB) fuera del hilo principal, al arrancar la app: así el primer mapa
+ * no la espera. Solo esto es seguro fuera del principal: `MapLibre.getInstance` y `MapView` son `@UiThread` y siguen
+ * creándose en [VistaMapa]. Si no carga (JVM de pruebas), el mapa lo vuelve a intentar al abrirse.
+ */
+fun precargarBibliotecaMapa() {
+    try {
+        LibraryLoader.load()
+    } catch (e: UnsatisfiedLinkError) {
+        Log.w("VistaMapa", "No se pudo precargar la biblioteca del mapa: ${e.javaClass.simpleName}")
+    }
+}
 
 /**
  * El mapa MapLibre dentro de Compose. Sin lógica de negocio: recibe el estilo ya resuelto, la última posición y si

@@ -39,17 +39,26 @@ class MainActivity : ComponentActivity() {
 
     @Inject lateinit var ajustes: RepositorioAjustesConduccion
 
-    /** Tema elegido en Ajustes; null hasta leerlo (el splash espera para no parpadear en oscuro si se eligió claro). */
+    /**
+     * Tema elegido en Ajustes. Arranca con la copia que se guardó en `SharedPreferences` (lectura síncrona de ~1 ms,
+     * sin esperar a que Room se abra y migre) y se corrige con el valor de Room; solo en el primer arranque es null
+     * y el splash espera (para no parpadear en oscuro si se eligió claro).
+     */
     private var tema by mutableStateOf<Tema?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen().setKeepOnScreenCondition { tema == null }
         super.onCreate(savedInstanceState)
+        val arranque = getSharedPreferences(PREFERENCIAS_ARRANQUE, MODE_PRIVATE)
+        tema = Tema.entries.firstOrNull { it.name == arranque.getString(CLAVE_TEMA, null) }
         lifecycleScope.launch {
             ajustes.ajustes
                 .map { it.tema }
                 .distinctUntilChanged()
-                .collect { tema = it }
+                .collect {
+                    tema = it
+                    arranque.edit().putString(CLAVE_TEMA, it.name).apply()
+                }
         }
         actualizacion.comprobarActualizacion()
         // Al recrear la actividad (giro) el intent llega otra vez: ya se importó.
@@ -76,5 +85,7 @@ class MainActivity : ComponentActivity() {
 
     private companion object {
         const val TRANSPARENTE = android.graphics.Color.TRANSPARENT
+        const val PREFERENCIAS_ARRANQUE = "arranque"
+        const val CLAVE_TEMA = "tema"
     }
 }

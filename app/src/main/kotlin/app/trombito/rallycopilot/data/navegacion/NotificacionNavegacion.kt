@@ -29,24 +29,28 @@ internal class NotificacionNavegacion(
         )
     }
 
+    /** Constructor y `PendingIntent`s se crean una vez: cada actualización solo cambia título y texto. */
+    private val constructor: NotificationCompat.Builder by lazy {
+        NotificationCompat
+            .Builder(contexto, CANAL)
+            .setSmallIcon(R.drawable.ic_stat_rally)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
+            .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
+            .addAction(0, contexto.getString(R.string.navegacion_terminar), intentTerminar())
+            .also { base ->
+                contexto.packageManager.getLaunchIntentForPackage(contexto.packageName)?.let { abrir ->
+                    val banderas = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                    base.setContentIntent(PendingIntent.getActivity(contexto, 0, abrir, banderas))
+                }
+            }
+    }
+
+    @Synchronized
     fun construir(estado: EstadoNavegacion): Notification {
         val (titulo, texto) = textos(estado)
-        val constructor =
-            NotificationCompat
-                .Builder(contexto, CANAL)
-                .setSmallIcon(R.drawable.ic_stat_rally)
-                .setContentTitle(titulo)
-                .setContentText(texto)
-                .setOngoing(true)
-                .setOnlyAlertOnce(true)
-                .setCategory(NotificationCompat.CATEGORY_NAVIGATION)
-                .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
-                .addAction(0, contexto.getString(R.string.navegacion_terminar), intentTerminar())
-        contexto.packageManager.getLaunchIntentForPackage(contexto.packageName)?.let { abrir ->
-            val banderas = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
-            constructor.setContentIntent(PendingIntent.getActivity(contexto, 0, abrir, banderas))
-        }
-        return constructor.build()
+        return constructor.setContentTitle(titulo).setContentText(texto).build()
     }
 
     private fun intentTerminar(): PendingIntent {
@@ -115,6 +119,45 @@ internal class NotificacionNavegacion(
         const val ID_NOTIFICACION = 4002
     }
 }
+
+/**
+ * Decide cuándo publicar la notificación: de inmediato si cambia lo importante ([clave]: otro estado, otra maniobra) y,
+ * si solo cambia el texto (distancia, hora de llegada), como mucho cada [periodoMs]. Cada `notify` despierta a
+ * `system_server` y a SystemUI, así que con la pantalla apagada se espacian.
+ */
+internal class LimitadorNotificacion(
+    private val reloj: () -> Long,
+    private val periodoMs: Long = PERIODO_MS,
+) {
+    private var hayPublicada = false
+    private var ultimaClave: Any? = null
+    private var ultimaMs = 0L
+
+    /** Ms que hay que esperar antes de publicar un estado con [clave] (0 = ya). */
+    fun esperaMs(clave: Any?): Long {
+        if (!hayPublicada || clave != ultimaClave) return 0L
+        return (ultimaMs + periodoMs - reloj()).coerceAtLeast(0L)
+    }
+
+    /** Anota que se acaba de publicar un estado con [clave]. */
+    fun publicada(clave: Any?) {
+        hayPublicada = true
+        ultimaClave = clave
+        ultimaMs = reloj()
+    }
+
+    companion object {
+        const val PERIODO_MS = 5_000L
+    }
+}
+
+/** Lo que, al cambiar, justifica publicar ya: el tipo de estado, el destino y la maniobra actual (no la distancia). */
+internal fun claveDeNotificacion(estado: EstadoNavegacion): Any =
+    when (estado) {
+        is EstadoNavegacion.Guiando -> Triple(estado.destino, estado.recalculando, estado.progreso?.maniobraActual)
+        is EstadoNavegacion.Libre -> EstadoNavegacion.Libre::class
+        else -> estado
+    }
 
 private const val REDONDEO_M = 50
 private val ES = Locale.forLanguageTag("es-ES")

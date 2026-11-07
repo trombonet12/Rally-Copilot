@@ -10,6 +10,7 @@ import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.database.sqlite.SQLiteException
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -20,6 +21,7 @@ import app.trombito.rallycopilot.data.escucha.MemoriaFrases
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.tramos.FabricaCronoSesion
+import app.trombito.rallycopilot.data.voz.LiberadorModelos
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
@@ -36,6 +38,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
@@ -78,6 +82,8 @@ class ServicioNavegacion : Service() {
 
     @Inject lateinit var tramos: RepositorioTramos
 
+    @Inject lateinit var liberadorModelos: LiberadorModelos
+
     private lateinit var notificacion: NotificacionNavegacion
     private lateinit var scope: CoroutineScope
     private var trabajo: Job? = null
@@ -97,6 +103,8 @@ class ServicioNavegacion : Service() {
         super.onCreate()
         notificacion = NotificacionNavegacion(this)
         notificacion.crearCanal()
+        // Otra conducción empieza: los modelos de voz que iban a soltarse al acabar la anterior se quedan.
+        liberadorModelos.cancelar()
         val alFallar =
             CoroutineExceptionHandler { _, causa ->
                 Log.w(ETIQUETA, "La conducción ha fallado: ${causa.javaClass.simpleName}")
@@ -107,7 +115,10 @@ class ServicioNavegacion : Service() {
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1) + alFallar)
         if (control.reclamarCierreDeHuerfanos()) huerfanos = scope.launch { cerrarHuerfanos() }
         // «Copiloto»: solo hace algo con el ajuste activado y el permiso de micrófono; vive lo que dure el servicio.
-        scope.launch(Dispatchers.Default) { escuchaContinua.correr() }
+        // La puerta de voz se cierra mientras habla el copiloto, para que no se escuche a sí mismo.
+        scope.launch(Dispatchers.Default) {
+            escuchaContinua.correr(hablando = { locutor.hablando.value }, registro = registroDeTiempos())
+        }
     }
 
     /** Limpieza de otro proceso: si falla no debe parar la conducción que se está arrancando. */
@@ -196,13 +207,22 @@ class ServicioNavegacion : Service() {
         trabajo = nuevo
     }
 
+    /**
+     * Actualiza la notificación solo si cambia el texto, y como mucho cada [LimitadorNotificacion.PERIODO_MS] salvo que
+     * cambie de maniobra o de estado: con la pantalla apagada cada `notify` despierta al sistema.
+     */
     private suspend fun mostrarEstado() {
         val gestor = getSystemService(NotificationManager::class.java)
+        val limitador = LimitadorNotificacion(SystemClock::elapsedRealtime)
         control.estado
             .filter { it !is EstadoNavegacion.Inactiva }
             .map { it to notificacion.textos(it) }
             .distinctUntilChanged { a, b -> a.second == b.second }
-            .collect { (estado, _) ->
+            .collectLatest { (estado, _) ->
+                val clave = claveDeNotificacion(estado)
+                val espera = limitador.esperaMs(clave)
+                if (espera > 0) delay(espera)
+                limitador.publicada(clave)
                 try {
                     gestor.notify(NotificacionNavegacion.ID_NOTIFICACION, notificacion.construir(estado))
                 } catch (_: SecurityException) {
@@ -222,6 +242,8 @@ class ServicioNavegacion : Service() {
     }
 
     override fun onDestroy() {
+        // Acabada la conducción, Piper y Vosk no deben quedarse en memoria (con un margen por la última frase).
+        liberadorModelos.programar()
         avisos?.cancel()
         vigilanteTipo?.cancel()
         huerfanos?.cancel()

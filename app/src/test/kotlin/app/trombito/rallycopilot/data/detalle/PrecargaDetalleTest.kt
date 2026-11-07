@@ -1,7 +1,6 @@
 package app.trombito.rallycopilot.data.detalle
 
 import android.content.Context
-import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.Configuration
 import androidx.work.ListenableWorker
@@ -18,6 +17,7 @@ import app.trombito.rallycopilot.data.datosmapa.EntornoDatosMapa
 import app.trombito.rallycopilot.data.db.AjustesMapasEntity
 import app.trombito.rallycopilot.data.db.ArchivoInstaladoEntity
 import app.trombito.rallycopilot.data.db.RallyDatabase
+import app.trombito.rallycopilot.data.db.baseSincrona
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.precarga.Rectangulo
 import app.trombito.rallycopilot.motor.precarga.TeselasPrecarga
@@ -63,9 +63,10 @@ class PrecargaDetalleTest {
         )
         workManager = WorkManager.getInstance(contexto)
         entorno = EntornoDatosMapa(carpeta.newFolder("e"))
-        base = Room.inMemoryDatabaseBuilder(contexto, RallyDatabase::class.java).allowMainThreadQueries().build()
+        base = baseSincrona(contexto)
         pendientes = RutasPendientes(carpeta.newFolder("rutas"))
-        precarga = PrecargaDetalleImpl(workManager, entorno.config, base.ajustesMapasDao(), pendientes, Dispatchers.IO)
+        precarga =
+            PrecargaDetalleImpl(workManager, entorno.config, base.ajustesMapasDao(), pendientes, Dispatchers.Unconfined)
     }
 
     @After
@@ -81,11 +82,8 @@ class PrecargaDetalleTest {
         n: Int,
         nombre: String = TrabajoDetalleSatelite.NOMBRE_TRABAJO,
     ) {
-        val limite = System.currentTimeMillis() + ESPERA_MS
-        while (trabajos(nombre).size < n) {
-            check(System.currentTimeMillis() < limite) { "Sin $n trabajos encolados" }
-            Thread.sleep(20)
-        }
+        // Base, ejecutor de WorkManager y dispatcher síncronos: al volver de la llamada ya está encolado.
+        assertTrue("Sin $n trabajos encolados", trabajos(nombre).size >= n)
     }
 
     private fun ejecutor(fuente: FuenteTeselas) =
@@ -130,7 +128,6 @@ class PrecargaDetalleTest {
         esperarTrabajos(1)
         precarga.precargarTramos()
         precarga.precargarTramos()
-        Thread.sleep(300)
 
         val trabajo = trabajos().single()
         assertEquals(WorkInfo.State.ENQUEUED, trabajo.state)
@@ -154,7 +151,6 @@ class PrecargaDetalleTest {
     @Test
     fun `una ruta fuera de Mallorca no encola nada`() {
         precarga.precargarRuta(listOf(PuntoGeo(41.38, 2.17), PuntoGeo(41.39, 2.18)))
-        Thread.sleep(300)
 
         assertTrue(trabajos().isEmpty())
     }
@@ -260,8 +256,4 @@ class PrecargaDetalleTest {
             assertFalse(archivo.exists())
             assertTrue(pendientes.leer().isEmpty())
         }
-
-    private companion object {
-        const val ESPERA_MS = 5_000L
-    }
 }

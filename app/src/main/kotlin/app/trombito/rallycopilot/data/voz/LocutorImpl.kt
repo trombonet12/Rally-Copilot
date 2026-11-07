@@ -8,8 +8,10 @@ import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +35,8 @@ import kotlinx.coroutines.withContext
  *   suelta. [hablando] es `true` desde que se pide el foco hasta que acaba; si se deniega, no suena y vuelve a `false`.
  *   Una frase [PrioridadVoz.URGENTE] vacía las que esperan sin haber empezado y pasa la primera (la que ya suena no se
  *   corta); una con `caducaMs` se descarta si su plazo (del [reloj] monótono) llega antes de empezar a sonar.
+ * - **Caché**: las lecturas solo actualizan el orden LRU en memoria; la fecha de los archivos se vuelca tras
+ *   [INACTIVIDAD_CACHE_MS] sin hablar y al [cerrar] ([CacheFrases.persistirUso]).
  */
 @Suppress("TooManyFunctions", "LongParameterList") // una función por orden del Locutor; colaboradores de voz y reloj
 class LocutorImpl(
@@ -80,6 +84,9 @@ class LocutorImpl(
     private val pendientes = LinkedHashMap<String, Peticion>()
     private var enCurso: String? = null
     private var trabajando = false
+
+    private val lockPersistencia = Any()
+    private var persistencia: Job? = null
 
     init {
         ambito.launch {
@@ -173,8 +180,23 @@ class LocutorImpl(
         synchronized(lockTurnos) { esperaDeVoz.clear() }
         synchronized(lockCola) { pendientes.clear() }
         foco.soltar()
-        // liberar() espera a que acabe la frase en curso: fuera del hilo que llama.
-        Thread({ sintetizador.liberar() }, "voz-liberar").start()
+        // liberar() espera a que acabe la frase en curso: va por el hilo de síntesis, no por el que llama.
+        CoroutineScope(dispatcherSintesis).launch {
+            cache.persistirUso()
+            sintetizador.liberar()
+        }
+    }
+
+    /** Vuelca el uso de la caché cuando el copiloto lleva [INACTIVIDAD_CACHE_MS] sin hablar (cada frase lo aplaza). */
+    private fun programarPersistenciaDeCache() {
+        synchronized(lockPersistencia) {
+            persistencia?.cancel()
+            persistencia =
+                ambito.launch {
+                    delay(INACTIVIDAD_CACHE_MS)
+                    withContext(dispatcherSintesis) { cache.persistirUso() }
+                }
+        }
     }
 
     private suspend fun trabajarCola() {
@@ -239,13 +261,16 @@ class LocutorImpl(
         } finally {
             foco.soltar()
             estaHablando.value = false
+            programarPersistenciaDeCache()
         }
     }
 
-    private companion object {
-        const val TAG = "Locutor"
-        const val SEGUNDOS_POR_CARACTER = 0.07
-        const val BYTES_POR_MUESTRA = 2
-        const val FRASE_PRUEBA = "Atención: izquierda cuatro, cien metros, y después derecha seis."
+    companion object {
+        /** Silencio del copiloto tras el que se guarda el orden de uso de la caché. */
+        const val INACTIVIDAD_CACHE_MS = 60_000L
+        private const val TAG = "Locutor"
+        private const val SEGUNDOS_POR_CARACTER = 0.07
+        private const val BYTES_POR_MUESTRA = 2
+        private const val FRASE_PRUEBA = "Atención: izquierda cuatro, cien metros, y después derecha seis."
     }
 }

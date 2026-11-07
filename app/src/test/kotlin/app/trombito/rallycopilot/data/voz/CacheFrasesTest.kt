@@ -145,4 +145,50 @@ class CacheFrasesTest {
         assertTrue(reabierta.contiene(VozCopiloto.SHARVARD, "a", VelocidadHabla.RAPIDA))
         assertEquals(14L, reabierta.tamanoTotal())
     }
+
+    @Test
+    fun `leer no toca la fecha del archivo hasta persistir el uso`() {
+        val c = cache()
+        c.guardar(VozCopiloto.DAVEFX, "a", pcm(10))
+        val fichero = archivo(VozCopiloto.DAVEFX, "a")
+        fichero.setLastModified(1_000L)
+
+        c.leer(VozCopiloto.DAVEFX, "a")
+        c.leer(VozCopiloto.DAVEFX, "a")
+        assertEquals(1_000L, fichero.lastModified())
+
+        c.persistirUso()
+        assertTrue(fichero.lastModified() > 1_000L)
+    }
+
+    @Test
+    fun `persistir el uso conserva el orden al reabrir`() {
+        val c = cache(maxBytes = 1_000)
+        c.guardar(VozCopiloto.DAVEFX, "vieja", pcm(10))
+        c.guardar(VozCopiloto.DAVEFX, "nueva", pcm(10))
+        archivo(VozCopiloto.DAVEFX, "vieja").setLastModified(1_000L)
+        archivo(VozCopiloto.DAVEFX, "nueva").setLastModified(2_000L)
+        c.leer(VozCopiloto.DAVEFX, "vieja") // ahora la mas reciente
+        c.persistirUso()
+
+        val reabierta = CacheFrases(carpeta.root, maxBytes = 20)
+
+        assertTrue(reabierta.contiene(VozCopiloto.DAVEFX, "vieja"))
+        assertFalse(reabierta.contiene(VozCopiloto.DAVEFX, "nueva"))
+    }
+
+    @Test
+    fun `persistir el uso sin lecturas pendientes no hace nada y no falla con frases expulsadas`() {
+        val c = cache(maxBytes = 20)
+        c.persistirUso()
+        c.guardar(VozCopiloto.DAVEFX, "a", pcm(10))
+        c.leer(VozCopiloto.DAVEFX, "a")
+        c.guardar(VozCopiloto.DAVEFX, "b", pcm(10))
+        c.guardar(VozCopiloto.DAVEFX, "c", pcm(10)) // expulsa a "a" y "b" (limite de 20 bytes)
+
+        c.persistirUso()
+
+        assertFalse(archivo(VozCopiloto.DAVEFX, "a").exists())
+        assertTrue(c.contiene(VozCopiloto.DAVEFX, "c"))
+    }
 }

@@ -18,9 +18,11 @@ import java.security.MessageDigest
  * velocidad de habla tiene su carpeta, así que cambiarla no mezcla audios. Expulsa lo menos usado cuando se pasa de
  * [maxBytes].
  *
- * El orden de uso se lleva en memoria (se reconstruye al arrancar con la fecha de modificación, que cada lectura
- * renueva). Seguro para varios hilos. Un archivo ilegible o con tamaño impar se trata como si no existiera.
+ * El orden de uso se lleva en memoria (se reconstruye al arrancar con la fecha de modificación). Las lecturas no
+ * tocan el disco: la fecha de las frases usadas se vuelca de una vez con [persistirUso] (al acabar la sesión o tras un
+ * rato de inactividad). Seguro para varios hilos. Un archivo ilegible o con tamaño impar se trata como si no existiera.
  */
+@Suppress("TooManyFunctions") // consultas, lectura, escritura, expulsión y persistencia del uso de una caché
 class CacheFrases(
     private val raiz: File,
     private val maxBytes: Long = MAX_BYTES_POR_DEFECTO,
@@ -28,6 +30,9 @@ class CacheFrases(
     private val lock = Any()
     private var indice: LinkedHashMap<String, Long>? = null
     private var total = 0L
+
+    /** Frases leídas desde el último [persistirUso] y cuándo (ms): su fecha de archivo aún está sin renovar. */
+    private val usadas = HashMap<String, Long>()
 
     /** `true` si la frase ya está guardada (no cuenta como uso). */
     fun contiene(
@@ -64,7 +69,7 @@ class CacheFrases(
                     .get(muestras)
                 mapa.remove(clave) // reinserta al final: la más reciente
                 mapa[clave] = bytes.size.toLong()
-                archivo.setLastModified(System.currentTimeMillis())
+                usadas[clave] = System.currentTimeMillis()
                 muestras
             } catch (e: IOException) {
                 Log.w(TAG, "Frase de caché ilegible, se descarta", e)
@@ -105,6 +110,20 @@ class CacheFrases(
         }
     }
 
+    /**
+     * Escribe en cada archivo leído desde la última vez la fecha de su último uso, para que el orden LRU sobreviva al
+     * reinicio del proceso. Una sola pasada, en lugar de una escritura de metadatos por lectura.
+     */
+    fun persistirUso() {
+        synchronized(lock) {
+            for ((clave, ms) in usadas) {
+                val fichero = archivo(clave)
+                if (fichero.isFile) fichero.setLastModified(ms)
+            }
+            usadas.clear()
+        }
+    }
+
     /** Bytes ocupados por la caché. */
     fun tamanoTotal(): Long =
         synchronized(lock) {
@@ -119,6 +138,7 @@ class CacheFrases(
             val entrada = iterador.next()
             if (entrada.key == protegida) continue
             archivo(entrada.key).delete()
+            usadas.remove(entrada.key)
             total -= entrada.value
             iterador.remove()
         }
@@ -126,6 +146,7 @@ class CacheFrases(
 
     private fun olvidar(clave: String) {
         archivo(clave).delete()
+        usadas.remove(clave)
         total -= indiceCargado().remove(clave) ?: 0L
     }
 

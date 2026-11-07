@@ -2,9 +2,11 @@ package app.trombito.rallycopilot.data.voz
 
 import android.media.AudioFormat
 import android.media.AudioTrack
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
+import android.os.Handler
+import android.os.Looper
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.coroutines.resume
 
 /** Reproduce un PCM de 16 bits mono. */
 interface ReproductorPcm {
@@ -20,7 +22,8 @@ interface ReproductorPcm {
 
 /**
  * [AudioTrack] en `MODE_STATIC` (las frases duran pocos segundos): se escribe todo el audio, se lanza y se espera a que
- * el cabezal llegue al final.
+ * el cabezal llegue al final con un marcador de posición (el sistema avisa una vez; no se sondea el cabezal). Si el
+ * aviso no llegara, un plazo (duración de la frase y un margen) evita quedarse esperando.
  */
 class ReproductorAudioTrack : ReproductorPcm {
     override suspend fun reproducir(
@@ -31,18 +34,31 @@ class ReproductorAudioTrack : ReproductorPcm {
         val pista = crearPista(muestras.size, frecuenciaHz)
         try {
             pista.write(muestras, 0, muestras.size)
-            pista.play()
-            val limiteMs = System.currentTimeMillis() + muestras.size * MS_POR_S / frecuenciaHz + MARGEN_MS
-            while (currentCoroutineContext().isActive &&
-                pista.playbackHeadPosition < muestras.size &&
-                System.currentTimeMillis() < limiteMs
-            ) {
-                delay(PERIODO_SONDEO_MS)
-            }
+            val plazoMs = muestras.size * MS_POR_S / frecuenciaHz + MARGEN_MS
+            withTimeoutOrNull(plazoMs) { sonarHastaElFinal(pista, muestras.size) }
         } finally {
+            pista.setPlaybackPositionUpdateListener(null)
             pista.stop()
             pista.release()
         }
+    }
+
+    private suspend fun sonarHastaElFinal(
+        pista: AudioTrack,
+        muestras: Int,
+    ) = suspendCancellableCoroutine<Unit> { continuacion ->
+        val aviso =
+            object : AudioTrack.OnPlaybackPositionUpdateListener {
+                override fun onMarkerReached(pista: AudioTrack?) {
+                    if (continuacion.isActive) continuacion.resume(Unit)
+                }
+
+                override fun onPeriodicNotification(pista: AudioTrack?) = Unit
+            }
+        pista.setPlaybackPositionUpdateListener(aviso, Handler(Looper.getMainLooper()))
+        // Un fotograma antes del final: el aviso en el último fotograma exacto no está garantizado en MODE_STATIC.
+        pista.notificationMarkerPosition = (muestras - 1).coerceAtLeast(1)
+        pista.play()
     }
 
     private fun crearPista(
@@ -68,7 +84,6 @@ class ReproductorAudioTrack : ReproductorPcm {
         }
 
     private companion object {
-        const val PERIODO_SONDEO_MS = 20L
         const val MARGEN_MS = 1_500L
         const val MS_POR_S = 1_000L
     }

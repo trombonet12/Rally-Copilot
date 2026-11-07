@@ -26,6 +26,7 @@ private class SintetizadorFalso : SintetizadorTts {
     /** Cada llamada con la velocidad pedida, en orden. */
     val velocidades = mutableListOf<VelocidadHabla>()
     var falla = false
+    var liberaciones = 0
 
     override fun frecuenciaHz(voz: VozCopiloto) = 1_000
 
@@ -40,7 +41,9 @@ private class SintetizadorFalso : SintetizadorTts {
         return AudioPcm(ShortArray(texto.length * 100) { 1_000 }, 1_000)
     }
 
-    override fun liberar() = Unit
+    override fun liberar() {
+        liberaciones++
+    }
 }
 
 private class ReproductorFalso : ReproductorPcm {
@@ -94,6 +97,40 @@ class LocutorImplTest {
         val dispatcher = StandardTestDispatcher(testScheduler)
         return LocutorImpl(cache, sint, repro, foco, CoroutineScope(dispatcher), dispatcher, { ahoraMs }) to cache
     }
+
+    @Test
+    fun `cerrar libera el sintetizador por el dispatcher de sintesis sin crear hilos`() =
+        runTest {
+            val (locutor, _) = locutor()
+
+            locutor.cerrar()
+            assertEquals(0, sint.liberaciones) // aun no: va encolado en el dispatcher de sintesis
+            advanceUntilIdle()
+
+            assertEquals(1, sint.liberaciones)
+        }
+
+    @Test
+    fun `tras un rato sin hablar vuelca el uso de la cache y no antes`() =
+        runTest {
+            val (locutor, cache) = locutor()
+            locutor.decir("izquierda")
+            advanceUntilIdle() // sintetiza y guarda
+            val fichero = java.io.File(carpeta.root, CacheFrases.clave(VozCopiloto.DAVEFX, "izquierda") + ".pcm")
+            fichero.setLastModified(1_000L)
+            locutor.decir("izquierda")
+            runCurrent() // esta vez sale de la cache: queda marcada como usada, sin tocar el disco
+            assertEquals(1_000L, fichero.lastModified())
+
+            testScheduler.advanceTimeBy(LocutorImpl.INACTIVIDAD_CACHE_MS - 1)
+            runCurrent()
+            assertEquals(1_000L, fichero.lastModified())
+
+            testScheduler.advanceTimeBy(2)
+            runCurrent()
+            assertTrue(fichero.lastModified() > 1_000L)
+            assertTrue(cache.contiene(VozCopiloto.DAVEFX, "izquierda"))
+        }
 
     @Test
     fun `preparar sintetiza sin duplicados ni lo ya cacheado`() =

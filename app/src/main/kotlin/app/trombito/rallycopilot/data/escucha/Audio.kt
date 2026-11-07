@@ -40,6 +40,12 @@ interface Reconocedor : AutoCloseable {
 /** Crea reconocedores con una gramática JSON (`["frase", ..., "[unk]"]`); `null` si el modelo no está disponible. */
 fun interface FabricaReconocedor {
     fun crear(gramaticaJson: String): Reconocedor?
+
+    /** Deja el modelo listo en disco sin cargarlo en memoria (copia de assets); por defecto no hace nada. */
+    fun precopiar() = Unit
+
+    /** Libera el modelo cargado (el siguiente [crear] lo vuelve a cargar); por defecto no hace nada. */
+    fun liberar() = Unit
 }
 
 /** Micrófono real: [AudioRecord] a 16 kHz mono, fuente de reconocimiento de voz. */

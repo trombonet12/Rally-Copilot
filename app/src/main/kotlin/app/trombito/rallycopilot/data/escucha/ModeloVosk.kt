@@ -68,8 +68,8 @@ object CopiaModeloVosk {
 
 /**
  * Reconocedores Vosk con el modelo pequeño español. El modelo (≈ 60 MB en disco, bastante RAM nativa) se copia y se
- * carga la primera vez que se pide y se conserva mientras viva el proceso. Cada [crear] da un reconocedor nuevo con su
- * gramática; `null` si el modelo no está o no carga.
+ * carga la primera vez que se pide y se conserva hasta [liberar] (fin de la conducción o poca memoria). Cada [crear]
+ * da un reconocedor nuevo con su gramática; `null` si el modelo no está o no carga.
  */
 class FabricaReconocedorVosk(
     private val contexto: Context,
@@ -94,6 +94,25 @@ class FabricaReconocedorVosk(
 
     override fun crear(gramaticaJson: String): Reconocedor? =
         modelo()?.let { ReconocedorVosk(Recognizer(it, FRECUENCIA_HZ.toFloat(), gramaticaJson)) }
+
+    /** Copia el modelo a disco (si falta) sin cargarlo: así la primera orden no espera a la copia de 57 MB. */
+    override fun precopiar() {
+        try {
+            CopiaModeloVosk.asegurar(contexto.assets, File(contexto.filesDir, "asr"))
+        } catch (e: IOException) {
+            Log.w(TAG, "No se pudo precopiar el modelo de voz: ${e.javaClass.simpleName}")
+        }
+    }
+
+    /**
+     * Libera el modelo de la memoria nativa. Los reconocedores ya creados siguen valiendo (Vosk cuenta referencias
+     * del modelo); el siguiente [crear] lo carga de nuevo desde disco.
+     */
+    @Synchronized
+    override fun liberar() {
+        modelo?.close()
+        modelo = null
+    }
 
     private companion object {
         const val TAG = "FabricaReconocedorVosk"

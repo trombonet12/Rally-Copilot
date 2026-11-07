@@ -143,7 +143,7 @@ class PrecargaDetalleImpl(
         if (esperando) return
         val peticion =
             OneTimeWorkRequestBuilder<TrabajoDetalleSatelite>()
-                .setConstraints(redRequerida(soloWifi = true))
+                .setConstraints(redRequerida(soloWifi = true, bateriaNoBaja = true))
                 .setBackoffCriteria(BackoffPolicy.LINEAR, BACKOFF_MINUTOS, TimeUnit.MINUTES)
                 .addTag(TrabajoDetalleSatelite.ETIQUETA_AUTOMATICO)
                 .addTag(TrabajoDetalleSatelite.ETIQUETA_DETALLE)
@@ -155,11 +155,15 @@ class PrecargaDetalleImpl(
         )
     }
 
-    private fun redRequerida(soloWifi: Boolean) =
-        Constraints
-            .Builder()
-            .setRequiredNetworkType(if (soloWifi) NetworkType.UNMETERED else NetworkType.CONNECTED)
-            .build()
+    /** El automático además espera a que la batería no esté baja; el manual (lo pidió Joan) no. */
+    private fun redRequerida(
+        soloWifi: Boolean,
+        bateriaNoBaja: Boolean = false,
+    ) = Constraints
+        .Builder()
+        .setRequiredNetworkType(if (soloWifi) NetworkType.UNMETERED else NetworkType.CONNECTED)
+        .setRequiresBatteryNotLow(bateriaNoBaja)
+        .build()
 
     private fun WorkInfo.aProgreso() =
         ProgresoDetalle(
