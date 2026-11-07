@@ -39,7 +39,8 @@ refrescar incidencias. El plan completo está en [ROADMAP.md](ROADMAP.md).
 ## 📲 Instalación
 Con [Obtainium](https://github.com/ImranR98/Obtainium): *Add app* →
 `https://github.com/trombonet12/Rally-Copilot` (filtro de APK `rally-copilot-.*\.apk`). Detalles en
-[docs/obtainium.md](docs/obtainium.md).
+[docs/obtainium.md](docs/obtainium.md). Huella SHA-256 del certificado de firma:
+`d188b18169401ade2f91c0a24c598f4dcf67ab199917aec9ba2afc0b834210d0`.
 
 ## 🛠️ Desarrollo
 - Kotlin, Jetpack Compose (Material 3), Hilt, Room, Navigation type-safe. Módulo `:motor` en Kotlin/JVM puro para la

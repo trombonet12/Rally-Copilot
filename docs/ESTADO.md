@@ -4,8 +4,8 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H15 (auditoría y deuda técnica) cerrado · **v1.3.0** · siguiente: H16 tras la prueba en coche · H11 pendiente |
-| Estado | v1.3.0 publicada con todo en verde. Pendiente: probar en el móvil de Joan (GPS débil, batería con «Copiloto», relieve, Sharvard) |
+| Hito | H15 (auditoría y deuda técnica) cerrado · **v1.3.2** · siguiente: H16 tras la prueba en coche · H11 pendiente |
+| Estado | v1.3.2 publicada (GitHub Release) con todo en verde. Pendiente: probar en el móvil de Joan (GPS débil, batería con «Copiloto», relieve, Sharvard) |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
 ## Completado
@@ -84,4 +84,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H15 cerrado y publicado como v1.3.0 (2026-11-07). Siguiente: prueba en el móvil de Joan y, con lo que salga, H16 (calibración en coche).
+- **Agente:** H15 cerrado y publicado como v1.3.2 (2026-11-07). Siguiente: prueba en el móvil de Joan y, con lo que salga, H16 (calibración en coche).

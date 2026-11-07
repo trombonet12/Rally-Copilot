@@ -41,7 +41,7 @@ El repositorio es **público**, así que Obtainium no necesita token.
   que desinstalar y se pierden los tramos guardados (salvo que antes hayas exportado la copia de seguridad desde Ajustes > Datos). **Haz copia de seguridad de `~/.rallycopilot/`** (VERIFICAR si ya está hecha).
 
 ### Huella del certificado de firma
-**Huella SHA-256 del certificado: VERIFICAR** (la rellena el agente principal; no inventarla).
+**Huella SHA-256 del certificado:** `d188b18169401ade2f91c0a24c598f4dcf67ab199917aec9ba2afc0b834210d0` (comprobada en la v1.2.0 y la v1.3.2).
 
 Sirve para comprobar la **primera instalación** (otro móvil, reinstalación): `checksums.txt` va en la misma release que
 el APK y no protege si se compromete la cuenta; las actualizaciones ya las protege Android con la continuidad de firma.
