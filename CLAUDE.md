@@ -13,7 +13,8 @@ descargar mapas y refrescar incidencias). Especificación completa: `docs/_meta/
 
 ## Comandos
 ```
-./gradlew ktlintCheck detekt lintDebug testDebugUnitTest :motor:test assembleDebug :app:minifyReleaseWithR8   # gate
+./gradlew ktlintCheck detekt lintDebug testDebugUnitTest :motor:test assembleDebug :app:minifyReleaseWithR8 :motor:koverVerify   # gate
+node scripts/humo-release.mjs                                    # tras R8: clases keep intactas
 node scripts/check-claude-assets.mjs ; node scripts/gen-claude-index.mjs --check ; node scripts/check-docs.mjs
 bash scripts/test-hooks.sh ; node --test scripts/play-promocionar.test.mjs scripts/gps-replay.test.mjs
 node scripts/gps-replay.mjs docs/rutas/<traza>.gpx --kmh 60     # GPS simulado en el emulador (AVD trombito-36)
