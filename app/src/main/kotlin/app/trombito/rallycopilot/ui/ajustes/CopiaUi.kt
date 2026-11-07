@@ -26,6 +26,8 @@ const val ETIQUETA_AJUSTES_IMPORTAR = "ajustes-copia-importar"
 const val ETIQUETA_COPIA_PROGRESO = "ajustes-copia-progreso"
 const val ETIQUETA_COPIA_CONFIRMAR = "ajustes-copia-confirmar"
 const val ETIQUETA_COPIA_CANCELAR = "ajustes-copia-cancelar"
+const val ETIQUETA_COPIA_EXPORTAR_ACEPTAR = "ajustes-copia-exportar-aceptar"
+const val ETIQUETA_COPIA_EXPORTAR_CANCELAR = "ajustes-copia-exportar-cancelar"
 
 /** Nombre propuesto al guardar la copia: `rally-copilot-AAAA-MM-DD.zip`. */
 fun nombreArchivoCopia(fecha: LocalDate = LocalDate.now()): String = "rally-copilot-$fecha.zip"
@@ -68,6 +70,32 @@ internal fun ControlesDatos(
             }
         }
     }
+}
+
+/**
+ * Aviso antes de elegir dónde guardar la copia: lleva los recorridos (con por dónde y a qué hora has estado) y la
+ * ubicación de Casa, así que conviene guardarla en un sitio privado.
+ */
+@Composable
+internal fun DialogoExportarCopia(
+    onConfirmar: () -> Unit,
+    onCancelar: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        title = { Text(stringResource(R.string.copia_exportar_aviso_titulo)) },
+        text = { Text(stringResource(R.string.copia_exportar_aviso_texto)) },
+        confirmButton = {
+            TextButton(onClick = onConfirmar, modifier = Modifier.testTag(ETIQUETA_COPIA_EXPORTAR_ACEPTAR)) {
+                Text(stringResource(R.string.copia_exportar_aviso_aceptar))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancelar, modifier = Modifier.testTag(ETIQUETA_COPIA_EXPORTAR_CANCELAR)) {
+                Text(stringResource(R.string.copia_cancelar))
+            }
+        },
+    )
 }
 
 /** Confirmación antes de elegir la copia: importar sustituye lo que hay. */

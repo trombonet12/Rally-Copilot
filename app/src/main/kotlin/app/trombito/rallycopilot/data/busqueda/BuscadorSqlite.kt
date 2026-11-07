@@ -88,6 +88,25 @@ class BuscadorSqlite(
         }
     }
 
+    override suspend fun lugarMasCercano(
+        punto: PuntoGeo,
+        radioM: Double,
+    ): ResultadoBusqueda? {
+        if (radioM <= 0.0) return null
+        siembra.esperar()
+        return withContext(dispatcher) {
+            cerrojo.withLock {
+                val db = abierta() ?: return@withLock null
+                try {
+                    LugarCercano.buscar(db, punto, radioM)
+                } catch (e: SQLiteException) {
+                    Log.w(ETIQUETA, "Consulta de lugar cercano fallida: ${e.javaClass.simpleName}")
+                    null
+                }
+            }
+        }
+    }
+
     /** Libera el archivo (la siguiente búsqueda lo reabre). */
     suspend fun cerrar() {
         withContext(dispatcher) {

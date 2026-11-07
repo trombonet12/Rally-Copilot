@@ -58,6 +58,66 @@ class MisTramosScreenTest {
     }
 
     @Test
+    fun `el nombre es Origen a Destino y las carreteras salen de subtitulo en la fila`() {
+        val nuevo = resumenFalso("c", "Palma → Montuïri", longitudM = 21_000.0).copy(subtitulo = "Ma-13 / Ma-15")
+        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(nuevo, escorca), AccionesMisTramos()) } }
+        val fila = banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${nuevo.id}"))
+        assertTrue("Palma → Montuïri" in fila)
+        assertTrue("Ma-13 / Ma-15" in fila)
+        assertTrue("Los antiguos no llevan subtítulo", !banco.hay("$ETIQUETA_SUBTITULO_PREFIJO${escorca.id}"))
+    }
+
+    @Test
+    fun `un archivo de otra app pregunta antes de importar con su nombre y su longitud`() {
+        val confirmados = mutableListOf<Int>()
+        val cancelados = mutableListOf<Int>()
+        banco.poner {
+            RallyCopilotTheme {
+                MisTramosScreen(
+                    estado(escorca),
+                    AccionesMisTramos(
+                        onConfirmarImportacion = { confirmados += 1 },
+                        onCancelarImportacion = { cancelados += 1 },
+                    ),
+                    importacion = EstadoImportacion.Pendiente("Mi ruta", 12_400.0),
+                )
+            }
+        }
+        assertEquals(
+            listOf("¿Importar «Mi ruta» (12,4 km)?"),
+            banco.textos(banco.conEtiqueta(ETIQUETA_IMPORTAR_DIALOGO)),
+        )
+        assertTrue(banco.todosLosTextos().any { "Te lo ha enviado otra app" in it })
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_IMPORTAR_CANCELAR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_IMPORTAR_ACEPTAR))
+        assertEquals(1, cancelados.size)
+        assertEquals(1, confirmados.size)
+    }
+
+    @Test
+    fun `sin nombre el dialogo de importar dice este tramo`() {
+        banco.poner {
+            RallyCopilotTheme {
+                MisTramosScreen(
+                    estado(escorca),
+                    AccionesMisTramos(),
+                    importacion = EstadoImportacion.Pendiente(null, 850.0),
+                )
+            }
+        }
+        assertEquals(
+            listOf("¿Importar este tramo (850 m)?"),
+            banco.textos(banco.conEtiqueta(ETIQUETA_IMPORTAR_DIALOGO)),
+        )
+    }
+
+    @Test
+    fun `sin archivo pendiente no hay dialogo de importar`() {
+        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(escorca), AccionesMisTramos()) } }
+        assertFalse(banco.hay(ETIQUETA_IMPORTAR_DIALOGO))
+    }
+
+    @Test
     fun `los tres filtros estan y el actual va seleccionado`() {
         banco.poner {
             RallyCopilotTheme {

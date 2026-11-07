@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.motor.importar
 
 import app.trombito.rallycopilot.motor.alertas.EventoXml
 import app.trombito.rallycopilot.motor.alertas.LectorXml
+import app.trombito.rallycopilot.motor.edicion.CodecEdiciones
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 
 /**
@@ -9,7 +10,9 @@ import app.trombito.rallycopilot.motor.geo.PuntoGeo
  * concatenan siempre; entre `trk` se aplica la regla de contiguas o la más larga), si no hay, la primera ruta `rte`
  * con ≥ 2 puntos y, si tampoco, los `wpt` en orden. Los waypoints se ignoran si hay traza o ruta. Los puntos con
  * coordenadas ilegibles se saltan; la elevación (`ele`) es opcional. Los nombres son los locales: un GPX con prefijo
- * de espacio de nombres se lee igual.
+ * de espacio de nombres se lee igual. Si el GPX lo exportó Rally Copilot ([EscritorGpx]) también se lee su extensión
+ * (`gpx/extensions/tramoRally`): sectores, microsectores y ediciones; las ilegibles se saltan y solo se admiten
+ * [LectorTraza.TOPE_EXTENSION] elementos de cada clase.
  */
 object LectorGpx {
     /** Lee el documento que entrega [xml] y lo cierra. */
@@ -31,6 +34,11 @@ object LectorGpx {
         private var nombreRte: String? = null
         private var total = 0
         private var esGpx = false
+
+        private var hayExtension = false
+        private val sectores = ArrayList<Double>()
+        private val microsectores = ArrayList<Double>()
+        private val ediciones = ArrayList<EdicionArchivo>()
 
         private var lat: Double? = null
         private var lon: Double? = null
@@ -72,7 +80,38 @@ object LectorGpx {
                     lon = xml.atributo("lon")?.trim()?.toDoubleOrNull()
                     alt = null
                 }
+
+                "tramoRally" -> {
+                    if (pila.size == PROFUNDIDAD_RALLY) hayExtension = true
+                }
+
+                "sectorRally", "microsectorRally", "edicionRally" -> {
+                    if (enExtension()) elementoRally(nombre)
+                }
             }
+        }
+
+        /** Cierto dentro de `gpx/extensions/tramoRally`, donde solo el hijo directo es de Rally Copilot. */
+        private fun enExtension(): Boolean =
+            hayExtension && pila.size == PROFUNDIDAD_RALLY + 1 && pila[1] == "extensions" && pila[2] == "tramoRally"
+
+        private fun elementoRally(nombre: String) {
+            val metros =
+                xml
+                    .atributo("m")
+                    ?.trim()
+                    ?.toDoubleOrNull()
+                    ?.takeIf { it.isFinite() } ?: return
+            when (nombre) {
+                "sectorRally" -> if (sectores.size < LectorTraza.TOPE_EXTENSION) sectores.add(metros)
+                "microsectorRally" -> if (microsectores.size < LectorTraza.TOPE_EXTENSION) microsectores.add(metros)
+                else -> if (ediciones.size < LectorTraza.TOPE_EXTENSION) edicion(metros)?.let { ediciones.add(it) }
+            }
+        }
+
+        private fun edicion(metros: Double): EdicionArchivo? {
+            val accion = xml.atributo("tipo")?.let { CodecEdiciones.accion(it, xml.atributo("nota")) }
+            return accion?.let { EdicionArchivo(metros, it, xml.atributo("t")?.trim()?.toLongOrNull() ?: 0L) }
         }
 
         private fun acumular() {
@@ -133,8 +172,12 @@ object LectorGpx {
             return if (elegida == null) {
                 ResultadoImportacion.Error(MotivoErrorImportacion.SIN_TRAZA, "El GPX no trae una traza de dos puntos")
             } else {
-                ResultadoImportacion.Ok(elegida.first ?: primeraRuta?.nombre ?: nombreMeta, elegida.second)
+                val extension = if (hayExtension) ExtensionRally(sectores, microsectores, ediciones) else null
+                ResultadoImportacion.Ok(elegida.first ?: primeraRuta?.nombre ?: nombreMeta, elegida.second, extension)
             }
         }
     }
+
+    /** Profundidad de `gpx/extensions/tramoRally` contando el propio elemento. */
+    private const val PROFUNDIDAD_RALLY = 3
 }

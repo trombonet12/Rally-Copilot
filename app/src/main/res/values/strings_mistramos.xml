@@ -23,6 +23,11 @@
     <string name="mistramos_importar">Importar un archivo GPX o KML</string>
     <string name="mistramos_dibujar">Dibujar una ruta</string>
     <string name="mistramos_importando">Importando…</string>
+    <string name="mistramos_confirmar_titulo">¿Importar «%1$s» (%2$s)?</string>
+    <string name="mistramos_confirmar_titulo_sin_nombre">¿Importar este tramo (%1$s)?</string>
+    <string name="mistramos_confirmar_texto">Te lo ha enviado otra app. Si lo importas, se guardará como un tramo en Mis tramos.</string>
+    <string name="mistramos_confirmar_aceptar">Importar</string>
+    <string name="mistramos_confirmar_cancelar">Cancelar</string>
     <string name="mistramos_importado">«%1$s» importado. Ya puedes conducirlo o reconocerlo.</string>
     <string name="mistramos_importado_sin_nombre">Tramo importado. Ya puedes conducirlo o reconocerlo.</string>
     <string name="mistramos_importar_no_se_puede_abrir">No se pudo abrir el archivo.</string>
@@ -73,6 +78,9 @@
     <string name="detalle_pasadas_titulo">Pasadas</string>
     <string name="detalle_sin_pasadas">Este tramo aún no tiene pasadas.</string>
     <string name="detalle_ver_analisis">Ver análisis</string>
+    <string name="detalle_compartir">Compartir el tramo con sus notas</string>
+    <string name="detalle_compartir_selector">Compartir tramo</string>
+    <string name="detalle_compartir_fallo">No se pudo preparar el archivo del tramo. Inténtalo de nuevo.</string>
     <string name="detalle_no_existe_titulo">Tramo no encontrado</string>
     <string name="detalle_no_existe_texto">Este tramo ya no existe. Vuelve a la lista para elegir otro.</string>
 </resources>

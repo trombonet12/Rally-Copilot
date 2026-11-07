@@ -6,6 +6,7 @@ import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.tramos.EstadisticasPerfil
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
+import app.trombito.rallycopilot.domain.tramos.NombreAutomatico
 import app.trombito.rallycopilot.domain.tramos.OrigenPasada
 import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
 import app.trombito.rallycopilot.domain.tramos.PuntoPasada
@@ -179,15 +180,17 @@ class RepositorioTramosRoom(
 
     private fun FilaResumenTramo.aResumen(): ResumenTramo {
         val propio = nombre?.takeIf { it.isNotBlank() }
+        val automatico = nombreAutomatico?.takeIf { it.isNotBlank() }
         return ResumenTramo(
             id = id,
-            nombre = propio ?: nombreAutomatico?.takeIf { it.isNotBlank() } ?: NOMBRE_POR_DEFECTO,
+            nombre = propio ?: automatico?.let(NombreAutomatico::titulo)?.ifEmpty { null } ?: NOMBRE_POR_DEFECTO,
             nombrePropio = propio,
             longitudM = longitudM,
             pasadas = pasadas,
             mejorTotalMs = mejorMs,
             ultimoUsoMs = ultimoUso,
             favorito = favorito,
+            subtitulo = automatico?.let(NombreAutomatico::subtitulo),
         )
     }
 

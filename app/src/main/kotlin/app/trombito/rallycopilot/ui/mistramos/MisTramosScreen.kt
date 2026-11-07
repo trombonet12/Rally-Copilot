@@ -72,6 +72,10 @@ data class AccionesMisTramos(
     /** Abre el mapa en modo dibujo; null = sin botón. */
     val onDibujar: (() -> Unit)? = null,
     val onImportacionVista: () -> Unit = {},
+    /** El usuario confirma importar el archivo que llegó de otra app. */
+    val onConfirmarImportacion: () -> Unit = {},
+    /** El usuario descarta el archivo que llegó de otra app. */
+    val onCancelarImportacion: () -> Unit = {},
 )
 
 /** «Mis tramos»: filtros, lista por último uso, borrar deslizando con deshacer y renombrar. */
@@ -105,6 +109,9 @@ fun MisTramosScreen(
         SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).padding(Espacio.l))
     }
     estado.renombrando?.let { DialogoRenombrarTramo(it, acciones.onRenombrar, acciones.onCancelarRenombrar) }
+    if (importacion is EstadoImportacion.Pendiente) {
+        DialogoConfirmarImportacion(importacion, acciones.onConfirmarImportacion, acciones.onCancelarImportacion)
+    }
 }
 
 /** Muestra el aviso de borrado y, según cómo acabe, deshace o confirma. */

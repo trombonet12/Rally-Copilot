@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.data.db.RecorridoPuntoEntity
 import app.trombito.rallycopilot.data.detalle.FalsaPrecarga
 import app.trombito.rallycopilot.domain.tramos.EstadisticasPerfil
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
+import app.trombito.rallycopilot.domain.tramos.NombreAutomatico
 import app.trombito.rallycopilot.domain.tramos.OrigenPasada
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.MarcaTiempo
@@ -227,6 +228,23 @@ class RepositorioTramosRoomTest {
             assertEquals(listOf("a", "b", "c"), tras.map { it.id })
             assertEquals(400L, tras.first().ultimoUsoMs)
             assertEquals(listOf("a", "c"), repositorio.observarResumenes(FiltroTramos.REPETIDOS).first().map { it.id })
+        }
+
+    @Test
+    fun `el nombre automatico con carreteras separa titulo y subtitulo y el propio no los pisa`() =
+        runBlocking {
+            val a = tramo("a")
+            val b = tramo("b")
+            repositorio.crearSinPasadas(a, null, NombreAutomatico.componer("Palma → Montuïri", "Ma-13 / Ma-15"), 1L)
+            repositorio.crearSinPasadas(b, "Mi tramo", "Ma-13 · Santa María", 2L)
+
+            val resumenes = repositorio.observarResumenes(FiltroTramos.TODOS).first().associateBy { it.id }
+            assertEquals("Palma → Montuïri", resumenes.getValue("a").nombre)
+            assertEquals("Ma-13 / Ma-15", resumenes.getValue("a").subtitulo)
+            assertNull(resumenes.getValue("a").nombrePropio)
+            // Un nombre antiguo («Ma-13 · Santa María») no tiene subtítulo y uno propio manda en el título.
+            assertEquals("Mi tramo", resumenes.getValue("b").nombre)
+            assertNull(resumenes.getValue("b").subtitulo)
         }
 
     @Test

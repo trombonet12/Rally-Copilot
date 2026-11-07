@@ -12,6 +12,9 @@ data class FilaPasada(
     val esMejor: Boolean,
 )
 
+/** Cómo va la exportación del tramo para compartirlo: [PREPARANDO] mientras se escribe el archivo. */
+enum class EstadoCompartir { LIBRE, PREPARANDO, FALLO }
+
 /** Detalle de un tramo. Con [cargando] falso y [tramo] nulo, el tramo ya no existe. */
 data class DetalleTramoUiState(
     val cargando: Boolean = true,
@@ -21,4 +24,5 @@ data class DetalleTramoUiState(
     val estiloMapaJson: String? = null,
     val pasadas: List<FilaPasada> = emptyList(),
     val renombrando: Boolean = false,
+    val compartir: EstadoCompartir = EstadoCompartir.LIBRE,
 )

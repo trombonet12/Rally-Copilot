@@ -2,9 +2,11 @@ package app.trombito.rallycopilot.ui.mistramos
 
 import android.content.Intent
 import android.net.Uri
+import app.trombito.rallycopilot.data.escucha.EdicionesFalsas
 import app.trombito.rallycopilot.data.importar.AbridorDocumentos
 import app.trombito.rallycopilot.data.importar.DocumentoAbierto
 import app.trombito.rallycopilot.data.importar.ImportadorTramos
+import app.trombito.rallycopilot.data.tramos.GuardadorTramoArchivo
 import app.trombito.rallycopilot.data.tramos.GuardadorTramos
 import app.trombito.rallycopilot.domain.importar.MotivoFalloImportar
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
@@ -41,7 +43,14 @@ class ImportarViewModelTest {
             }
         }
 
-    private fun vm() = ImportarViewModel(ImportadorTramos(abridor, GuardadorTramos(repositorio) { null }))
+    private fun importador() =
+        ImportadorTramos(
+            abridor,
+            GuardadorTramos(repositorio) { null },
+            GuardadorTramoArchivo(repositorio, { null }, EdicionesFalsas()),
+        )
+
+    private fun vm() = ImportarViewModel(importador())
 
     @Before
     fun preparar() {
@@ -82,11 +91,58 @@ class ImportarViewModelTest {
         }
 
     @Test
-    fun `un archivo entrante pide ir a Mis tramos e importa`() =
+    fun `un archivo entrante pide ir a Mis tramos y espera confirmacion sin guardar nada`() =
         kotlinx.coroutines.runBlocking {
             val vm = vm()
             vm.importarEntrante(Uri.parse("content://docs/bueno"))
             kotlinx.coroutines.withTimeout(5_000) { vm.irAMisTramos.first() }
+            val pendiente = vm.esperarFin()
+            assertTrue(pendiente.toString(), pendiente is EstadoImportacion.Pendiente)
+            assertEquals("Mañana por la Ma-13", (pendiente as EstadoImportacion.Pendiente).nombre)
+            assertTrue("Unos 5 km: ${pendiente.longitudM}", pendiente.longitudM in 3_000.0..8_000.0)
+            assertTrue("Hasta confirmar no se guarda", repositorio.sinPasadas.isEmpty())
+        }
+
+    @Test
+    fun `confirmar guarda el tramo pendiente y termina Hecho`() =
+        kotlinx.coroutines.runBlocking {
+            val vm = vm()
+            vm.importarEntrante(Uri.parse("content://docs/bueno"))
+            vm.esperarFin()
+            vm.confirmar()
+            val fin = vm.esperarFin()
+            assertTrue(fin.toString(), fin is EstadoImportacion.Hecho)
+            assertEquals(1, repositorio.sinPasadas.size)
+            vm.confirmar()
+            assertEquals("Un segundo confirmar no guarda dos veces", 1, repositorio.sinPasadas.size)
+        }
+
+    @Test
+    fun `cancelar descarta el archivo pendiente y no guarda nada`() =
+        kotlinx.coroutines.runBlocking {
+            val vm = vm()
+            vm.importarEntrante(Uri.parse("content://docs/bueno"))
+            vm.esperarFin()
+            vm.cancelar()
+            assertEquals(EstadoImportacion.Inactivo, vm.estado.value)
+            vm.confirmar()
+            assertEquals(EstadoImportacion.Inactivo, vm.estado.value)
+            assertTrue(repositorio.sinPasadas.isEmpty())
+        }
+
+    @Test
+    fun `un archivo entrante que no se puede leer avisa sin preguntar`() =
+        kotlinx.coroutines.runBlocking {
+            val vm = vm()
+            vm.importarEntrante(Uri.parse("content://docs/malo"))
+            assertEquals(EstadoImportacion.Fallo(MotivoFalloImportar.NO_SE_PUEDE_ABRIR), vm.esperarFin())
+        }
+
+    @Test
+    fun `el selector propio importa directamente sin pedir confirmacion`() =
+        kotlinx.coroutines.runBlocking {
+            val vm = vm()
+            vm.importar(Uri.parse("content://docs/bueno"))
             assertTrue(vm.esperarFin() is EstadoImportacion.Hecho)
         }
 

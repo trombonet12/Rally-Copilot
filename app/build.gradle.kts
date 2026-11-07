@@ -484,6 +484,8 @@ android {
 // Robolectric (corre con el targetSdk 36; se compila contra 37) necesita abrir internals del JDK 21.
 tasks.withType<Test>().configureEach {
     jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED", "--add-opens=java.base/java.lang=ALL-UNNAMED")
+    // Con ~1 850 tests Robolectric en una sola JVM, los 512 MB por defecto se quedan cortos (OutOfMemoryError).
+    maxHeapSize = "2g"
 }
 
 room {

@@ -2,7 +2,10 @@
 <resources>
     <!-- Copia de seguridad (Ajustes > Datos) -->
     <string name="copia_exportar">Exportar copia</string>
-    <string name="copia_exportar_detalle">Guarda tus tramos, recorridos y ajustes en un archivo zip.</string>
+    <string name="copia_exportar_detalle">Guarda tus tramos, recorridos, la ubicación de Casa y tus ajustes en un archivo zip.</string>
+    <string name="copia_exportar_aviso_titulo">¿Exportar la copia?</string>
+    <string name="copia_exportar_aviso_texto">Incluye tus recorridos y la ubicación de Casa: guárdala en un sitio privado.</string>
+    <string name="copia_exportar_aviso_aceptar">Elegir dónde guardar</string>
     <string name="copia_importar">Importar copia</string>
     <string name="copia_importar_detalle">Recupera tus datos desde un archivo de copia.</string>
     <string name="copia_progreso">Un momento…</string>

@@ -21,6 +21,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -70,6 +72,8 @@ const val ETIQUETA_DETALLE_AYUDA = "detalle-ayuda-reconocer"
 const val ETIQUETA_DETALLE_TITULO = "detalle-titulo"
 const val ETIQUETA_DETALLE_FAVORITO = "detalle-favorito"
 const val ETIQUETA_DETALLE_RENOMBRAR = "detalle-renombrar"
+const val ETIQUETA_DETALLE_COMPARTIR = "detalle-compartir"
+const val ETIQUETA_DETALLE_SUBTITULO = "detalle-subtitulo"
 const val ETIQUETA_PASADA_PREFIJO = "pasada-"
 const val ETIQUETA_ANALISIS_PREFIJO = "pasada-analisis-"
 const val ETIQUETA_PASADAS_VACIAS = "detalle-sin-pasadas"
@@ -103,6 +107,8 @@ data class AccionesDetalleTramo(
     val onVerAnalisis: (pasadaId: Long) -> Unit = {},
     val onEditarNotas: () -> Unit = {},
     val onReconocer: () -> Unit = {},
+    val onCompartir: () -> Unit = {},
+    val onCompartirVisto: () -> Unit = {},
 )
 
 /**
@@ -116,8 +122,26 @@ fun DetalleTramoScreen(
     modifier: Modifier = Modifier,
     mapa: MapaDelTramo? = null,
 ) {
-    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
-        CabeceraDetalle(estado.tramo, acciones)
+    val avisos = remember { SnackbarHostState() }
+    AvisoCompartir(estado.compartir, avisos, acciones.onCompartirVisto)
+    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
+        CuerpoDetalle(estado, acciones, mapa)
+        SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).padding(Espacio.l))
+    }
+    val editando = estado.tramo
+    if (estado.renombrando && editando != null) {
+        DialogoRenombrarTramo(editando, acciones.onRenombrar, acciones.onCancelarRenombrar)
+    }
+}
+
+@Composable
+private fun CuerpoDetalle(
+    estado: DetalleTramoUiState,
+    acciones: AccionesDetalleTramo,
+    mapa: MapaDelTramo?,
+) {
+    Column(Modifier.fillMaxSize()) {
+        CabeceraDetalle(estado.tramo, estado.compartir == EstadoCompartir.PREPARANDO, acciones)
         val tramo = estado.tramo
         when {
             estado.cargando -> {
@@ -139,10 +163,6 @@ fun DetalleTramoScreen(
             }
         }
     }
-    val editando = estado.tramo
-    if (estado.renombrando && editando != null) {
-        DialogoRenombrarTramo(editando, acciones.onRenombrar, acciones.onCancelarRenombrar)
-    }
 }
 
 @Composable
@@ -153,6 +173,7 @@ private fun CargandoDetalle() {
 @Composable
 private fun CabeceraDetalle(
     tramo: ResumenTramo?,
+    compartiendo: Boolean,
     acciones: AccionesDetalleTramo,
 ) {
     Row(
@@ -160,21 +181,39 @@ private fun CabeceraDetalle(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         BotonVolver(acciones.onVolver)
-        Text(
-            text = tramo?.nombre.orEmpty(),
-            style = Titulo.copy(fontSize = TAMANO_TITULO, lineHeight = ALTO_LINEA_TITULO),
-            color = MaterialTheme.colorScheme.primary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .padding(horizontal = Espacio.xs)
-                    .testTag(ETIQUETA_DETALLE_TITULO)
-                    .semantics { heading() },
-        )
+        Column(Modifier.weight(1f).padding(horizontal = Espacio.xs)) {
+            Text(
+                text = tramo?.nombre.orEmpty(),
+                style = Titulo.copy(fontSize = TAMANO_TITULO, lineHeight = ALTO_LINEA_TITULO),
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag(ETIQUETA_DETALLE_TITULO).semantics { heading() },
+            )
+            tramo?.subtitulo?.let {
+                Text(
+                    text = it,
+                    style = Ayuda,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag(ETIQUETA_DETALLE_SUBTITULO),
+                )
+            }
+        }
         if (tramo != null) {
             BotonFavorito(tramo.favorito, acciones.onFavorito, Modifier.testTag(ETIQUETA_DETALLE_FAVORITO))
+            IconButton(
+                onClick = acciones.onCompartir,
+                enabled = !compartiendo,
+                modifier = Modifier.testTag(ETIQUETA_DETALLE_COMPARTIR),
+            ) {
+                Icon(
+                    imageVector = IconoCompartir,
+                    contentDescription = stringResource(R.string.detalle_compartir),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             IconButton(
                 onClick = acciones.onPedirRenombrar,
                 modifier = Modifier.testTag(ETIQUETA_DETALLE_RENOMBRAR),

@@ -1,9 +1,12 @@
 package app.trombito.rallycopilot.data.importar
 
 import android.net.Uri
+import app.trombito.rallycopilot.data.escucha.EdicionesFalsas
+import app.trombito.rallycopilot.data.tramos.GuardadorTramoArchivo
 import app.trombito.rallycopilot.data.tramos.GuardadorTramos
 import app.trombito.rallycopilot.domain.importar.MotivoFalloImportar
 import app.trombito.rallycopilot.domain.importar.ResultadoImportar
+import app.trombito.rallycopilot.domain.importar.ResultadoPreparar
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -20,6 +23,7 @@ class ImportadorTramosTest {
     private val repositorio = FalsoRepositorioTramos()
     private var automatico: String? = "Ma-13 · Santa María"
     private val guardador = GuardadorTramos(repositorio) { automatico }
+    private val guardadorArchivo = GuardadorTramoArchivo(repositorio, { automatico }, EdicionesFalsas())
 
     /** Abridor falso: cada Uri se resuelve a un documento fabricado a mano. */
     private class AbridorFalso(
@@ -47,7 +51,7 @@ class ImportadorTramosTest {
         documento: (() -> DocumentoAbierto?)?,
     ): ResultadoImportar {
         val abridor = AbridorFalso(if (documento == null) emptyMap() else mapOf(uri to documento))
-        return runBlocking { ImportadorTramos(abridor, guardador).importar(uri) }
+        return runBlocking { ImportadorTramos(abridor, guardador, guardadorArchivo).importar(uri) }
     }
 
     @Test
@@ -118,6 +122,7 @@ class ImportadorTramosTest {
                 ImportadorTramos(
                     abridor,
                     guardador,
+                    guardadorArchivo,
                 ).importar("file:///data/data/x/databases/a.gpx")
             }
         assertEquals(ResultadoImportar.Fallo(MotivoFalloImportar.NO_SE_PUEDE_ABRIR), r)
@@ -171,6 +176,52 @@ class ImportadorTramosTest {
         repositorio.fallarAlGuardar = true
         val r = importar("content://doc/13", doc(recurso("strava.gpx"), "a.gpx"))
         assertEquals(ResultadoImportar.Fallo(MotivoFalloImportar.NO_GUARDADO), r)
+    }
+
+    private fun preparar(
+        uri: String,
+        documento: (() -> DocumentoAbierto?)?,
+    ): ResultadoPreparar {
+        val abridor = AbridorFalso(if (documento == null) emptyMap() else mapOf(uri to documento))
+        return runBlocking { ImportadorTramos(abridor, guardador, guardadorArchivo).preparar(uri) }
+    }
+
+    @Test
+    fun `preparar lee el archivo y da su nombre y longitud sin guardar nada hasta confirmar`() {
+        val r = preparar("content://doc/20", doc(recurso("strava.gpx"), "Morning_Ride.gpx"))
+
+        val lista = r as ResultadoPreparar.Lista
+        assertEquals("Mañana por la Ma-13", lista.nombre)
+        assertTrue("Unos 5 km: ${lista.longitudM}", lista.longitudM in 3_000.0..8_000.0)
+        assertTrue("No guarda hasta confirmar", repositorio.sinPasadas.isEmpty())
+
+        val guardado = runBlocking { lista.guardar() }
+
+        assertEquals("Mañana por la Ma-13", (guardado as ResultadoImportar.Importado).nombre)
+        assertEquals(1, repositorio.sinPasadas.size)
+    }
+
+    @Test
+    fun `preparar sin nombre en el archivo usa el nombre del documento y los fallos salen sin preguntar`() {
+        val gpx = """<gpx><trk><trkseg>${puntosRecta()}</trkseg></trk></gpx>""".toByteArray()
+        val lista = preparar("content://doc/21", doc(gpx, "ruta_del_domingo.gpx")) as ResultadoPreparar.Lista
+        assertEquals("ruta del domingo", lista.nombre)
+
+        assertEquals(
+            ResultadoPreparar.Fallo(MotivoFalloImportar.NO_SE_PUEDE_ABRIR),
+            preparar("content://doc/22", null),
+        )
+        assertEquals(
+            ResultadoPreparar.Fallo(MotivoFalloImportar.FORMATO_DESCONOCIDO),
+            preparar("content://doc/23", doc("hola".toByteArray(), "a.txt")),
+        )
+        val corto =
+            """<gpx><trk><trkseg><trkpt lat="39.600" lon="2.9"/><trkpt lat="39.601" lon="2.9"/></trkseg></trk></gpx>"""
+        assertEquals(
+            ResultadoPreparar.Fallo(MotivoFalloImportar.CORTO),
+            preparar("content://doc/24", doc(corto.toByteArray(), "a.gpx")),
+        )
+        assertTrue(repositorio.sinPasadas.isEmpty())
     }
 
     /** Unos 2,2 km hacia el norte por el meridiano 2,9. */

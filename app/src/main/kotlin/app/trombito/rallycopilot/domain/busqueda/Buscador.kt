@@ -24,4 +24,13 @@ interface Buscador {
      * hasta [limite]; es lo que la gramática de voz ofrece como destino. Vacío sin índice instalado.
      */
     suspend fun nombresDeLugares(limite: Int): List<String> = emptyList()
+
+    /**
+     * La ciudad, el pueblo o la aldea más cercana a [punto] y a [radioM] metros como mucho (con su nombre en
+     * [ResultadoBusqueda.nombre]); null si no hay ninguna, no hay índice instalado o falla la consulta.
+     */
+    suspend fun lugarMasCercano(
+        punto: PuntoGeo,
+        radioM: Double,
+    ): ResultadoBusqueda? = null
 }

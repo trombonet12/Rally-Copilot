@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.data.vias.DatosVias
 import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.domain.busqueda.Buscador
 import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
+import app.trombito.rallycopilot.domain.tramos.NombreAutomatico
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.geo.longitudMetros
 import app.trombito.rallycopilot.motor.vias.IndiceVias
@@ -34,9 +35,19 @@ class NombradorTramosTest {
         }
 
     private class BuscadorFalso(
+        private val lugar: (PuntoGeo) -> ResultadoBusqueda? = { null },
         private val respuesta: (String) -> List<ResultadoBusqueda>,
     ) : Buscador {
         val consultas = mutableListOf<String>()
+        val lugaresPedidos = mutableListOf<Pair<PuntoGeo, Double>>()
+
+        override suspend fun lugarMasCercano(
+            punto: PuntoGeo,
+            radioM: Double,
+        ): ResultadoBusqueda? {
+            lugaresPedidos += punto to radioM
+            return lugar(punto)
+        }
 
         override suspend fun buscar(
             texto: String,
@@ -84,7 +95,7 @@ class NombradorTramosTest {
             val fuente = fuente(via(1, "Ma-2141", "Carretera de Sa Calobra", 0, 20))
             assertEquals("Ma-2141", nombrador(fuente, buscadorLejano).nombrar(traza))
 
-            val roto = BuscadorFalso { throw IllegalStateException("índice cerrado") }
+            val roto = BuscadorFalso { error("índice cerrado") }
             assertEquals("Ma-2141", nombrador(fuente, roto).nombrar(traza))
         }
 
@@ -94,6 +105,84 @@ class NombradorTramosTest {
             assertNull(nombrador(fuente()).nombrar(traza))
             assertNull(nombrador(fuente(via(1, "Ma-1", null, 0, 20))).nombrar(listOf(traza.first())))
             assertNull(nombrador(fuente(via(1, "Ma-1", null, 0, 20))).nombrar(listOf(traza.first(), traza.first())))
+        }
+
+    private fun lugar(nombre: String) = ResultadoBusqueda(nombre, "pueblo", nombre, traza.first())
+
+    /** Un buscador que sabe que el inicio de la traza está en Palma y su final en Valldemossa. */
+    private fun conExtremos() =
+        BuscadorFalso(
+            lugar = { p -> if (p.lat < 39.61) lugar("Palma") else lugar("Valldemossa") },
+            respuesta = { emptyList() },
+        )
+
+    @Test
+    fun `con lugares en el inicio y el final el nombre es Origen a Destino y las carreteras van de subtitulo`() =
+        runBlocking {
+            val buscador = conExtremos()
+            val nombre = nombrador(fuente(via(1, "Ma-2141", "Carretera de Sa Calobra", 0, 20)), buscador).nombrar(traza)
+
+            assertEquals("Palma → Valldemossa\nMa-2141", nombre)
+            assertEquals("Palma → Valldemossa", NombreAutomatico.titulo(nombre!!))
+            assertEquals("Ma-2141", NombreAutomatico.subtitulo(nombre))
+            // Pregunta por el primer y el último punto de la traza, con un radio razonable (pueblos y aldeas).
+            assertEquals(listOf(traza.first(), traza.last()), buscador.lugaresPedidos.map { it.first })
+            assertTrue(buscador.lugaresPedidos.all { it.second in 1_000.0..10_000.0 })
+        }
+
+    @Test
+    fun `varias carreteras se unen en el subtitulo`() =
+        runBlocking {
+            val a = via(1, "Ma-10", null, 0, 14)
+            val b = via(2, "Ma-11", null, 14, 20)
+            val nombre = nombrador(fuente(a, b), conExtremos()).nombrar(traza)
+
+            assertEquals("Palma → Valldemossa\nMa-10 / Ma-11", nombre)
+        }
+
+    @Test
+    fun `sin datos de vias con lugares el nombre es solo Origen a Destino`() =
+        runBlocking {
+            assertEquals("Palma → Valldemossa", nombrador(fuente(), conExtremos()).nombrar(traza))
+        }
+
+    @Test
+    fun `vias sin referencia ni nombre no dan subtitulo`() =
+        runBlocking {
+            val sinNombre = via(1, null, null, 0, 20)
+            assertEquals("Palma → Valldemossa", nombrador(fuente(sinNombre), conExtremos()).nombrar(traza))
+        }
+
+    @Test
+    fun `si inicio y final caen en el mismo lugar o solo hay uno se nombra como siempre`() =
+        runBlocking {
+            val fuente = fuente(via(1, "Ma-2141", "Carretera de Sa Calobra", 0, 20))
+            val mismo = BuscadorFalso(lugar = { lugar("Palma") }, respuesta = { emptyList() })
+            assertEquals("Ma-2141", nombrador(fuente, mismo).nombrar(traza))
+
+            val soloInicio = BuscadorFalso(lugar = { p -> if (p.lat < 39.61) lugar("Palma") else null }) { emptyList() }
+            assertEquals("Ma-2141", nombrador(fuente, soloInicio).nombrar(traza))
+            assertNull(nombrador(fuente(), soloInicio).nombrar(traza))
+        }
+
+    @Test
+    fun `un fallo del indice al buscar el lugar no impide el nombre de siempre`() =
+        runBlocking {
+            val roto =
+                object : Buscador {
+                    override suspend fun buscar(
+                        texto: String,
+                        cerca: PuntoGeo?,
+                        limite: Int,
+                    ): List<ResultadoBusqueda> = emptyList()
+
+                    override suspend fun lugarMasCercano(
+                        punto: PuntoGeo,
+                        radioM: Double,
+                    ): ResultadoBusqueda? = error("índice cerrado")
+                }
+            val fuente = fuente(via(1, "Ma-2141", "Carretera de Sa Calobra", 0, 20))
+            assertEquals("Ma-2141", nombrador(fuente, roto).nombrar(traza))
         }
 
     @Test

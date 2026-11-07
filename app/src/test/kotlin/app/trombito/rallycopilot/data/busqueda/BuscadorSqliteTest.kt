@@ -126,6 +126,28 @@ class BuscadorSqliteTest {
     }
 
     @Test
+    fun `el lugar mas cercano es un pueblo, ciudad o aldea dentro del radio, nunca una calle`() {
+        crearIndice(archivo)
+
+        // Junto a la calle «Carrer Major» de Sóller (mismo punto que el pueblo): gana el pueblo, no las calles.
+        val soller = runBlocking { buscador.lugarMasCercano(PuntoGeo(39.7662, 2.7152), 5_000.0) }
+        assertEquals("Sóller", soller?.nombre)
+        // Entre Sóller (2,7 km) y el Port (1,9 km) gana el más cercano.
+        val puerto = runBlocking { buscador.lugarMasCercano(PuntoGeo(39.785, 2.700), 5_000.0) }
+        assertEquals("Port de Sóller", puerto?.nombre)
+        // Cerca de una calle de Palma pero sin pueblos en el radio no hay lugar.
+        assertNull(runBlocking { buscador.lugarMasCercano(PuntoGeo(39.570, 2.650), 5_000.0) })
+        // Fuera del radio no cuenta aunque sea el más cercano.
+        assertNull(runBlocking { buscador.lugarMasCercano(PuntoGeo(39.766, 2.775), 1_000.0) })
+        assertNull(runBlocking { buscador.lugarMasCercano(PuntoGeo(39.766, 2.715), 0.0) })
+    }
+
+    @Test
+    fun `sin indice no hay lugar cercano`() {
+        assertNull(runBlocking { buscador.lugarMasCercano(PuntoGeo(39.766, 2.715), 5_000.0) })
+    }
+
+    @Test
     fun `sin indice no hay nombres de lugares`() {
         assertTrue(runBlocking { buscador.nombresDeLugares(10) }.isEmpty())
     }

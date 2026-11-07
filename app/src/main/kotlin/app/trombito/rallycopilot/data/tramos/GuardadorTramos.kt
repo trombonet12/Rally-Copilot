@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteException
 import android.util.Log
 import app.trombito.rallycopilot.domain.tramos.GuardaTraza
 import app.trombito.rallycopilot.domain.tramos.NombraTraza
+import app.trombito.rallycopilot.domain.tramos.NombreAutomatico
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResultadoGuardado
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
@@ -31,7 +32,7 @@ class GuardadorTramos
             val propio = nombre?.trim()?.takeIf { it.isNotEmpty() }
             return try {
                 repositorio.crearSinPasadas(tramo, propio, automatico, System.currentTimeMillis())
-                ResultadoGuardado.Guardado(tramo.id, propio ?: automatico)
+                ResultadoGuardado.Guardado(tramo.id, propio ?: automatico?.let(NombreAutomatico::titulo))
             } catch (e: SQLiteException) {
                 Log.w("GuardadorTramos", "No se pudo guardar el tramo: ${e.javaClass.simpleName}")
                 ResultadoGuardado.Fallo

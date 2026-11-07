@@ -77,6 +77,20 @@
             </intent-filter>
         </activity>
 
+        <!--
+            Compartir un tramo como GPX por el menú de Android: el archivo se escribe en cache/compartir/ y se entrega con un
+            permiso temporal de lectura. No está exportado y no sirve nada más que esa carpeta.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.compartir"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- WorkManager se inicializa con HiltWorkerFactory (RallyCopilotApplication es Configuration.Provider). -->
         <provider
             android:name="androidx.startup.InitializationProvider"

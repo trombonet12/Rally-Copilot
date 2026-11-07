@@ -51,6 +51,8 @@ fun MisTramosRoute(
                 onImportar = alImportar,
                 onDibujar = onDibujar,
                 onImportacionVista = { importacion?.onVisto() },
+                onConfirmarImportacion = { importacion?.confirmar() },
+                onCancelarImportacion = { importacion?.cancelar() },
             ),
         modifier = modifier,
         titulo = titulo,

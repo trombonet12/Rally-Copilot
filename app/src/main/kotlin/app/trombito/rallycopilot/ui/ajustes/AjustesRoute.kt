@@ -57,6 +57,7 @@ fun AjustesSeccionRoute(
     val contexto = LocalContext.current
     val avisos = remember { SnackbarHostState() }
     var confirmando by remember { mutableStateOf(false) }
+    var avisandoExportar by remember { mutableStateOf(false) }
     val guardarCopia =
         rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(TIPO_ZIP)) { uri ->
             if (uri != null) copia.exportar { contexto.contentResolver.openOutputStream(uri) }
@@ -75,12 +76,21 @@ fun AjustesSeccionRoute(
                     onVerTutorial = ayuda.onVerTutorial,
                     onAyudaNotas = ayuda.onNotas,
                     onAyudaVoz = ayuda.onVoz,
-                    onExportarCopia = { guardarCopia.launch(nombreArchivoCopia()) },
+                    onExportarCopia = { avisandoExportar = true },
                     onImportarCopia = { confirmando = true },
                 ),
             copiaEnCurso = estadoCopia is EstadoCopia.Trabajando || estadoCopia is EstadoCopia.Importada,
         )
         SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).safeDrawingPadding().padding(Espacio.l))
+    }
+    if (avisandoExportar) {
+        DialogoExportarCopia(
+            onConfirmar = {
+                avisandoExportar = false
+                guardarCopia.launch(nombreArchivoCopia())
+            },
+            onCancelar = { avisandoExportar = false },
+        )
     }
     if (confirmando) {
         DialogoImportarCopia(

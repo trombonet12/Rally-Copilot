@@ -162,6 +162,26 @@ class CopiaAjustesPantallaTest {
     }
 
     @Test
+    fun `el aviso de exportar dice que lleva los recorridos y Casa y deja elegir o cancelar`() {
+        var confirmado = 0
+        var cancelado = 0
+        banco.poner {
+            RallyCopilotTheme {
+                DialogoExportarCopia(onConfirmar = { confirmado++ }, onCancelar = { cancelado++ })
+            }
+        }
+        assertTrue(
+            banco.todosLosTextos().any {
+                "Incluye tus recorridos y la ubicación de Casa: guárdala en un sitio privado." in it
+            },
+        )
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_COPIA_EXPORTAR_CANCELAR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_COPIA_EXPORTAR_ACEPTAR))
+        assertEquals(1, cancelado)
+        assertEquals(1, confirmado)
+    }
+
+    @Test
     fun `el dialogo de importar avisa de que sustituye y confirma o cancela`() {
         var confirmado = 0
         var cancelado = 0

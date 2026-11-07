@@ -1,5 +1,8 @@
 package app.trombito.rallycopilot.ui.mistramos
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.ui.comun.BancoCompose
@@ -158,6 +161,51 @@ class DetalleTramoScreenTest {
         banco.pulsar(banco.conEtiqueta(ETIQUETA_DETALLE_RENOMBRAR))
         assertEquals(1, favoritos)
         assertEquals(1, renombrar)
+    }
+
+    @Test
+    fun `compartir es un icono con descripcion en la cabecera y se deshabilita mientras prepara el archivo`() {
+        var compartir = 0
+        var estadoActual by mutableStateOf(estado)
+        banco.poner {
+            RallyCopilotTheme { DetalleTramoScreen(estadoActual, AccionesDetalleTramo(onCompartir = { compartir++ })) }
+        }
+        val boton = banco.conEtiqueta(ETIQUETA_DETALLE_COMPARTIR)
+        val descripcion = boton.children.firstNotNullOfOrNull { banco.descripcion(it) } ?: banco.descripcion(boton)
+        assertEquals("Compartir el tramo con sus notas", descripcion)
+        banco.pulsar(boton)
+        assertEquals(1, compartir)
+
+        estadoActual = estado.copy(compartir = EstadoCompartir.PREPARANDO)
+        banco.reposo()
+        assertFalse(banco.estaHabilitado(banco.conEtiqueta(ETIQUETA_DETALLE_COMPARTIR)))
+    }
+
+    @Test
+    fun `un fallo al preparar el archivo se avisa en un snackbar`() {
+        banco.poner {
+            RallyCopilotTheme {
+                DetalleTramoScreen(estado.copy(compartir = EstadoCompartir.FALLO), AccionesDetalleTramo())
+            }
+        }
+        banco.esperar(300)
+        assertTrue("No se pudo preparar el archivo del tramo. Inténtalo de nuevo." in banco.todosLosTextos())
+    }
+
+    @Test
+    fun `las carreteras del nombre automatico salen de subtitulo bajo el titulo`() {
+        val conCarreteras = tramo.copy(nombre = "Palma → Valldemossa", subtitulo = "Ma-1110 / Ma-10")
+        banco.poner {
+            RallyCopilotTheme { DetalleTramoScreen(estado.copy(tramo = conCarreteras), AccionesDetalleTramo()) }
+        }
+        assertEquals(listOf("Palma → Valldemossa"), banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_TITULO)))
+        assertEquals(listOf("Ma-1110 / Ma-10"), banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_SUBTITULO)))
+    }
+
+    @Test
+    fun `sin carreteras no hay subtitulo`() {
+        banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado, AccionesDetalleTramo()) } }
+        assertFalse(banco.hay(ETIQUETA_DETALLE_SUBTITULO))
     }
 
     @Test

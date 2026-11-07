@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteException
 import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.domain.busqueda.Buscador
 import app.trombito.rallycopilot.domain.tramos.NombraTraza
+import app.trombito.rallycopilot.domain.tramos.NombreAutomatico
 import app.trombito.rallycopilot.motor.analisis.NombreTramo
 import app.trombito.rallycopilot.motor.analisis.PasoVia
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
@@ -14,9 +15,12 @@ import kotlin.math.atan2
 import kotlin.math.cos
 
 /**
- * Nombre automático de un tramo: mira las vías de OSM por las que pasa la traza en [MUESTRAS] puntos repartidos, busca
- * en el índice de búsqueda el municipio de sus calles con más recorrido y compone el texto con [NombreTramo].
- * Todo es opcional: sin vías ni índice devuelve null (el tramo queda sin nombre automático). Nunca falla.
+ * Nombre automático de un tramo. Si el índice de lugares conoce un pueblo o aldea cerca del inicio y otro distinto
+ * cerca del final, es «Origen → Destino» y las carreteras por las que pasa la traza (referencias o, si no, la calle
+ * principal) van de subtítulo ([NombreAutomatico]): «Palma → Montuïri» y «Ma-13 / Ma-15». Si no, como siempre: mira
+ * las vías de OSM por las que pasa la traza en [MUESTRAS] puntos repartidos, busca en el índice de búsqueda el
+ * municipio de sus calles con más recorrido y compone el texto con [NombreTramo]. Todo es opcional: sin vías ni
+ * lugares devuelve null (el tramo queda sin nombre automático). Nunca falla.
  */
 @Singleton
 class NombradorTramos
@@ -35,13 +39,57 @@ class NombradorTramos
         override suspend fun nombrar(traza: List<PuntoGeo>): String? {
             val muestras = MuestreoTraza.puntos(traza, MUESTRAS)
             val trozos = if (muestras.isEmpty()) emptyList() else trozosPorVias(muestras, traza.longitudMetros())
-            return if (trozos.isEmpty()) {
-                null
-            } else {
-                val municipios = municipiosPorCalle(trozos, muestras)
-                NombreTramo.de(trozos.map { PasoVia(it.ref, it.nombre, municipios[it.nombre]) })
+            val extremos = if (muestras.isEmpty()) null else lugaresDeLosExtremos(traza)
+            return when {
+                extremos != null -> {
+                    origenADestino(extremos, trozos)
+                }
+
+                trozos.isEmpty() -> {
+                    null
+                }
+
+                else -> {
+                    val municipios = municipiosPorCalle(trozos, muestras)
+                    NombreTramo.de(trozos.map { PasoVia(it.ref, it.nombre, municipios[it.nombre]) })
+                }
             }
         }
+
+        /** «Origen → Destino» con las carreteras (si las hay) de subtítulo. */
+        private fun origenADestino(
+            extremos: Pair<String, String>,
+            trozos: List<Trozo>,
+        ): String {
+            val titulo = "${extremos.first.take(MAX_LUGAR)} → ${extremos.second.take(MAX_LUGAR)}"
+            val conNombre = trozos.any { !it.ref.isNullOrBlank() || !it.nombre.isNullOrBlank() }
+            val carreteras = if (conNombre) NombreTramo.de(trozos.map { PasoVia(it.ref, it.nombre, null) }) else null
+            return NombreAutomatico.componer(titulo, carreteras)
+        }
+
+        /** Los lugares más cercanos al inicio y al final, o null si falta alguno o es el mismo. */
+        private suspend fun lugaresDeLosExtremos(traza: List<PuntoGeo>): Pair<String, String>? {
+            val origen = lugarCerca(traza.first())
+            val destino = lugarCerca(traza.last())
+            return if (origen == null || destino == null || origen.equals(destino, ignoreCase = true)) {
+                null
+            } else {
+                origen to destino
+            }
+        }
+
+        private suspend fun lugarCerca(punto: PuntoGeo): String? =
+            try {
+                buscador
+                    .lugarMasCercano(punto, RADIO_LUGAR_M)
+                    ?.nombre
+                    ?.trim()
+                    ?.takeIf { it.isNotEmpty() }
+            } catch (_: SQLiteException) {
+                null
+            } catch (_: IllegalStateException) {
+                null
+            }
 
         private suspend fun trozosPorVias(
             muestras: List<MuestreoTraza.Muestra>,
@@ -106,6 +154,8 @@ class NombradorTramos
             const val CALLES_A_PROBAR = 4
             const val LIMITE_BUSQUEDA = 5
             const val RADIO_MUNICIPIO_M = 300.0
+            const val RADIO_LUGAR_M = 5_000.0
+            const val MAX_LUGAR = 28
         }
     }
 

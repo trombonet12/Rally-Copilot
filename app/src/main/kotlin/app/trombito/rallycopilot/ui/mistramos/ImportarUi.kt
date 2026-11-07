@@ -2,11 +2,14 @@ package app.trombito.rallycopilot.ui.mistramos
 
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
@@ -16,6 +19,41 @@ import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.importar.MotivoFalloImportar
 import app.trombito.rallycopilot.ui.comun.Iconos
+
+const val ETIQUETA_IMPORTAR_DIALOGO = "importar-confirmar-dialogo"
+const val ETIQUETA_IMPORTAR_ACEPTAR = "importar-confirmar-aceptar"
+const val ETIQUETA_IMPORTAR_CANCELAR = "importar-confirmar-cancelar"
+
+/**
+ * Pregunta «¿Importar «nombre» (N km)?» antes de guardar un GPX/KML que ha llegado de otra app: viene de fuera y no es
+ * algo que el usuario haya elegido en el selector de la propia app. Sin nombre dice «este tramo».
+ */
+@Composable
+fun DialogoConfirmarImportacion(
+    pendiente: EstadoImportacion.Pendiente,
+    onConfirmar: () -> Unit,
+    onCancelar: () -> Unit,
+) {
+    val km = formatearDistanciaTramo(pendiente.longitudM)
+    val titulo =
+        pendiente.nombre?.let { stringResource(R.string.mistramos_confirmar_titulo, it, km) }
+            ?: stringResource(R.string.mistramos_confirmar_titulo_sin_nombre, km)
+    AlertDialog(
+        onDismissRequest = onCancelar,
+        title = { Text(titulo, modifier = Modifier.testTag(ETIQUETA_IMPORTAR_DIALOGO)) },
+        text = { Text(stringResource(R.string.mistramos_confirmar_texto)) },
+        confirmButton = {
+            TextButton(onClick = onConfirmar, modifier = Modifier.testTag(ETIQUETA_IMPORTAR_ACEPTAR)) {
+                Text(stringResource(R.string.mistramos_confirmar_aceptar))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancelar, modifier = Modifier.testTag(ETIQUETA_IMPORTAR_CANCELAR)) {
+                Text(stringResource(R.string.mistramos_confirmar_cancelar))
+            }
+        },
+    )
+}
 
 /** Importar un GPX/KML y dibujar una ruta, como iconos en la barra (solo si la pantalla los ofrece). */
 @Composable

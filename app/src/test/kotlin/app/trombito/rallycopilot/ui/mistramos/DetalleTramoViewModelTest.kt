@@ -2,6 +2,8 @@ package app.trombito.rallycopilot.ui.mistramos
 
 import androidx.lifecycle.SavedStateHandle
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
+import app.trombito.rallycopilot.domain.tramos.ExportaTramo
+import app.trombito.rallycopilot.domain.tramos.TramoExportado
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
 import app.trombito.rallycopilot.ui.comun.detalladaFalsa
@@ -46,6 +48,14 @@ class DetalleTramoViewModelTest {
 
     private val datosMapa = FalsoRepositorioDatosMapa(estilosDisponibles = EstilosMapa("{}", null))
 
+    private val pedidos = mutableListOf<String>()
+    private var exportado: TramoExportado? = TramoExportado("ma-2141.gpx", "<gpx/>")
+    private val exportador =
+        ExportaTramo {
+            pedidos += it
+            exportado
+        }
+
     @Before
     fun preparar() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -57,7 +67,7 @@ class DetalleTramoViewModelTest {
     }
 
     private fun TestScope.crear(id: String = "t1"): DetalleTramoViewModel {
-        val vm = DetalleTramoViewModel(SavedStateHandle(mapOf("tramoId" to id)), repositorio, datosMapa)
+        val vm = DetalleTramoViewModel(SavedStateHandle(mapOf("tramoId" to id)), repositorio, datosMapa, exportador)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -110,6 +120,38 @@ class DetalleTramoViewModelTest {
                 vm.uiState.value.pasadas
                     .isEmpty(),
             )
+        }
+
+    @Test
+    fun `compartir exporta el tramo y entrega el archivo`() =
+        runTest {
+            val vm = crear()
+            val recibidos = mutableListOf<TramoExportado>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                vm.archivosParaCompartir.collect {
+                    recibidos +=
+                        it
+                }
+            }
+
+            vm.onCompartir()
+
+            assertEquals(listOf("t1"), pedidos)
+            assertEquals(listOf("ma-2141.gpx"), recibidos.map { it.nombreArchivo })
+            assertEquals(EstadoCompartir.LIBRE, vm.uiState.value.compartir)
+        }
+
+    @Test
+    fun `si no se puede exportar avisa y el aviso se puede dar por visto`() =
+        runTest {
+            exportado = null
+            val vm = crear()
+            vm.onCompartir()
+            assertEquals(EstadoCompartir.FALLO, vm.uiState.value.compartir)
+            vm.onCompartirVisto()
+            assertEquals(EstadoCompartir.LIBRE, vm.uiState.value.compartir)
+            vm.onFalloAlCompartir()
+            assertEquals(EstadoCompartir.FALLO, vm.uiState.value.compartir)
         }
 
     @Test

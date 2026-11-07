@@ -6,12 +6,17 @@ import app.trombito.rallycopilot.data.tramos.GuardadorTramos
 import app.trombito.rallycopilot.domain.importar.ImportaArchivo
 import app.trombito.rallycopilot.domain.importar.MotivoFalloImportar
 import app.trombito.rallycopilot.domain.importar.ResultadoImportar
+import app.trombito.rallycopilot.domain.importar.ResultadoPreparar
+import app.trombito.rallycopilot.domain.tramos.GuardaTramoArchivo
 import app.trombito.rallycopilot.domain.tramos.ResultadoGuardado
+import app.trombito.rallycopilot.domain.tramos.TramoImportable
 import app.trombito.rallycopilot.motor.alertas.LectorXml
+import app.trombito.rallycopilot.motor.geo.longitudMetros
 import app.trombito.rallycopilot.motor.importar.LectorGpx
 import app.trombito.rallycopilot.motor.importar.LectorKml
 import app.trombito.rallycopilot.motor.importar.MotivoErrorImportacion
 import app.trombito.rallycopilot.motor.importar.ResultadoImportacion
+import app.trombito.rallycopilot.motor.tramos.TramoDesdeRecorrido
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
@@ -38,43 +43,60 @@ fun interface AbridorDocumentos {
  * Importa un GPX o un KML como tramo (sin pasadas): lee solo el [Uri] recibido, rechaza lo que no sea `content://` o
  * pase de [TOPE_BYTES] (también si el tamaño declarado miente: se corta al leer), distingue el formato por el contenido
  * (o, si no basta, por la extensión) y guarda con [GuardadorTramos]. El nombre es el `<name>` del archivo o, si no lo
- * trae, el nombre del archivo; sin ninguno queda el automático.
+ * trae, el nombre del archivo; sin ninguno queda el automático. Un GPX exportado por Rally Copilot (lleva su extensión)
+ * se guarda entero con [GuardaTramoArchivo]: misma traza, sectores y notas editadas.
+ *
+ * [preparar] lee el archivo sin guardarlo, para poder pedir confirmación; [importar] lo hace todo seguido.
  */
 class ImportadorTramos
     @Inject
     constructor(
         private val abridor: AbridorDocumentos,
         private val guardador: GuardadorTramos,
+        private val guardadorArchivo: GuardaTramoArchivo,
     ) : ImportaArchivo {
-        override suspend fun importar(uri: String): ResultadoImportar =
+        override suspend fun preparar(uri: String): ResultadoPreparar =
             withContext(Dispatchers.IO) {
                 val direccion = Uri.parse(uri)
                 val documento = if (direccion.scheme == "content") abridor.abrir(direccion) else null
                 when {
                     documento == null -> {
-                        ResultadoImportar.Fallo(MotivoFalloImportar.NO_SE_PUEDE_ABRIR)
+                        ResultadoPreparar.Fallo(MotivoFalloImportar.NO_SE_PUEDE_ABRIR)
                     }
 
                     (documento.tamanoBytes ?: 0L) > TOPE_BYTES -> {
                         documento.flujo.close()
-                        ResultadoImportar.Fallo(MotivoFalloImportar.DEMASIADO_GRANDE)
+                        ResultadoPreparar.Fallo(MotivoFalloImportar.DEMASIADO_GRANDE)
                     }
 
                     else -> {
-                        leerYGuardar(documento)
+                        leer(documento)
                     }
                 }
             }
 
-        private suspend fun leerYGuardar(documento: DocumentoAbierto): ResultadoImportar {
+        private fun leer(documento: DocumentoAbierto): ResultadoPreparar {
             val limitado = FlujoLimitado(documento.flujo, TOPE_BYTES)
             val resultado = BufferedInputStream(limitado, CABECERA_BYTES).use { leerTraza(it, documento.nombre) }
             return when {
-                limitado.excedido -> ResultadoImportar.Fallo(MotivoFalloImportar.DEMASIADO_GRANDE)
-                resultado == null -> ResultadoImportar.Fallo(MotivoFalloImportar.FORMATO_DESCONOCIDO)
-                resultado is ResultadoImportacion.Error -> ResultadoImportar.Fallo(motivo(resultado.motivo))
-                resultado is ResultadoImportacion.Ok -> guardar(resultado, documento.nombre)
-                else -> ResultadoImportar.Fallo(MotivoFalloImportar.FORMATO_DESCONOCIDO)
+                limitado.excedido -> ResultadoPreparar.Fallo(MotivoFalloImportar.DEMASIADO_GRANDE)
+                resultado == null -> ResultadoPreparar.Fallo(MotivoFalloImportar.FORMATO_DESCONOCIDO)
+                resultado is ResultadoImportacion.Error -> ResultadoPreparar.Fallo(motivo(resultado.motivo))
+                resultado is ResultadoImportacion.Ok -> preparada(resultado, documento.nombre)
+                else -> ResultadoPreparar.Fallo(MotivoFalloImportar.FORMATO_DESCONOCIDO)
+            }
+        }
+
+        private fun preparada(
+            traza: ResultadoImportacion.Ok,
+            archivo: String?,
+        ): ResultadoPreparar {
+            val longitud = traza.puntos.longitudMetros()
+            val nombre = nombreDe(traza, archivo)
+            return if (longitud < TramoDesdeRecorrido.LONGITUD_MIN_M) {
+                ResultadoPreparar.Fallo(MotivoFalloImportar.CORTO)
+            } else {
+                ResultadoPreparar.Lista(nombre, longitud) { guardar(traza, nombre) }
             }
         }
 
@@ -92,16 +114,29 @@ class ImportadorTramos
                 ResultadoImportacion.Error(MotivoErrorImportacion.ENTRADA_ILEGIBLE, e.message)
             }
 
-        private suspend fun guardar(
+        private fun nombreDe(
             traza: ResultadoImportacion.Ok,
             archivo: String?,
+        ): String? =
+            traza.nombre
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?.take(MAX_NOMBRE) ?: nombreDeArchivo(archivo)
+
+        private suspend fun guardar(
+            traza: ResultadoImportacion.Ok,
+            nombre: String?,
         ): ResultadoImportar {
-            val nombre =
-                traza.nombre
-                    ?.trim()
-                    ?.takeIf { it.isNotEmpty() }
-                    ?.take(MAX_NOMBRE) ?: nombreDeArchivo(archivo)
-            return when (val r = guardador.guardar(traza.puntos, nombre)) {
+            val extension = traza.extension
+            val resultado =
+                if (extension != null && traza.puntos.size <= MAX_PUNTOS_EXACTOS) {
+                    val tramo =
+                        TramoImportable(traza.puntos, extension.sectores, extension.microsectores, extension.ediciones)
+                    guardadorArchivo.guardar(tramo, nombre)
+                } else {
+                    guardador.guardar(traza.puntos, nombre)
+                }
+            return when (val r = resultado) {
                 is ResultadoGuardado.Guardado -> ResultadoImportar.Importado(r.tramoId, r.nombre)
                 ResultadoGuardado.Corto -> ResultadoImportar.Fallo(MotivoFalloImportar.CORTO)
                 ResultadoGuardado.Fallo -> ResultadoImportar.Fallo(MotivoFalloImportar.NO_GUARDADO)
@@ -195,5 +230,8 @@ class ImportadorTramos
             const val TOPE_BYTES = 20L * 1024 * 1024
             private const val CABECERA_BYTES = 4096
             private const val MAX_NOMBRE = 80
+
+            /** Un GPX de Rally Copilot con más puntos que esto no es uno de sus tramos: se limpia como los demás. */
+            private const val MAX_PUNTOS_EXACTOS = 50_000
         }
     }

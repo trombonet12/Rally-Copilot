@@ -53,6 +53,7 @@ import app.trombito.rallycopilot.ui.tutorial.Pista
 
 const val ETIQUETA_FILA_PREFIJO = "tramo-fila-"
 const val ETIQUETA_FAVORITO_PREFIJO = "tramo-favorito-"
+const val ETIQUETA_SUBTITULO_PREFIJO = "tramo-subtitulo-"
 
 private val LADO_TACTIL = 48.dp
 private val ANCHO_BARRA_FAVORITO = 3.dp
@@ -180,6 +181,16 @@ private fun DatosTramo(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        tramo.subtitulo?.let {
+            Text(
+                text = it,
+                style = Ayuda,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag(ETIQUETA_SUBTITULO_PREFIJO + tramo.id),
+            )
+        }
         Text(
             text = textoMedidas(tramo),
             style = Ayuda,

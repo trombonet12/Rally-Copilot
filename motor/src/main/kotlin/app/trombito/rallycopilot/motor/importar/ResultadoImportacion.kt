@@ -23,10 +23,14 @@ enum class MotivoErrorImportacion {
 
 /** Resultado de leer un GPX o un KML. */
 sealed interface ResultadoImportacion {
-    /** Traza de al menos 2 puntos; [nombre] es el del archivo (`<name>`) si lo trae. */
+    /**
+     * Traza de al menos 2 puntos; [nombre] es el del archivo (`<name>`) si lo trae. [extension] solo viene en un GPX
+     * exportado por Rally Copilot (ver [EscritorGpx]).
+     */
     data class Ok(
         val nombre: String?,
         val puntos: List<PuntoGeo>,
+        val extension: ExtensionRally? = null,
     ) : ResultadoImportacion {
         init {
             require(puntos.size >= 2) { "Una traza importada necesita al menos dos puntos" }
@@ -59,6 +63,9 @@ object LectorTraza {
 
     /** Máximo de caracteres de texto acumulado en un elemento. */
     const val TOPE_TEXTO = 24 * 1024 * 1024
+
+    /** Máximo de sectores, microsectores o ediciones que se leen de la extensión de un GPX de Rally Copilot. */
+    const val TOPE_EXTENSION = 10_000
 
     /** Máximo de elementos anidados. */
     const val TOPE_PROFUNDIDAD = 64
