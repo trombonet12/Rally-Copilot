@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.kover)
 }
 
 kotlin {
@@ -27,6 +28,18 @@ ktlint {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+}
+
+// Cobertura (QA-11). Mínimo de líneas solo en el motor (lógica crítica): 99,14 % medido el 2026-11-07, umbral en 90 (la decena
+// por debajo). Si baja de ahí, `koverVerify` (y `check`) falla. Informes: build/reports/kover/{report.xml,html}.
+kover {
+    reports {
+        verify {
+            rule("Cobertura mínima de líneas del motor") {
+                minBound(90)
+            }
+        }
+    }
 }
 
 dependencies {

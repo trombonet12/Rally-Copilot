@@ -87,10 +87,10 @@ class ServicioNavegacion : Service() {
 
     @Inject lateinit var liberadorModelos: LiberadorModelos
 
-    @Inject @field:DispatcherDefault
+    @Inject @DispatcherDefault
     lateinit var dispatcherDefault: CoroutineDispatcher
 
-    @Inject @field:DispatcherIo
+    @Inject @DispatcherIo
     lateinit var dispatcherIo: CoroutineDispatcher
 
     private lateinit var notificacion: NotificacionNavegacion

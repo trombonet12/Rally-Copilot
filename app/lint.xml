@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Excepciones de lint aceptadas (QA-16). build.gradle.kts activa warningsAsErrors: cualquier aviso que no esté aquí
+  hace fallar lintDebug. Cada excepción lleva su motivo; si la causa desaparece, se borra la línea. Los datos son los de
+  lint con AGP 9.4.1 el 2026-11-07 (173 avisos). Las rutas son relativas a app/.
+-->
+<lint>
+    <!-- Versiones: las sube el principal a mano con docs/DECISIONES.md (skill dependency-add); lint solo avisa de que existe
+         otra más nueva, no de un fallo. -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <issue id="OldTargetApi" severity="ignore" />
+
+    <!-- La dependencia JNA como AAR se escribe con módulo y versión del catálogo más «@aar» (no hay alias posible). -->
+    <issue id="UseTomlInstead">
+        <ignore path="build.gradle.kts" />
+    </issue>
+
+    <!-- Constantes que el compilador copia como número (FOREGROUND_SERVICE_TYPE_*, POST_NOTIFICATIONS): no existe
+         NoSuchFieldError; con un sistema que no las conoce son solo un valor sin efecto. MapasOfflineRoute ya protege el
+         permiso con SDK_INT >= TIRAMISU. -->
+    <issue id="InlinedApi" severity="ignore" />
+
+    <!-- Solo se publica arm64-v8a (REN-1): el x86_64 pesa ~65 MiB y solo sirve al emulador, que usa el debug. -->
+    <issue id="ChromeOsAbiSupport">
+        <ignore path="build.gradle.kts" />
+    </issue>
+
+    <!-- Carpeta de iconos adaptativos con v26 heredada de la plantilla; minSdk es 26, así que no cambia nada. -->
+    <issue id="ObsoleteSdkInt">
+        <ignore path="src/main/res/mipmap-anydpi-v26" />
+    </issue>
+
+    <!-- El espacio libre se pregunta con File.usableSpace de filesDir para decidir si cabe la descarga (los datos de mapa
+         no son caché que el sistema pueda vaciar), no con StorageManager.getAllocatableBytes. -->
+    <issue id="UsableSpace">
+        <ignore path="src/main/kotlin/app/trombito/rallycopilot/di/DatosMapaModule.kt" />
+    </issue>
+
+    <!-- Iconos.kt parte las rutas SVG en varias cadenas ("...z" + "m0 ..."): el parser de rutas no necesita espacio entre
+         comandos y se evita tocar el dibujo. -->
+    <issue id="TextConcatSpace">
+        <ignore path="src/main/kotlin/app/trombito/rallycopilot/ui/comun/Iconos.kt" />
+    </issue>
+
+    <!-- «momento» es español correcto; el diccionario de Typos de lint es inglés. -->
+    <issue id="Typos">
+        <ignore path="src/main/res/values/strings_copia.xml" />
+    </issue>
+
+    <!-- El MapView de la edición de tramos recibe un OnTouchListener para arrastrar puntos; el mapa no es un botón. -->
+    <issue id="ClickableViewAccessibility">
+        <ignore path="src/main/kotlin/app/trombito/rallycopilot/ui/edicion/MapaEdicionTramo.kt" />
+    </issue>
+
+    <!-- AjustesRapidos limita la hoja a una fracción de Configuration.screenHeightDp; candidato a cambiar a
+         LocalWindowInfo.containerSize cuando se toque ese archivo. -->
+    <issue id="ConfigurationScreenWidthHeight">
+        <ignore path="src/main/kotlin/app/trombito/rallycopilot/ui/mapa/AjustesRapidos.kt" />
+    </issue>
+
+    <!-- La app no usa Timber (sin dependencia); se registra con android.util.Log y R8 elimina v/d/i en release (privacidad,
+         proguard-rules.pro). El aviso viene de una regla de lint que trae una dependencia transitiva. -->
+    <issue id="LogNotTimber" severity="ignore" />
+
+    <!-- No se añade core-ktx solo por las extensiones (SharedPreferences.edit, createBitmap, toUri, toColorInt,
+         transaction, withTranslation); las APIs de plataforma que usa el código son equivalentes. -->
+    <issue id="UseKtx" severity="ignore" />
+
+    <!-- Textos con «%d metros/zonas/kilómetros...»: redacción de producto pendiente de revisar (plurales con cantidad uno);
+         21 avisos el 2026-11-07. -->
+    <issue id="PluralsCandidate" severity="ignore" />
+
+    <!-- 15 composables leen LocalContext.current.resources (p. ej. plurales o descripciones); aviso de buenas prácticas de
+         Compose, sin fallo conocido: se relee al recomponer. Candidato a limpiar con pluralStringResource. -->
+    <issue id="LocalContextResourcesRead" severity="ignore" />
+</lint>

@@ -17,6 +17,8 @@ class ClienteHttp(
     private val hostPermitido: (String) -> Boolean = ::esHostDeGithub,
     private val aceptarGzip: Boolean = false,
     private val plazoFlujoMs: Long = PLAZO_FLUJO_MS,
+    /** Tiempo máximo de conexión y de espera de datos; solo lo cambian las pruebas (cortes de red rápidos). */
+    private val timeoutMs: Int = TIMEOUT_MS,
 ) {
     /**
      * Abre [url] (con `Range: bytes=desde-` si [desde] > 0) siguiendo redirecciones https a https dentro de GitHub.
@@ -42,8 +44,8 @@ class ClienteHttp(
         val con = config.abrirConexion(url)
         try {
             con.instanceFollowRedirects = false
-            con.connectTimeout = TIMEOUT_MS
-            con.readTimeout = TIMEOUT_MS
+            con.connectTimeout = timeoutMs
+            con.readTimeout = timeoutMs
             con.setRequestProperty("User-Agent", config.userAgent)
             // Sin gzip salvo que se pida: con Range y Content-Length los bytes tienen que ser los del archivo.
             con.setRequestProperty("Accept-Encoding", if (aceptarGzip) "gzip" else "identity")

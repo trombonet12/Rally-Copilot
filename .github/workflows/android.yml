@@ -16,6 +16,8 @@ on:
       - '.gitattributes'
       - 'gradlew'
       - 'gradlew.bat'
+      - 'scripts/humo-release.mjs'
+      - 'scripts/humo-release.test.mjs'
       - '.github/workflows/android.yml'
   pull_request:
     paths:
@@ -31,12 +33,18 @@ on:
       - '.gitattributes'
       - 'gradlew'
       - 'gradlew.bat'
+      - 'scripts/humo-release.mjs'
+      - 'scripts/humo-release.test.mjs'
       - '.github/workflows/android.yml'
   # Manual: por defecto solo compila. Con `publicar` activado en main publica la release (p. ej. un parche).
   workflow_dispatch:
     inputs:
       publicar:
         description: 'Publicar release firmada (solo en main; el parche se calcula del historial)'
+        type: boolean
+        default: false
+      humo_emulador:
+        description: 'Arrancar el release minificado en un emulador y buscar FATAL en logcat (unos 30 min)'
         type: boolean
         default: false
 
@@ -75,6 +83,29 @@ jobs:
       # minifyReleaseWithR8 sin firma: los fallos de R8 (reglas -dontwarn) salen aquí y no solo al publicar.
       - name: ktlint, detekt, lint, tests, assembleDebug y R8
         run: ./gradlew ktlintCheck detekt lintDebug testDebugUnitTest :motor:test assembleDebug :app:minifyReleaseWithR8
+      # Humo del release minificado (QA-3): las clases de las reglas keep (sherpa JNI, Vosk, JNA, serializadores) tienen que
+      # sobrevivir en mapping.txt/usage.txt. Los tests corren sin minificar y no verían un keep que falte.
+      - name: Humo de R8 (clases keep)
+        run: |
+          node --test scripts/humo-release.test.mjs
+          node scripts/humo-release.mjs
+      # Cobertura (QA-11). Mínimo de líneas solo en el motor; la app solo informa. Kover instrumenta los tests del gate, así
+      # que aquí solo se generan los informes y se comprueba el mínimo.
+      - name: Cobertura mínima del motor
+        run: ./gradlew :motor:koverVerify
+      - name: Informes de cobertura (no bloqueante)
+        continue-on-error: true
+        run: ./gradlew koverXmlReport koverHtmlReport
+      - name: Subir informes de cobertura
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: cobertura
+          path: |
+            app/build/reports/kover/
+            motor/build/reports/kover/
+          if-no-files-found: ignore
+          retention-days: 14
       # Resumen de tests en el run (QA-19). Un test saltado (assume, @Ignore) hace fallar el gate: no se quita cobertura en silencio.
       - name: Resumen de tests
         if: ${{ !cancelled() }}
@@ -130,6 +161,80 @@ jobs:
             **/build/test-results/
           if-no-files-found: ignore
           retention-days: 14
+
+  # Humo del release minificado (QA-3): solo a mano (workflow_dispatch con `humo_emulador`). Compila el release sin firmar
+  # con x86_64 añadido (solo aquí, -Prally.humoEmulador), lo firma con un keystore efímero que se borra al acabar (no es
+  # el de la release: no hay secretos en este job), lo instala en un emulador, arranca la app y falla si logcat trae FATAL.
+  humo-emulador:
+    name: Humo del release en emulador (manual)
+    if: github.event_name == 'workflow_dispatch' && inputs.humo_emulador
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - name: Caché de descargas (.descargas)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .descargas
+          key: descargas-${{ runner.os }}-${{ hashFiles('app/build.gradle.kts', 'gradle/descargas.gradle.kts', 'app/datos-incluidos.properties') }}
+      - name: Propiedades locales (solo sdk.dir)
+        run: echo "sdk.dir=$ANDROID_HOME" > local.properties
+      - name: Release minificado sin firmar (con x86_64 para el emulador)
+        run: ./gradlew -Prally.sinFirma=true -Prally.humoEmulador=true assembleRelease
+      - name: Humo de R8 (clases keep)
+        run: node scripts/humo-release.mjs
+      - name: Firmar con un keystore efímero
+        run: |
+          set -euo pipefail
+          ks="$RUNNER_TEMP/humo.jks"
+          pass="$(head -c 24 /dev/urandom | base64 | tr -dc 'A-Za-z0-9')"
+          keytool -genkeypair -keystore "$ks" -storepass "$pass" -keypass "$pass" -alias humo \
+            -keyalg RSA -keysize 2048 -validity 2 -dname "CN=humo-emulador"
+          bt="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -n1)"
+          sin="$(find app/build/outputs/apk/release -name '*.apk' | head -n1)"
+          test -n "$sin" || { echo "::error::No se generó el APK release"; exit 1; }
+          export KS_PASS="$pass"
+          "$bt/apksigner" sign --ks "$ks" --ks-key-alias humo --ks-pass env:KS_PASS --key-pass env:KS_PASS \
+            --out "$RUNNER_TEMP/humo-release.apk" "$sin"
+          rm -f "$ks"
+      # KVM para el emulador (ver la documentación de reactivecircus/android-emulator-runner).
+      - name: Habilitar KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      # Fijado por SHA de v2.38.0 (2026-07-05, más de dos semanas de antigüedad).
+      - name: Arrancar la app en el emulador y buscar FATAL en logcat
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          ram-size: 4096M
+          disk-size: 6144M
+          disable-animations: true
+          script: bash scripts/humo-emulador.sh "$RUNNER_TEMP/humo-release.apk" 45 humo-emulador
+      - name: Subir logcat del humo
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: humo-emulador
+          path: humo-emulador/
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Borrar propiedades locales y keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/humo.jks" "$RUNNER_TEMP/humo-release.apk" local.properties
 
   release:
     name: Release firmada (si la version es nueva)

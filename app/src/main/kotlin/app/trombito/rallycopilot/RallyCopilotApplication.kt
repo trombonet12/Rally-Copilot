@@ -29,10 +29,10 @@ class RallyCopilotApplication :
 
     @Inject lateinit var siembra: EsperaDatosSembrados
 
-    @Inject @field:ApplicationScope
+    @Inject @ApplicationScope
     lateinit var segundoPlano: CoroutineScope
 
-    @Inject @field:DispatcherIo
+    @Inject @DispatcherIo
     lateinit var dispatcherIo: CoroutineDispatcher
 
     override val workManagerConfiguration: Configuration

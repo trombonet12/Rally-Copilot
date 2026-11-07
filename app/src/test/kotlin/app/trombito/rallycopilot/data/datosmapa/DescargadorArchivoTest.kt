@@ -66,6 +66,9 @@ class DescargadorArchivoTest {
 
     @Test
     fun `tras un corte de red conserva el parcial y reanuda con Range`() {
+        // El servidor del JDK no cierra el socket al cortar: el cliente se queda esperando datos hasta su timeout de
+        // lectura. Con 2 s en vez de los 30 s de producción la prueba no espera media minuto.
+        descargador = DescargadorArchivo(ClienteHttp(entorno.config, timeoutMs = TIMEOUT_CORTE_MS))
         val (archivo, recurso) = publicar()
         recurso.cortarTras = 100_000
 
@@ -196,5 +199,9 @@ class DescargadorArchivoTest {
             assertTrue(e.message.orEmpty().contains("404"))
         }
         assertFalse(parcial.exists())
+    }
+
+    private companion object {
+        const val TIMEOUT_CORTE_MS = 2_000
     }
 }

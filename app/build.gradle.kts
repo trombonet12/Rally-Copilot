@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.ktlint)
     alias(libs.plugins.detekt)
     alias(libs.plugins.androidx.room)
+    alias(libs.plugins.kover)
 }
 
 kotlin {
@@ -29,6 +30,9 @@ val releaseKeyPassword: String? = System.getenv("RALLY_KEY_PASSWORD")
 // `-Prally.sinFirma=true` (solo CI): compila el release SIN firmar; el workflow firma después con apksigner/jarsigner
 // y solo ese paso ve el keystore, así los plugins y dependencias del build no tocan la clave (auditoría SEG-1).
 val releaseSinFirma: Boolean = providers.gradleProperty("rally.sinFirma").orNull == "true"
+// `-Prally.humoEmulador=true` (solo el job manual `humo-emulador` del CI): el release también lleva x86_64 para poder
+// arrancarlo en el emulador del runner. Los release publicados nunca llevan esta propiedad (solo arm64-v8a).
+val releaseConX86ParaEmulador: Boolean = providers.gradleProperty("rally.humoEmulador").orNull == "true"
 val hasReleaseSigning =
     !releaseSinFirma &&
         listOf(releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword).all { !it.isNullOrBlank() }
@@ -135,7 +139,7 @@ android {
         release {
             // Solo arm64-v8a: el x86_64 (~65 MiB) únicamente sirve al emulador, que usa el debug (auditoría REN-1).
             ndk {
-                abiFilters += listOf("arm64-v8a")
+                abiFilters += if (releaseConX86ParaEmulador) listOf("arm64-v8a", "x86_64") else listOf("arm64-v8a")
             }
             isMinifyEnabled = true
             isShrinkResources = true
@@ -159,6 +163,12 @@ android {
 
     buildFeatures {
         compose = true
+    }
+
+    // Los avisos de lint hacen fallar el gate (QA-16); las excepciones aceptadas, con su motivo, están en app/lint.xml.
+    lint {
+        warningsAsErrors = true
+        lintConfig = file("lint.xml")
     }
 
     packaging {
@@ -193,6 +203,33 @@ ktlint {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+}
+
+// Cobertura de la app (QA-11): informe no bloqueante (sin mínimo; el mínimo solo rige en :motor). Se excluye el código
+// generado (Hilt, Dagger, Room, Compose, BuildConfig, R) que no es lógica propia.
+kover {
+    reports {
+        filters {
+            excludes {
+                classes(
+                    "*.BuildConfig",
+                    "*.R",
+                    "*.R\$*",
+                    "*_Factory",
+                    "*_Factory\$*",
+                    "*_HiltModules*",
+                    "*_MembersInjector",
+                    "*Hilt_*",
+                    "hilt_aggregated_deps.*",
+                    "dagger.hilt.internal.*",
+                    "*_Impl",
+                    "*_Impl\$*",
+                    "*ComposableSingletons*",
+                    "*\$\$serializer",
+                )
+            }
+        }
+    }
 }
 
 dependencies {

@@ -1,7 +1,6 @@
 package app.trombito.rallycopilot.data.datosmapa
 
 import android.content.Context
-import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.work.Configuration
 import androidx.work.NetworkType
@@ -14,6 +13,7 @@ import app.trombito.rallycopilot.data.db.ArchivoInstaladoEntity
 import app.trombito.rallycopilot.data.db.DatosMapaDao
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.archivos
+import app.trombito.rallycopilot.data.db.baseSincrona
 import app.trombito.rallycopilot.data.db.estado
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
@@ -62,9 +62,10 @@ class RepositorioDatosMapaImplTest {
         )
         workManager = WorkManager.getInstance(contexto)
         entorno = EntornoDatosMapa(carpeta.newFolder("entorno"))
-        base = Room.inMemoryDatabaseBuilder(contexto, RallyDatabase::class.java).allowMainThreadQueries().build()
+        base = baseSincrona(contexto)
         dao = base.datosMapaDao()
-        repositorio = RepositorioDatosMapaImpl(dao, base.ajustesMapasDao(), workManager, entorno.config, Dispatchers.IO)
+        repositorio =
+            RepositorioDatosMapaImpl(dao, base.ajustesMapasDao(), workManager, entorno.config, Dispatchers.Unconfined)
     }
 
     @After
@@ -76,13 +77,8 @@ class RepositorioDatosMapaImplTest {
     private fun trabajos(): List<WorkInfo> =
         workManager.getWorkInfosForUniqueWork(TrabajoDatosMapa.NOMBRE_TRABAJO).get()
 
-    private fun esperar(condicion: () -> Boolean) {
-        val limite = System.currentTimeMillis() + ESPERA_MS
-        while (!condicion()) {
-            check(System.currentTimeMillis() < limite) { "Tiempo agotado esperando la condición" }
-            Thread.sleep(20)
-        }
-    }
+    /** Con la base, el ejecutor de WorkManager y el dispatcher síncronos, la condición ya se cumple al volver. */
+    private fun esperar(condicion: () -> Boolean) = assertTrue("La condición no se cumple", condicion())
 
     private fun esperarEstado(condicion: (EstadoDatosMapa) -> Boolean): EstadoDatosMapa =
         runBlocking { withTimeout(ESPERA_MS) { repositorio.estado.first(condicion) } }
@@ -212,7 +208,7 @@ class RepositorioDatosMapaImplTest {
                 base.ajustesMapasDao(),
                 workManager,
                 entorno.config,
-                Dispatchers.IO,
+                Dispatchers.Unconfined,
                 precarga = precarga,
             )
         instalarArchivo()
@@ -313,7 +309,6 @@ class RepositorioDatosMapaImplTest {
     @Test
     fun `comprobar actualizacion sin datos no encola nada y con datos encola el automatico`() {
         repositorio.comprobarActualizacion()
-        Thread.sleep(300)
         assertTrue(trabajos().isEmpty())
 
         instalarArchivo()
@@ -366,7 +361,7 @@ class RepositorioDatosMapaImplTest {
                 base.ajustesMapasDao(),
                 workManager,
                 entorno.config,
-                Dispatchers.IO,
+                Dispatchers.Unconfined,
                 siembra,
             )
 
@@ -556,7 +551,7 @@ class RepositorioDatosMapaImplTest {
             base.ajustesMapasDao(),
             workManager,
             entorno.config,
-            Dispatchers.IO,
+            Dispatchers.Unconfined,
             complementosElegidos = { elegidos.toSet() },
         )
 
@@ -592,7 +587,6 @@ class RepositorioDatosMapaImplTest {
         esperar { trabajosComplementos().isNotEmpty() }
 
         repositorio.descargar(Complemento.VOZ_SHARVARD)
-        Thread.sleep(300)
 
         assertEquals(1, trabajosComplementos().count { !it.state.isFinished })
     }
@@ -633,7 +627,6 @@ class RepositorioDatosMapaImplTest {
 
         repositorioConElegidos(Complemento.VOZ_SHARVARD).comprobarActualizacion()
         esperar { trabajos().isNotEmpty() }
-        Thread.sleep(300)
 
         assertTrue(trabajosComplementos().isEmpty())
     }
