@@ -172,7 +172,7 @@ private fun FilaModo(
 }
 
 /**
- * Una voz con su nombre del catálogo («Dave (davefx)», «Sharvard»), radio para elegirla y ▶ aparte para oírla. Si es
+ * Una voz con su nombre del catálogo («Dave», «Sharvard»), radio para elegirla y ▶ aparte para oírla. Si es
  * una voz que se descarga ([descarga] no es null) y aún no está, debajo va su tamaño con «Descargar» y el ▶ pide
  * descargarla primero en vez de sonar.
  */
@@ -229,7 +229,7 @@ private fun FilaVoz(
 
 /** Debajo de una voz que se descarga: lista, descargando con barra, esperando red, o su tamaño con «Descargar». */
 @Composable
-private fun EstadoDescargaVoz(
+internal fun EstadoDescargaVoz(
     descarga: EstadoVozDescarga,
     clave: String,
     avisarDeProbar: Boolean,

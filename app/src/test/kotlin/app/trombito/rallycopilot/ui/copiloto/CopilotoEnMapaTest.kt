@@ -11,11 +11,16 @@ import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
+import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_VOZ_DESCARGAR_PREFIJO
+import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_VOZ_ESTADO_PREFIJO
+import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_VOZ_PROBAR_PRIMERO
+import app.trombito.rallycopilot.ui.ajustes.EstadoVozDescarga
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.mapa.AccionesMapa
@@ -58,9 +63,11 @@ abstract class CopilotoEnMapaBase {
     protected val modos = mutableListOf<ModoCopiloto>()
     protected val elegidas = mutableListOf<VozCopiloto>()
     protected val probadas = mutableListOf<VozCopiloto>()
+    protected val descargadas = mutableListOf<VozCopiloto>()
     protected var pospuestas = 0
 
     private val datos = EstadoDatosMapa(instalados = DatosInstalados("2026.10.1", 1_000_000, conSatelite = false))
+    protected var vozSharvard by mutableStateOf(EstadoVozDescarga())
     protected var copiloto by mutableStateOf(CopilotoUiState(cargado = true, voz = VozCopiloto.DAVEFX))
 
     private val acciones =
@@ -68,6 +75,7 @@ abstract class CopilotoEnMapaBase {
             onModo = { modos += it },
             onElegirVoz = { elegidas += it },
             onProbarVoz = { probadas += it },
+            onDescargarVoz = { descargadas += it },
             onPosponerVoz = { pospuestas++ },
         )
 
@@ -101,7 +109,7 @@ abstract class CopilotoEnMapaBase {
                     acciones = AccionesMapa(),
                     mapa = { _, m -> Box(m.testTag(ETIQUETA_MAPA_FALSO)) },
                     navegacion = NavegacionEnMapa(navegacion, AccionesNavegacion(onTerminar = {})),
-                    copiloto = CopilotoEnMapa(copiloto, acciones),
+                    copiloto = CopilotoEnMapa(copiloto, acciones, vozSharvard),
                 )
             }
         }
@@ -276,7 +284,7 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
         assertTrue(banco.hay(ETIQUETA_VOZ_DIALOGO))
         val textos = banco.todosLosTextos()
         assertTrue("Elige la voz del copiloto" in textos)
-        assertTrue("Dave (davefx)" in textos)
+        assertTrue("Dave" in textos)
         assertTrue("Sharvard" in textos)
         assertEquals(VozCopiloto.entries.size, banco.etiquetas(ETIQUETA_VOZ_OPCION_PREFIJO).size)
     }
@@ -309,6 +317,53 @@ class CopilotoEnMapaVerticalTest : CopilotoEnMapaBase() {
         banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + "davefx"))
         assertEquals(listOf(VozCopiloto.SHARVARD, VozCopiloto.DAVEFX), probadas)
         assertTrue(elegidas.isEmpty())
+    }
+
+    @Test
+    fun `marcar sharvard sin tenerla lanza su descarga y enseña el tamano y el boton`() {
+        copiloto = copiloto.copy(voz = null)
+        vozSharvard = EstadoVozDescarga(instalada = false, bytes = 21_993_140)
+        poner()
+        assertFalse("Dave no se descarga", banco.hay(ETIQUETA_VOZ_ESTADO_PREFIJO + "davefx"))
+        assertTrue(banco.hay(ETIQUETA_VOZ_DESCARGAR_PREFIJO + "sharvard"))
+        assertTrue(descargadas.isEmpty())
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_OPCION_PREFIJO + "sharvard"))
+        assertEquals(listOf(VozCopiloto.SHARVARD), descargadas)
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_DESCARGAR_PREFIJO + "sharvard"))
+        assertEquals(listOf(VozCopiloto.SHARVARD, VozCopiloto.SHARVARD), descargadas)
+    }
+
+    @Test
+    fun `marcar sharvard mientras ya se descarga no pide otra descarga y se ve el progreso`() {
+        copiloto = copiloto.copy(voz = null)
+        vozSharvard = EstadoVozDescarga(instalada = false, progreso = ProgresoDescarga(25, 100, false))
+        poner()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_OPCION_PREFIJO + "sharvard"))
+        assertTrue(descargadas.isEmpty())
+        assertTrue("Descargando… 25 %" in banco.todosLosTextos())
+    }
+
+    @Test
+    fun `con sharvard instalada el dialogo dice que esta lista y su play suena`() {
+        copiloto = copiloto.copy(voz = null)
+        vozSharvard = EstadoVozDescarga(instalada = true)
+        poner()
+        assertTrue("Lista, funciona sin conexión" in banco.todosLosTextos())
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + "sharvard"))
+        assertEquals(listOf(VozCopiloto.SHARVARD), probadas)
+    }
+
+    @Test
+    fun `el play de sharvard sin descargar pide descargar primero y no suena con dave`() {
+        copiloto = copiloto.copy(voz = null)
+        vozSharvard = EstadoVozDescarga(instalada = false)
+        poner()
+        assertFalse(banco.hay(ETIQUETA_VOZ_PROBAR_PRIMERO))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + "sharvard"))
+        assertTrue(probadas.isEmpty())
+        assertTrue(banco.hay(ETIQUETA_VOZ_PROBAR_PRIMERO))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + "davefx"))
+        assertEquals(listOf(VozCopiloto.DAVEFX), probadas)
     }
 
     @Suppress("DEPRECATION") // Dialog.onBackPressed es la forma de simular «atrás» en un diálogo de Robolectric

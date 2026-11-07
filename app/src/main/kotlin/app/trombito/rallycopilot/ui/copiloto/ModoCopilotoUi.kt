@@ -34,7 +34,7 @@ fun ModoCopiloto.detalle(): Int =
         ModoCopiloto.COMPLETO -> R.string.copiloto_modo_completo_detalle
     }
 
-/** Nombre de la voz como en el catálogo de Ajustes: «Dave (davefx)» y «Sharvard». */
+/** Nombre de la voz como en el catálogo de Ajustes: «Dave» y «Sharvard». */
 @StringRes
 fun VozCopiloto.nombre(): Int =
     when (this) {

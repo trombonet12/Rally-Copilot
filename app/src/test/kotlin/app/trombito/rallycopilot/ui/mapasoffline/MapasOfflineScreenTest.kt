@@ -56,7 +56,7 @@ class MapasOfflineScreenTest {
         poner(datos = EstadoDatosMapa(preparando = true))
         assertTrue(banco.hay("mapas-fase-preparando"))
         assertTrue(banco.hay(ETIQUETA_PREPARANDO))
-        assertTrue("Preparando mapas…" in textos())
+        assertTrue("Preparando los mapas…" in textos())
         assertFalse(banco.hay(ETIQUETA_DESCARGAR))
         assertFalse(banco.hay(ETIQUETA_DESCARGAR_SATELITE))
         assertFalse(banco.hay(ETIQUETA_BORRAR))

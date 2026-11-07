@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import androidx.compose.runtime.Immutable
 import app.trombito.rallycopilot.domain.ajustes.EstiloManiobras
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
@@ -16,7 +17,8 @@ data class CamaraMapa(
     val zoom: Double,
 )
 
-/** Estado inmutable de la pantalla de mapa. */
+/** Estado inmutable de la pantalla de mapa (solo `val` inmutables: Compose se salta lo que no cambia). */
+@Immutable
 data class MapaUiState(
     /** Mientras no se ha resuelto si hay datos instalados. */
     val cargando: Boolean = true,

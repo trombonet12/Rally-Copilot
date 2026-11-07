@@ -1,14 +1,17 @@
 package app.trombito.rallycopilot.ui.copiloto
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
 import app.trombito.rallycopilot.domain.escucha.DialogoVoz
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.ajustes.decirEjemplo
@@ -28,6 +31,7 @@ import javax.inject.Inject
  * preguntarla.
  * Mientras los ajustes no se han leído ([cargado] falso) no se pregunta nada, para que el diálogo no parpadee.
  */
+@Immutable
 data class CopilotoUiState(
     val cargado: Boolean = false,
     val modo: ModoCopiloto = ModoCopiloto.POR_DEFECTO,
@@ -69,6 +73,7 @@ class CopilotoViewModel
         private val repositorio: RepositorioAjustesConduccion,
         private val locutor: Locutor,
         private val ordenes: ControlOrdenes,
+        private val datos: RepositorioDatosMapa,
     ) : ViewModel() {
         private val pospuesta = MutableStateFlow(false)
 
@@ -108,8 +113,22 @@ class CopilotoViewModel
             viewModelScope.launch { repositorio.elegirModoCopiloto(modo) }
         }
 
+        /** Elegir Sharvard sin tenerla baja la voz (con la red que haya); hasta entonces habla Dave. */
         fun onElegirVoz(voz: VozCopiloto) {
-            viewModelScope.launch { repositorio.elegirVoz(voz) }
+            viewModelScope.launch {
+                repositorio.elegirVoz(voz)
+                if (voz == VozCopiloto.SHARVARD) pedirSharvardSiFalta()
+            }
+        }
+
+        /** «Descargar» de una voz en el diálogo del primer uso: solo Sharvard se baja; Dave va en el APK. */
+        fun onDescargarVoz(voz: VozCopiloto) {
+            if (voz == VozCopiloto.SHARVARD) viewModelScope.launch { pedirSharvardSiFalta() }
+        }
+
+        private suspend fun pedirSharvardSiFalta() {
+            val sharvard = datos.estado.first().complemento(Complemento.VOZ_SHARVARD)
+            if (!sharvard.instalado && !sharvard.descargando) datos.descargar(Complemento.VOZ_SHARVARD)
         }
 
         /** Atrás en el diálogo: se deja la voz sin elegir y se vuelve a preguntar al abrir el mapa otra vez. */

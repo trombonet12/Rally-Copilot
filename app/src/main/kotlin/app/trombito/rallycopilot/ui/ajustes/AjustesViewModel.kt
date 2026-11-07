@@ -15,6 +15,7 @@ import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -185,9 +186,5 @@ class AjustesViewModel
 
         private fun guardar(cambio: (AjustesConduccion) -> AjustesConduccion) {
             viewModelScope.launch { repositorio.guardar(cambio(repositorio.ajustes.first())) }
-        }
-
-        private companion object {
-            const val PARADA_MS = 5_000L
         }
     }

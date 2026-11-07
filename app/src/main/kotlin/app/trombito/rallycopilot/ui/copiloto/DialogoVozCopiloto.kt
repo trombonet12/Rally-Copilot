@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.ui.ajustes.EstadoDescargaVoz
+import app.trombito.rallycopilot.ui.ajustes.EstadoVozDescarga
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.theme.Espacio
@@ -42,13 +46,19 @@ private val ALTO_FILA = 56.dp
 /**
  * Diálogo del primer uso: «Elige la voz del copiloto». Cada voz se puede probar con ▶ antes de elegirla. No se cierra
  * tocando fuera ni sin elegir: solo «Elegir» guarda la voz y atrás ([onPosponer]) lo deja para la próxima apertura.
+ * Sharvard no va en el APK: al marcarla se lanza su descarga ([onDescargar]) y debajo se ve el mismo estado que en
+ * Ajustes ([sharvard]: tamaño y «Descargar», progreso o «lista»); mientras no esté, su ▶ pide descargarla en vez de
+ * sonar con Dave.
  */
 @Composable
+@Suppress("LongParameterList") // las dos acciones del primer uso, el estado de Sharvard y su descarga
 fun DialogoVozCopiloto(
     onElegir: (VozCopiloto) -> Unit,
     onProbar: (VozCopiloto) -> Unit,
     onPosponer: () -> Unit,
     modifier: Modifier = Modifier,
+    sharvard: EstadoVozDescarga = EstadoVozDescarga(),
+    onDescargar: (VozCopiloto) -> Unit = {},
 ) {
     var elegida by remember { mutableStateOf(VozCopiloto.entries.first()) }
     AlertDialog(
@@ -57,13 +67,27 @@ fun DialogoVozCopiloto(
         modifier = modifier.testTag(ETIQUETA_VOZ_DIALOGO),
         title = { Text(stringResource(R.string.copiloto_voz_dialogo_titulo)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Espacio.s),
+            ) {
                 Text(
                     text = stringResource(R.string.copiloto_voz_dialogo_texto),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 VozCopiloto.entries.forEach { voz ->
-                    FilaVozCopiloto(voz, voz == elegida, onElegir = { elegida = voz }, onProbar = { onProbar(voz) })
+                    val descarga = sharvard.takeIf { voz == VozCopiloto.SHARVARD }
+                    FilaVozCopiloto(
+                        voz = voz,
+                        seleccionada = voz == elegida,
+                        onElegir = {
+                            elegida = voz
+                            if (descarga != null && !descarga.instalada && !descarga.descargando) onDescargar(voz)
+                        },
+                        onProbar = { onProbar(voz) },
+                        descarga = descarga,
+                        onDescargar = { onDescargar(voz) },
+                    )
                 }
             }
         },
@@ -77,38 +101,54 @@ fun DialogoVozCopiloto(
 }
 
 /**
- * Una voz: radio con su nombre del catálogo («Dave (davefx)») y, aparte, el botón ▶ que la prueba. Probar no la
- * elige. Lo comparten el diálogo del primer uso y Ajustes.
+ * Una voz: radio con su nombre («Dave», «Sharvard») y, aparte, el botón ▶ que la prueba. Probar no la elige. Si es una
+ * voz que se descarga ([descarga] no es null) y aún no está, debajo va su estado (tamaño y «Descargar», progreso o
+ * «lista») y el ▶ pide descargarla primero en vez de sonar.
  */
 @Composable
+@Suppress("LongParameterList") // la fila lleva su nombre, la selección, las dos acciones y la descarga opcional
 fun FilaVozCopiloto(
     voz: VozCopiloto,
     seleccionada: Boolean,
     onElegir: () -> Unit,
     onProbar: () -> Unit,
     modifier: Modifier = Modifier,
+    descarga: EstadoVozDescarga? = null,
+    onDescargar: () -> Unit = {},
 ) {
     val nombre = stringResource(voz.nombre())
     val clave = voz.name.lowercase()
-    Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Row(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .testTag(ETIQUETA_VOZ_OPCION_PREFIJO + clave)
-                    .heightIn(min = ALTO_FILA)
-                    .selectable(selected = seleccionada, role = Role.RadioButton, onClick = onElegir)
-                    .padding(horizontal = Espacio.s),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Espacio.m),
-        ) {
-            RadioButton(selected = seleccionada, onClick = null)
-            Text(text = nombre, style = MaterialTheme.typography.titleMedium)
+    val sinInstalar = descarga != null && !descarga.instalada
+    var probarSinVoz by remember { mutableStateOf(false) }
+    Column(modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .testTag(ETIQUETA_VOZ_OPCION_PREFIJO + clave)
+                        .heightIn(min = ALTO_FILA)
+                        .selectable(selected = seleccionada, role = Role.RadioButton, onClick = onElegir)
+                        .padding(horizontal = Espacio.s),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Espacio.m),
+            ) {
+                RadioButton(selected = seleccionada, onClick = null)
+                Text(text = nombre, style = MaterialTheme.typography.titleMedium)
+            }
+            BotonIcono(
+                descripcion = stringResource(R.string.copiloto_voz_probar, nombre),
+                onClick = { if (sinInstalar) probarSinVoz = true else onProbar() },
+                modifier = Modifier.testTag(ETIQUETA_VOZ_PROBAR_PREFIJO + clave),
+            ) { Icon(Iconos.Empezar, contentDescription = null) }
         }
-        BotonIcono(
-            descripcion = stringResource(R.string.copiloto_voz_probar, nombre),
-            onClick = onProbar,
-            modifier = Modifier.testTag(ETIQUETA_VOZ_PROBAR_PREFIJO + clave),
-        ) { Icon(Iconos.Empezar, contentDescription = null) }
+        if (descarga != null) {
+            EstadoDescargaVoz(
+                descarga = descarga,
+                clave = clave,
+                avisarDeProbar = probarSinVoz && sinInstalar,
+                onDescargar = onDescargar,
+            )
+        }
     }
 }

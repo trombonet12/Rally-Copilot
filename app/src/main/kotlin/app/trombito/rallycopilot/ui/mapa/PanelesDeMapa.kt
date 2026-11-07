@@ -12,6 +12,8 @@ internal fun DialogoVozSiToca(copiloto: CopilotoEnMapa) {
         onElegir = copiloto.acciones.onElegirVoz,
         onProbar = copiloto.acciones.onProbarVoz,
         onPosponer = copiloto.acciones.onPosponerVoz,
+        sharvard = copiloto.vozSharvard,
+        onDescargar = copiloto.acciones.onDescargarVoz,
     )
 }
 

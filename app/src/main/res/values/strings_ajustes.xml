@@ -28,7 +28,7 @@
     <string name="ajustes_valor_acerca">Versión y licencias</string>
 
     <!-- Nombre de cada voz: el del catálogo -->
-    <string name="ajustes_voz_davefx">Dave (davefx)</string>
+    <string name="ajustes_voz_davefx">Dave</string>
     <string name="ajustes_voz_sharvard">Sharvard</string>
 
     <!-- Una línea de explicación por opción: va dentro del botón ⓘ -->

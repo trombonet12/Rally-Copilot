@@ -278,6 +278,7 @@ private class ControladorMapa(
 ) {
     private var mapa: MapLibreMap? = null
     private var estilo: Style? = null
+    private val capaEstela = CapaEstela()
     private var estiloPedido: String? = null
     private var estiloAplicado: String? = null
     private var posicion: Fijacion? = null
@@ -402,7 +403,7 @@ private class ControladorMapa(
         if (nuevas.radares != previas.radares) CapaRadares.actualizar(capas, nuevas.radares)
         if (nuevas.bocadillo != previas.bocadillo) CapaBocadillo.actualizar(capas, vista.context, nuevas.bocadillo)
         if (nuevas.notas != previas.notas) CapaNotas.actualizar(capas, nuevas.notas)
-        if (nuevas.estela != previas.estela) CapaEstela.actualizar(capas, nuevas.estela)
+        if (nuevas.estela != previas.estela) capaEstela.actualizar(capas, nuevas.estela)
     }
 
     private fun aplicarEstilo(json: String) {
@@ -416,7 +417,7 @@ private class ControladorMapa(
             aplicarRelieve(cargado, preferencias.relieve)
             // Antes de activar la ubicación: la línea de la ruta queda debajo de la flecha de posición, y la estela
             // (que se instala antes) debajo de la ruta.
-            CapaEstela.instalar(cargado, preferencias.estela)
+            capaEstela.instalar(cargado, preferencias.estela)
             CapaRuta.instalar(cargado, vista.context, preferencias.ruta)
             CapaRadares.instalar(cargado, vista.context, preferencias.radares)
             CapaIncidencias.instalar(cargado, vista.context, preferencias.incidencias)

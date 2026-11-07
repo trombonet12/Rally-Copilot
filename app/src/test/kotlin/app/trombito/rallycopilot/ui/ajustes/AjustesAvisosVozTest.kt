@@ -140,7 +140,7 @@ class AvisosVozViewModelsTest {
     }
 
     private fun TestScope.copiloto(): CopilotoViewModel {
-        val vm = CopilotoViewModel(repositorio, locutor, FalsoControlOrdenes())
+        val vm = CopilotoViewModel(repositorio, locutor, FalsoControlOrdenes(), FalsoRepositorioDatosMapa())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }

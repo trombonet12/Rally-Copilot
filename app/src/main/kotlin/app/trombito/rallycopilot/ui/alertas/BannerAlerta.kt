@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.alertas.TipoIncidencia
+import app.trombito.rallycopilot.ui.comun.rememberLectorPantallaActivo
 import app.trombito.rallycopilot.ui.maniobras.ParalelogramoShape
 import app.trombito.rallycopilot.ui.navegacion.guiado.ColoresGuiado
 import app.trombito.rallycopilot.ui.theme.RallyOscuro
@@ -78,7 +79,8 @@ private class UltimoAviso {
  * Banner de alerta tipo retransmisión WRC: entra deslizando desde arriba y sale al pasar el radar o la incidencia.
  * Va bajo la franja de notas o el banner de maniobra. Radar: icono, nombre, señal con el límite y distancia.
  * Incidencia de la ruta: icono por tipo, nombre, carretera, distancia y, si los datos son viejos o hubo error, cuánto
- * hace ([frescura]). Con [compacto] (apaisado) todo va en una fila baja. Región viva: TalkBack lo anuncia al aparecer.
+ * hace ([frescura]). Con [compacto] (apaisado) todo va en una fila baja. Región viva «Polite» solo sin lector de
+ * pantalla: con TalkBack activo el copiloto ya dice el aviso y no hablan dos voces a la vez.
  */
 @Composable
 fun BannerAlerta(
@@ -109,6 +111,7 @@ private fun ContenidoBanner(
     val color = colorAviso(aviso)
     val forma = ParalelogramoShape(medidas.sesgo)
     val descripcion = descripcionAviso(recursos, aviso, frescura)
+    val lectorActivo = rememberLectorPantallaActivo()
     Row(
         modifier =
             Modifier
@@ -119,7 +122,7 @@ private fun ContenidoBanner(
                 .padding(horizontal = medidas.sesgo + 8.dp, vertical = 6.dp)
                 .clearAndSetSemantics {
                     contentDescription = descripcion
-                    liveRegion = LiveRegionMode.Polite
+                    if (!lectorActivo) liveRegion = LiveRegionMode.Polite
                 },
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,

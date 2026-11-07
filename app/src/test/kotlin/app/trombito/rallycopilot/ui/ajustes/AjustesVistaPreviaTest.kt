@@ -207,8 +207,8 @@ class AjustesVistaPreviaTest {
         banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_OPCION_PREFIJO + VozCopiloto.SHARVARD.name.lowercase()))
         assertEquals("Sharvard", banco.textoDe(ETIQUETA_PREVISTA_VOZ_NOMBRE))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_VOZ_OPCION_PREFIJO + VozCopiloto.DAVEFX.name.lowercase()))
-        assertEquals("Dave (davefx)", banco.textoDe(ETIQUETA_PREVISTA_VOZ_NOMBRE))
-        assertEquals("Voz Dave (davefx) al 100 por ciento", descripcionDe(ETIQUETA_PREVISTA_VOZ))
+        assertEquals("Dave", banco.textoDe(ETIQUETA_PREVISTA_VOZ_NOMBRE))
+        assertEquals("Voz Dave al 100 por ciento", descripcionDe(ETIQUETA_PREVISTA_VOZ))
         assertFalse(banco.todosLosTextos().any { it.startsWith("Voz 1") || it.startsWith("Voz 2") })
     }
 
@@ -219,7 +219,7 @@ class AjustesVistaPreviaTest {
         ponerProgreso(banco.conEtiqueta(ETIQUETA_AJUSTES_VOLUMEN), 130f)
         assertEquals("130 %", banco.textoDe(ETIQUETA_AJUSTES_VOLUMEN_VALOR))
         assertTrue("Volumen 130 %" in banco.textos(banco.conEtiqueta(ETIQUETA_PREVISTA_VOZ)))
-        assertEquals("Voz Dave (davefx) al 130 por ciento", descripcionDe(ETIQUETA_PREVISTA_VOZ))
+        assertEquals("Voz Dave al 130 por ciento", descripcionDe(ETIQUETA_PREVISTA_VOZ))
         ponerProgreso(banco.conEtiqueta(ETIQUETA_AJUSTES_VOLUMEN), 50f)
         assertEquals("50 %", banco.textoDe(ETIQUETA_AJUSTES_VOLUMEN_VALOR))
     }

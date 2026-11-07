@@ -1,13 +1,18 @@
 package app.trombito.rallycopilot.ui.copiloto
 
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.datos.EstadoComplemento
+import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
+import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
 import app.trombito.rallycopilot.domain.escucha.DialogoVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.edicion.Orden
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.comun.FalsoControlOrdenes
 import app.trombito.rallycopilot.ui.comun.FalsoLocutor
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
@@ -29,6 +34,7 @@ class CopilotoViewModelTest {
     private val repositorio = FalsoRepositorioAjustesConduccion()
     private val locutor = FalsoLocutor()
     private val ordenes = FalsoControlOrdenes()
+    private val datos = FalsoRepositorioDatosMapa()
 
     @Before
     fun preparar() {
@@ -41,7 +47,7 @@ class CopilotoViewModelTest {
     }
 
     private fun TestScope.crear(): CopilotoViewModel {
-        val vm = CopilotoViewModel(repositorio, locutor, ordenes)
+        val vm = CopilotoViewModel(repositorio, locutor, ordenes, datos)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -79,6 +85,32 @@ class CopilotoViewModelTest {
             vm.onElegirVoz(VozCopiloto.SHARVARD)
             assertEquals(VozCopiloto.SHARVARD, repositorio.mutable.value.voz)
             assertFalse(vm.uiState.value.pedirVoz)
+        }
+
+    @Test
+    fun `elegir sharvard sin tenerla lanza su descarga y elegir dave no`() =
+        runTest {
+            val vm = crear()
+            vm.onElegirVoz(VozCopiloto.DAVEFX)
+            assertTrue(datos.complementosDescargados.isEmpty())
+            vm.onElegirVoz(VozCopiloto.SHARVARD)
+            assertEquals(listOf(Complemento.VOZ_SHARVARD), datos.complementosDescargados)
+        }
+
+    @Test
+    fun `el boton descargar del dialogo baja sharvard una sola vez y no hace nada con dave`() =
+        runTest {
+            val vm = crear()
+            vm.onDescargarVoz(VozCopiloto.DAVEFX)
+            assertTrue(datos.complementosDescargados.isEmpty())
+            vm.onDescargarVoz(VozCopiloto.SHARVARD)
+            datos.estadoMutable.value =
+                EstadoDatosMapa(
+                    complementos =
+                        mapOf(Complemento.VOZ_SHARVARD to EstadoComplemento(descarga = ProgresoDescarga(0, 0, true))),
+                )
+            vm.onDescargarVoz(VozCopiloto.SHARVARD)
+            assertEquals(listOf(Complemento.VOZ_SHARVARD), datos.complementosDescargados)
         }
 
     @Test

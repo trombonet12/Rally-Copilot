@@ -1,22 +1,27 @@
 package app.trombito.rallycopilot.ui.alertas
 
+import android.content.Context
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.motor.alertas.TipoIncidencia
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
@@ -146,6 +151,17 @@ class BannerAlertaTest {
     fun `un radar no lleva indicador de antiguedad aunque haya datos viejos`() {
         poner(AvisoAlerta.Radar(ClaseRadar.FIJO, 300, 50), antiguedad = FrescuraIncidencias(3 * 3_600_000L, false))
         assertFalse(banco.hay(ETIQUETA_ALERTA_FRESCURA))
+    }
+
+    @Test
+    fun `con TalkBack activo no es region viva para no hablar a la vez que el copiloto`() {
+        val contexto = ApplicationProvider.getApplicationContext<Context>()
+        val gestor = contexto.getSystemService(Context.ACCESSIBILITY_SERVICE) as AccessibilityManager
+        shadowOf(gestor).setTouchExplorationEnabled(true)
+        poner(AvisoAlerta.Radar(ClaseRadar.FIJO, 300, 50))
+        val nodo = banco.conEtiqueta(ETIQUETA_ALERTA_BANNER)
+        assertNull(nodo.config.getOrNull(SemanticsProperties.LiveRegion))
+        assertTrue(descripcion().startsWith("Radar fijo"))
     }
 
     @Test

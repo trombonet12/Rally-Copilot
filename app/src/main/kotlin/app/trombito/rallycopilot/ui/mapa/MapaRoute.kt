@@ -8,6 +8,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.ui.ajustes.EstadoVozDescarga
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.AlertasViewModel
 import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
@@ -75,8 +77,9 @@ fun MapaRoute(
     val copiloto by copilotoViewModel.uiState.collectAsStateWithLifecycle()
     val alertas by alertasViewModel.uiState.collectAsStateWithLifecycle()
     val crono by cronoViewModel.crono.collectAsStateWithLifecycle()
-    val edicion by edicionViewModel.uiState.collectAsStateWithLifecycle()
-    val estela by viewModel.estela.collectAsStateWithLifecycle()
+    // Sin `by`: solo el mapa y la superposición leen la edición y la estela, así que sus cambios no recomponen la raíz.
+    val edicion = edicionViewModel.uiState.collectAsStateWithLifecycle()
+    val estela = viewModel.estela.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
     InformarDelPermiso(permiso.estado, viewModel, navegacionViewModel)
     LaunchedEffect(estado.posicion) { navegacionViewModel.onPosicion(estado.posicion?.punto) }
@@ -84,40 +87,51 @@ fun MapaRoute(
     // Con un punto elegido la cámara lo centra sobre su tarjeta: deja de seguir al coche (recentrar lo vuelve a pedir).
     val hayPunto = navegacion.puntoElegido != null
     LaunchedEffect(hayPunto) { if (hayPunto) viewModel.onSeguimientoPerdido() }
-    var reservaPuntoPx by remember { mutableIntStateOf(0) }
+    // Sin `by`: solo el mapa lee la reserva, así que su cambio no recompone la raíz.
+    val reservaPuntoPx = remember { mutableIntStateOf(0) }
     val ruta = rutaParaMapa(navegacion)
     val panel = panelGuiado ?: remember { panelGuiadoMapa() }
 
     val salida = remember(cronoViewModel) { AccionesSalidaCrono(cronoViewModel::decir, cronoViewModel::darSalida) }
+    // Las acciones y los bloques derivados se recuerdan: con instancias nuevas en cada fijación nada se podría saltar.
+    val accionesDelMapa =
+        remember(viewModel, alertasViewModel, permiso.pedir, permiso.abrirAjustes, onAbrirMapasOffline, onSalir) {
+            accionesMapa(viewModel, permiso, alertasViewModel, reservaPuntoPx)
+                .copy(onAbrirMapasOffline = onAbrirMapasOffline, onSalir = onSalir)
+        }
+    val accionesNav = remember(navegacionViewModel) { accionesNavegacion(navegacionViewModel) }
+    val accionesCop = remember(copilotoViewModel) { accionesCopiloto(copilotoViewModel) }
+    val vozSharvard = remember(estado.datos) { EstadoVozDescarga.de(estado.datos) }
+    val navegacionEnMapa =
+        remember(navegacion, accionesNav, panel, notas) {
+            NavegacionEnMapa(navegacion, accionesNav, panel, notas)
+        }
+    val copilotoEnMapa =
+        remember(copiloto, accionesCop, vozSharvard) { CopilotoEnMapa(copiloto, accionesCop, vozSharvard) }
     CompositionLocalProvider(LocalAbrirAnalisis provides onVerAnalisis, LocalAccionesSalidaCrono provides salida) {
         MapaScreen(
             estado = estado,
             vista = EstadoVistaMapa(permiso = permiso.estado, siguiendo = estado.siguiendo),
-            acciones =
-                accionesMapa(viewModel, permiso, alertasViewModel).copy(
-                    onAbrirMapasOffline = onAbrirMapasOffline,
-                    onSalir = onSalir,
-                    onReservaInferiorPunto = { reservaPuntoPx = it },
-                ),
+            acciones = accionesDelMapa,
             mapa = { estiloJson, modificador ->
                 VistaMapa(
                     estiloJson = estiloJson,
                     posicion = estado.posicionMostrada,
                     camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel, edicionViewModel),
                     preferencias =
-                        preferenciasVista(estado, ruta, alertas, edicion.marcadores, estela)
-                            .copy(reservaPuntoPx = reservaPuntoPx),
+                        preferenciasVista(estado, ruta, alertas, edicion.value.marcadores, estela.value)
+                            .copy(reservaPuntoPx = reservaPuntoPx.intValue),
                     modifier = modificador,
                 )
             },
             modifier = modifier,
-            navegacion = NavegacionEnMapa(navegacion, accionesNavegacion(navegacionViewModel), panel, notas),
-            copiloto = CopilotoEnMapa(copiloto, accionesCopiloto(copilotoViewModel)),
+            navegacion = navegacionEnMapa,
+            copiloto = copilotoEnMapa,
             alertas = alertas,
             crono = crono,
             superposicion = {
                 SuperposicionDelMapa(
-                    UiSuperposicion(copiloto, crono, edicion, navegacion.control),
+                    UiSuperposicion(copiloto, crono, edicion.value, navegacion.control),
                     navegacionViewModel,
                     edicionViewModel,
                     copilotoViewModel,
@@ -149,6 +163,7 @@ private fun accionesCopiloto(vm: CopilotoViewModel) =
         onModo = vm::onModo,
         onElegirVoz = vm::onElegirVoz,
         onProbarVoz = vm::onProbarVoz,
+        onDescargarVoz = vm::onDescargarVoz,
         onPosponerVoz = vm::onPosponerVoz,
         onEscuchar = vm::onEscuchar,
         onAnticipacion = vm::onAnticipacion,
@@ -170,6 +185,7 @@ private fun accionesMapa(
     viewModel: MapaViewModel,
     permiso: PermisoUbicacionUi,
     alertas: AlertasViewModel,
+    reservaPuntoPx: MutableIntState,
 ) = AccionesMapa(
     onCapa = viewModel::onCapa,
     onRelieve = viewModel::onRelieve,
@@ -179,6 +195,7 @@ private fun accionesMapa(
     onAbrirAjustes = permiso.abrirAjustes,
     onDescartarAviso = viewModel::onDescartarAviso,
     onCerrarIncidencia = { alertas.onSeleccionar(null) },
+    onReservaInferiorPunto = { reservaPuntoPx.intValue = it },
 )
 
 @Composable
@@ -187,19 +204,21 @@ private fun camaraVistaMapa(
     alertas: AlertasViewModel,
     navegacion: NavegacionViewModel,
     edicion: EdicionMapaViewModel,
-) = CamaraVistaMapa(
-    inicial = viewModel.camaraGuardada,
-    onCambio = viewModel::onCamara,
-    onSeguimientoPerdido = viewModel::onSeguimientoPerdido,
-    onZoomManual = viewModel::onZoomManual,
-    // Tocar el mapa fuera de una incidencia cierra también la tarjeta del punto elegido.
-    onToqueIncidencia = { id ->
-        alertas.onSeleccionar(id)
-        if (id == null) navegacion.cerrarPunto()
-    },
-    onMantenerPulsado = navegacion::onMantenerPulsado,
-    onToqueNota = edicion::onTocarNota,
-).conArranque()
+) = remember(viewModel, alertas, navegacion, edicion) {
+    CamaraVistaMapa(
+        inicial = viewModel.camaraGuardada,
+        onCambio = viewModel::onCamara,
+        onSeguimientoPerdido = viewModel::onSeguimientoPerdido,
+        onZoomManual = viewModel::onZoomManual,
+        // Tocar el mapa fuera de una incidencia cierra también la tarjeta del punto elegido.
+        onToqueIncidencia = { id ->
+            alertas.onSeleccionar(id)
+            if (id == null) navegacion.cerrarPunto()
+        },
+        onMantenerPulsado = navegacion::onMantenerPulsado,
+        onToqueNota = edicion::onTocarNota,
+    )
+}.conArranque()
 
 private fun preferenciasVista(
     estado: MapaUiState,

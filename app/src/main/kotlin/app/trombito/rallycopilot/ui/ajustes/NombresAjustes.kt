@@ -8,7 +8,7 @@ import app.trombito.rallycopilot.domain.ajustes.Tema
 import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 
-/** Nombre de la voz tal como sale en el catálogo («Dave (davefx)», «Sharvard»), no «Voz 1». */
+/** Nombre de la voz tal como sale en el catálogo («Dave», «Sharvard»), no «Voz 1». */
 @StringRes
 internal fun VozCopiloto.nombreCatalogo(): Int =
     when (this) {

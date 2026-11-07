@@ -161,7 +161,7 @@ class AjustesConduccionScreenTest {
         assertEquals(VozCopiloto.entries.size, banco.etiquetas(ETIQUETA_VOZ_OPCION_PREFIJO).size)
         assertTrue(banco.hay(ETIQUETA_AJUSTES_VOZ_SIN_ELEGIR))
         val textos = banco.textos(banco.raiz())
-        assertTrue("Dave (davefx)" in textos && "Sharvard" in textos)
+        assertTrue("Dave" in textos && "Sharvard" in textos)
         assertFalse("Voz 1" in textos || "Voz 2" in textos)
         VozCopiloto.entries.forEach {
             val probar = banco.conEtiqueta(ETIQUETA_VOZ_PROBAR_PREFIJO + it.name.lowercase())

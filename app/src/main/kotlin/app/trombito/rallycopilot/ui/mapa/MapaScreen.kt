@@ -58,6 +58,7 @@ import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
@@ -475,7 +476,8 @@ private fun GrupoDerecho(
 
 /**
  * Lo que flota sobre la píldora: la tarjeta de la incidencia tocada, el permiso de ubicación si falta, las paradas del
- * guiado y el aviso de mapas actualizados. Las atribuciones están solo en Ajustes > Acerca de.
+ * guiado, el aviso de mapas actualizados y el de descarga del relieve. Las atribuciones están solo en Ajustes >
+ * Acerca de.
  */
 @Composable
 private fun AvisosDelPie(contenido: ZonaMapaContenido) {
@@ -497,6 +499,11 @@ private fun AvisosDelPie(contenido: ZonaMapaContenido) {
         }
     }
     AvisoDelPie(contenido.estado, nav.conduciendo, acciones.onDescartarAviso)
+    AvisoRelieveDescargando(
+        contenido.estado.datos
+            .complemento(Complemento.RELIEVE)
+            .descarga,
+    )
 }
 
 /** Lo que sustituye a la hoja: la tarjeta del punto elegido y la vista previa de rutas, la llegada o el error. */

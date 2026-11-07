@@ -17,6 +17,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.voz.Locutor
@@ -34,9 +36,10 @@ import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.LADO_TACTIL
+import app.trombito.rallycopilot.ui.maniobras.ParalelogramoShape
 import app.trombito.rallycopilot.ui.navegacion.notas.FilaNota
-import app.trombito.rallycopilot.ui.navegacion.notas.MEDIDAS_COMPACTA
 import app.trombito.rallycopilot.ui.navegacion.notas.MEDIDAS_GRANDE
+import app.trombito.rallycopilot.ui.navegacion.notas.Medidas
 import app.trombito.rallycopilot.ui.theme.Espacio
 import java.util.Locale
 import kotlin.math.roundToInt
@@ -51,6 +54,13 @@ private const val VELOCIDAD_EJEMPLO_KMH = 90
 private const val DISTANCIA_EJEMPLO_M = 50.0
 private const val GRADO_EJEMPLO = 4
 private const val PASO_METROS = 10
+
+/**
+ * Tarjeta reducida de la hoja del mapa: como la compacta pero con dos líneas, para que «DERECHA 4 LARGA» se lea entera
+ * (baja la fuente hasta unos 13 sp o pasa a dos líneas) en vez de acabar en «DERECHA 4 LAR…».
+ */
+private val MEDIDAS_PREVISTA_REDUCIDA =
+    Medidas(32.dp, 20.sp, 22.dp, ParalelogramoShape(6.dp), 14.dp, lineas = 2, abreviar = false, distancia = true)
 
 /** La nota que se enseña y se canta de ejemplo: «derecha 4 larga, cincuenta». */
 internal object NotaEjemplo {
@@ -114,7 +124,7 @@ internal fun TarjetaNotaEjemplo(
         visible = NotaEjemplo.visible(),
         indice = INDICE_EJEMPLO,
         simplificadas = simplificadas,
-        medidas = if (reducida) MEDIDAS_COMPACTA else MEDIDAS_GRANDE,
+        medidas = if (reducida) MEDIDAS_PREVISTA_REDUCIDA else MEDIDAS_GRANDE,
         modifier = modifier.testTag(ETIQUETA_PREVISTA_NOTA),
     )
 }

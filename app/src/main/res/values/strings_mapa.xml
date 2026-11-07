@@ -47,7 +47,7 @@
     <!-- Mapas offline -->
     <string name="mapas_titulo">Mapas offline</string>
     <string name="mapas_cargando">Cargando los mapas…</string>
-    <string name="mapas_preparando">Preparando mapas…</string>
+    <string name="mapas_preparando">Preparando los mapas…</string>
     <string name="mapas_instalados_titulo">Mapas instalados</string>
     <string name="mapas_version">Versión %1$s</string>
     <string name="mapas_tamano">Ocupan %1$s</string>
