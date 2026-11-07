@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.motor.tramos
 
+import app.trombito.rallycopilot.motor.velocidad.MS_POR_S
 import app.trombito.rallycopilot.motor.voz.Frase
 import app.trombito.rallycopilot.motor.voz.TipoFrase
 import kotlin.math.abs
@@ -29,7 +30,6 @@ object Delta {
 
     private const val DECIMAS_MAX = 100L
     private const val MS_POR_DECIMA = 100.0
-    private const val MS_POR_SEGUNDO = 1000.0
     private const val DECIMAS_POR_SEGUNDO = 10L
 
     private val UNIDADES =
@@ -122,7 +122,7 @@ object Delta {
         return if (abs(deltaMs) < IGUAL_MS) {
             "igual"
         } else if (decimas >= DECIMAS_MAX) {
-            "$signo ${segundos(Math.round(abs(deltaMs) / MS_POR_SEGUNDO).toInt())}"
+            "$signo ${segundos(Math.round(abs(deltaMs) / MS_POR_S).toInt())}"
         } else {
             val enteros = (decimas / DECIMAS_POR_SEGUNDO).toInt()
             val resto = (decimas % DECIMAS_POR_SEGUNDO).toInt()

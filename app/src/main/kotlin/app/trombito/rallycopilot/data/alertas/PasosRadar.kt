@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.motor.alertas.DetectorPasoRadar
 import app.trombito.rallycopilot.motor.alertas.PasoRadar
 import app.trombito.rallycopilot.motor.alertas.Radar
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.velocidad.msAKmh
 
 /**
  * Paso por los radares fijos de una conducción: envuelve a [DetectorPasoRadar] (que existe cuando se cargan los
@@ -27,7 +28,7 @@ internal class PasosRadar {
         fijacion: Fijacion,
         velocidadMs: Double?,
     ): PasoRadarEnCurso? {
-        val nuevo = velocidadMs?.let { detector?.actualizar(fijacion.punto, fijacion.rumboGrados, it * MS_A_KMH) }
+        val nuevo = velocidadMs?.let { detector?.actualizar(fijacion.punto, fijacion.rumboGrados, it.msAKmh()) }
         if (nuevo != null) retenido = nuevo to fijacion.tiempoMs + RETENCION_MS
         return retenido
             ?.takeIf { fijacion.tiempoMs < it.second }
@@ -38,6 +39,5 @@ internal class PasosRadar {
     companion object {
         /** Cuánto se sigue enseñando la velocidad de paso por un radar fijo. */
         const val RETENCION_MS = 4_000L
-        private const val MS_A_KMH = 3.6
     }
 }

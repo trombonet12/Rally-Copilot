@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.ContextoVias
+import app.trombito.rallycopilot.motor.notas.RutaMedida
 import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra

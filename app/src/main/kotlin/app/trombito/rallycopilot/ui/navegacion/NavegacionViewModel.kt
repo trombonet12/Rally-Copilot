@@ -17,6 +17,7 @@ import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.motor.geo.EnlaceUbicacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.geo.ResultadoEnlace
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -40,7 +41,6 @@ import java.util.Locale
 import javax.inject.Inject
 
 private const val ESPERA_BUSQUEDA_MS = 250L
-private const val PARADA_MS = 5_000L
 private const val MS_SEGUNDO = 1_000.0
 private const val LONGITUD_MINIMA_BUSQUEDA = 2
 

@@ -1,12 +1,10 @@
 package app.trombito.rallycopilot.motor.notas
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.Rumbo
 import app.trombito.rallycopilot.motor.vias.GrafoVias
 import app.trombito.rallycopilot.motor.vias.SentidoUnico
 import app.trombito.rallycopilot.motor.vias.Via
-import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.cos
 
 /**
  * Carretera prevista por delante: `puntos` (desde la posición actual), si se cortó en un cruce donde no se puede
@@ -139,7 +137,7 @@ class PrediccionVia(
             nodo: PuntoGeo,
             salidas: List<Salida>,
         ): Salida? {
-            val rumboEntrada = rumbo(puntoLejano(actual, siguiente, -sentido), nodo)
+            val rumboEntrada = Rumbo.entre(puntoLejano(actual, siguiente, -sentido), nodo)
             val giros = salidas.map { Giro(it, giroAbsoluto(nodo, rumboEntrada, it)) }.sortedWith(ORDEN_GIROS)
             val mismaRef = giros.firstOrNull { refActual != null && refDe(it.salida.via) == refActual }
             val elegida =
@@ -156,7 +154,8 @@ class PrediccionVia(
             nodo: PuntoGeo,
             rumboEntrada: Double,
             salida: Salida,
-        ): Double = abs(normalizar(rumbo(nodo, puntoLejano(salida.via, salida.indice, salida.sentido)) - rumboEntrada))
+        ): Double =
+            Rumbo.diferencia(Rumbo.entre(nodo, puntoLejano(salida.via, salida.indice, salida.sentido)), rumboEntrada)
 
         private fun adoptar(salida: Salida) {
             actual = salida.via
@@ -174,8 +173,6 @@ class PrediccionVia(
         const val MAX_PASOS = 200_000
         const val UMBRAL_DUDOSO_GRADOS = 30.0
         const val DISTANCIA_RUMBO_M = 10.0
-        const val GRADOS_VUELTA = 360.0
-        const val GRADOS_MEDIA_VUELTA = 180.0
 
         val ORDEN_GIROS =
             compareBy<Giro>({ it.grados }, { it.salida.via.id }, { it.salida.indice }, { it.salida.sentido })
@@ -207,19 +204,6 @@ class PrediccionVia(
                 i += sentido
             }
             return via.puntos[i]
-        }
-
-        /** Rumbo de a a b en grados (0 norte, horario), con proyección local equirectangular. */
-        fun rumbo(
-            a: PuntoGeo,
-            b: PuntoGeo,
-        ): Double = Math.toDegrees(atan2((b.lon - a.lon) * cos(Math.toRadians(a.lat)), b.lat - a.lat))
-
-        fun normalizar(grados: Double): Double {
-            var g = grados % GRADOS_VUELTA
-            if (g > GRADOS_MEDIA_VUELTA) g -= GRADOS_VUELTA
-            if (g <= -GRADOS_MEDIA_VUELTA) g += GRADOS_VUELTA
-            return g
         }
     }
 }

@@ -2,11 +2,14 @@ package app.trombito.rallycopilot.data.alertas
 
 import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.motor.alertas.AlertasRadar
+import app.trombito.rallycopilot.motor.alertas.GeometriaVia
 import app.trombito.rallycopilot.motor.alertas.Radar
 import app.trombito.rallycopilot.motor.geo.AjusteCamino
 import app.trombito.rallycopilot.motor.geo.CaminoPlano
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.Rumbo
 import app.trombito.rallycopilot.motor.geo.SentidoCamino
+import app.trombito.rallycopilot.motor.geo.longitudMetros
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.voz.Frase
 
@@ -84,7 +87,7 @@ internal class RadaresLibres(
     ): ViaOrientada {
         val puntos = if (invertida) trazado.asReversed() else trazado
         val orientada =
-            ViaOrientada(trazado, camino, invertida, GeometriaVia.longitudM(trazado), AlertasRadar(radares, puntos))
+            ViaOrientada(trazado, camino, invertida, trazado.longitudMetros(), AlertasRadar(radares, puntos))
         guardada = orientada
         return orientada
     }
@@ -98,7 +101,7 @@ internal class RadaresLibres(
         when (sentido) {
             SentidoCamino.ADELANTE -> false
             SentidoCamino.ATRAS -> true
-            SentidoCamino.AMBOS -> rumbo?.let { GeometriaVia.diferenciaRumbo(it, tangente) > RUMBO_OPUESTO }
+            SentidoCamino.AMBOS -> rumbo?.let { Rumbo.diferencia(it, tangente) > RUMBO_OPUESTO }
         }
 
     private companion object {

@@ -13,6 +13,7 @@ import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.domain.tramos.TramoExportado
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.RutaTramo
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -145,9 +146,5 @@ class DetalleTramoViewModel
             return pasadas.map {
                 FilaPasada(it.id, it.inicioMs, it.totalMs, it.totalMs - mejor, it.esMejor)
             }
-        }
-
-        private companion object {
-            const val PARADA_MS = 5_000L
         }
     }

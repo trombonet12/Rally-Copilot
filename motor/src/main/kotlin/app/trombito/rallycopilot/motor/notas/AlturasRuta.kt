@@ -1,11 +1,11 @@
 package app.trombito.rallycopilot.motor.notas
 
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.Rumbo
 import app.trombito.rallycopilot.motor.geo.longitudMetros
 import app.trombito.rallycopilot.motor.vias.IndiceVias
 import app.trombito.rallycopilot.motor.vias.PerfilVia
-import kotlin.math.atan2
-import kotlin.math.cos
 import kotlin.math.hypot
 
 /**
@@ -52,10 +52,10 @@ object AlturasRuta {
     )
 
     internal fun muestrear(ruta: List<PuntoGeo>): List<Muestra> {
-        val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(ruta.sumOf { it.lat } / ruta.size.coerceAtLeast(1)))
-        val origen = ruta.firstOrNull() ?: return emptyList()
-        val xs = DoubleArray(ruta.size) { Math.toRadians(ruta[it].lon - origen.lon) * escalaX }
-        val ys = DoubleArray(ruta.size) { Math.toRadians(ruta[it].lat - origen.lat) * PuntoGeo.RADIO_TIERRA_M }
+        if (ruta.isEmpty()) return emptyList()
+        val plano = ProyeccionPlana.deTraza(ruta)
+        val xs = DoubleArray(ruta.size) { plano.x(ruta[it]) }
+        val ys = DoubleArray(ruta.size) { plano.y(ruta[it]) }
         val acumulada = DoubleArray(ruta.size)
         for (i in 1 until ruta.size) acumulada[i] = acumulada[i - 1] + hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1])
         val total = acumulada.last()
@@ -87,8 +87,7 @@ object AlturasRuta {
         val a = maxOf(0, k - 1)
         val b = minOf(px.lastIndex, k + 1)
         if (a == b) return null
-        val grados = Math.toDegrees(atan2(px[b] - px[a], py[b] - py[a]))
-        return (grados + CIRCULO) % CIRCULO
+        return Rumbo.deVector(px[b] - px[a], py[b] - py[a])
     }
 
     private fun rellenar(crudas: DoubleArray): List<Double> {
@@ -117,6 +116,4 @@ object AlturasRuta {
             }
         }
     }
-
-    private const val CIRCULO = 360.0
 }

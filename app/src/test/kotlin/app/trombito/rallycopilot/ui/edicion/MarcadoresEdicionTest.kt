@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.domain.edicion.TramoEditable
 import app.trombito.rallycopilot.domain.escucha.MarcaConPosicion
 import app.trombito.rallycopilot.motor.edicion.Marca
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.TrazaMetros
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.HojaNotas
@@ -13,7 +14,6 @@ import app.trombito.rallycopilot.motor.tramos.Tramo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MarcadoresEdicionTest {
@@ -63,28 +63,6 @@ class MarcadoresEdicionTest {
         val marcadores = marcadoresDe(datos, emptyList(), metros)
 
         assertEquals(listOf(TipoMarcador.RADAR to "R"), marcadores.map { it.tipo to it.texto })
-    }
-
-    @Test
-    fun `los metros se convierten en posicion y la posicion en metros`() {
-        val medio = metros.puntoEn(metros.longitudM / 2)
-        val proyeccion = checkNotNull(metros.proyectar(PuntoGeo(medio.lat, medio.lon + 0.00003)))
-
-        assertEquals(metros.longitudM / 2, proyeccion.metros, 1.0)
-        assertTrue("a unos 2,6 m del trazo: ${proyeccion.distanciaM}", proyeccion.distanciaM in 2.0..3.5)
-        assertEquals(traza.first(), metros.puntoEn(-50.0))
-        assertEquals(traza.last(), metros.puntoEn(1e9))
-        assertNull(TrazaMetros(listOf(traza.first())).proyectar(medio))
-    }
-
-    @Test
-    fun `una proyeccion mas alla de los extremos se queda en el extremo`() {
-        val antes = checkNotNull(metros.proyectar(PuntoGeo(traza.first().lat - 0.01, traza.first().lon)))
-        val despues = checkNotNull(metros.proyectar(PuntoGeo(traza.last().lat + 0.01, traza.last().lon)))
-
-        assertEquals(0.0, antes.metros, 1e-6)
-        assertEquals(metros.longitudM, despues.metros, 1e-6)
-        assertTrue(antes.distanciaM > 1_000.0)
     }
 
     @Test

@@ -8,6 +8,8 @@ import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.notas.ProveedorNotas
 import app.trombito.rallycopilot.motor.edicion.AccionEdicion
 import app.trombito.rallycopilot.motor.notas.Nota
+import app.trombito.rallycopilot.motor.velocidad.msAKmh
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import app.trombito.rallycopilot.ui.mapa.MarcadorNota
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,8 +20,6 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.abs
-
-private const val PARADA_MS = 5_000L
 
 /** Por debajo de esta velocidad (km/h) el coche se considera parado y se pueden editar las notas del mapa. */
 const val VELOCIDAD_PARADO_KMH = 3.0
@@ -49,9 +49,7 @@ data class EdicionMapaUiState(
 )
 
 /** El coche está parado: la velocidad del GPS es conocida y menor de [VELOCIDAD_PARADO_KMH]. */
-fun estaParado(notas: NotasEnCurso?): Boolean = notas?.vMs?.let { it * MS_A_KMH < VELOCIDAD_PARADO_KMH } == true
-
-private const val MS_A_KMH = 3.6
+fun estaParado(notas: NotasEnCurso?): Boolean = notas?.vMs?.let { it.msAKmh() < VELOCIDAD_PARADO_KMH } == true
 
 /**
  * Las notas de la hoja cercanas a la posición, listas para pintar y tocar; vacío si el coche no está parado

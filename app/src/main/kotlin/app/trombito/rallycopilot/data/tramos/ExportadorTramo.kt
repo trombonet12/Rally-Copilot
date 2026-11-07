@@ -2,7 +2,6 @@ package app.trombito.rallycopilot.data.tramos
 
 import android.database.sqlite.SQLiteException
 import android.util.Log
-import app.trombito.rallycopilot.data.notas.RutaMedida
 import app.trombito.rallycopilot.domain.edicion.EditorTramo
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.tramos.ExportaTramo
@@ -14,6 +13,7 @@ import app.trombito.rallycopilot.motor.importar.EscritorGpx
 import app.trombito.rallycopilot.motor.importar.NotaArchivo
 import app.trombito.rallycopilot.motor.importar.TramoArchivo
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
+import app.trombito.rallycopilot.motor.notas.RutaMedida
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext

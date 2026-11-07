@@ -1,8 +1,8 @@
 package app.trombito.rallycopilot.motor.tramos
 
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import kotlin.math.atan2
-import kotlin.math.cos
+import app.trombito.rallycopilot.motor.geo.Rumbo
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
@@ -18,9 +18,9 @@ internal class TrazaPlana(
     longitudObjetivoM: Double,
 ) {
     private val puntos = sinRepetidos(original)
-    private val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(puntos.sumOf { it.lat } / puntos.size))
-    private val xs = DoubleArray(puntos.size) { Math.toRadians(puntos[it].lon) * escalaX }
-    private val ys = DoubleArray(puntos.size) { Math.toRadians(puntos[it].lat) * PuntoGeo.RADIO_TIERRA_M }
+    private val plano = ProyeccionPlana.deTraza(puntos)
+    private val xs = DoubleArray(puntos.size) { plano.x(puntos[it]) }
+    private val ys = DoubleArray(puntos.size) { plano.y(puntos[it]) }
     private val acumulada = DoubleArray(puntos.size)
 
     /** Metros del plano local por metro del tramo. */
@@ -47,8 +47,8 @@ internal class TrazaPlana(
         punto: PuntoGeo,
         ventanaM: ClosedFloatingPointRange<Double>,
     ): Proyeccion? {
-        val x = Math.toRadians(punto.lon) * escalaX
-        val y = Math.toRadians(punto.lat) * PuntoGeo.RADIO_TIERRA_M
+        val x = plano.x(punto)
+        val y = plano.y(punto)
         val ventana = (ventanaM.start / factor)..(ventanaM.endInclusive / factor)
         var mejor: Proyeccion? = null
         for (i in 0 until acumulada.lastIndex) {
@@ -86,7 +86,7 @@ internal class TrazaPlana(
     ): Double {
         val (x0, y0) = xyEn((progresoM - semiventanaM).coerceAtLeast(0.0) / factor)
         val (x1, y1) = xyEn((progresoM + semiventanaM) / factor)
-        return (Math.toDegrees(atan2(x1 - x0, y1 - y0)) + GRADOS_VUELTA) % GRADOS_VUELTA
+        return Rumbo.deVector(x1 - x0, y1 - y0)
     }
 
     private fun xyEn(planoM: Double): Pair<Double, Double> {
@@ -98,7 +98,6 @@ internal class TrazaPlana(
     }
 
     private companion object {
-        const val GRADOS_VUELTA = 360.0
         const val REPETIDO_M = 0.01
 
         /** Quita los puntos consecutivos (casi) iguales: un segmento sin longitud no tiene dirección. */

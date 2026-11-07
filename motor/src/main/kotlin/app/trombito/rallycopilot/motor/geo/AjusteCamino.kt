@@ -1,9 +1,6 @@
 package app.trombito.rallycopilot.motor.geo
 
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
-import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.cos
 import kotlin.math.hypot
 
 /** Sentido en que se recorre un camino respecto al orden de sus puntos. */
@@ -35,9 +32,9 @@ data class PosicionAjustada(
 class CaminoPlano(
     private val puntos: List<PuntoGeo>,
 ) {
-    private val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(puntos.sumOf { it.lat } / puntos.size))
-    private val xs = DoubleArray(puntos.size) { Math.toRadians(puntos[it].lon) * escalaX }
-    private val ys = DoubleArray(puntos.size) { Math.toRadians(puntos[it].lat) * PuntoGeo.RADIO_TIERRA_M }
+    private val plano = ProyeccionPlana.deTraza(puntos)
+    private val xs = DoubleArray(puntos.size) { plano.x(puntos[it]) }
+    private val ys = DoubleArray(puntos.size) { plano.y(puntos[it]) }
     private val acumulada = DoubleArray(puntos.size)
 
     init {
@@ -61,8 +58,8 @@ class CaminoPlano(
         punto: PuntoGeo,
         ventanaM: ClosedFloatingPointRange<Double>,
     ): Proyeccion? {
-        val x = Math.toRadians(punto.lon) * escalaX
-        val y = Math.toRadians(punto.lat) * PuntoGeo.RADIO_TIERRA_M
+        val x = plano.x(punto)
+        val y = plano.y(punto)
         var mejor: Proyeccion? = null
         for (i in 0 until acumulada.lastIndex) {
             val largo = acumulada[i + 1] - acumulada[i]
@@ -104,7 +101,7 @@ class CaminoPlano(
         val cuerdaUtil = hypot(x1 - x0, y1 - y0) >= CUERDA_MIN_M
         val dx = if (cuerdaUtil) x1 - x0 else xs[p.indice + 1] - xs[p.indice]
         val dy = if (cuerdaUtil) y1 - y0 else ys[p.indice + 1] - ys[p.indice]
-        return (Math.toDegrees(atan2(dx, dy)) + GRADOS_VUELTA) % GRADOS_VUELTA
+        return Rumbo.deVector(dx, dy)
     }
 
     private fun xyEn(progresoM: Double): Pair<Double, Double> {
@@ -117,7 +114,6 @@ class CaminoPlano(
 
     private companion object {
         const val CUERDA_MIN_M = 0.5
-        const val GRADOS_VUELTA = 360.0
     }
 }
 
@@ -143,7 +139,6 @@ object AjusteCamino {
     const val VELOCIDAD_PARADO_MS = 1.5
     const val SEMIVENTANA_M = 5.0
 
-    private const val GRADOS_VUELTA = 360.0
     private const val GRADOS_LLANO = 180.0
 
     /** Ventana de progreso sin restricción. */
@@ -161,11 +156,11 @@ object AjusteCamino {
         ventanaM: ClosedFloatingPointRange<Double> = SIN_VENTANA,
     ): PosicionAjustada {
         val parado = (fijacion.velocidadMs ?: Double.POSITIVE_INFINITY) < VELOCIDAD_PARADO_MS
-        val bruto = fijacion.rumboGrados?.takeIf { it.isFinite() }?.let(::normalizar)
+        val bruto = fijacion.rumboGrados?.takeIf { it.isFinite() }?.let(Rumbo::normalizar)
         val fiable = bruto.takeUnless { parado }
         val cerca = camino.masCercano(fijacion.punto, ventanaM)?.takeIf { it.distanciaM <= RADIO_MAX_M }
         val tangente = cerca?.let { elegirSentido(camino.rumboEn(it, SEMIVENTANA_M), sentido, fiable ?: rumboPrevio) }
-        val sirve = tangente != null && (fiable == null || diferencia(fiable, tangente) < UMBRAL_RUMBO_GRADOS)
+        val sirve = tangente != null && (fiable == null || Rumbo.diferencia(fiable, tangente) < UMBRAL_RUMBO_GRADOS)
         return if (sirve && cerca != null && tangente != null) {
             PosicionAjustada(camino.puntoEn(cerca), if (parado) rumboPrevio ?: tangente else tangente, true)
         } else {
@@ -178,7 +173,7 @@ object AjusteCamino {
         sentido: SentidoCamino,
         referencia: Double?,
     ): Double {
-        val atras = normalizar(adelante + GRADOS_LLANO)
+        val atras = Rumbo.normalizar(adelante + GRADOS_LLANO)
         val prefiereAtras =
             when (sentido) {
                 SentidoCamino.ADELANTE -> false
@@ -193,16 +188,5 @@ object AjusteCamino {
         referencia: Double,
         a: Double,
         b: Double,
-    ): Boolean = diferencia(referencia, a) < diferencia(referencia, b)
-
-    private fun normalizar(grados: Double): Double = ((grados % GRADOS_VUELTA) + GRADOS_VUELTA) % GRADOS_VUELTA
-
-    /** Diferencia entre dos rumbos en 0..180. */
-    private fun diferencia(
-        a: Double,
-        b: Double,
-    ): Double {
-        val d = abs(a - b) % GRADOS_VUELTA
-        return if (d > GRADOS_LLANO) GRADOS_VUELTA - d else d
-    }
+    ): Boolean = Rumbo.diferencia(referencia, a) < Rumbo.diferencia(referencia, b)
 }

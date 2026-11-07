@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.velocidad.DetectorSenalGps
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.velocidad.kmh
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -11,8 +11,10 @@ import app.trombito.rallycopilot.domain.tramos.ResultadoCrono
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrado
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.tramos.Cobertura
 import app.trombito.rallycopilot.motor.tramos.Cronometro
 import app.trombito.rallycopilot.motor.tramos.Delta
+import app.trombito.rallycopilot.motor.tramos.DetectorSalida
 import app.trombito.rallycopilot.motor.tramos.DetectorTramo
 import app.trombito.rallycopilot.motor.tramos.EventoCrono
 import app.trombito.rallycopilot.motor.tramos.EventoTramo

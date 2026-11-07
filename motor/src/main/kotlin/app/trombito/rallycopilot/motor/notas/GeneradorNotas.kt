@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.motor.notas
 
+import app.trombito.rallycopilot.motor.velocidad.kmhAMs
 import kotlin.math.min
 
 /**
@@ -123,7 +124,7 @@ class GeneradorNotas(
         val hueco = (siguiente.inicioM - curva.finM).coerceAtLeast(0.0)
         val vCurva = min(tabla.velocidadCurvaKmh(curva.radioCentralM), VELOCIDAD_MAX_KMH)
         val kmh = vRefKmh(curva.inicioM)?.let { min(vCurva, it) } ?: vCurva
-        val metrosPorSegundo = kmh / KMH_POR_MS
+        val metrosPorSegundo = kmh.kmhAMs()
         val unida = hueco < HUECO_UNIDA_M || hueco < HUECO_UNIDA_S * metrosPorSegundo
         return if (unida) null else DISTANCIAS_M.lastOrNull { it <= hueco }
     }
@@ -142,7 +143,6 @@ class GeneradorNotas(
         const val RATIO_ABRE = 1.6
         const val HUECO_UNIDA_M = 20.0
         const val HUECO_UNIDA_S = 1.0
-        const val KMH_POR_MS = 3.6
 
         /** Tope de la velocidad de curva al encadenar: una curva muy abierta no es «a 800 km/h». */
         const val VELOCIDAD_MAX_KMH = 130.0

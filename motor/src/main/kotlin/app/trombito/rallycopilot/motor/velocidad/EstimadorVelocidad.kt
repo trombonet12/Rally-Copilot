@@ -1,10 +1,8 @@
 package app.trombito.rallycopilot.motor.velocidad
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import kotlin.math.atan2
-import kotlin.math.cos
+import app.trombito.rallycopilot.motor.geo.Rumbo
 import kotlin.math.roundToInt
-import kotlin.math.sin
 
 /**
  * Una lectura del GPS; velocidad (m/s), rumbo (grados desde el norte) y precisión (m) pueden faltar.
@@ -20,7 +18,7 @@ data class Fijacion(
 
 /** Convierte m/s a km/h redondeando al entero; negativos, NaN e infinitos dan 0. */
 fun kmh(metrosPorSegundo: Double): Int =
-    if (!metrosPorSegundo.isFinite() || metrosPorSegundo <= 0.0) 0 else (metrosPorSegundo * 3.6).roundToInt()
+    if (!metrosPorSegundo.isFinite() || metrosPorSegundo <= 0.0) 0 else metrosPorSegundo.msAKmh().roundToInt()
 
 /**
  * Estima velocidad y rumbo a partir de fijaciones GPS (en orden temporal).
@@ -102,29 +100,15 @@ class EstimadorVelocidad(
         val delGps = f.rumboGrados?.takeIf { it.isFinite() }
         val seMovio = prev != null && prev.punto.distanciaA(f.punto) > DISTANCIA_MIN_RUMBO_M
         if (delGps != null) {
-            rumboActual = ((delGps % GRADOS_VUELTA) + GRADOS_VUELTA) % GRADOS_VUELTA
+            rumboActual = Rumbo.normalizar(delGps)
         } else if (prev != null && seMovio) {
-            rumboActual = rumboEntre(prev.punto, f.punto)
+            rumboActual = Rumbo.entre(prev.punto, f.punto)
         }
-    }
-
-    private fun rumboEntre(
-        a: PuntoGeo,
-        b: PuntoGeo,
-    ): Double {
-        val lat1 = Math.toRadians(a.lat)
-        val lat2 = Math.toRadians(b.lat)
-        val dLon = Math.toRadians(b.lon - a.lon)
-        val y = sin(dLon) * cos(lat2)
-        val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-        return (Math.toDegrees(atan2(y, x)) + GRADOS_VUELTA) % GRADOS_VUELTA
     }
 
     private companion object {
         const val DT_MIN_MS = 500L
         const val DT_MAX_MS = 5000L
-        const val MS_POR_S = 1000.0
         const val DISTANCIA_MIN_RUMBO_M = 3.0
-        const val GRADOS_VUELTA = 360.0
     }
 }

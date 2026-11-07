@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.motor.edicion.NotasEditadas
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.HojaNotas
 import app.trombito.rallycopilot.motor.notas.PrediccionVia
+import app.trombito.rallycopilot.motor.notas.RutaMedida
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.vias.Coincidencia
 import app.trombito.rallycopilot.motor.vias.SeguidorVia

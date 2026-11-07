@@ -1,4 +1,4 @@
-package app.trombito.rallycopilot.data.tramos
+package app.trombito.rallycopilot.motor.tramos
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import org.junit.Assert.assertEquals

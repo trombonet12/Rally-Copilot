@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.motor.vias
 
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import kotlin.math.acos
 import kotlin.math.cos
@@ -271,8 +272,8 @@ class GrafoVias(
         toleranciaM: Double,
         salida: MutableList<Hallazgo>,
     ) {
-        val px = (lonCruce[cruceIndice] - segmento.a.lon) * segmento.cosLat * METROS_POR_GRADO
-        val py = (latCruce[cruceIndice] - segmento.a.lat) * METROS_POR_GRADO
+        val px = segmento.plano.xDeLon(lonCruce[cruceIndice])
+        val py = segmento.plano.yDeLat(latCruce[cruceIndice])
         val t = segmento.proyectar(px, py)
         if (hypot(px - t * segmento.bx, py - t * segmento.by) <= toleranciaM) {
             salida.add(Hallazgo(segmento.acumuladaM + t * segmento.largoM, cruceIndice))
@@ -286,9 +287,10 @@ class GrafoVias(
         val acumuladaM: Double,
         val largoM: Double,
     ) {
+        val plano = ProyeccionPlana(a)
         val cosLat = cos(Math.toRadians(a.lat))
-        val bx = (b.lon - a.lon) * cosLat * METROS_POR_GRADO
-        val by = (b.lat - a.lat) * METROS_POR_GRADO
+        val bx = plano.x(b)
+        val by = plano.y(b)
 
         /** Fracción 0..1 del segmento donde cae la proyección del punto (px, py) en metros locales. */
         fun proyectar(
@@ -354,7 +356,6 @@ private object Giro {
     const val GIRO_MINIMO_GRADOS = 30.0
     const val VENTANA_M = 20.0
     const val LADO_MINIMO_M = 5.0
-    const val METROS_POR_GRADO = PuntoGeo.RADIO_TIERRA_M * Math.PI / 180.0
 
     /** La polilínea gira en [posicionM] más de 30 grados. */
     fun esGiro(
@@ -373,13 +374,13 @@ private object Giro {
         val antes = puntoEn(polilinea, acumulada, (posicionM - VENTANA_M).coerceAtLeast(0.0))
         val centro = puntoEn(polilinea, acumulada, posicionM)
         val despues = puntoEn(polilinea, acumulada, (posicionM + VENTANA_M).coerceAtMost(total))
-        val cosLat = cos(Math.toRadians(centro.lat))
-        val ax = (centro.lon - antes.lon) * cosLat
-        val ay = centro.lat - antes.lat
-        val bx = (despues.lon - centro.lon) * cosLat
-        val by = despues.lat - centro.lat
-        val na = hypot(ax, ay) * METROS_POR_GRADO
-        val nb = hypot(bx, by) * METROS_POR_GRADO
+        val plano = ProyeccionPlana(centro)
+        val ax = -plano.x(antes)
+        val ay = -plano.y(antes)
+        val bx = plano.x(despues)
+        val by = plano.y(despues)
+        val na = hypot(ax, ay)
+        val nb = hypot(bx, by)
         if (na < LADO_MINIMO_M || nb < LADO_MINIMO_M) return 0.0
         val coseno = ((ax * bx + ay * by) / (hypot(ax, ay) * hypot(bx, by))).coerceIn(-1.0, 1.0)
         return Math.toDegrees(acos(coseno))

@@ -15,6 +15,7 @@ import app.trombito.rallycopilot.motor.edicion.FusionNotas
 import app.trombito.rallycopilot.motor.edicion.NotasEditadas
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.HojaNotas
+import app.trombito.rallycopilot.motor.notas.RutaMedida
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow

@@ -21,6 +21,7 @@ import app.trombito.rallycopilot.motor.ruta.EstadoRuta
 import app.trombito.rallycopilot.motor.ruta.FrasesManiobra
 import app.trombito.rallycopilot.motor.ruta.Maniobra
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
+import app.trombito.rallycopilot.motor.velocidad.MS_POR_S
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
 import app.trombito.rallycopilot.ui.comun.BandaSinGps
@@ -161,8 +162,6 @@ internal fun proximaParada(
         distanciaM = distanciaM,
     )
 }
-
-private const val MS_POR_S = 1_000.0
 
 /** El banner de maniobra del guiado, suelto: lo usa también el modo de notas grandes. */
 @Composable

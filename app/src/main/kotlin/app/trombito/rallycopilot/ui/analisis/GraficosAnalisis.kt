@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.analisis.PuntoSerie
+import app.trombito.rallycopilot.motor.velocidad.MS_POR_S
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 import app.trombito.rallycopilot.ui.tramos.colorDelta
@@ -44,7 +45,6 @@ private const val OPACIDAD_RELLENO = 0.28f
 private const val OPACIDAD_COMPARADA = 0.9f
 private const val RADIO_PUNTO_PX = 8f
 private const val MARCAS_VELOCIDAD = 4
-private const val MS_POR_S = 1000.0
 
 /** Lo que pintan los dos gráficos: series, cortes de sector y escalas. */
 data class DatosGraficos(

@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.motor.notas
 
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.vias.Arista
 import app.trombito.rallycopilot.motor.vias.DatosNotasVias
@@ -9,7 +10,6 @@ import app.trombito.rallycopilot.motor.vias.IndiceVias
 import app.trombito.rallycopilot.motor.vias.SentidoUnico
 import app.trombito.rallycopilot.motor.vias.Via
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.hypot
 
@@ -371,10 +371,9 @@ private class LectorTramos(
 private class RutaPlana(
     ruta: List<PuntoGeo>,
 ) {
-    private val origen = ruta.first()
-    private val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(ruta.sumOf { it.lat } / ruta.size))
-    private val xs = DoubleArray(ruta.size) { Math.toRadians(ruta[it].lon - origen.lon) * escalaX }
-    private val ys = DoubleArray(ruta.size) { Math.toRadians(ruta[it].lat - origen.lat) * PuntoGeo.RADIO_TIERRA_M }
+    private val plano = ProyeccionPlana.deTraza(ruta)
+    private val xs = DoubleArray(ruta.size) { plano.x(ruta[it]) }
+    private val ys = DoubleArray(ruta.size) { plano.y(ruta[it]) }
     private val acumulada = DoubleArray(ruta.size)
     private val rejilla = HashMap<Long, MutableList<Int>>()
 
@@ -396,8 +395,8 @@ private class RutaPlana(
         punto: PuntoGeo,
         maxM: Double,
     ): Double? {
-        val px = Math.toRadians(punto.lon - origen.lon) * escalaX
-        val py = Math.toRadians(punto.lat - origen.lat) * PuntoGeo.RADIO_TIERRA_M
+        val px = plano.x(punto)
+        val py = plano.y(punto)
         return segmentosCercanos(px, py, maxM)
             .mapNotNull { evaluar(it, px, py, maxM) }
             .minWithOrNull(compareBy({ it.distanciaM }, { it.posicionM }))

@@ -1,11 +1,11 @@
-package app.trombito.rallycopilot.data.notas
+package app.trombito.rallycopilot.motor.notas
 
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.Rumbo
+import app.trombito.rallycopilot.motor.geo.fraccionEnSegmento
 import app.trombito.rallycopilot.motor.vias.Coincidencia
 import app.trombito.rallycopilot.motor.vias.IndiceVias
-import app.trombito.rallycopilot.motor.vias.LimiteVelocidad
-import kotlin.math.atan2
-import kotlin.math.cos
 import kotlin.math.hypot
 
 /**
@@ -13,7 +13,7 @@ import kotlin.math.hypot
  * posición sobre ella y sacar el punto y el rumbo a una distancia dada. Necesita al menos dos puntos. Proyectar es
  * O(n), de sobra para una predicción de 2 km a 1 Hz.
  */
-internal class RutaMedida(
+class RutaMedida(
     val puntos: List<PuntoGeo>,
 ) {
     /** Posición proyectada (m desde el inicio) y distancia (m) de la posición a la polilínea. */
@@ -23,10 +23,9 @@ internal class RutaMedida(
     )
 
     private val acumulada = DoubleArray(puntos.size)
-    private val origen = puntos.first()
-    private val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(puntos.sumOf { it.lat } / puntos.size))
-    private val xs = DoubleArray(puntos.size) { Math.toRadians(puntos[it].lon - origen.lon) * escalaX }
-    private val ys = DoubleArray(puntos.size) { Math.toRadians(puntos[it].lat - origen.lat) * PuntoGeo.RADIO_TIERRA_M }
+    private val plano = ProyeccionPlana.deTraza(puntos)
+    private val xs = DoubleArray(puntos.size) { plano.x(puntos[it]) }
+    private val ys = DoubleArray(puntos.size) { plano.y(puntos[it]) }
 
     init {
         require(puntos.size >= 2) { "Una ruta medida necesita al menos dos puntos" }
@@ -36,12 +35,12 @@ internal class RutaMedida(
     val longitudM: Double get() = acumulada.last()
 
     fun proyectar(punto: PuntoGeo): Proyeccion {
-        val px = Math.toRadians(punto.lon - origen.lon) * escalaX
-        val py = Math.toRadians(punto.lat - origen.lat) * PuntoGeo.RADIO_TIERRA_M
+        val px = plano.x(punto)
+        val py = plano.y(punto)
         var mejorDistancia = Double.MAX_VALUE
         var mejorPosicion = 0.0
         for (i in 0 until puntos.size - 1) {
-            val t = fraccion(i, px, py)
+            val t = fraccionEnSegmento(px, py, xs[i], ys[i], xs[i + 1], ys[i + 1])
             val d = hypot(px - (xs[i] + t * (xs[i + 1] - xs[i])), py - (ys[i] + t * (ys[i + 1] - ys[i])))
             if (d < mejorDistancia) {
                 mejorDistancia = d
@@ -64,15 +63,8 @@ internal class RutaMedida(
     /** Rumbo (0 norte, horario) del segmento que contiene [posicionM]. */
     fun rumboEn(posicionM: Double): Double {
         val i = segmentoEn(posicionM)
-        val grados = Math.toDegrees(atan2(xs[i + 1] - xs[i], ys[i + 1] - ys[i]))
-        return if (grados < 0.0) grados + GRADOS_VUELTA else grados
+        return Rumbo.deVector(xs[i + 1] - xs[i], ys[i + 1] - ys[i])
     }
-
-    /** Límite de velocidad (km/h) de la vía que casa a [posicionM] en el sentido de la marcha, o null. */
-    fun limiteKmhEn(
-        indice: IndiceVias,
-        posicionM: Double,
-    ): Double? = viaEn(indice, posicionM)?.let { LimiteVelocidad.aplicable(it.via, it.adelante) }?.toDouble()
 
     /** Vía que casa a [posicionM] en el sentido de la marcha, o null si no hay ninguna a [RADIO_VIA_M]. */
     fun viaEn(
@@ -91,19 +83,7 @@ internal class RutaMedida(
         return bajo
     }
 
-    private fun fraccion(
-        i: Int,
-        px: Double,
-        py: Double,
-    ): Double {
-        val dx = xs[i + 1] - xs[i]
-        val dy = ys[i + 1] - ys[i]
-        val largo2 = dx * dx + dy * dy
-        return if (largo2 == 0.0) 0.0 else (((px - xs[i]) * dx + (py - ys[i]) * dy) / largo2).coerceIn(0.0, 1.0)
-    }
-
     private companion object {
         const val RADIO_VIA_M = 25.0
-        const val GRADOS_VUELTA = 360.0
     }
 }

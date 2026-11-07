@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.motor.voz
 
 import app.trombito.rallycopilot.motor.notas.FrasesNota
+import app.trombito.rallycopilot.motor.velocidad.MS_POR_S
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -16,7 +17,6 @@ object FormatoHablado {
     private const val MIN_KM_ENTERO = 10
     private const val DECIMAS_POR_KM = 10
     private const val DECIMAS_MEDIO = 5
-    private const val MS_POR_S = 1000.0
     private const val S_POR_MIN = 60
     private const val MIN_POR_HORA = 60
     private const val IGUAL_MS = 500L

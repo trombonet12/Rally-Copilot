@@ -1,9 +1,8 @@
 package app.trombito.rallycopilot.motor.vias
 
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.cos
+import app.trombito.rallycopilot.motor.geo.Rumbo
 import kotlin.math.floor
 import kotlin.math.hypot
 
@@ -146,7 +145,7 @@ class IndiceVias(
         var penalizacion = 0.0
         var adelante = true
         if (consulta.rumboGrados != null && (dx != 0.0 || dy != 0.0)) {
-            val diferencia = diferenciaAngular(consulta.rumboGrados, Math.toDegrees(atan2(dx, dy)))
+            val diferencia = Rumbo.diferencia(consulta.rumboGrados, Rumbo.deVector(dx, dy))
             adelante = diferencia <= ANGULO_RECTO
             // Mod 180: ir en un sentido o en el contrario del segmento puntúa igual.
             penalizacion = diferenciaAxial(diferencia) * PENALIZACION_M_POR_GRADO
@@ -196,25 +195,16 @@ class IndiceVias(
         const val LAT_REFERENCIA = 39.6
         const val ANGULO_RECTO = 90.0
         const val ANGULO_LLANO = 180.0
-        const val ANGULO_COMPLETO = 360.0
 
         /** Un segmento perpendicular al rumbo cuesta 22,5 m extra: gana al más cercano solo si este es otra calle. */
         const val PENALIZACION_M_POR_GRADO = 0.25
 
-        val METROS_POR_RADIAN_LON = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(LAT_REFERENCIA))
+        /** Plano único del índice: escala fija a la latitud de referencia (Mallorca) y longitud 0 como origen. */
+        private val PLANO = ProyeccionPlana(PuntoGeo(LAT_REFERENCIA, 0.0))
 
-        fun x(p: PuntoGeo): Double = Math.toRadians(p.lon) * METROS_POR_RADIAN_LON
+        fun x(p: PuntoGeo): Double = PLANO.x(p)
 
-        fun y(p: PuntoGeo): Double = Math.toRadians(p.lat) * PuntoGeo.RADIO_TIERRA_M
-
-        /** Diferencia entre dos rumbos en 0..180. */
-        fun diferenciaAngular(
-            a: Double,
-            b: Double,
-        ): Double {
-            val d = abs(a - b) % ANGULO_COMPLETO
-            return if (d > ANGULO_LLANO) ANGULO_COMPLETO - d else d
-        }
+        fun y(p: PuntoGeo): Double = PLANO.y(p)
 
         /** Diferencia en 0..90 ignorando el sentido (mod 180). */
         fun diferenciaAxial(diferencia: Double): Double =

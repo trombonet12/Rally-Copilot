@@ -1,11 +1,7 @@
 package app.trombito.rallycopilot.motor.tramos
 
-import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.Rumbo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
-import kotlin.math.abs
-import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
 
 /** Cambios de estado de un tramo guardado durante una conducción. */
 sealed interface EventoTramo {
@@ -150,7 +146,7 @@ class DetectorTramo(
     private fun compatible(
         rumbo: Double,
         tramo: Tramo,
-    ): Boolean = diferencia(rumbo, rumboSalida.getValue(tramo.id)) < ANGULO_ENTRADA_GRADOS
+    ): Boolean = Rumbo.diferencia(rumbo, rumboSalida.getValue(tramo.id)) < ANGULO_ENTRADA_GRADOS
 
     private fun entrar(
         tramo: Tramo,
@@ -170,8 +166,8 @@ class DetectorTramo(
         val bruto = f.rumboGrados?.takeIf { it.isFinite() && enMarcha }
         val anterior = previa?.takeIf { it.punto.distanciaA(f.punto) > DISTANCIA_MIN_RUMBO_M }
         return when {
-            bruto != null -> ((bruto % GRADOS_VUELTA) + GRADOS_VUELTA) % GRADOS_VUELTA
-            anterior != null -> rumboEntre(anterior.punto, f.punto)
+            bruto != null -> Rumbo.normalizar(bruto)
+            anterior != null -> Rumbo.entre(anterior.punto, f.punto)
             else -> null
         }
     }
@@ -189,30 +185,8 @@ class DetectorTramo(
         /** Distancia a la traza (m) a la que se abandona de inmediato. */
         const val DESVIO_INMEDIATO_M = 150.0
 
-        private fun rumboEntre(
-            a: PuntoGeo,
-            b: PuntoGeo,
-        ): Double {
-            val lat1 = Math.toRadians(a.lat)
-            val lat2 = Math.toRadians(b.lat)
-            val dLon = Math.toRadians(b.lon - a.lon)
-            val y = sin(dLon) * cos(lat2)
-            val x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon)
-            return (Math.toDegrees(atan2(y, x)) + GRADOS_VUELTA) % GRADOS_VUELTA
-        }
-
-        private fun diferencia(
-            a: Double,
-            b: Double,
-        ): Double {
-            val d = abs(a - b) % GRADOS_VUELTA
-            return if (d > GRADOS_LLANO) GRADOS_VUELTA - d else d
-        }
-
         private const val SEMIVENTANA_RUMBO_M = 10.0
         private const val VELOCIDAD_PARADO_MS = 1.5
         private const val DISTANCIA_MIN_RUMBO_M = 3.0
-        private const val GRADOS_VUELTA = 360.0
-        private const val GRADOS_LLANO = 180.0
     }
 }

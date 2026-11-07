@@ -1,8 +1,8 @@
 package app.trombito.rallycopilot.motor.alertas
 
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import kotlin.math.atan2
-import kotlin.math.cos
+import app.trombito.rallycopilot.motor.geo.Rumbo
 import kotlin.math.hypot
 
 /**
@@ -104,28 +104,23 @@ class DetectorPasoRadar(
         marcha: Double?,
     ): Boolean {
         val vigilado = radar.rumboGrados ?: return true
-        return marcha != null && VentanasAviso.diferenciaRumbo(marcha, vigilado) < UMBRAL_RUMBO_GRADOS
+        return marcha != null && Rumbo.diferencia(marcha, vigilado) < UMBRAL_RUMBO_GRADOS
     }
 
     private fun distancia(
         a: PuntoGeo,
         b: PuntoGeo,
-    ): Double {
-        val x = Math.toRadians(b.lon - a.lon) * cos(Math.toRadians(a.lat)) * PuntoGeo.RADIO_TIERRA_M
-        val y = Math.toRadians(b.lat - a.lat) * PuntoGeo.RADIO_TIERRA_M
-        return hypot(x, y)
-    }
+    ): Double = ProyeccionPlana(a).distancia(a, b)
 
     /** Rumbo (0 = norte, horario) del movimiento de [de] a [a]; `null` si apenas se movió (ruido del GPS). */
     private fun rumboMovimiento(
         de: PuntoGeo,
         a: PuntoGeo,
     ): Double? {
-        val este = Math.toRadians(a.lon - de.lon) * cos(Math.toRadians(de.lat))
-        val norte = Math.toRadians(a.lat - de.lat)
-        val movido = hypot(este, norte) * PuntoGeo.RADIO_TIERRA_M
-        val grados = Math.toDegrees(atan2(este, norte))
-        return if (movido < MOVIMIENTO_MIN_M) null else (grados + VUELTA) % VUELTA
+        val plano = ProyeccionPlana(de)
+        val este = plano.x(a)
+        val norte = plano.y(a)
+        return if (hypot(este, norte) < MOVIMIENTO_MIN_M) null else Rumbo.deVector(este, norte)
     }
 
     companion object {
@@ -138,6 +133,5 @@ class DetectorPasoRadar(
         /** Un radar con rumbo solo cuenta si la marcha difiere menos de esto. */
         const val UMBRAL_RUMBO_GRADOS = 45.0
         private const val MOVIMIENTO_MIN_M = 3.0
-        private const val VUELTA = 360.0
     }
 }

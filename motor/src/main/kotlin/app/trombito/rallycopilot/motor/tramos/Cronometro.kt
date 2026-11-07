@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.motor.tramos
 
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.velocidad.MS_POR_S
 
 /** Lo que ocurre al avanzar por un tramo. [tMs] son milisegundos desde la salida; [distanciaM] desde la salida. */
 sealed interface EventoCrono {
@@ -231,7 +232,6 @@ class Cronometro(
         private const val ATRAS_M = 30.0
         private const val ADELANTE_MIN_M = 150.0
         private const val VELOCIDAD_MAX_MS = 70.0
-        private const val MS_POR_S = 1000.0
         private const val EPS_META_M = 1e-3
     }
 }

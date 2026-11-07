@@ -11,6 +11,7 @@ import app.trombito.rallycopilot.motor.analisis.PerfilPiloto
 import app.trombito.rallycopilot.motor.analisis.RecorridoRegistrado
 import app.trombito.rallycopilot.motor.analisis.TramoRegistrado
 import app.trombito.rallycopilot.motor.tramos.Tramo
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -77,9 +78,5 @@ class PerfilViewModel
                     emptyList()
                 }
             return PerfilPiloto.de(registrados, recorridos)
-        }
-
-        private companion object {
-            const val PARADA_MS = 5_000L
         }
     }

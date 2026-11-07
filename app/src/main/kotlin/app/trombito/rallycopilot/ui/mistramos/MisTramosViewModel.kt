@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -156,7 +157,6 @@ class MisTramosViewModel
         }
 
         private companion object {
-            const val PARADA_MS = 5_000L
             const val PUNTOS_MINIATURA = 80
             const val ETIQUETA_LOG = "MisTramos"
         }

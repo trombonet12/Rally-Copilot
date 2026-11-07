@@ -16,6 +16,7 @@ import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.ui.RutaAnalisis
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -274,8 +275,6 @@ class AnalisisViewModel
             }
 
         private companion object {
-            const val PARADA_MS = 5_000L
-
             /** Paso del reloj de la repetición: unos 20 fotogramas por segundo bastan para mover el marcador. */
             const val PASO_MS = 50L
             const val ETIQUETA_LOG = "Analisis"

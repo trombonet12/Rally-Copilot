@@ -2,7 +2,9 @@ package app.trombito.rallycopilot.motor.alertas
 
 import app.trombito.rallycopilot.motor.geo.AjusteCamino
 import app.trombito.rallycopilot.motor.geo.CaminoPlano
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.Rumbo
 import app.trombito.rallycopilot.motor.notas.FrasesNota
 import app.trombito.rallycopilot.motor.voz.Frase
 import kotlin.math.abs
@@ -74,9 +76,9 @@ class AlertasRadar(
         radar: Radar,
     ): Delante? {
         val rumbo = Math.toRadians(rumboGrados)
-        val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(posicion.lat))
-        val este = Math.toRadians(radar.punto.lon - posicion.lon) * escalaX
-        val norte = Math.toRadians(radar.punto.lat - posicion.lat) * PuntoGeo.RADIO_TIERRA_M
+        val plano = ProyeccionPlana(posicion)
+        val este = plano.x(radar.punto)
+        val norte = plano.y(radar.punto)
         val lateralM = abs(este * cos(rumbo) - norte * sin(rumbo))
         val contrario = contrarioSiCuenta(radar, rumboGrados) ?: return null
         return if (lateralM <= DISTANCIA_CAMINO_M) Delante(este * sin(rumbo) + norte * cos(rumbo), contrario) else null
@@ -96,7 +98,7 @@ class AlertasRadar(
         marchaGrados: Double,
     ): Boolean? {
         val vigilado = radar.rumboGrados ?: return false
-        val diferencia = VentanasAviso.diferenciaRumbo(marchaGrados, vigilado)
+        val diferencia = Rumbo.diferencia(marchaGrados, vigilado)
         return when {
             diferencia < UMBRAL_RUMBO_GRADOS -> false
             diferencia > LLANO_GRADOS - UMBRAL_RUMBO_GRADOS && radar.tipo == TipoRadar.FIJO -> true

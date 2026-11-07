@@ -5,7 +5,6 @@ import app.trombito.rallycopilot.data.db.EdicionNotaEntity
 import app.trombito.rallycopilot.data.db.EdicionesDao
 import app.trombito.rallycopilot.data.db.MarcaEntity
 import app.trombito.rallycopilot.data.db.MarcasDao
-import app.trombito.rallycopilot.data.notas.RutaMedida
 import app.trombito.rallycopilot.domain.escucha.ContextoConduccion
 import app.trombito.rallycopilot.domain.escucha.EdicionPendiente
 import app.trombito.rallycopilot.domain.escucha.EdicionSinTramo
@@ -21,6 +20,7 @@ import app.trombito.rallycopilot.motor.edicion.CodecEdiciones
 import app.trombito.rallycopilot.motor.edicion.Marca
 import app.trombito.rallycopilot.motor.edicion.NotasEditadas
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.notas.RutaMedida
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map

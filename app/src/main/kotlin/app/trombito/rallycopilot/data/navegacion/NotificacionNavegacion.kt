@@ -10,6 +10,7 @@ import android.text.format.DateFormat
 import androidx.core.app.NotificationCompat
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.motor.geo.FormatoDistancia
 import app.trombito.rallycopilot.motor.ruta.FrasesManiobra
 import java.util.Date
 import java.util.Locale
@@ -115,12 +116,15 @@ internal class NotificacionNavegacion(
     }
 }
 
-private const val UN_KM = 1000.0
-private const val REDONDEO_M = 50.0
+private const val REDONDEO_M = 50
 private val ES = Locale.forLanguageTag("es-ES")
 
 /** «300 m» (redondeado a 50 m para no refrescar la notificación a cada metro) o «1,2 km». */
 internal fun formatearDistancia(metros: Double): String {
-    val redondeado = Math.round(metros.coerceAtLeast(0.0) / REDONDEO_M) * REDONDEO_M
-    return if (redondeado < UN_KM) "${redondeado.toInt()} m" else String.format(ES, "%.1f km", metros / UN_KM)
+    val redondeado = FormatoDistancia.redondeada(metros, REDONDEO_M, REDONDEO_M)
+    return if (redondeado < FormatoDistancia.UN_KM) {
+        "${redondeado.toInt()} m"
+    } else {
+        String.format(ES, "%.1f km", metros / FormatoDistancia.UN_KM)
+    }
 }

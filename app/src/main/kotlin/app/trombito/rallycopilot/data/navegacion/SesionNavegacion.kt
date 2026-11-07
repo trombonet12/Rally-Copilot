@@ -4,7 +4,6 @@ import app.trombito.rallycopilot.data.alertas.SesionAlertas
 import app.trombito.rallycopilot.data.notas.EdicionEnMapa
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.notas.NotasSesion
-import app.trombito.rallycopilot.data.notas.RutaMedida
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.tramos.SesionCrono
@@ -22,6 +21,7 @@ import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.ubicacion.PosicionEstimada
 import app.trombito.rallycopilot.motor.geo.AcumuladorRecorrido
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.notas.RutaMedida
 import app.trombito.rallycopilot.motor.ruta.DetectorSalidaRuta
 import app.trombito.rallycopilot.motor.ruta.EstadoRuta
 import app.trombito.rallycopilot.motor.ruta.FrasesParada

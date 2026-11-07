@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.comun
 
+import app.trombito.rallycopilot.motor.geo.FormatoDistancia
 import java.util.Locale
 
 /**
@@ -12,7 +13,6 @@ object FormatoEs {
     private const val DECIMAS_SEGUNDO = 10L
     private const val SEGUNDOS_MINUTO = 60L
     private const val MINUTOS_HORA = 60L
-    private const val METROS_KM = 1000.0
     private const val BYTES_GB = 1024.0 * 1024.0 * 1024.0
     private const val BYTES_MB = 1024.0 * 1024.0
     private const val MAX_DECIMALES = 6
@@ -44,12 +44,30 @@ object FormatoEs {
     fun kilometros(km: Double): String = String.format(ES, "%.1f km", km.coerceAtLeast(0.0))
 
     /** Distancia en metros expresada en kilómetros: «31,9 km». */
-    fun kilometrosDesdeMetros(metros: Double): String = kilometros(metros / METROS_KM)
+    fun kilometrosDesdeMetros(metros: Double): String = kilometros(metros / FormatoDistancia.UN_KM)
 
     /** «850 m» por debajo del kilómetro y «12,4 km» desde él. */
     fun distancia(metros: Double): String {
         val m = metros.coerceAtLeast(0.0)
-        return if (m < METROS_KM) String.format(ES, "%d m", Math.round(m)) else kilometros(m / METROS_KM)
+        return if (m < FormatoDistancia.UN_KM) {
+            String.format(ES, "%d m", Math.round(m))
+        } else {
+            kilometros(m / FormatoDistancia.UN_KM)
+        }
+    }
+
+    /**
+     * Como [distancia] pero con los metros redondeados antes ([FormatoDistancia.redondeada]: [pasoFinoM] por debajo de
+     * 200 m y [pasoGruesoM] desde ahí); desde el kilómetro da los km sin redondear a metros.
+     */
+    fun distanciaRedondeada(
+        metros: Double,
+        pasoFinoM: Int,
+        pasoGruesoM: Int,
+    ): String {
+        val m = metros.coerceAtLeast(0.0)
+        val redondeado = FormatoDistancia.redondeada(m, pasoFinoM, pasoGruesoM)
+        return if (redondeado < FormatoDistancia.UN_KM) distancia(redondeado) else kilometrosDesdeMetros(m)
     }
 
     /** Tamaño en gigabytes con una décima: «1,6 GB». */

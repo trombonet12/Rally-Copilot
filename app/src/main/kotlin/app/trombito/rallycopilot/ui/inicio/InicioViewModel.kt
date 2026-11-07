@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import app.trombito.rallycopilot.ui.mistramos.aligerar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,7 +44,6 @@ class InicioViewModel
         }
 
         private companion object {
-            const val PARADA_MS = 5_000L
             const val PUNTOS_MINIATURA = 80
         }
     }

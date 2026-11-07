@@ -55,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.edicion.TramoEditable
+import app.trombito.rallycopilot.motor.geo.TrazaMetros
 import app.trombito.rallycopilot.motor.notas.FrasesNota
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.ui.analisis.formatearKmDesdeM
@@ -68,7 +69,6 @@ import app.trombito.rallycopilot.ui.edicion.EscenaEdicion
 import app.trombito.rallycopilot.ui.edicion.MapaEdicionTramo
 import app.trombito.rallycopilot.ui.edicion.MarcadorEdicion
 import app.trombito.rallycopilot.ui.edicion.TipoMarcador
-import app.trombito.rallycopilot.ui.edicion.TrazaMetros
 import app.trombito.rallycopilot.ui.edicion.idMarcadorNota
 import app.trombito.rallycopilot.ui.edicion.marcadoresDe
 import app.trombito.rallycopilot.ui.edicion.textoCortoNota

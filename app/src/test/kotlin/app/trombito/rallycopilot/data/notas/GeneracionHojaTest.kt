@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.notas
 
+import app.trombito.rallycopilot.motor.notas.RutaMedida
 import app.trombito.rallycopilot.motor.vias.SentidoUnico
 import app.trombito.rallycopilot.motor.vias.Via
 import org.junit.Assert.assertEquals

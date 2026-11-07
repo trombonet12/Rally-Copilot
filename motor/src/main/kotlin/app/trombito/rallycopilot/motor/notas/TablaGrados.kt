@@ -1,5 +1,7 @@
 package app.trombito.rallycopilot.motor.notas
 
+import app.trombito.rallycopilot.motor.velocidad.kmhAMs
+import app.trombito.rallycopilot.motor.velocidad.msAKmh
 import kotlinx.serialization.Serializable
 import kotlin.math.sqrt
 
@@ -51,11 +53,11 @@ data class TablaGrados(
     }
 
     /** Velocidad de curva en km/h para un radio en metros. */
-    fun velocidadCurvaKmh(radioM: Double): Double = sqrt(mu * g * radioM) * 3.6 * factor
+    fun velocidadCurvaKmh(radioM: Double): Double = sqrt(mu * g * radioM).msAKmh() * factor
 
     /** Radio mínimo (m) para que una curva sea «seis» con la velocidad de referencia [vRefKmh]. */
     fun radioMinimoSeisM(vRefKmh: Double): Double {
-        val ms = vRefKmh / KMH_POR_MS
+        val ms = vRefKmh.kmhAMs()
         return ms * ms / (muConfort * g)
     }
 
@@ -83,5 +85,3 @@ data class TablaGrados(
     /** `true` si el ángulo supera [anguloHorquillaGrados]. */
     fun esHorquilla(anguloGrados: Double): Boolean = anguloGrados > anguloHorquillaGrados
 }
-
-private const val KMH_POR_MS = 3.6

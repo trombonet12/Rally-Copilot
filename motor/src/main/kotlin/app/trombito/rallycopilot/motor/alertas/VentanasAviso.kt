@@ -3,7 +3,6 @@ package app.trombito.rallycopilot.motor.alertas
 import app.trombito.rallycopilot.motor.notas.FrasesNota
 import app.trombito.rallycopilot.motor.voz.Frase
 import app.trombito.rallycopilot.motor.voz.TipoFrase
-import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /** Distancias y utilidades comunes de los avisos de radares e incidencias. */
@@ -16,8 +15,6 @@ internal object VentanasAviso {
     private const val ENTRADA_MIN_M = 80.0
     private const val ENTRADA_MAX_M = 250.0
     private const val CIEN_M = 100.0
-    private const val VUELTA = 360.0
-    private const val LLANO = 180.0
 
     /** Distancia de aviso de lo que se acerca: `v · 15 s` acotado a 300–800 m y redondeado a cientos. */
     fun avisoM(vMs: Double): Double = aCientos((vMs.coerceAtLeast(0.0) * AVISO_S).coerceIn(AVISO_MIN_M, AVISO_MAX_M))
@@ -35,15 +32,6 @@ internal object VentanasAviso {
     fun aDistancia(restanteM: Double): String? {
         val cientos = (restanteM / CIEN_M).roundToInt()
         return if (cientos < 1) null else "a ${FrasesNota.enPalabras(cientos * CIEN_M.toInt())}"
-    }
-
-    /** Diferencia entre dos rumbos en 0..180 grados. */
-    fun diferenciaRumbo(
-        a: Double,
-        b: Double,
-    ): Double {
-        val d = abs(a - b) % VUELTA
-        return if (d > LLANO) VUELTA - d else d
     }
 
     fun alerta(

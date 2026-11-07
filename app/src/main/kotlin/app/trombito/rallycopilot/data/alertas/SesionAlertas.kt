@@ -17,6 +17,7 @@ import app.trombito.rallycopilot.motor.alertas.Radar
 import app.trombito.rallycopilot.motor.alertas.VelocidadMediaTramo
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.velocidad.msAKmh
 import app.trombito.rallycopilot.motor.voz.Frase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -158,7 +159,7 @@ class SesionAlertas internal constructor(
                 }
             }
         val estadoTramo = sobreRuta?.let { media?.actualizar(it, fijacion.tiempoMs) }
-        val kmh = velocidadMs?.times(MS_A_KMH) ?: Double.NaN
+        val kmh = velocidadMs?.msAKmh() ?: Double.NaN
         val estadoExceso = exceso.actualizar(kmh, via?.limiteKmh, fijacion.tiempoMs)
         val frasesIncidencias =
             sobreRuta?.let { filtro?.candidatas(it, v).orEmpty() } ?: enPrediccion?.avisosIncidencias(v).orEmpty()
@@ -256,8 +257,6 @@ class SesionAlertas internal constructor(
     }
 
     private companion object {
-        const val MS_A_KMH = 3.6
-
         /** Las incidencias se refiltran al menos cada minuto: así las que caducan salen aunque el feed no cambie. */
         const val REFILTRO_MS = CacheCarreteraPredicha.REFILTRO_MS
 

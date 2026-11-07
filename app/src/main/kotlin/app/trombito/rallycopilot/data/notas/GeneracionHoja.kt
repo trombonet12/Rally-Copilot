@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.notas
 
 import app.trombito.rallycopilot.motor.notas.GeneradorHoja
 import app.trombito.rallycopilot.motor.notas.HojaNotas
+import app.trombito.rallycopilot.motor.notas.RutaMedida
 import app.trombito.rallycopilot.motor.notas.TablaGrados
 import app.trombito.rallycopilot.motor.vias.LimiteVelocidad
 import app.trombito.rallycopilot.motor.vias.Via

@@ -1,8 +1,9 @@
-package app.trombito.rallycopilot.data.tramos
+package app.trombito.rallycopilot.motor.tramos
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.velocidad.PrecisionGps
+import app.trombito.rallycopilot.motor.velocidad.msAKmh
 import kotlin.math.max
 
 /**
@@ -15,7 +16,7 @@ import kotlin.math.max
  * da saltos y velocidades falsas con precisión mala); el resto se ignoran, también como origen: el origen es la
  * primera fijación válida. No es concurrente; el tiempo es el de las fijaciones.
  */
-internal class DetectorSalida {
+class DetectorSalida {
     private var origen: PuntoGeo? = null
     private var inicioRacha: Long? = null
 
@@ -35,7 +36,7 @@ internal class DetectorSalida {
         precision: Double,
     ) {
         val inicio = origen ?: f.punto.also { origen = it }
-        val rapido = (f.velocidadMs ?: 0.0) * KMH_POR_MS > UMBRAL_VELOCIDAD_KMH
+        val rapido = (f.velocidadMs ?: 0.0).msAKmh() > UMBRAL_VELOCIDAD_KMH
         if (!rapido) {
             inicioRacha = null
         } else if (inicioRacha == null) {
@@ -62,6 +63,5 @@ internal class DetectorSalida {
         const val DISTANCIA_MINIMA_M = 50.0
 
         private const val FACTOR_PRECISION = 2.0
-        private const val KMH_POR_MS = 3.6
     }
 }

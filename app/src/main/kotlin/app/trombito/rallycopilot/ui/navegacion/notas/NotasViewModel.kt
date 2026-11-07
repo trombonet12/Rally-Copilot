@@ -6,14 +6,13 @@ import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.notas.ProveedorNotas
 import app.trombito.rallycopilot.motor.notas.SelectorNotas
 import app.trombito.rallycopilot.motor.voz.HojaFiltrada
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
-
-private const val PARADA_MS = 5_000L
 
 /** Cuántos elementos enseña la franja: el grande y dos pequeños. */
 internal const val NOTAS_VISIBLES = 3

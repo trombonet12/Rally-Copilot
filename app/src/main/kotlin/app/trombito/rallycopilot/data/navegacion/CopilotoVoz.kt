@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.NotaVisible
 import app.trombito.rallycopilot.motor.notas.SelectorNotas
 import app.trombito.rallycopilot.motor.ruta.FrasesManiobra
+import app.trombito.rallycopilot.motor.velocidad.msAKmh
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import app.trombito.rallycopilot.motor.voz.CandidatasNotas
 import app.trombito.rallycopilot.motor.voz.Frase
@@ -305,7 +306,7 @@ class CopilotoVoz(
         alDecir?.invoke(frase.texto)
         registro?.invoke(
             "dice id=${frase.id} faltan=${frase.puntoM?.let { (it - posicionM).roundToInt().toString() } ?: "-"}m " +
-                "v=${vMs?.let { (it * MS_A_KMH).roundToInt().toString() } ?: "-"}km/h",
+                "v=${vMs?.let { it.msAKmh().roundToInt().toString() } ?: "-"}km/h",
         )
     }
 
@@ -330,7 +331,6 @@ class CopilotoVoz(
         const val MANIOBRAS_PREPARADAS = 3
         const val PREPARADAS = 6
         const val SUFIJO_INMINENTE = "-inminente"
-        const val MS_A_KMH = 3.6
 
         /** Fijaciones (≈ s) que una parada alcanzada espera a que el altavoz esté libre antes de perderse. */
         const val VIGENCIA_PARADA_FIJACIONES = 15

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.alertas.ProveedorAlertas
 import app.trombito.rallycopilot.domain.alertas.ProveedorRadaresMapa
 import app.trombito.rallycopilot.domain.alertas.RepositorioIncidencias
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,8 +16,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-private const val PARADA_MS = 5_000L
 
 /** El reloj de la antigüedad de los datos avanza cada minuto aunque no llegue ninguna alerta nueva. */
 private const val PULSO_MS = 60_000L

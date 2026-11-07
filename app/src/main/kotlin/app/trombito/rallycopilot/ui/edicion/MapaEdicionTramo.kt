@@ -19,6 +19,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.analisis.EscalaVelocidad
 import app.trombito.rallycopilot.motor.analisis.SegmentoMapa
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.TrazaMetros
 import app.trombito.rallycopilot.ui.analisis.ComplementoMapa
 import app.trombito.rallycopilot.ui.analisis.ContenidoMapa
 import app.trombito.rallycopilot.ui.analisis.MapaMapLibre

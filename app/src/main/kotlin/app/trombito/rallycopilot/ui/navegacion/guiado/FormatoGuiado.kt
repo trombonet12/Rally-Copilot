@@ -5,9 +5,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlin.math.roundToInt
 
-private const val UN_KM = 1000.0
 private const val PASO_M = 10
 private const val S_POR_MIN = 60
 private const val MIN_POR_H = 60
@@ -33,14 +31,7 @@ internal fun formatearTiempoRestante(segundos: Double): String {
 }
 
 /** Distancia restante: «12,4 km» desde 1 km y «850 m» (a 10 m) por debajo. */
-internal fun formatearDistanciaRestante(metros: Double): String {
-    val m = metros.coerceAtLeast(0.0)
-    if (m < UN_KM) {
-        val redondeado = (m / PASO_M).roundToInt() * PASO_M
-        if (redondeado < UN_KM) return FormatoEs.distancia(redondeado.toDouble())
-    }
-    return FormatoEs.kilometrosDesdeMetros(m)
-}
+internal fun formatearDistanciaRestante(metros: Double): String = FormatoEs.distanciaRedondeada(metros, PASO_M, PASO_M)
 
 /**
  * Separa la vía del final de la [frase] de una maniobra («cruce, izquierda, Ma-10» -> «cruce, izquierda» y «Ma-10»)

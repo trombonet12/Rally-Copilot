@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.motor.tramos.Delta
 import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.velocidad.msAKmh
 
 /** Valor [valor] en la distancia [distanciaM] (m desde la salida): velocidad en km/h o delta en ms. */
 data class PuntoSerie(
@@ -230,7 +231,7 @@ data class AnalisisPasada(
                 val maxima =
                     (
                         velocidades.filterIndexed { k, _ -> enSector(muestras[k]) } +
-                            instantaneas.map { it * KMH_POR_M_S }
+                            instantaneas.map { it.msAKmh() }
                     ).maxOrNull()
                 val parcial = contra[i + 1]
                 ParcialAnalisis(
@@ -257,7 +258,7 @@ data class AnalisisPasada(
             val total = pasada.totalMs
             val reales =
                 proyectados.map {
-                    PosicionRepeticion(it.tMs, it.punto, it.distanciaM, it.velocidadMs?.let { v -> v * KMH_POR_M_S })
+                    PosicionRepeticion(it.tMs, it.punto, it.distanciaM, it.velocidadMs?.let { v -> v.msAKmh() })
                 }
             val base =
                 if (reales.isEmpty()) {
@@ -284,7 +285,6 @@ data class AnalisisPasada(
             return Repeticion(inicio + base + fin, total)
         }
 
-        private const val KMH_POR_M_S = 3.6
         private const val KMH_POR_M_MS = 3600.0
     }
 }

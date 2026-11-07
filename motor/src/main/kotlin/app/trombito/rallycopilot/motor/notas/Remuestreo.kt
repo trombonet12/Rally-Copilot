@@ -1,7 +1,7 @@
 package app.trombito.rallycopilot.motor.notas
 
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.hypot
 import kotlin.math.roundToInt
@@ -69,10 +69,9 @@ object Remuestreo {
     }
 
     private fun proyectar(puntos: List<PuntoGeo>): Triple<DoubleArray, DoubleArray, DoubleArray> {
-        val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(puntos.sumOf { it.lat } / puntos.size))
-        val origen = puntos.first()
-        val xs = DoubleArray(puntos.size) { Math.toRadians(puntos[it].lon - origen.lon) * escalaX }
-        val ys = DoubleArray(puntos.size) { Math.toRadians(puntos[it].lat - origen.lat) * PuntoGeo.RADIO_TIERRA_M }
+        val plano = ProyeccionPlana.deTraza(puntos)
+        val xs = DoubleArray(puntos.size) { plano.x(puntos[it]) }
+        val ys = DoubleArray(puntos.size) { plano.y(puntos[it]) }
         val acumulada = DoubleArray(puntos.size)
         for (i in 1 until puntos.size) {
             acumulada[i] = acumulada[i - 1] + hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1])

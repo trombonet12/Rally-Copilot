@@ -1,7 +1,8 @@
 package app.trombito.rallycopilot.motor.ruta
 
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import kotlin.math.cos
+import app.trombito.rallycopilot.motor.velocidad.MS_POR_S
 import kotlin.math.hypot
 import kotlin.math.roundToLong
 
@@ -153,7 +154,6 @@ class SeguidorRuta(
         const val RADIO_PARADA_M = 30.0
         const val MARGEN_PARADA_M = 150.0
         const val SENTIDO_CONTRARIO_M = 50.0
-        const val MS_POR_S = 1000.0
     }
 }
 
@@ -166,9 +166,9 @@ private class Proyeccion(
 private class Polilinea(
     puntos: List<PuntoGeo>,
 ) {
-    private val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(puntos.sumOf { it.lat } / puntos.size))
-    private val xs = DoubleArray(puntos.size) { Math.toRadians(puntos[it].lon) * escalaX }
-    private val ys = DoubleArray(puntos.size) { Math.toRadians(puntos[it].lat) * PuntoGeo.RADIO_TIERRA_M }
+    private val plano = ProyeccionPlana.deTraza(puntos)
+    private val xs = DoubleArray(puntos.size) { plano.x(puntos[it]) }
+    private val ys = DoubleArray(puntos.size) { plano.y(puntos[it]) }
     private val acumulada = DoubleArray(puntos.size)
 
     init {
@@ -178,9 +178,9 @@ private class Polilinea(
 
     val longitudM: Double get() = acumulada.last()
 
-    fun x(p: PuntoGeo): Double = Math.toRadians(p.lon) * escalaX
+    fun x(p: PuntoGeo): Double = plano.x(p)
 
-    fun y(p: PuntoGeo): Double = Math.toRadians(p.lat) * PuntoGeo.RADIO_TIERRA_M
+    fun y(p: PuntoGeo): Double = plano.y(p)
 
     fun progresoEn(indice: Int): Double = acumulada[indice.coerceIn(0, acumulada.lastIndex)]
 

@@ -1,8 +1,5 @@
 package app.trombito.rallycopilot.motor.geo
 
-import kotlin.math.cos
-import kotlin.math.hypot
-
 /**
  * Simplifica la polilínea con Douglas-Peucker en una proyección plana local (equirectangular centrada en la
  * latitud media; válida para trazas de unas decenas de km que no cruzan el antimeridiano). Conserva siempre el
@@ -33,16 +30,9 @@ fun List<PuntoGeo>.simplificar(toleranciaM: Double): List<PuntoGeo> {
 private class PlanoLocal(
     puntos: List<PuntoGeo>,
 ) {
-    private val xs = DoubleArray(puntos.size)
-    private val ys = DoubleArray(puntos.size)
-
-    init {
-        val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(puntos.sumOf { it.lat } / puntos.size))
-        puntos.forEachIndexed { i, p ->
-            xs[i] = Math.toRadians(p.lon) * escalaX
-            ys[i] = Math.toRadians(p.lat) * PuntoGeo.RADIO_TIERRA_M
-        }
-    }
+    private val plano = ProyeccionPlana.deTraza(puntos)
+    private val xs = DoubleArray(puntos.size) { plano.x(puntos[it]) }
+    private val ys = DoubleArray(puntos.size) { plano.y(puntos[it]) }
 
     /** Índice y distancia (m) del punto estrictamente entre [ini] y [fin] más lejano al segmento ini-fin. */
     fun masLejano(
@@ -65,12 +55,5 @@ private class PlanoLocal(
         i: Int,
         a: Int,
         b: Int,
-    ): Double {
-        val dx = xs[b] - xs[a]
-        val dy = ys[b] - ys[a]
-        val longitud2 = dx * dx + dy * dy
-        val proyeccion = (xs[i] - xs[a]) * dx + (ys[i] - ys[a]) * dy
-        val t = if (longitud2 == 0.0) 0.0 else (proyeccion / longitud2).coerceIn(0.0, 1.0)
-        return hypot(xs[i] - (xs[a] + t * dx), ys[i] - (ys[a] + t * dy))
-    }
+    ): Double = distanciaASegmento(xs[i], ys[i], xs[a], ys[a], xs[b], ys[b])
 }

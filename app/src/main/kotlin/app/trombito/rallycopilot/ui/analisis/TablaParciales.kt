@@ -32,6 +32,8 @@ import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.analisis.AnalisisPasada
 import app.trombito.rallycopilot.motor.analisis.ParcialAnalisis
+import app.trombito.rallycopilot.motor.velocidad.MS_POR_S
+import app.trombito.rallycopilot.motor.velocidad.msAKmh
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
@@ -51,8 +53,6 @@ private const val PESO_ETIQUETA = 1.25f
 private const val PESO_TIEMPO = 1.35f
 private const val PESO_DELTA = 1.05f
 private const val PESO_VELOCIDAD = 0.9f
-private const val MS_POR_S = 1000.0
-private const val KMH_POR_M_S = 3.6
 
 /** Un renglón de la tabla ya preparado para pintar. */
 internal data class FilaTabla(
@@ -68,7 +68,7 @@ internal data class FilaTabla(
 /** Velocidad media del tramo entero, en km/h, a partir de la meta y el tiempo total. */
 internal fun mediaTotalKmh(analisis: AnalisisPasada): Double {
     val metaM = analisis.sectores.lastOrNull()?.hastaM ?: return 0.0
-    return if (analisis.totalMs > 0L) metaM / (analisis.totalMs / MS_POR_S) * KMH_POR_M_S else 0.0
+    return if (analisis.totalMs > 0L) (metaM / (analisis.totalMs / MS_POR_S)).msAKmh() else 0.0
 }
 
 /** Velocidad máxima del tramo entero, en km/h. */

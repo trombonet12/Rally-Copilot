@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.motor.mapa
 
+import app.trombito.rallycopilot.motor.velocidad.MS_POR_S
 import kotlin.math.abs
 
 /**
@@ -124,9 +125,5 @@ class SuavizadorZoom(
         val maxPaso = maxNivelesPorSegundo * dtMs / MS_POR_S
         val delta = (objetivo - actual).coerceIn(-maxPaso, maxPaso)
         return actual + delta
-    }
-
-    private companion object {
-        const val MS_POR_S = 1000.0
     }
 }

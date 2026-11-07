@@ -8,11 +8,10 @@ import app.trombito.rallycopilot.domain.tramos.NombreAutomatico
 import app.trombito.rallycopilot.motor.analisis.NombreTramo
 import app.trombito.rallycopilot.motor.analisis.PasoVia
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.geo.Rumbo
 import app.trombito.rallycopilot.motor.geo.longitudMetros
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.atan2
-import kotlin.math.cos
 
 /**
  * Nombre automático de un tramo. Si el índice de lugares conoce un pueblo o aldea cerca del inicio y otro distinto
@@ -187,19 +186,8 @@ internal object MuestreoTraza {
             val b = traza[segmento + 1]
             val largo = a.distanciaA(b)
             val t = if (largo > 0.0) ((objetivo - antesM) / largo).coerceIn(0.0, 1.0) else 0.0
-            resultado += Muestra(PuntoGeo(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t), rumbo(a, b))
+            resultado += Muestra(PuntoGeo(a.lat + (b.lat - a.lat) * t, a.lon + (b.lon - a.lon) * t), Rumbo.entre(a, b))
         }
         return resultado
     }
-
-    private fun rumbo(
-        a: PuntoGeo,
-        b: PuntoGeo,
-    ): Double {
-        val este = (b.lon - a.lon) * cos(Math.toRadians(a.lat))
-        val norte = b.lat - a.lat
-        return (Math.toDegrees(atan2(este, norte)) + GRADOS_VUELTA) % GRADOS_VUELTA
-    }
-
-    private const val GRADOS_VUELTA = 360.0
 }

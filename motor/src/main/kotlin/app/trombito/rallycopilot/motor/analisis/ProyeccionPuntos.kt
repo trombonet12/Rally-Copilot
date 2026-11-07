@@ -6,6 +6,7 @@ import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.tramos.TrazaPlana
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.velocidad.MS_POR_S
 
 /**
  * Proyecta las fijaciones de una conducción sobre la traza del tramo con la misma proyección y ventana monótona que el
@@ -93,5 +94,4 @@ internal object ProyeccionPuntos {
     private const val ATRAS_M = 30.0
     private const val ADELANTE_MIN_M = 150.0
     private const val VELOCIDAD_MAX_MS = 70.0
-    private const val MS_POR_S = 1000.0
 }

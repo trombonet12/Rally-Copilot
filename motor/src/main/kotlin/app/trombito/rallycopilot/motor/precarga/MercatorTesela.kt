@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.motor.precarga
 
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import kotlin.math.PI
 import kotlin.math.atan
 import kotlin.math.cos
@@ -10,8 +11,6 @@ import kotlin.math.tan
 
 /** Conversion entre grados y teselas XYZ de Web Mercator. */
 object MercatorTesela {
-    private const val RADIO_TIERRA_M = 6_371_008.8
-
     /** Columna de la longitud a un zoom con [n] = 2^zoom columnas. */
     fun columna(
         lon: Double,
@@ -43,5 +42,5 @@ object MercatorTesela {
     fun ladoTeselaM(
         latitud: Double,
         zoom: Int,
-    ): Double = 2 * PI * RADIO_TIERRA_M * cos(Math.toRadians(latitud)) / (1 shl zoom)
+    ): Double = 2 * PI * PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(latitud)) / (1 shl zoom)
 }

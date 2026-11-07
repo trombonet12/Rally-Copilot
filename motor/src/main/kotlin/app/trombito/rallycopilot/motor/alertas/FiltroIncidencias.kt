@@ -2,11 +2,10 @@ package app.trombito.rallycopilot.motor.alertas
 
 import app.trombito.rallycopilot.motor.geo.AjusteCamino
 import app.trombito.rallycopilot.motor.geo.CaminoPlano
+import app.trombito.rallycopilot.motor.geo.ProyeccionPlana
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.voz.Frase
 import java.time.Instant
-import kotlin.math.cos
-import kotlin.math.hypot
 
 /**
  * Una incidencia relevante para el conductor. [enRuta]: está en la ruta por delante; [distanciaM] es entonces lo que
@@ -126,27 +125,7 @@ class FiltroIncidencias(
     private fun distanciaRecta(
         coche: PuntoGeo,
         puntos: List<PuntoGeo>,
-    ): Double {
-        val escalaX = PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(coche.lat))
-        val xs = puntos.map { Math.toRadians(it.lon - coche.lon) * escalaX }
-        val ys = puntos.map { Math.toRadians(it.lat - coche.lat) * PuntoGeo.RADIO_TIERRA_M }
-        if (puntos.size == 1) return hypot(xs[0], ys[0])
-        return (0 until puntos.lastIndex).minOf { i -> distanciaASegmento(xs[i], ys[i], xs[i + 1], ys[i + 1]) }
-    }
-
-    /** Distancia del origen al segmento (ax, ay)–(bx, by). */
-    private fun distanciaASegmento(
-        ax: Double,
-        ay: Double,
-        bx: Double,
-        by: Double,
-    ): Double {
-        val dx = bx - ax
-        val dy = by - ay
-        val largo2 = dx * dx + dy * dy
-        val t = if (largo2 == 0.0) 0.0 else (-(ax * dx + ay * dy) / largo2).coerceIn(0.0, 1.0)
-        return hypot(ax + t * dx, ay + t * dy)
-    }
+    ): Double = ProyeccionPlana(coche).distanciaAPolilinea(coche, puntos)
 
     companion object {
         /** Distancia máxima de un punto de la incidencia a la ruta para ser «de la ruta». */
