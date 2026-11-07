@@ -94,17 +94,46 @@ private val ICONOS_NOTA: Map<TipoManiobra, Int> =
         TipoManiobra.OTRA to R.drawable.ic_man_c_otra,
     )
 
+private val ROTONDAS_SALIDA: Map<VarianteManiobra, IntArray> =
+    mapOf(
+        VarianteManiobra.CHEVRON_HUD to
+            intArrayOf(
+                R.drawable.ic_man_a_rotonda_1,
+                R.drawable.ic_man_a_rotonda_2,
+                R.drawable.ic_man_a_rotonda_3,
+                R.drawable.ic_man_a_rotonda_4,
+            ),
+        VarianteManiobra.PLACA_INCLINADA to
+            intArrayOf(
+                R.drawable.ic_man_b_rotonda_1,
+                R.drawable.ic_man_b_rotonda_2,
+                R.drawable.ic_man_b_rotonda_3,
+                R.drawable.ic_man_b_rotonda_4,
+            ),
+        VarianteManiobra.NOTA_RALLY to
+            intArrayOf(
+                R.drawable.ic_man_c_rotonda_1,
+                R.drawable.ic_man_c_rotonda_2,
+                R.drawable.ic_man_c_rotonda_3,
+                R.drawable.ic_man_c_rotonda_4,
+            ),
+    )
+
 /**
- * Recurso del icono de una maniobra. [salidaRotonda] no cambia el dibujo: el número de salida lo pinta
- * [IconoManiobra] encima del anillo (el recurso es el mismo para todas las salidas).
+ * Recurso del icono de una maniobra. En la entrada a una rotonda con [salidaRotonda] el dibujo resalta esa salida
+ * (1.ª a la derecha, 2.ª recta, 3.ª a la izquierda, 4.ª o más hacia atrás); sin ordinal, una salida genérica arriba a
+ * la derecha. El número lo pinta [IconoManiobra] encima, en el centro del anillo.
  */
 @DrawableRes
-@Suppress("UNUSED_PARAMETER")
 fun iconoManiobra(
     tipo: TipoManiobra,
     variante: VarianteManiobra,
     salidaRotonda: Int? = null,
 ): Int {
+    if (tipo == TipoManiobra.ROTONDA_ENTRADA && salidaRotonda != null && salidaRotonda >= 1) {
+        val salidas = ROTONDAS_SALIDA.getValue(variante)
+        return salidas[minOf(salidaRotonda, salidas.size) - 1]
+    }
     val tabla =
         when (variante) {
             VarianteManiobra.CHEVRON_HUD -> ICONOS_CHEVRON
@@ -160,7 +189,8 @@ private fun colorNumero(variante: VarianteManiobra): Color =
 
 /**
  * Icono de maniobra. En las rotondas con [salidaRotonda] dibuja el número de salida dentro del anillo.
- * [decorativo] oculta el icono a TalkBack cuando el texto de al lado ya dice lo mismo.
+ * [decorativo] oculta el icono a TalkBack cuando el texto de al lado ya dice lo mismo. [mostrarNumero] en `false` deja
+ * solo la salida resaltada (iconos pequeños donde el dígito no se lee).
  */
 @Composable
 @Suppress("LongParameterList") // API de composable con valores por defecto
@@ -171,6 +201,7 @@ fun IconoManiobra(
     tamano: Dp = 72.dp,
     salidaRotonda: Int? = null,
     decorativo: Boolean = false,
+    mostrarNumero: Boolean = true,
 ) {
     val descripcion =
         when {
@@ -187,7 +218,7 @@ fun IconoManiobra(
             contentDescription = null,
             modifier = Modifier.size(tamano),
         )
-        if (esRotonda(tipo) && salidaRotonda != null) {
+        if (mostrarNumero && esRotonda(tipo) && salidaRotonda != null) {
             Text(
                 text = salidaRotonda.toString(),
                 color = colorNumero(variante),

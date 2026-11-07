@@ -46,6 +46,9 @@ internal data class DatosBanner(
     val via: String?,
     val salidaRotonda: Int?,
     val siguiente: Pair<TipoManiobra, String>?,
+    /** Ordinal de salida y vía de la maniobra siguiente (para la línea «Luego» compacta de las rotondas). */
+    val siguienteSalida: Int? = null,
+    val siguienteVia: String? = null,
 )
 
 /**
@@ -80,6 +83,12 @@ internal fun datosBanner(estado: EstadoNavegacion.Guiando): DatosBanner? {
                 via = via,
                 salidaRotonda = actual.salidaRotonda,
                 siguiente = siguiente?.let { it.tipo to FrasesManiobra.frase(it) },
+                siguienteSalida = siguiente?.salidaRotonda,
+                siguienteVia =
+                    siguiente?.let { s ->
+                        val frase = FrasesManiobra.frase(s)
+                        s.vias.map { it.trim() }.firstOrNull { it.isNotEmpty() && frase.endsWith(", $it") }
+                    },
             )
         }
 
@@ -184,6 +193,8 @@ private fun Banner(
             salidaRotonda = datos.salidaRotonda,
             via = datos.via,
             compacto = compacto,
+            siguienteSalida = datos.siguienteSalida,
+            siguienteVia = datos.siguienteVia,
         )
     }
 }

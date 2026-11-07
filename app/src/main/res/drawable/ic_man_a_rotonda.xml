@@ -1,16 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icono de maniobra «rotonda», variante A. Generado por script a partir de geometría poligonal. -->
+<!-- Maniobra rotonda, variante A. Generado por script (rotonda antihoraria, entrada por abajo, salida resaltada). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <path android:pathData="M34.5,24 L34.14,26.72 L33.09,29.25 L31.42,31.42 L29.25,33.09 L26.72,34.14 L24,34.5 L21.28,34.14 L18.75,33.09 L16.58,31.42 L14.91,29.25 L13.86,26.72 L13.5,24 L13.86,21.28 L14.91,18.75 L16.58,16.58 L18.75,14.91 L21.28,13.86 L24,13.5 L26.72,13.86 L29.25,14.91 L31.42,16.58 L33.09,18.75 L34.14,21.28 L34.5,24 Z" android:fillColor="#0E0F12" android:strokeColor="#0E0F12" android:strokeWidth="9" android:strokeLineJoin="round" android:strokeLineCap="butt" />
-    <path android:pathData="M24,46 L24,34.5" android:strokeColor="#0E0F12" android:strokeWidth="9" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
-    <path android:pathData="M31.2,16.8 L42.65,4.86" android:strokeColor="#0E0F12" android:strokeWidth="9" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
-    <path android:pathData="M42.64,15.99 L43,4.5 L31.53,5.34" android:strokeColor="#0E0F12" android:strokeWidth="9" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="8" />
-    <path android:pathData="M34.5,24 L34.14,26.72 L33.09,29.25 L31.42,31.42 L29.25,33.09 L26.72,34.14 L24,34.5 L21.28,34.14 L18.75,33.09 L16.58,31.42 L14.91,29.25 L13.86,26.72 L13.5,24 L13.86,21.28 L14.91,18.75 L16.58,16.58 L18.75,14.91 L21.28,13.86 L24,13.5 L26.72,13.86 L29.25,14.91 L31.42,16.58 L33.09,18.75 L34.14,21.28 L34.5,24 Z" android:strokeColor="#E5AB46" android:strokeWidth="5" android:strokeLineJoin="round" android:strokeLineCap="butt" />
-    <path android:pathData="M24,46 L24,34.5" android:strokeColor="#E5AB46" android:strokeWidth="5" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
-    <path android:pathData="M31.2,16.8 L42.65,4.86" android:strokeColor="#E5AB46" android:strokeWidth="5" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
-    <path android:pathData="M42.64,15.99 L43,4.5 L31.53,5.34" android:strokeColor="#E5AB46" android:strokeWidth="5" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="8" />
+    <path android:pathData="M35,24 A11,11 0 1 0 13,24 A11,11 0 1 0 35,24 Z" android:strokeColor="#0E0F12" android:strokeWidth="7.0" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M24,46 L24,35" android:strokeColor="#0E0F12" android:strokeWidth="7.0" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M31.78,16.22 L34.25,13.75" android:strokeColor="#0E0F12" android:strokeWidth="7.0" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M39.56,8.44 L29.59,10.49 L37.51,18.41 Z" android:fillColor="#0E0F12" android:strokeColor="#0E0F12" android:strokeWidth="2.4" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M12.69,22.56 L11.66,15.64 L18.31,18.4 Z" android:fillColor="#0E0F12" android:strokeColor="#0E0F12" android:strokeWidth="2.4" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
+    <path android:pathData="M35,24 A11,11 0 1 0 13,24 A11,11 0 1 0 35,24 Z" android:strokeColor="#FFFFFF" android:strokeWidth="4.0" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M12.69,22.56 L11.66,15.64 L18.31,18.4 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M24,35 A11,11 0 0 0 31.78,16.22" android:strokeColor="#E5AB46" android:strokeWidth="4.0" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M24,46 L24,35" android:strokeColor="#E5AB46" android:strokeWidth="4.0" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M31.78,16.22 L34.25,13.75" android:strokeColor="#E5AB46" android:strokeWidth="4.0" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M39.56,8.44 L29.59,10.49 L37.51,18.41 Z" android:fillColor="#E5AB46" />
 </vector>

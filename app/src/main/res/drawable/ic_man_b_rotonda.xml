@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icono de maniobra «rotonda», variante B. Generado por script a partir de geometría poligonal. -->
+<!-- Maniobra rotonda, variante B. Generado por script (rotonda antihoraria, entrada por abajo, salida resaltada). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"
@@ -7,8 +7,12 @@
     android:viewportHeight="48">
     <path android:pathData="M7.2,3 L47.2,3 L40.8,45 L0.8,45 Z" android:fillColor="#D8232A" android:strokeColor="#FFFFFF" android:strokeWidth="1.6" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
     <path android:pathData="M1.6,39.5 L41,39.5 L40.8,45 L0.8,45 Z" android:fillColor="#8F1218" />
-    <path android:pathData="M31.77,24 L31.2,26.01 L30.15,27.88 L28.67,29.49 L26.88,30.73 L24.89,31.51 L22.83,31.77 L20.86,31.51 L19.11,30.73 L17.68,29.49 L16.69,27.88 L16.19,26.01 L16.23,24 L16.8,21.99 L17.85,20.12 L19.33,18.51 L21.12,17.27 L23.11,16.49 L25.17,16.23 L27.14,16.49 L28.89,17.27 L30.32,18.51 L31.31,20.11 L31.81,21.99 L31.77,24 Z" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineJoin="round" android:strokeLineCap="butt" />
-    <path android:pathData="M21.56,40.28 L22.83,31.77" android:strokeColor="#FFFFFF" android:strokeWidth="4" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
-    <path android:pathData="M30.13,18.67 L38,11.58" android:strokeColor="#FFFFFF" android:strokeWidth="4.4" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="6" />
-    <path android:pathData="M40.22,9.57 L37.08,21.02 L28.51,11.51 Z" android:fillColor="#FFFFFF" android:strokeColor="#FFFFFF" android:strokeWidth="0.8" android:strokeLineJoin="miter" android:strokeLineCap="butt" android:strokeMiterLimit="8" />
+    <group android:translateX="0" android:translateY="0" android:scaleX="0.82" android:scaleY="0.82" android:pivotX="24" android:pivotY="24">
+    <path android:pathData="M35,24 A11,11 0 1 0 13,24 A11,11 0 1 0 35,24 Z" android:strokeColor="#99FFFFFF" android:strokeWidth="4.0" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M12.69,22.56 L11.66,15.64 L18.31,18.4 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M24,35 A11,11 0 0 0 31.78,16.22" android:strokeColor="#FFFFFF" android:strokeWidth="4.4" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M24,46 L24,35" android:strokeColor="#FFFFFF" android:strokeWidth="4.4" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M31.78,16.22 L34.25,13.75" android:strokeColor="#FFFFFF" android:strokeWidth="4.4" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M39.56,8.44 L29.59,10.49 L37.51,18.41 Z" android:fillColor="#FFFFFF" />
+    </group>
 </vector>

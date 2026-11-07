@@ -177,6 +177,7 @@ private fun accionesMapa(
     onCerrarIncidencia = { alertas.onSeleccionar(null) },
 )
 
+@Composable
 private fun camaraVistaMapa(
     viewModel: MapaViewModel,
     alertas: AlertasViewModel,
@@ -194,7 +195,7 @@ private fun camaraVistaMapa(
     },
     onMantenerPulsado = navegacion::onMantenerPulsado,
     onToqueNota = edicion::onTocarNota,
-)
+).conArranque()
 
 private fun preferenciasVista(
     estado: MapaUiState,

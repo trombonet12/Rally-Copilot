@@ -1,9 +1,9 @@
 package app.trombito.rallycopilot.ui.mapa
 
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -27,9 +27,18 @@ import app.trombito.rallycopilot.ui.theme.CarbonOpaco
 import app.trombito.rallycopilot.ui.theme.Radios
 import app.trombito.rallycopilot.ui.theme.TextoSobreCarbon
 import app.trombito.rallycopilot.ui.tramos.CuentaAtrasPorVoz
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-/** Separación de los avisos (snackbar) del borde de abajo: por encima de la hoja de conducción. */
-private val MARGEN_AVISOS = 120.dp
+/**
+ * Los avisos (snackbar) van en el centro del mapa, entre la pila de tarjetas de arriba y la píldora de velocidad y la
+ * hoja de abajo, y sin llegar a la columna de botones de la derecha: no tapan nada que se use conduciendo.
+ */
+private val MARGEN_AVISOS_INICIO = 16.dp
+private val MARGEN_AVISOS_FIN = 84.dp
+
+/** Lo que dura un aviso en pantalla. */
+private const val DURACION_AVISO_MS = 3_000L
 
 /** Lo que la superposición del mapa lee del estado: copiloto, cronómetro, editor de notas y estado de la conducción. */
 internal class UiSuperposicion(
@@ -53,15 +62,24 @@ internal fun BoxScope.SuperposicionDelMapa(
     val avisos = remember { SnackbarHostState() }
     val casaGuardada = stringResource(R.string.navegacion_ui_casa_guardada)
     LaunchedEffect(navegacionViewModel) {
-        navegacionViewModel.casaGuardada.collect { avisos.showSnackbar(casaGuardada) }
+        navegacionViewModel.casaGuardada.collect {
+            launch {
+                val cierre =
+                    launch {
+                        delay(DURACION_AVISO_MS)
+                        avisos.currentSnackbarData?.dismiss()
+                    }
+                avisos.showSnackbar(casaGuardada, duration = SnackbarDuration.Indefinite)
+                cierre.cancel()
+            }
+        }
     }
     CuentaAtrasPorVoz(ui.copiloto.dialogo, ui.crono)
     SnackbarHost(
         avisos,
         Modifier
-            .align(Alignment.BottomCenter)
-            .navigationBarsPadding()
-            .padding(bottom = MARGEN_AVISOS),
+            .align(Alignment.Center)
+            .padding(start = MARGEN_AVISOS_INICIO, end = MARGEN_AVISOS_FIN),
     ) {
         // Carbón con texto claro y filo ámbar, como el resto de tarjetas sobre el mapa.
         Snackbar(

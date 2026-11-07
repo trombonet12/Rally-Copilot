@@ -23,9 +23,19 @@ class IconoManiobraTest {
             assertEquals(TipoManiobra.entries.size - 1, ids.toSet().size)
         }
         assertEquals(
-            iconoManiobra(TipoManiobra.ROTONDA_ENTRADA, VarianteManiobra.NOTA_RALLY, 1),
+            iconoManiobra(TipoManiobra.ROTONDA_ENTRADA, VarianteManiobra.NOTA_RALLY, null),
             iconoManiobra(TipoManiobra.ROTONDA_SALIDA, VarianteManiobra.NOTA_RALLY, 3),
         )
+    }
+
+    @Test
+    fun `la entrada a la rotonda resalta la salida que toca y la genérica es otra`() {
+        for (variante in VarianteManiobra.entries) {
+            val porSalida = (1..4).map { iconoManiobra(TipoManiobra.ROTONDA_ENTRADA, variante, it) }
+            assertEquals(4, porSalida.toSet().size)
+            assertEquals(porSalida[3], iconoManiobra(TipoManiobra.ROTONDA_ENTRADA, variante, 7))
+            assertNotEquals(porSalida[0], iconoManiobra(TipoManiobra.ROTONDA_ENTRADA, variante, null))
+        }
     }
 
     @Test

@@ -10,10 +10,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.ui.theme.RallyOscuro
 
 private const val RELACION_ARO = 7
@@ -38,7 +38,8 @@ internal fun SenalLimiteMini(
             text = limiteKmh.toString(),
             color = Color.Black,
             fontWeight = FontWeight.Black,
-            fontSize = (lado.value * RELACION_CIFRA).sp,
+            // La cifra va en dp, no en sp: la señal tiene lado fijo y con fuentes grandes se salía del aro.
+            fontSize = with(LocalDensity.current) { (lado * RELACION_CIFRA).toSp() },
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false,

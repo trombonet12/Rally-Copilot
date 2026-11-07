@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -94,6 +95,8 @@ fun BannerManiobra(
     salidaRotonda: Int? = null,
     via: String? = null,
     compacto: Boolean = false,
+    siguienteSalida: Int? = null,
+    siguienteVia: String? = null,
 ) {
     TarjetaWrc(
         modifier = modifier.fillMaxWidth().testTag(ETIQUETA_BANNER).semantics(mergeDescendants = true) {},
@@ -117,7 +120,7 @@ fun BannerManiobra(
             if (compacto) {
                 TextosCompactos(distanciaM, frase, Modifier.weight(1f))
             } else {
-                TextosCompletos(distanciaM, frase, siguiente, Modifier.weight(1f))
+                TextosCompletos(distanciaM, frase, siguiente, siguienteSalida to siguienteVia, Modifier.weight(1f))
             }
             if (via != null) PlacaCarretera(via, tamano = TamanoPlaca.PEQUENA)
         }
@@ -130,6 +133,7 @@ private fun TextosCompletos(
     distanciaM: Double,
     frase: String,
     siguiente: Pair<TipoManiobra, String>?,
+    detalleSiguiente: Pair<Int?, String?>,
     modifier: Modifier,
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -148,7 +152,7 @@ private fun TextosCompletos(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
-        if (siguiente != null) FilaSiguiente(siguiente)
+        if (siguiente != null) FilaSiguiente(siguiente, detalleSiguiente.first, detalleSiguiente.second)
     }
 }
 
@@ -182,8 +186,24 @@ private fun TextosCompactos(
     }
 }
 
+/**
+ * «Luego» + icono + texto de la maniobra siguiente: una línea que no hace crecer la tarjeta con la fuente normal; con
+ * fuentes grandes el texto se encoge (de 12 a 9 sp) y, si aún no cabe, pasa a una segunda línea antes de cortarse.
+ * Las rotondas van compactas: «Rotonda · 2.ª salida» o «Rotonda · 1.ª · Carrer X».
+ */
 @Composable
-private fun FilaSiguiente(siguiente: Pair<TipoManiobra, String>) {
+private fun FilaSiguiente(
+    siguiente: Pair<TipoManiobra, String>,
+    salidaRotonda: Int?,
+    via: String?,
+) {
+    val compactaRotonda = siguiente.first == TipoManiobra.ROTONDA_ENTRADA && salidaRotonda != null
+    val texto =
+        when {
+            !compactaRotonda -> siguiente.second
+            via != null -> stringResource(R.string.maniobra_luego_rotonda_via, salidaRotonda ?: 0, via)
+            else -> stringResource(R.string.maniobra_luego_rotonda, salidaRotonda ?: 0)
+        }
     Row(
         modifier = Modifier.testTag(ETIQUETA_BANNER_SIGUIENTE).padding(top = 2.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -193,20 +213,25 @@ private fun FilaSiguiente(siguiente: Pair<TipoManiobra, String>) {
             text = stringResource(R.string.maniobra_luego),
             color = TextoSecundarioSobreCarbon,
             style = MaterialTheme.typography.bodySmall,
+            maxLines = 1,
         )
         IconoManiobra(
             tipo = siguiente.first,
             variante = VARIANTE_BANNER,
             modifier = Modifier.size(TAMANO_ICONO_SIGUIENTE),
             tamano = TAMANO_ICONO_SIGUIENTE,
+            salidaRotonda = salidaRotonda,
             decorativo = true,
+            mostrarNumero = false,
         )
         Text(
-            text = siguiente.second,
+            text = texto,
+            modifier = Modifier.weight(1f, fill = false),
             color = TextoSecundarioSobreCarbon,
             style = MaterialTheme.typography.bodySmall,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            autoSize = TextAutoSize.StepBased(minFontSize = 9.sp, maxFontSize = 12.sp, stepSize = 0.5.sp),
         )
     }
 }

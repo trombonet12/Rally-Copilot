@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.ajustes
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.Keep
 import androidx.annotation.StringRes
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -46,6 +47,17 @@ internal fun SeccionAjustes.titulo(): Int =
         SeccionAjustes.DATOS -> R.string.ajustes_seccion_datos
         SeccionAjustes.AYUDA -> R.string.ajustes_seccion_ayuda
         SeccionAjustes.ACERCA_DE -> R.string.ajustes_seccion_acerca
+    }
+
+/** El icono de casco del copiloto (el mismo que el botón de la hoja del mapa), si la sección usa un recurso propio. */
+@DrawableRes
+internal fun SeccionAjustes.iconoRecurso(): Int? =
+    if (this ==
+        SeccionAjustes.COPILOTO
+    ) {
+        R.drawable.ic_modo_completo
+    } else {
+        null
     }
 
 internal fun SeccionAjustes.icono(): ImageVector =

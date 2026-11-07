@@ -1,11 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Rotonda. Icono monocromo de la franja de notas: se tiñe en la interfaz. -->
+<!-- Rotonda: tres flechas en círculo en sentido antihorario, como la señal. Icono monocromo de la franja de notas: se tiñe en la interfaz. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="48dp"
     android:height="48dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
-    <path android:pathData="M13,22 a11,11 0 1 0 22,0 a11,11 0 1 0 -22,0 Z" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="5" android:strokeLineCap="round" android:strokeLineJoin="round" />
-    <path android:pathData="M24,44 V36" android:fillColor="#00000000" android:strokeColor="#FFFFFF" android:strokeWidth="5" android:strokeLineCap="round" android:strokeLineJoin="round" />
-    <path android:pathData="M24,33 L17,42 L31,42 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M21.48,9.72 A14.5,14.5 0 0 0 9.82,20.99" android:strokeColor="#FFFFFF" android:strokeWidth="5" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M8.15,28.81 L3.46,19.63 L16.17,22.34 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M12.89,33.32 A14.5,14.5 0 0 0 28.48,37.79" android:strokeColor="#FFFFFF" android:strokeWidth="5" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M36.09,35.32 L30.49,43.97 L26.47,31.61 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M37.63,28.96 A14.5,14.5 0 0 0 33.7,13.22" android:strokeColor="#FFFFFF" android:strokeWidth="5" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M27.76,7.87 L38.05,8.39 L29.35,18.05 Z" android:fillColor="#FFFFFF" />
 </vector>

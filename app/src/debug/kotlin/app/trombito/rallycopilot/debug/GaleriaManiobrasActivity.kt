@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -142,6 +143,29 @@ private fun BannerEjemplo() {
             modifier = Modifier.fillMaxWidth(),
             salidaRotonda = 2,
         )
+        BannerManiobra(
+            tipo = TipoManiobra.SALIDA_AUTOVIA_DERECHA,
+            distanciaM = 8900.0,
+            frase = "salida",
+            siguiente = TipoManiobra.ROTONDA_ENTRADA to "rotonda, segunda salida",
+            modifier = Modifier.fillMaxWidth(),
+            via = "Ma-13",
+            siguienteSalida = 2,
+        )
+        BannerManiobra(
+            tipo = TipoManiobra.RECTO,
+            distanciaM = 300.0,
+            frase = "recto",
+            siguiente = TipoManiobra.ROTONDA_ENTRADA to "rotonda, primera salida, Carrer de Aragó",
+            modifier = Modifier.fillMaxWidth(),
+            siguienteSalida = 1,
+            siguienteVia = "Carrer de Aragó",
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            (1..4).forEach { salida ->
+                IconoManiobra(TipoManiobra.ROTONDA_ENTRADA, VarianteManiobra.CHEVRON_HUD, salidaRotonda = salida)
+            }
+        }
     }
 }
 

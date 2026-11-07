@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -75,24 +76,35 @@ fun CronometroMini(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Cifras(listo, transcurrido, descripcion, alfa, escala)
-        if (listo && crono.esperaSalidaManual && onSalida != null) BotonSalida(onSalida)
+        val conBoton = listo && crono.esperaSalidaManual && onSalida != null
+        // Con el botón, las cifras ceden (su «LISTO» se encoge) y «SALIDA» conserva siempre su ancho.
+        Cifras(
+            listo,
+            transcurrido,
+            descripcion,
+            alfa,
+            escala,
+            if (conBoton) Modifier.weight(1f, fill = false) else Modifier,
+        )
+        if (conBoton && onSalida != null) BotonSalida(onSalida)
     }
 }
 
 /** Icono y «mm:ss» (o «LISTO»), con una sola descripción para TalkBack. */
 @Composable
+@Suppress("LongParameterList") // estado ya resuelto por el llamador
 private fun Cifras(
     listo: Boolean,
     transcurrido: Long,
     descripcion: String,
     alfa: Float,
     escala: EscalaCronoMini,
+    modifier: Modifier = Modifier,
 ) {
     val grande = escala == EscalaCronoMini.GRANDE
     Row(
         modifier =
-            Modifier
+            modifier
                 .padding(horizontal = 8.dp, vertical = 2.dp)
                 .testTag(ETIQUETA_CRONO_MINI)
                 .clearAndSetSemantics { contentDescription = descripcion },
@@ -135,6 +147,12 @@ private fun Cifras(
             color = if (grande) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             softWrap = false,
+            autoSize =
+                if (listo && grande) {
+                    TextAutoSize.StepBased(minFontSize = 18.sp, maxFontSize = 40.sp, stepSize = 1.sp)
+                } else {
+                    null
+                },
             modifier = Modifier.alpha(alfa).testTag(ETIQUETA_CRONO_TIEMPO),
         )
     }
@@ -148,7 +166,7 @@ private fun BotonSalida(onSalida: () -> Unit) {
         onClick = onSalida,
         shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.buttonColors(containerColor = AMBAR_SALIDA, contentColor = ColoresGuiado.Carbon),
-        contentPadding = PaddingValues(horizontal = 20.dp),
+        contentPadding = PaddingValues(horizontal = 14.dp),
         modifier =
             Modifier
                 .heightIn(min = ALTO_BOTON_SALIDA)
@@ -160,6 +178,7 @@ private fun BotonSalida(onSalida: () -> Unit) {
             style = TextStyle(fontSize = 20.sp, fontWeight = FontWeight.Black, fontStyle = FontStyle.Italic),
             maxLines = 1,
             softWrap = false,
+            autoSize = TextAutoSize.StepBased(minFontSize = 14.sp, maxFontSize = 20.sp, stepSize = 1.sp),
         )
     }
 }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Maniobra rotonda, variante B. Generado por script (rotonda antihoraria, entrada por abajo, salida resaltada). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M7.2,3 L47.2,3 L40.8,45 L0.8,45 Z" android:fillColor="#D8232A" android:strokeColor="#FFFFFF" android:strokeWidth="1.6" android:strokeLineJoin="miter" android:strokeLineCap="butt" />
+    <path android:pathData="M1.6,39.5 L41,39.5 L40.8,45 L0.8,45 Z" android:fillColor="#8F1218" />
+    <group android:translateX="0" android:translateY="0" android:scaleX="0.82" android:scaleY="0.82" android:pivotX="24" android:pivotY="24">
+    <path android:pathData="M35,24 A11,11 0 1 0 13,24 A11,11 0 1 0 35,24 Z" android:strokeColor="#99FFFFFF" android:strokeWidth="4.0" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M18.34,33.9 L11.55,32.2 L16.65,27.11 Z" android:fillColor="#FFFFFF" />
+    <path android:pathData="M24,35 A11,11 0 1 0 13,24" android:strokeColor="#FFFFFF" android:strokeWidth="4.4" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M24,46 L24,35" android:strokeColor="#FFFFFF" android:strokeWidth="4.4" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M13,24 L9.5,24" android:strokeColor="#FFFFFF" android:strokeWidth="4.4" android:strokeLineJoin="round" android:strokeLineCap="butt" />
+    <path android:pathData="M2,24 L10.5,29.6 L10.5,18.4 Z" android:fillColor="#FFFFFF" />
+    </group>
+</vector>

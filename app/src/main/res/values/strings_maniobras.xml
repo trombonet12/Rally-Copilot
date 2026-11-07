@@ -20,4 +20,6 @@
     <string name="maniobra_ferry">Ferry</string>
     <string name="maniobra_otra">Otra maniobra</string>
     <string name="maniobra_luego">Luego</string>
+    <string name="maniobra_luego_rotonda">Rotonda · %1$d.ª salida</string>
+    <string name="maniobra_luego_rotonda_via">Rotonda · %1$d.ª · %2$s</string>
 </resources>
