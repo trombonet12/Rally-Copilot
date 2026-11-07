@@ -60,13 +60,6 @@ data class PasadaEntity(
     val puntosHastaMs: Long? = null,
 )
 
-/** Resumen de las pasadas de un tramo (consulta, no tabla). */
-data class ResumenPasadas(
-    val tramoId: String,
-    val pasadas: Int,
-    val mejorMs: Long,
-)
-
 /** Fila de la lista de tramos: el tramo con el resumen de sus pasadas (consulta, no tabla). */
 data class FilaResumenTramo(
     val id: String,

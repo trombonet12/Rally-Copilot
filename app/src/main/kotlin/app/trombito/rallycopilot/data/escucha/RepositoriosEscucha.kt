@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.escucha
 
+import android.database.sqlite.SQLiteConstraintException
 import app.trombito.rallycopilot.data.db.EdicionNotaEntity
 import app.trombito.rallycopilot.data.db.EdicionesDao
 import app.trombito.rallycopilot.data.db.MarcaEntity
@@ -112,7 +113,7 @@ class RepositorioMarcasRoom(
         marca: Marca,
         posicion: PuntoGeo?,
     ) {
-        dao.insertar(
+        val entidad =
             MarcaEntity(
                 posicionM = marca.posicionM,
                 tiempoMs = marca.tiempoMs,
@@ -120,8 +121,13 @@ class RepositorioMarcasRoom(
                 lat = posicion?.lat,
                 lon = posicion?.lon,
                 etiqueta = marca.etiqueta,
-            ),
-        )
+            )
+        try {
+            dao.insertar(entidad)
+        } catch (_: SQLiteConstraintException) {
+            // El tramo se borró mientras se marcaba (FK desde Room v17): la marca se queda sin tramo.
+            dao.insertar(entidad.copy(tramoId = null))
+        }
     }
 
     override suspend fun deTramo(tramoId: String): List<MarcaConPosicion> =

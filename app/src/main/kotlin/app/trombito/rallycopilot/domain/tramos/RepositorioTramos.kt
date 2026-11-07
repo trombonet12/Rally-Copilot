@@ -4,15 +4,6 @@ import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.flow.Flow
 
-/** Tramo guardado con su resumen: [pasadas] hechas y [mejorTotalMs] (null si aún no tiene ninguna). */
-data class TramoGuardado(
-    val tramo: Tramo,
-    val nombre: String?,
-    val creadoEnMs: Long,
-    val pasadas: Int,
-    val mejorTotalMs: Long?,
-)
-
 /** Un tramo listo para cronometrar y su mejor pasada hasta ahora (null si no tiene ninguna). */
 data class TramoCronometrable(
     val tramo: Tramo,
@@ -87,9 +78,6 @@ data class EstadisticasPerfil(
  */
 @Suppress("TooManyFunctions") // el contrato del almacén de tramos: crono, lista, edición y análisis
 interface RepositorioTramos {
-    /** Todos los tramos, el más reciente primero, con su número de pasadas y mejor tiempo. */
-    fun observar(): Flow<List<TramoGuardado>>
-
     /**
      * Lista de «Mis tramos» según el [filtro], por último uso (el más reciente primero). Con REPETIDOS solo entran
      * los de al menos dos pasadas.

@@ -28,6 +28,7 @@ interface GuiadoPendienteDao {
     suspend fun borrar()
 }
 
+@Suppress("TooManyFunctions") // recorridos, sus puntos y el factor de calibración que se guarda al cerrarlos
 @Dao
 abstract class RecorridosDao {
     @Insert
@@ -47,6 +48,16 @@ abstract class RecorridosDao {
 
     @Query("SELECT * FROM recorrido WHERE finMs IS NOT NULL ORDER BY inicioMs DESC, id DESC")
     abstract fun observarTerminados(): Flow<List<RecorridoEntity>>
+
+    /** Ids de los [limite] recorridos terminados más recientes (el orden de [observarTerminados]). */
+    @Query("SELECT id FROM recorrido WHERE finMs IS NOT NULL ORDER BY inicioMs DESC, id DESC LIMIT :limite")
+    abstract suspend fun idsTerminadosRecientes(limite: Int): List<Long>
+
+    @Query("SELECT * FROM calibracion WHERE id = $FILA_UNICA")
+    abstract suspend fun calibracion(): CalibracionEntity?
+
+    @Upsert
+    abstract suspend fun guardarCalibracion(calibracion: CalibracionEntity)
 
     @Query("SELECT id FROM recorrido WHERE finMs IS NULL ORDER BY id")
     abstract suspend fun idsEnCurso(): List<Long>

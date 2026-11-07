@@ -252,22 +252,23 @@ class SesionNavegacionTest {
     @Test
     fun `modo libre graba por lotes y suma la distancia`() =
         runTest {
-            // 25 posiciones separadas ~10 m al norte: 240 m en total.
-            val puntos = List(25) { p(0.0, it * 10.0) }
+            // 70 posiciones separadas ~10 m al norte: 690 m en total; el lote es de 30 puntos.
+            val puntos = List(70) { p(0.0, it * 10.0) }
             val e = escenario(FuenteFalsa(puntos))
             val trabajo = lanzar(e, SolicitudNavegacion.Libre)
-            advanceTimeBy(24_500)
+            advanceTimeBy(69_500)
             runCurrent()
 
             val ultimo = e.estados.last() as EstadoNavegacion.Libre
-            assertEquals(240.0, ultimo.distanciaM, 5.0)
+            assertEquals(690.0, ultimo.distanciaM, 5.0)
             assertEquals(0L, ultimo.desdeMs)
-            assertEquals(listOf(10, 10), e.recorridos.tamanos)
+            assertEquals(listOf(30, 30), e.recorridos.tamanos)
             assertTrue(e.recorridos.terminados.isEmpty())
 
             trabajo.cancel()
             runCurrent()
-            assertEquals(listOf(10, 10, 5), e.recorridos.tamanos)
+            // Al terminar se vuelcan siempre los puntos pendientes, aunque no llenen un lote.
+            assertEquals(listOf(30, 30, 10), e.recorridos.tamanos)
             assertEquals(listOf(RecorridosFalso.ID), e.recorridos.terminados)
             assertEquals(null, e.recorridos.destino)
         }

@@ -2,6 +2,8 @@ package app.trombito.rallycopilot.data.db
 
 import androidx.room.Dao
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
@@ -9,9 +11,21 @@ import androidx.room.Query
 /**
  * Marca dejada con la orden de voz «marca aquí» o «avisa radar aquí» ([etiqueta] `radar`). [posicionM] son metros
  * sobre la traza del tramo activo (o sobre la hoja de notas si no hay tramo); [tramoId] es el tramo activo (o null);
- * [lat] y [lon] son la coordenada si se conoce.
+ * [lat] y [lon] son la coordenada si se conoce. Se borra en cascada con su tramo.
  */
-@Entity(tableName = "marca")
+@Entity(
+    tableName = "marca",
+    foreignKeys =
+        [
+            ForeignKey(
+                entity = TramoEntity::class,
+                parentColumns = ["id"],
+                childColumns = ["tramoId"],
+                onDelete = ForeignKey.CASCADE,
+            ),
+        ],
+    indices = [Index(value = ["tramoId"])],
+)
 data class MarcaEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val posicionM: Double,

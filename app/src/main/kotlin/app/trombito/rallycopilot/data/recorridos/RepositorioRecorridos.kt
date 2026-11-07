@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.recorridos
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 
 /** Recorrido grabado y terminado (>= [RepositorioRecorridos.DISTANCIA_MINIMA_M]). */
 data class Recorrido(
@@ -43,7 +44,20 @@ interface RepositorioRecorridos {
 
     suspend fun borrar(id: Long)
 
+    /**
+     * Factor de calibración de las notas con los [MAX_CALIBRACION] recorridos terminados más recientes; null si no hay
+     * curvas bastantes. Esta versión lo calcula leyendo los puntos (pesado: llamar en un dispatcher de cómputo); el
+     * almacén de Room lo guarda al cerrar cada recorrido y aquí solo lee ese valor.
+     */
+    suspend fun factorCalibracion(): Double? {
+        val ids = listar().first().take(MAX_CALIBRACION).map { it.id }
+        return calcularFactorCalibracion(ids.map { puntos(it) })
+    }
+
     companion object {
         const val DISTANCIA_MINIMA_M = 1_000.0
+
+        /** Cuántos recorridos recientes entran en la calibración. */
+        const val MAX_CALIBRACION = 30
     }
 }

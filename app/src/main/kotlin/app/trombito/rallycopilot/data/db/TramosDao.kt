@@ -15,17 +15,11 @@ abstract class TramosDao {
     @Insert
     abstract suspend fun insertarPasada(pasada: PasadaEntity): Long
 
-    @Query("SELECT * FROM tramo ORDER BY creadoEn DESC, id")
-    abstract fun observarTramos(): Flow<List<TramoEntity>>
-
     @Query("SELECT * FROM tramo ORDER BY creadoEn, id")
     abstract suspend fun tramos(): List<TramoEntity>
 
     @Query("SELECT * FROM tramo WHERE id = :id")
     abstract suspend fun tramo(id: String): TramoEntity?
-
-    @Query("SELECT tramoId, COUNT(*) AS pasadas, MIN(totalMs) AS mejorMs FROM pasada GROUP BY tramoId")
-    abstract fun observarResumenes(): Flow<List<ResumenPasadas>>
 
     @Query("SELECT * FROM pasada WHERE tramoId = :tramoId ORDER BY totalMs, id LIMIT 1")
     abstract suspend fun mejorPasada(tramoId: String): PasadaEntity?

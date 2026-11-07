@@ -474,7 +474,8 @@ class SesionNavegacion(
     }
 
     companion object {
-        const val TAMANO_LOTE = 10
+        /** Puntos por escritura en Room (~30 s): menos transacciones con la pantalla apagada. */
+        const val TAMANO_LOTE = 30
 
         /** Nombre con que se graba el recorrido de una pasada de reconocimiento. */
         const val NOMBRE_RECONOCIMIENTO = "Reconocimiento"

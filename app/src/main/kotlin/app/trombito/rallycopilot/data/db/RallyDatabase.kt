@@ -17,8 +17,9 @@ import androidx.room.RoomDatabase
             PasadaEntity::class,
             MarcaEntity::class,
             EdicionNotaEntity::class,
+            CalibracionEntity::class,
         ],
-    version = 16,
+    version = RallyDatabase.VERSION,
     exportSchema = true,
 )
 abstract class RallyDatabase : RoomDatabase() {
@@ -40,5 +41,8 @@ abstract class RallyDatabase : RoomDatabase() {
 
     companion object {
         const val NOMBRE = "rally.db"
+
+        /** Versión del esquema; `TODAS_LAS_MIGRACIONES` tiene que llegar hasta aquí. */
+        const val VERSION = 17
     }
 }

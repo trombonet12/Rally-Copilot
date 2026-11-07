@@ -7,7 +7,6 @@ import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
-import app.trombito.rallycopilot.domain.tramos.TramoGuardado
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.MarcaTiempo
 import app.trombito.rallycopilot.motor.tramos.Pasada
@@ -79,8 +78,6 @@ class FalsoRepositorioTramos(
 
     /** Si no es null, `borrar` lo lanza (una base que falla). */
     var falloAlBorrar: Throwable? = null
-
-    override fun observar(): Flow<List<TramoGuardado>> = MutableStateFlow(emptyList())
 
     override fun observarResumenes(filtro: FiltroTramos): Flow<List<ResumenTramo>> =
         resumenesMutable.map { lista ->

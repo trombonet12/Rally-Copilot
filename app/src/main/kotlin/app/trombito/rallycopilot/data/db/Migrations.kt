@@ -227,3 +227,59 @@ val MIGRATION_15_16: Migration =
             db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `casaLon` REAL")
         }
     }
+
+/**
+ * v16 -> v17: la tabla `marca` gana la clave foránea `tramoId -> tramo(id)` con borrado en cascada y su índice (antes
+ * las marcas de un tramo borrado quedaban huérfanas para siempre), y nace `calibracion`, el factor de calibración de
+ * las notas guardado al cerrar cada recorrido. SQLite no añade claves foráneas a una tabla existente: se reconstruye
+ * `marca` copiando solo las marcas sin tramo o con un tramo que existe (las huérfanas se descartan). El SQL es el
+ * `createSql` de `schemas/.../17.json`.
+ */
+val MIGRATION_16_17: Migration =
+    object : Migration(16, 17) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `marca_nueva` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`posicionM` REAL NOT NULL, `tiempoMs` INTEGER NOT NULL, `tramoId` TEXT, `lat` REAL, `lon` REAL, " +
+                    "`etiqueta` TEXT, FOREIGN KEY(`tramoId`) REFERENCES `tramo`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL(
+                "INSERT INTO `marca_nueva` (`id`, `posicionM`, `tiempoMs`, `tramoId`, `lat`, `lon`, `etiqueta`) " +
+                    "SELECT `id`, `posicionM`, `tiempoMs`, `tramoId`, `lat`, `lon`, `etiqueta` FROM `marca` " +
+                    "WHERE `tramoId` IS NULL OR `tramoId` IN (SELECT `id` FROM `tramo`)",
+            )
+            db.execSQL("DROP TABLE `marca`")
+            db.execSQL("ALTER TABLE `marca_nueva` RENAME TO `marca`")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_marca_tramoId` ON `marca` (`tramoId`)")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `calibracion` (`id` INTEGER NOT NULL, `clave` TEXT NOT NULL, " +
+                    "`factor` REAL, PRIMARY KEY(`id`))",
+            )
+        }
+    }
+
+/**
+ * Todas las migraciones, en orden, de la v1 a la versión actual de [RallyDatabase]. Es la única lista: la usan la base
+ * de producción y los tests; una migración nueva se añade aquí y `MigracionRoomTest` vigila que la cadena no tenga
+ * huecos hasta `RallyDatabase.version`.
+ */
+val TODAS_LAS_MIGRACIONES: Array<Migration> =
+    arrayOf(
+        MIGRATION_1_2,
+        MIGRATION_2_3,
+        MIGRATION_3_4,
+        MIGRATION_4_5,
+        MIGRATION_5_6,
+        MIGRATION_6_7,
+        MIGRATION_7_8,
+        MIGRATION_8_9,
+        MIGRATION_9_10,
+        MIGRATION_10_11,
+        MIGRATION_11_12,
+        MIGRATION_12_13,
+        MIGRATION_13_14,
+        MIGRATION_14_15,
+        MIGRATION_15_16,
+        MIGRATION_16_17,
+    )

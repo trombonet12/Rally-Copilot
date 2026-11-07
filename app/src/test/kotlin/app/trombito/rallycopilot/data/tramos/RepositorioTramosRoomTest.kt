@@ -99,16 +99,17 @@ class RepositorioTramosRoomTest {
 
             repositorio.crear(t, "Sa Calobra", null, 5_000L, primera, OrigenPasada(4_000L))
 
-            val guardado = repositorio.observar().first().single()
-            assertEquals(t.id, guardado.tramo.id)
-            assertEquals("Sa Calobra", guardado.nombre)
-            assertEquals(5_000L, guardado.creadoEnMs)
-            assertEquals(1, guardado.pasadas)
-            assertEquals(primera.totalMs, guardado.mejorTotalMs)
-            assertEquals(t.longitudM, guardado.tramo.longitudM, 0.0)
-            assertEquals(t.sectores, guardado.tramo.sectores)
-            assertEquals(t.microsectores, guardado.tramo.microsectores)
-            val traza = guardado.tramo.traza
+            val resumen = repositorio.observarResumenes().first().single()
+            assertEquals(t.id, resumen.id)
+            assertEquals("Sa Calobra", resumen.nombre)
+            assertEquals(1, resumen.pasadas)
+            assertEquals(primera.totalMs, resumen.mejorTotalMs)
+            assertEquals(t.longitudM, resumen.longitudM, 0.0)
+            val guardado = checkNotNull(repositorio.tramo(t.id))
+            assertEquals(t.longitudM, guardado.longitudM, 0.0)
+            assertEquals(t.sectores, guardado.sectores)
+            assertEquals(t.microsectores, guardado.microsectores)
+            val traza = guardado.traza
             assertEquals(t.traza.size, traza.size)
             assertEquals(t.traza.first().lat, traza.first().lat, 1e-6)
             assertEquals(t.traza.last().lon, traza.last().lon, 1e-6)
@@ -132,7 +133,7 @@ class RepositorioTramosRoomTest {
             for (d in listOf(0.0, 333.0, t.sectores[0], 1234.5, t.metaM)) {
                 assertEquals(checkNotNull(rapida.tiempoEn(d)), checkNotNull(mejor.tiempoEn(d)), 1.0)
             }
-            val resumen = repositorio.observar().first().single()
+            val resumen = repositorio.observarResumenes().first().single()
             assertEquals(3, resumen.pasadas)
             val observada = repositorio.observarMejorPasada(t.id).first()
             assertEquals(rapida.totalMs, observada?.totalMs)
@@ -153,9 +154,9 @@ class RepositorioTramosRoomTest {
             assertEquals(setOf("a", "b"), lista.keys)
             assertEquals(pasada(a, 95.0).totalMs, lista.getValue("a").mejor?.totalMs)
             assertEquals(pasada(b, 90.0).totalMs, lista.getValue("b").mejor?.totalMs)
-            // El más reciente primero en el flujo de la lista.
-            val ids = repositorio.observar().first().map { it.tramo.id }
-            assertEquals(listOf("b", "a"), ids)
+            // El de uso más reciente primero en el flujo de la lista.
+            val ids = repositorio.observarResumenes().first().map { it.id }
+            assertEquals(listOf("a", "b"), ids)
         }
 
     @Test
@@ -165,7 +166,7 @@ class RepositorioTramosRoomTest {
             repositorio.crear(t, null, null, 1L, pasada(t, 100.0), OrigenPasada(10L))
             repositorio.borrar(t.id)
 
-            assertTrue(repositorio.observar().first().isEmpty())
+            assertTrue(repositorio.observarResumenes().first().isEmpty())
             assertNull(repositorio.mejorPasada(t.id))
             val bd = base.openHelper.writableDatabase
             assertTrue(bd.query("SELECT * FROM pasada").use { it.count == 0 })
@@ -185,10 +186,7 @@ class RepositorioTramosRoomTest {
                     "VALUES ('malo', NULL, '!!', 1000.0, 'x', '', 2)",
             )
 
-            val cronometrables = repositorio.cronometrables()
-            assertEquals(listOf(t.id), cronometrables.map { it.tramo.id })
-            val guardados = repositorio.observar().first()
-            assertEquals(listOf(t.id), guardados.map { it.tramo.id })
+            assertEquals(listOf(t.id), repositorio.cronometrables().map { it.tramo.id })
         }
 
     @Test
@@ -246,14 +244,7 @@ class RepositorioTramosRoomTest {
                     .single()
                     .nombre,
             )
-            assertEquals(
-                "La curva de Joan",
-                repositorio
-                    .observar()
-                    .first()
-                    .single()
-                    .nombre,
-            )
+            assertEquals("La curva de Joan", base.tramosDao().tramo(t.id)?.nombre)
 
             repositorio.renombrar(t.id, "   ")
             val vuelto = repositorio.observarResumenes().first().single()

@@ -22,7 +22,6 @@ import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
-import app.trombito.rallycopilot.domain.tramos.TramoGuardado
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.PrioridadVoz
@@ -190,8 +189,6 @@ private class TramosEnMemoria : RepositorioTramos {
 
     /** Cuántos guardados de pasada fallan aún (simula la base caída). */
     var fallosDeGuardado = 0
-
-    override fun observar(): Flow<List<TramoGuardado>> = emptyFlow()
 
     override fun observarResumenes(filtro: FiltroTramos): Flow<List<ResumenTramo>> = emptyFlow()
 

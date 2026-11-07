@@ -12,7 +12,6 @@ import app.trombito.rallycopilot.domain.tramos.PuntoPasada
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
-import app.trombito.rallycopilot.domain.tramos.TramoGuardado
 import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.CoroutineDispatcher
@@ -29,17 +28,6 @@ class RepositorioTramosRoom(
     /** Se avisa al crear un tramo para bajar el satélite de detalle de su corredor. */
     private val precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
 ) : RepositorioTramos {
-    override fun observar(): Flow<List<TramoGuardado>> =
-        combine(dao.observarTramos(), dao.observarResumenes()) { tramos, resumenes ->
-            val porTramo = resumenes.associateBy { it.tramoId }
-            tramos.mapNotNull { fila ->
-                fila.aTramo()?.let {
-                    val resumen = porTramo[fila.id]
-                    TramoGuardado(it, fila.nombre, fila.creadoEn, resumen?.pasadas ?: 0, resumen?.mejorMs)
-                }
-            }
-        }
-
     override fun observarResumenes(filtro: FiltroTramos): Flow<List<ResumenTramo>> =
         dao.observarFilasResumen().map { filas ->
             filas

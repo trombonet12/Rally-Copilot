@@ -10,22 +10,8 @@ import app.trombito.rallycopilot.data.datosmapa.SembradorDatos
 import app.trombito.rallycopilot.data.datosmapa.URL_MANIFEST
 import app.trombito.rallycopilot.data.db.AjustesMapasDao
 import app.trombito.rallycopilot.data.db.DatosMapaDao
-import app.trombito.rallycopilot.data.db.MIGRATION_10_11
-import app.trombito.rallycopilot.data.db.MIGRATION_11_12
-import app.trombito.rallycopilot.data.db.MIGRATION_12_13
-import app.trombito.rallycopilot.data.db.MIGRATION_13_14
-import app.trombito.rallycopilot.data.db.MIGRATION_14_15
-import app.trombito.rallycopilot.data.db.MIGRATION_15_16
-import app.trombito.rallycopilot.data.db.MIGRATION_1_2
-import app.trombito.rallycopilot.data.db.MIGRATION_2_3
-import app.trombito.rallycopilot.data.db.MIGRATION_3_4
-import app.trombito.rallycopilot.data.db.MIGRATION_4_5
-import app.trombito.rallycopilot.data.db.MIGRATION_5_6
-import app.trombito.rallycopilot.data.db.MIGRATION_6_7
-import app.trombito.rallycopilot.data.db.MIGRATION_7_8
-import app.trombito.rallycopilot.data.db.MIGRATION_8_9
-import app.trombito.rallycopilot.data.db.MIGRATION_9_10
 import app.trombito.rallycopilot.data.db.RallyDatabase
+import app.trombito.rallycopilot.data.db.TODAS_LAS_MIGRACIONES
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import dagger.Module
@@ -42,28 +28,14 @@ import javax.inject.Singleton
 object DatosMapaModule {
     @Provides
     @Singleton
+    @Suppress("SpreadOperator") // una sola vez al abrir la base; Room solo acepta las migraciones como vararg
     fun baseDeDatos(
         @ApplicationContext contexto: Context,
     ): RallyDatabase =
         Room
             .databaseBuilder(contexto, RallyDatabase::class.java, RallyDatabase.NOMBRE)
-            .addMigrations(
-                MIGRATION_1_2,
-                MIGRATION_2_3,
-                MIGRATION_3_4,
-                MIGRATION_4_5,
-                MIGRATION_5_6,
-                MIGRATION_6_7,
-                MIGRATION_7_8,
-                MIGRATION_8_9,
-                MIGRATION_9_10,
-                MIGRATION_10_11,
-                MIGRATION_11_12,
-                MIGRATION_12_13,
-                MIGRATION_13_14,
-                MIGRATION_14_15,
-                MIGRATION_15_16,
-            ).build()
+            .addMigrations(*TODAS_LAS_MIGRACIONES)
+            .build()
 
     @Provides
     fun datosMapaDao(base: RallyDatabase): DatosMapaDao = base.datosMapaDao()
