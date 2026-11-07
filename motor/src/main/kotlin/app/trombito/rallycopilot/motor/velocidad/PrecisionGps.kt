@@ -7,19 +7,17 @@ package app.trombito.rallycopilot.motor.velocidad
  */
 object PrecisionGps {
     /**
-     * Peor error (m) con el que una fijación es útil para velocidad, ruta, notas y señal GPS (banda y voz). Usan esta
-     * constante `DetectorSenalGps` y `MapaViewModel`; la migrarán `SesionNavegacion.PRECISION_MAX_M` (hoy 30,0) en el
-     * lote de la sesión.
+     * Peor error (m) con el que una fijación es útil para velocidad, ruta, notas y señal GPS (banda y voz). La usan
+     * `DetectorSenalGps`, `CanalizacionGps` y `SesionNavegacion`.
      */
     const val FIJACION_UTIL_M = 30.0
 
     /**
-     * Peor error (m) con el que una fijación sirve para detectar la salida de un tramo. Aún sin usar: lo adoptará
-     * `DetectorSalida` (data/tramos) en el lote de la sesión.
+     * Peor error (m) con el que una fijación sirve para detectar la salida de un tramo (`DetectorSalida`).
      */
     const val SALIDA_M = 20.0
 
-    /** Error máximo (grados) del rumbo del receptor para fiarse de él. Aún sin usar: lo migrará otro lote. */
+    /** Error máximo (grados) del rumbo del receptor para fiarse de él (`FuenteUbicacionGps`). */
     const val RUMBO_MAX_GRADOS = 20.0
 
     /** `true` si una fijación con error [precisionM] es útil; sin precisión conocida (`null`) se da por útil. */

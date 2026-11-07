@@ -1,6 +1,6 @@
 package app.trombito.rallycopilot.di
 
-import app.trombito.rallycopilot.data.ubicacion.FuenteUbicacionGps
+import app.trombito.rallycopilot.data.ubicacion.PosicionEnVivo
 import app.trombito.rallycopilot.data.vias.CargadorVias
 import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.data.vias.ProveedorViaActualOsm
@@ -15,7 +15,7 @@ import dagger.hilt.components.SingletonComponent
 @InstallIn(SingletonComponent::class)
 abstract class UbicacionModule {
     @Binds
-    abstract fun fuenteUbicacion(implementacion: FuenteUbicacionGps): FuenteUbicacion
+    abstract fun fuenteUbicacion(implementacion: PosicionEnVivo): FuenteUbicacion
 
     @Binds
     abstract fun proveedorViaActual(implementacion: ProveedorViaActualOsm): ProveedorViaActual

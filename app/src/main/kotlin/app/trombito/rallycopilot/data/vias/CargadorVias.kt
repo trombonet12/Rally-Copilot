@@ -32,6 +32,12 @@ class DatosVias(
 /** Da las [DatosVias] de los datos instalados, o null si no hay vías (ausentes o ilegibles). */
 interface FuenteVias {
     suspend fun datos(): DatosVias?
+
+    /**
+     * Las vías ya cargadas, sin tocar el disco ni cambiar de hilo (null si aún no se cargaron o no hay). Para el uso
+     * por fijación; [datos] revalida el archivo y se llama al empezar una conducción (REN-16).
+     */
+    fun enMemoria(): DatosVias? = null
 }
 
 /**
@@ -59,6 +65,8 @@ class CargadorVias internal constructor(
     )
 
     private val mutex = Mutex()
+
+    @Volatile
     private var cargado: Cargado? = null
 
     /** Veces que se ha leído el archivo de disco (para comprobar que se comparte la carga). */
@@ -69,6 +77,8 @@ class CargadorVias internal constructor(
         siembra.esperar()
         return leerDatos()
     }
+
+    override fun enMemoria(): DatosVias? = cargado?.datos
 
     private suspend fun leerDatos(): DatosVias? =
         mutex.withLock {

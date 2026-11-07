@@ -71,9 +71,27 @@ class CargadorViasTest {
 
             escribirVias(maxspeed = "80")
 
-            assertEquals(80, proveedor.viaEn(fijacion())?.limiteKmh)
+            // Por fijación no se mira el disco (REN-16): sigue lo cargado hasta que se revalide.
+            assertEquals(60, proveedor.viaEn(fijacion())?.limiteKmh)
+            assertEquals(1, cargador.lecturas)
+
+            // Al empezar una conducción las notas piden los datos y eso revalida el archivo.
             assertNotSame(primero, cargador.datos())
+            assertEquals(80, proveedor.viaEn(fijacion())?.limiteKmh)
             assertEquals(2, cargador.lecturas)
+        }
+
+    @Test
+    fun `en memoria no hay nada hasta la primera carga y despues es el mismo indice`() =
+        runTest(UnconfinedTestDispatcher()) {
+            escribirVias()
+            val cargador = CargadorVias(vias, UnconfinedTestDispatcher())
+            assertNull(cargador.enMemoria())
+
+            val cargados = checkNotNull(cargador.datos())
+
+            assertSame(cargados, cargador.enMemoria())
+            assertEquals(1, cargador.lecturas)
         }
 
     @Test

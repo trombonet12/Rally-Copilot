@@ -13,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -224,6 +225,45 @@ class FuenteUbicacionGpsTest {
 
             assertFalse(fuente.tienePermiso())
             assertTrue(fuente.fijaciones().toList().isEmpty())
+        }
+
+    @Test
+    fun `con el gps fijado se retira el fused y si el gps se calla mas de 5 s se vuelve a poner`() =
+        runTest(UnconfinedTestDispatcher()) {
+            var relojMs = 0L
+            val ahorrando = FuenteUbicacionGps(app) { relojMs }
+            val recibidas = mutableListOf<Fijacion>()
+            val job = launch { ahorrando.fijaciones().toList(recibidas) }
+
+            simular(posicion(39.6, 2.9, segundo = 1))
+            simular(posicion(39.6, 2.9001, segundo = 2))
+            simular(posicion(39.6, 2.9002, segundo = 3))
+            assertEquals(3, recibidas.size)
+
+            // Con el GPS en marcha el fused ya no está registrado: su fijación (que el selector aceptaría) no llega.
+            simular(aproximada(39.7, 2.95, segundo = 10))
+            assertEquals(3, recibidas.size)
+
+            // El GPS lleva callado más de 5 s: la vigilancia lo vuelve a poner.
+            relojMs = 6_000
+            advanceTimeBy(1_100)
+            simular(aproximada(39.7, 2.95, segundo = 20))
+            assertEquals(4, recibidas.size)
+            job.cancel()
+        }
+
+    @Test
+    fun `con fijaciones del gps poco precisas el fused sigue puesto`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val recibidas = mutableListOf<Fijacion>()
+            val job = launch { fuente.fijaciones().toList(recibidas) }
+
+            repeat(3) { simular(posicion(39.6, 2.9, segundo = 1L + it).apply { accuracy = 25f }) }
+            assertEquals(3, recibidas.size)
+
+            simular(aproximada(39.7, 2.95, segundo = 10))
+            assertEquals(4, recibidas.size)
+            job.cancel()
         }
 
     @Test

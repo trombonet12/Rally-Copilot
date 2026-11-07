@@ -106,12 +106,15 @@ class ProveedorViaActualOsmTest {
     fun `recarga las vias cuando el archivo cambia`() =
         runTest(UnconfinedTestDispatcher()) {
             val archivo = archivoDeVias(maxspeedPrimera = "60")
-            val proveedor = proveedor(archivo)
+            val cargador = CargadorVias(archivo, UnconfinedTestDispatcher())
+            val proveedor = ProveedorViaActualOsm(cargador)
             assertEquals(60, proveedor.viaEn(fijacion(39.6, 2.9005))?.limiteKmh)
             val modificadoAntes = archivo.lastModified()
 
             escribir(archivo, linea(1, "80", "MA-1", "Carretera de prueba", "396"))
             archivo.setLastModified(modificadoAntes + 5000)
+            // El archivo se revalida al empezar una conducción (las notas piden los datos), no en cada fijación.
+            cargador.datos()
 
             assertEquals(80, proveedor.viaEn(fijacion(39.6, 2.9005))?.limiteKmh)
             assertNull(proveedor.viaEn(fijacion(39.7, 2.9005)))
@@ -121,10 +124,12 @@ class ProveedorViaActualOsmTest {
     fun `si el archivo desaparece devuelve null y al volver se carga de nuevo`() =
         runTest(UnconfinedTestDispatcher()) {
             val archivo = archivoDeVias()
-            val proveedor = proveedor(archivo)
+            val cargador = CargadorVias(archivo, UnconfinedTestDispatcher())
+            val proveedor = ProveedorViaActualOsm(cargador)
             assertEquals(60, proveedor.viaEn(fijacion(39.6, 2.9005))?.limiteKmh)
 
             archivo.delete()
+            cargador.datos()
             assertNull(proveedor.viaEn(fijacion(39.6, 2.9005)))
 
             archivoDeVias()

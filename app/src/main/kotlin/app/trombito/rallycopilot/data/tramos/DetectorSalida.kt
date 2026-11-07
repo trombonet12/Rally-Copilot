@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.tramos
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.velocidad.PrecisionGps
 import kotlin.math.max
 
 /**
@@ -10,7 +11,7 @@ import kotlin.math.max
  * precisión de la fijación) de la primera posición, lo que ocurra antes. Ese instante es la salida: el cronómetro de la
  * conducción y el tramo que se crea del recorrido empiezan ahí y no al entrar en el mapa.
  *
- * Solo cuentan las fijaciones con precisión conocida y de [PRECISION_MAXIMA_M] o mejor (la deriva del GPS en parado
+ * Solo cuentan las fijaciones con precisión conocida y de [PrecisionGps.SALIDA_M] o mejor (la deriva del GPS en parado
  * da saltos y velocidades falsas con precisión mala); el resto se ignoran, también como origen: el origen es la
  * primera fijación válida. No es concurrente; el tiempo es el de las fijaciones.
  */
@@ -25,7 +26,7 @@ internal class DetectorSalida {
     /** Procesa una fijación en orden temporal; devuelve [salidaMs]. */
     fun alFijar(f: Fijacion): Long? {
         val precision = f.precisionM
-        if (salidaMs == null && precision != null && precision <= PRECISION_MAXIMA_M) evaluar(f, precision)
+        if (salidaMs == null && precision != null && precision <= PrecisionGps.SALIDA_M) evaluar(f, precision)
         return salidaMs
     }
 
@@ -60,8 +61,6 @@ internal class DetectorSalida {
         /** Distancia mínima (m) al origen para dar la salida, o el doble de la precisión si es mayor. */
         const val DISTANCIA_MINIMA_M = 50.0
 
-        /** Peor precisión (m) con la que una fijación cuenta. */
-        const val PRECISION_MAXIMA_M = 20.0
         private const val FACTOR_PRECISION = 2.0
         private const val KMH_POR_MS = 3.6
     }

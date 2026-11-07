@@ -48,17 +48,22 @@ class MapaViewModelEstelaTest {
     }
 
     private fun TestScope.crear(): MapaViewModel {
+        val ajustes = FalsoRepositorioAjustesConduccion()
         val vm =
             MapaViewModel(
                 repositorio,
-                ubicacion,
-                FalsoProveedorVia(),
-                FalsoRepositorioAjustesConduccion(),
+                CanalizacionGps(
+                    ubicacion,
+                    FalsoProveedorVia(),
+                    navegacion,
+                    ajustes,
+                    FalsoLocutor(),
+                    reloj = { testScheduler.currentTime },
+                ),
+                ajustes,
                 navegacion,
                 SavedStateHandle(),
-                FalsoLocutor(),
             )
-        vm.reloj = { testScheduler.currentTime }
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }

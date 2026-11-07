@@ -1,6 +1,5 @@
 package app.trombito.rallycopilot.ui.mapa
 
-import android.os.SystemClock
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,28 +10,13 @@ import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
-import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
-import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
-import app.trombito.rallycopilot.domain.vias.ViaActual
-import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import app.trombito.rallycopilot.motor.velocidad.EstimadorVelocidad
-import app.trombito.rallycopilot.motor.velocidad.Fijacion
-import app.trombito.rallycopilot.motor.velocidad.PrecisionGps
-import app.trombito.rallycopilot.motor.velocidad.kmh
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -44,59 +28,34 @@ import javax.inject.Inject
  * `uiState` con el ciclo de vida) con la velocidad estimada, la vía actual con su límite y el zoom automático.
  */
 @HiltViewModel
-@OptIn(ExperimentalCoroutinesApi::class)
-@Suppress("LongParameterList") // colaboradores inyectados del mapa
 class MapaViewModel
     @Inject
     constructor(
         private val repositorio: RepositorioDatosMapa,
-        ubicacion: FuenteUbicacion,
-        private val vias: ProveedorViaActual,
+        private val canalizacion: CanalizacionGps,
         private val ajustes: RepositorioAjustesConduccion,
         private val navegacion: ControlNavegacion,
         private val guardado: SavedStateHandle,
-        private val locutor: Locutor,
         precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
     ) : ViewModel() {
-        /** Reloj monótono (ms), el mismo de `Fijacion.tiempoMs`; sustituible en los tests. */
-        internal var reloj: () -> Long = { SystemClock.elapsedRealtime() }
-
         private val zoomAutomatico = ZoomAutomatico()
-        private val avisador = AvisadorSenalGps(navegacion, ajustes, locutor)
-        private val recorrido = EstelaRecorrido()
-        private val estelaMutable = MutableStateFlow<List<List<PuntoGeo>>>(emptyList())
 
         /**
-         * Estela de por dónde se ha pasado en el recorrido en curso (las posiciones que pinta el mapa, simplificadas a
-         * pasos de 5 m y con tope de 5.000 puntos); se publica como mucho una vez por segundo y se borra al terminar la
-         * conducción o al cambiar de modo (libre / guiado).
+         * Estela de por dónde se ha pasado en el recorrido en curso (ver [CanalizacionGps.estela]); se borra al
+         * terminar la conducción o al cambiar de modo (libre / guiado).
          */
-        val estela: StateFlow<List<List<PuntoGeo>>> = estelaMutable
+        val estela: StateFlow<List<List<PuntoGeo>>> = canalizacion.estela
 
         init {
             viewModelScope.launch {
                 navegacion.estado.map(::claveRecorrido).distinctUntilChanged().collect {
-                    recorrido.limpiar()
-                    estelaMutable.value = emptyList()
+                    canalizacion.limpiarEstela()
                 }
             }
         }
 
         private val preferencias = ajustes.ajustes
         private val siguiendo = guardado.getStateFlow(CLAVE_SIGUIENDO, true)
-        private val permiso = MutableStateFlow(ubicacion.tienePermiso())
-
-        private data class Lectura(
-            val posicion: Fijacion?,
-            val velocidadKmh: Int?,
-            val via: ViaActual?,
-            /** [posicion] ajustada al camino; es la que pinta el mapa. */
-            val ajustada: Fijacion? = posicion,
-            /** Se perdió el GPS (más de 10 s sin fijación útil tras haberla tenido). */
-            val sinSenal: Boolean = false,
-            /** [via] es el camino al que se ajustó la posición: si no, la placa del panel no es fiable. */
-            val viaCoincide: Boolean = true,
-        )
 
         private val estilos =
             // Se recarga el estilo al cambiar lo instalado o al aparecer/desaparecer el detalle (no con cada tesela).
@@ -108,94 +67,14 @@ class MapaViewModel
             }.distinctUntilChanged()
                 .map { repositorio.estilos() }
 
-        private val lecturas: Flow<Lectura> =
-            permiso.flatMapLatest { concedido ->
-                if (!concedido) {
-                    flowOf(LECTURA_VACIA)
-                } else {
-                    val estimador = EstimadorVelocidad()
-                    val sobreCamino = PosicionSobreCamino(navegacion)
-                    val detector = DetectorSenalGps()
-                    avisador.reiniciar()
-                    var sinSenal = false
-                    var viaPrevia: ViaActual? = null
-                    var ultima = LECTURA_VACIA
-
-                    // Devuelve si cambió el estado de la señal; el avisador decide cuándo habla.
-                    suspend fun refrescarSenal(ahoraMs: Long): Boolean {
-                        val nueva = detector.sinSenal(ahoraMs)
-                        avisador.actualizar(nueva, ahoraMs, detector.ultimaUtilMs)
-                        if (nueva == sinSenal) return false
-                        sinSenal = nueva
-                        return true
-                    }
-                    // Sin fijaciones (túnel, GPS perdido) la velocidad caduca por el reloj, no por una fijación nueva.
-                    // Ambas corrutinas corren en el hilo del colector; solo se recoge con la pantalla visible.
-                    channelFlow {
-                        send(LECTURA_VACIA)
-                        launch {
-                            ubicacion.fijaciones().collect { fijacion ->
-                                detector.fijacion(fijacion, reloj())
-                                refrescarSenal(reloj())
-                                // La posición aproximada de interior (fused/red) salta decenas de metros: se pinta,
-                                // pero no alimenta la velocidad derivada de la posición.
-                                val precisa = PrecisionGps.esUtil(fijacion.precisionM)
-                                val ms =
-                                    if (precisa) {
-                                        estimador.actualizar(fijacion)
-                                    } else {
-                                        estimador.vigente(fijacion.tiempoMs)
-                                    }
-                                val velocidad = ms?.let(::kmh)
-                                // Al ajuste va la velocidad estimada (la del receptor puede faltar). El rumbo mostrado
-                                // sale del camino (ruta o vía), no del bruto; la cruda sigue en `posicion`.
-                                // Sin rumbo del receptor (emulador, fused), el del movimiento: si no, en una vía de
-                                // doble sentido el ajuste solo tendría su propio rumbo previo y se quedaba al revés.
-                                val conVelocidad =
-                                    fijacion.copy(
-                                        velocidadMs = ms ?: fijacion.velocidadMs,
-                                        rumboGrados = fijacion.rumboGrados ?: estimador.rumbo(),
-                                    )
-
-                                fun lectura(via: ViaActual?): Lectura {
-                                    val ajustada = sobreCamino.ajustar(conVelocidad, via)
-                                    val coincide = viaCoincide(ajustada.punto, via)
-                                    return Lectura(fijacion, velocidad, via, ajustada, sinSenal, coincide)
-                                }
-                                // Primero la velocidad: la vía puede tardar (carga perezosa del archivo de vías).
-                                ultima = lectura(viaPrevia)
-                                send(ultima)
-                                viaPrevia = vias.viaEn(fijacion)
-                                ultima = lectura(viaPrevia)
-                                send(ultima)
-                                if (precisa) {
-                                    recorrido.registrar((ultima.ajustada ?: fijacion).punto, reloj())?.let {
-                                        estelaMutable.value = it
-                                    }
-                                }
-                            }
-                        }
-                        launch {
-                            while (true) {
-                                delay(TICK_CADUCIDAD_MS)
-                                val cambioSenal = refrescarSenal(reloj())
-                                val caduca = ultima.velocidadKmh != null && estimador.vigente(reloj()) == null
-                                if (cambioSenal || caduca) {
-                                    ultima =
-                                        ultima.copy(
-                                            velocidadKmh = if (caduca) null else ultima.velocidadKmh,
-                                            sinSenal = sinSenal,
-                                        )
-                                    send(ultima)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
         val uiState: StateFlow<MapaUiState> =
-            combine(repositorio.estado, estilos, preferencias, lecturas, siguiendo) { datos, mapas, pref, lect, sigue ->
+            combine(
+                repositorio.estado,
+                estilos,
+                preferencias,
+                canalizacion.lecturas,
+                siguiendo,
+            ) { datos, mapas, pref, lect, sigue ->
                 MapaUiState(
                     cargando = false,
                     datos = datos,
@@ -268,7 +147,7 @@ class MapaViewModel
 
         /** La UI avisa de si tiene la ubicación precisa (el GPS la exige); al concederse empieza a recoger el GPS. */
         fun onPermisoUbicacion(precisa: Boolean) {
-            permiso.value = precisa
+            canalizacion.permisoConcedido(precisa)
         }
 
         fun onDescartarAviso() {
@@ -277,11 +156,9 @@ class MapaViewModel
 
         private companion object {
             const val PARADA_MS = 5_000L
-            const val TICK_CADUCIDAD_MS = 1_000L
 
             const val CLAVE_SIGUIENDO = "mapa-siguiendo"
             const val CLAVE_CAMARA = "mapa-camara"
             const val TAMANO_CAMARA = 3
-            val LECTURA_VACIA = Lectura(null, null, null)
         }
     }

@@ -10,5 +10,11 @@ import kotlinx.coroutines.flow.Flow
 interface FuenteUbicacion {
     fun fijaciones(): Flow<Fijacion>
 
+    /**
+     * Las mismas fijaciones con velocidad y rumbo estimados ([PosicionEstimada]). Por defecto se calculan en cada
+     * recogida; la implementación de producción las comparte entre todos los consumidores con una sola suscripción.
+     */
+    fun posiciones(): Flow<PosicionEstimada> = fijaciones().conEstimacion()
+
     fun tienePermiso(): Boolean
 }

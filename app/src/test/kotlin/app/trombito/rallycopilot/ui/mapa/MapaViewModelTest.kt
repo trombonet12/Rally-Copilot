@@ -72,9 +72,20 @@ class MapaViewModelTest {
     private lateinit var planificador: TestCoroutineScheduler
 
     private fun crear(guardado: SavedStateHandle = SavedStateHandle()) =
-        MapaViewModel(repositorio, ubicacion, vias, ajustes, navegacion, guardado, locutor).also {
-            it.reloj = { origenRelojMs + (if (::planificador.isInitialized) planificador.currentTime else 0L) }
-        }
+        MapaViewModel(
+            repositorio,
+            CanalizacionGps(
+                ubicacion,
+                vias,
+                navegacion,
+                ajustes,
+                locutor,
+                reloj = { origenRelojMs + (if (::planificador.isInitialized) planificador.currentTime else 0L) },
+            ),
+            ajustes,
+            navegacion,
+            guardado,
+        )
 
     private fun TestScope.recoger(vm: MapaViewModel): Job {
         planificador = testScheduler

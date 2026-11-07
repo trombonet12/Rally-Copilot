@@ -19,6 +19,7 @@ import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
+import app.trombito.rallycopilot.domain.ubicacion.PosicionEstimada
 import app.trombito.rallycopilot.motor.geo.AcumuladorRecorrido
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.DetectorSalidaRuta
@@ -27,8 +28,8 @@ import app.trombito.rallycopilot.motor.ruta.FrasesParada
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.SeguidorRuta
 import app.trombito.rallycopilot.motor.tramos.Tramo
-import app.trombito.rallycopilot.motor.velocidad.EstimadorVelocidad
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.velocidad.PrecisionGps
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -74,8 +75,9 @@ sealed interface SolicitudNavegacion {
  * detección de salida de ruta y el reintento del recálculo usan el reloj monótono de la fijación, que no salta con
  * cambios de hora. Nunca registra coordenadas en logs. Si hay [fabricaNotas], genera y publica las notas de rally
  * de la conducción (guiada: hoja de la ruta; libre: hoja de la carretera prevista); sin ella, no hay notas. Ignora las
- * fijaciones con `precisionM` > [PRECISION_MAX_M] (posición aproximada de interior): ni se graban ni cuentan. Si hay
- * [copiloto], en cada fijación válida le pasa las notas vigentes y el progreso de la ruta para que hable. Si hay
+ * fijaciones con `precisionM` > [PrecisionGps.FIJACION_UTIL_M] (posición aproximada de interior): ni se graban ni
+ * cuentan. Recibe de la fuente compartida las posiciones con velocidad y rumbo ya estimados. Si hay [copiloto],
+ * en cada fijación válida le pasa las notas vigentes y el progreso de la ruta para que hable. Si hay
  * [alertas] (radares, tramos, exceso de velocidad, incidencias), en cada fijación válida calcula las suyas, las publica
  * y se las suma al copiloto como candidatas. Con [ediciones] aplica a la hoja las notas editadas del tramo activo (y
  * las
@@ -160,9 +162,6 @@ class SesionNavegacion(
         private var ultimaFijacionMs = 0L
         private var ultimaPosicion: PuntoGeo? = null
 
-        /** Rumbo del movimiento para las fijaciones sin rumbo fiable (emulador, rumbo impreciso). */
-        private val movimiento = EstimadorVelocidad()
-
         suspend fun ejecutar() =
             coroutineScope {
                 tramoReconocido = reconocimiento?.let { tramos?.tramo(it.tramoId) }
@@ -185,7 +184,7 @@ class SesionNavegacion(
                         null
                     }
                 publicar(estadoActual())
-                fuente.fijaciones().takeWhile { procesar(it, this) }.collect()
+                fuente.posiciones().takeWhile { procesar(it, this) }.collect()
                 edicion?.cancel()
                 vigiladas?.cancel()
                 guia?.recalculo?.cancel()
@@ -205,14 +204,16 @@ class SesionNavegacion(
 
         /** Devuelve false cuando hay que dejar de recoger posiciones (llegada). */
         private suspend fun procesar(
-            cruda: Fijacion,
+            posicion: PosicionEstimada,
             alcance: CoroutineScope,
         ): Boolean {
+            val cruda = posicion.cruda
             // Posición aproximada (fused/red bajo techo): sirve para pintar, no para grabar, sumar ni seguir la ruta.
-            if ((cruda.precisionM ?: 0.0) > PRECISION_MAX_M) return true
-            // Sin rumbo fiable, el del movimiento (lo usan la predicción en libre y el sentido contrario).
-            val velocidadEstimada = movimiento.actualizar(cruda)
-            val fijacion = if (cruda.rumboGrados != null) cruda else cruda.copy(rumboGrados = movimiento.rumbo())
+            if (!posicion.precisa) return true
+            // Velocidad y rumbo ya estimados por la fuente compartida; sin rumbo fiable, el del movimiento (lo usan
+            // la predicción en libre y el sentido contrario).
+            val velocidadEstimada = posicion.velocidadMs
+            val fijacion = cruda.copy(rumboGrados = posicion.rumboGrados)
             val ahora = reloj()
             ultimaFijacionMs = fijacion.tiempoMs
             ultimaPosicion = fijacion.punto
@@ -480,8 +481,6 @@ class SesionNavegacion(
         /** Nombre con que se graba el recorrido de una pasada de reconocimiento. */
         const val NOMBRE_RECONOCIMIENTO = "Reconocimiento"
 
-        /** Las fijaciones con peor precisión (m) se ignoran al grabar, acumular distancia, seguir la ruta y anotar. */
-        const val PRECISION_MAX_M = 30.0
         const val ESPERA_LLEGADA_MS = 10_000L
         const val REINTENTO_MS = 10_000L
     }
