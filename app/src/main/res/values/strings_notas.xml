@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Carrete de notas: texto visible en mayúsculas, como el roadbook; TalkBack lee la frase hablada. -->
-    <string name="notas_franja_descripcion">Próximas notas</string>
     <string name="notas_descripcion">%1$s, a %2$d metros</string>
     <string name="notas_ahora">Ahora</string>
-    <string name="notas_cuidado_icono">Cuidado</string>
     <string name="notas_distancia_siguiente">·&#160;%1$d&#160;m</string>
     <string name="notas_distancia_nota">%1$d&#160;m</string>
     <string name="notas_insignia_cuidado">!</string>

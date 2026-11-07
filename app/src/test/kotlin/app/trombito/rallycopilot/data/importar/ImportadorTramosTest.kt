@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.domain.importar.MotivoFalloImportar
 import app.trombito.rallycopilot.domain.importar.ResultadoImportar
 import app.trombito.rallycopilot.domain.importar.ResultadoPreparar
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -51,7 +52,7 @@ class ImportadorTramosTest {
         documento: (() -> DocumentoAbierto?)?,
     ): ResultadoImportar {
         val abridor = AbridorFalso(if (documento == null) emptyMap() else mapOf(uri to documento))
-        return runBlocking { ImportadorTramos(abridor, guardador, guardadorArchivo).importar(uri) }
+        return runBlocking { ImportadorTramos(abridor, guardador, guardadorArchivo, Dispatchers.IO).importar(uri) }
     }
 
     @Test
@@ -123,6 +124,7 @@ class ImportadorTramosTest {
                     abridor,
                     guardador,
                     guardadorArchivo,
+                    Dispatchers.IO,
                 ).importar("file:///data/data/x/databases/a.gpx")
             }
         assertEquals(ResultadoImportar.Fallo(MotivoFalloImportar.NO_SE_PUEDE_ABRIR), r)
@@ -183,7 +185,7 @@ class ImportadorTramosTest {
         documento: (() -> DocumentoAbierto?)?,
     ): ResultadoPreparar {
         val abridor = AbridorFalso(if (documento == null) emptyMap() else mapOf(uri to documento))
-        return runBlocking { ImportadorTramos(abridor, guardador, guardadorArchivo).preparar(uri) }
+        return runBlocking { ImportadorTramos(abridor, guardador, guardadorArchivo, Dispatchers.IO).preparar(uri) }
     }
 
     @Test

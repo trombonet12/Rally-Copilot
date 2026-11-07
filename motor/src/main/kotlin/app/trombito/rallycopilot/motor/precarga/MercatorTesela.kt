@@ -1,7 +1,6 @@
 package app.trombito.rallycopilot.motor.precarga
 
 import app.trombito.rallycopilot.motor.geo.LONGITUD_MAX_GRADOS
-import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import kotlin.math.PI
 import kotlin.math.atan
 import kotlin.math.cos
@@ -29,21 +28,15 @@ object MercatorTesela {
         return floor((1.0 - ln(tan(r) + 1.0 / cos(r)) / PI) / 2.0 * n).toInt().coerceIn(0, n - 1)
     }
 
-    /** Latitud del borde norte de la fila [y]. */
+    /** Latitud del borde norte de la fila [y]. API deliberada (inversa de [fila]; oráculo de tests). */
     fun latitudNorte(
         y: Int,
         zoom: Int,
     ): Double = Math.toDegrees(atan(sinh(PI * (1.0 - 2.0 * y / (1 shl zoom)))))
 
-    /** Longitud del borde oeste de la columna [x]. */
+    /** Longitud del borde oeste de la columna [x]. API deliberada (inversa de [columna]; oráculo de tests). */
     fun longitudOeste(
         x: Int,
         zoom: Int,
     ): Double = x.toDouble() / (1 shl zoom) * VUELTA_GRADOS - LONGITUD_MAX_GRADOS
-
-    /** Metros de lado de una tesela a la [latitud] y [zoom]. */
-    fun ladoTeselaM(
-        latitud: Double,
-        zoom: Int,
-    ): Double = 2 * PI * PuntoGeo.RADIO_TIERRA_M * cos(Math.toRadians(latitud)) / (1 shl zoom)
 }

@@ -93,18 +93,6 @@ private fun textoBocadilloRadar(
     }
 }
 
-/** Lo que lee TalkBack del bocadillo (el paso dice si va dentro o por encima del límite). */
-internal fun descripcionBocadillo(
-    recursos: Resources,
-    contenido: ContenidoBocadillo,
-): String =
-    if (contenido is ContenidoBocadillo.Paso && contenido.supera != null) {
-        val recurso = if (contenido.supera == true) R.string.bocadillo_paso_fuera else R.string.bocadillo_paso_dentro
-        recursos.getString(recurso, contenido.velocidadKmh)
-    } else {
-        textoBocadillo(recursos, contenido)
-    }
-
 /** Distancia del banner: «350 m», «1,2 km»; null si el aviso es de una incidencia en la que ya se está. */
 internal fun distanciaAviso(aviso: AvisoAlerta): String? {
     val dentro = aviso is AvisoAlerta.Incidencia && aviso.distanciaM <= 0

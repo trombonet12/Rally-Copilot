@@ -22,6 +22,7 @@ import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
 import app.trombito.rallycopilot.ui.comun.resumenFalso
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
@@ -96,7 +97,10 @@ class ExportarImportarTramoTest {
             ) = Unit
         }
 
-    private fun exportar() = runBlocking { ExportadorTramo(origen, editor, edicionesOrigen).exportar("origen") }
+    private fun exportar() =
+        runBlocking {
+            ExportadorTramo(origen, editor, edicionesOrigen, Dispatchers.Default).exportar("origen")
+        }
 
     private val destino = FalsoRepositorioTramos()
     private val edicionesDestino = EdicionesFalsas()
@@ -111,6 +115,7 @@ class ExportarImportarTramoTest {
                 abridor,
                 GuardadorTramos(destino) { null },
                 GuardadorTramoArchivo(destino, { "Ma-13 · Palma" }, edicionesDestino),
+                Dispatchers.IO,
             )
         return runBlocking { importador.importar("content://docs/exportado") }
     }
@@ -176,7 +181,12 @@ class ExportarImportarTramoTest {
         val contenido = checkNotNull(exportar()).contenido.toByteArray()
         val abridor = AbridorDocumentos { _: Uri -> DocumentoAbierto(ByteArrayInputStream(contenido), "a.gpx", null) }
         val importador =
-            ImportadorTramos(abridor, GuardadorTramos(destino) { null }, GuardadorTramoArchivo(destino, { null }, rota))
+            ImportadorTramos(
+                abridor,
+                GuardadorTramos(destino) { null },
+                GuardadorTramoArchivo(destino, { null }, rota),
+                Dispatchers.IO,
+            )
 
         val r = runBlocking { importador.importar("content://docs/x") }
 

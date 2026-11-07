@@ -66,7 +66,7 @@ class DetectorTramo(
         armados += tramos.map { it.id }
     }
 
-    /** Ids de los tramos que se están siguiendo (incluye los que aún no han cruzado la salida). */
+    /** Ids de los tramos que se siguen (incluye los que aún no han cruzado la salida); lo observan los tests. */
     val idsActivos: Set<String> get() = activos.keys.toSet()
 
     /** Cronómetro del tramo en curso [tramoId] (para el delta y el HUD en vivo), o null si no se sigue. */

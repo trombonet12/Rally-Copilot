@@ -12,6 +12,7 @@ import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -170,8 +171,6 @@ class MapaViewModel
         }
 
         private companion object {
-            const val PARADA_MS = 5_000L
-
             const val CLAVE_SIGUIENDO = "mapa-siguiendo"
             const val CLAVE_CAMARA = "mapa-camara"
             const val TAMANO_CAMARA = 3

@@ -18,7 +18,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import java.io.File
 import javax.inject.Singleton
 
@@ -40,13 +40,14 @@ abstract class AlertasModule {
         fun repositorioIncidencias(
             @ApplicationContext contexto: Context,
             config: ConfigDatosMapa,
+            @DispatcherIo dispatcher: CoroutineDispatcher,
         ): RepositorioIncidencias =
             RepositorioIncidenciasDgt(
                 ClienteHttp.paraDgt(config),
                 URL_DATEX_DGT,
                 File(contexto.filesDir, "alertas"),
                 System::currentTimeMillis,
-                Dispatchers.IO,
+                dispatcher,
             )
     }
 }

@@ -4,7 +4,7 @@ import app.trombito.rallycopilot.data.datosmapa.ClienteHttp
 import app.trombito.rallycopilot.data.datosmapa.RespuestaHttpException
 import app.trombito.rallycopilot.motor.precarga.Tesela
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -31,6 +31,7 @@ fun interface FuenteTeselas {
  */
 class FuenteTeselasIgn(
     private val cliente: ClienteHttp,
+    private val dispatcher: CoroutineDispatcher,
     private val base: String = URL_BASE_IGN,
     private val reintentos: Int = REINTENTOS,
     private val esperar: suspend (Long) -> Unit = { delay(it) },
@@ -58,7 +59,7 @@ class FuenteTeselasIgn(
     }
 
     private suspend fun pedir(url: String): ResultadoTesela =
-        withContext(Dispatchers.IO) {
+        withContext(dispatcher) {
             val bytes = cliente.flujo(url, MAX_BYTES_TESELA).use { leer(it) }
             when {
                 bytes.size >= 4 && bytes.startsWith(PNG) -> ResultadoTesela.SinCobertura

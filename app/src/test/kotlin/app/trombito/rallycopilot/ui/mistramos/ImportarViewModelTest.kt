@@ -48,6 +48,7 @@ class ImportarViewModelTest {
             abridor,
             GuardadorTramos(repositorio) { null },
             GuardadorTramoArchivo(repositorio, { null }, EdicionesFalsas()),
+            Dispatchers.IO,
         )
 
     private fun vm() = ImportarViewModel(importador())

@@ -53,7 +53,6 @@ internal val GRIS_BORDE = Color(0xFF80858D)
 internal val FONDO_ACTIVA = Color(0xFF2A2008)
 private val SESGO = 10.dp
 private val SESGO_COMPACTO = 6.dp
-private val FORMA_PEQUENA = RoundedCornerShape(10.dp)
 
 /**
  * Medidas de una fila: la primera nota va grande y las siguientes en pequeño. [lineas] es el máximo de líneas del
@@ -83,7 +82,6 @@ internal val MEDIDAS_ENORME = Medidas(200.dp, 44.sp, 64.dp, FORMA_ENORME, 24.dp,
 internal val MEDIDAS_ENORME_APAISADA = Medidas(116.dp, 36.sp, 40.dp, FORMA_ENORME, 16.dp, 2, false, true)
 internal val MEDIDAS_ROADBOOK_LADO =
     Medidas(36.dp, 20.sp, 24.dp, ParalelogramoShape(SESGO_COMPACTO), SESGO_COMPACTO + 8.dp, 1, true, true)
-internal val MEDIDAS_PEQUENA = Medidas(28.dp, 15.sp, 20.dp, FORMA_PEQUENA, 8.dp, 2, true)
 
 @Composable
 internal fun FilaNota(

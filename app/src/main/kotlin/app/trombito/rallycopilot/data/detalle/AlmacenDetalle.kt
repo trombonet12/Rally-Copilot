@@ -106,7 +106,7 @@ class AlmacenDetalle(
         }
     }
 
-    /** Teselas con datos guardadas. */
+    /** Teselas con datos guardadas. API deliberada: los tests de la descarga comprueban con ella lo guardado. */
     fun contarTeselas(): Long = contar(base)
 
     /** Bytes que ocupa el archivo en disco. */

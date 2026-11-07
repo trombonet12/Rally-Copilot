@@ -15,7 +15,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Singleton
 
 @Module
@@ -25,6 +25,9 @@ abstract class AjustesModule {
     abstract fun repositorioAjustesConduccion(
         implementacion: RepositorioAjustesConduccionImpl,
     ): RepositorioAjustesConduccion
+
+    @Binds
+    abstract fun repositorioGuiadoPendiente(implementacion: RepositorioGuiadoPendienteRoom): RepositorioGuiadoPendiente
 
     companion object {
         @Provides
@@ -38,12 +41,9 @@ abstract class AjustesModule {
 
         @Provides
         @Singleton
-        fun repositorioGuiadoPendiente(dao: GuiadoPendienteDao): RepositorioGuiadoPendiente =
-            RepositorioGuiadoPendienteRoom(dao, Dispatchers.IO)
-
-        @Provides
-        @Singleton
-        fun repositorioRecorridos(dao: RecorridosDao): RepositorioRecorridos =
-            RepositorioRecorridosRoom(dao, Dispatchers.IO)
+        fun repositorioRecorridos(
+            dao: RecorridosDao,
+            @DispatcherIo dispatcher: CoroutineDispatcher,
+        ): RepositorioRecorridos = RepositorioRecorridosRoom(dao, dispatcher)
     }
 }

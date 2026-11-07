@@ -22,7 +22,6 @@
     <!-- Importar y dibujar -->
     <string name="mistramos_importar">Importar un archivo GPX o KML</string>
     <string name="mistramos_dibujar">Dibujar una ruta</string>
-    <string name="mistramos_importando">Importando…</string>
     <string name="mistramos_confirmar_titulo">¿Importar «%1$s» (%2$s)?</string>
     <string name="mistramos_confirmar_titulo_sin_nombre">¿Importar este tramo (%1$s)?</string>
     <string name="mistramos_confirmar_texto">Te lo ha enviado otra app. Si lo importas, se guardará como un tramo en Mis tramos.</string>

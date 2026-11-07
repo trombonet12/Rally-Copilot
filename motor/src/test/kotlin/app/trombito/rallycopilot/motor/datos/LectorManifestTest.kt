@@ -162,32 +162,6 @@ class LectorManifestTest {
         }
     }
 
-    @Test
-    fun `esMasNuevoQue sin manifest previo es verdadero`() {
-        assertEquals(true, LectorManifest.leer(manifestJson()).esMasNuevoQue(null))
-    }
-
-    @Test
-    fun `esMasNuevoQue es falso si todos los sha256 coinciden aunque cambie la fecha o la version global`() {
-        val a = LectorManifest.leer(manifestJson())
-        val b = LectorManifest.leer(manifestJson(version = "2026.11.01-1", generado = "2026-11-01T00:00:00Z"))
-        assertEquals(false, b.esMasNuevoQue(a))
-    }
-
-    @Test
-    fun `esMasNuevoQue es verdadero si cambia un sha256`() {
-        val a = LectorManifest.leer(manifestJson())
-        val b = LectorManifest.leer(conVias(sha = SHA_B))
-        assertEquals(true, b.esMasNuevoQue(a))
-    }
-
-    @Test
-    fun `esMasNuevoQue es verdadero si hay un archivo nuevo`() {
-        val a = LectorManifest.leer(manifestJson())
-        val b = LectorManifest.leer(manifestJson(archivos = TODOS + archivoJson("extra", "extra.bin", sha = SHA_A)))
-        assertEquals(true, b.esMasNuevoQue(a))
-    }
-
     private fun assertInvalido(
         json: String,
         fragmentoMensaje: String? = null,

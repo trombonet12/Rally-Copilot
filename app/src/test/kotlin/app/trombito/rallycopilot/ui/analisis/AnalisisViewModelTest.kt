@@ -59,8 +59,13 @@ class AnalisisViewModelTest {
         estilosMapa: EstilosMapa? = estilos,
     ): AnalisisViewModel {
         val datos = FalsoRepositorioDatosMapa(estilosDisponibles = estilosMapa)
-        val vm = AnalisisViewModel(SavedStateHandle(mapOf("tramoId" to "t1", "pasadaId" to pasadaId)), repo, datos)
-        vm.calculos = UnconfinedTestDispatcher(testScheduler)
+        val vm =
+            AnalisisViewModel(
+                SavedStateHandle(mapOf("tramoId" to "t1", "pasadaId" to pasadaId)),
+                repo,
+                datos,
+                UnconfinedTestDispatcher(testScheduler),
+            )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }

@@ -5,6 +5,7 @@ import android.util.Log
 import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.data.vias.DatosVias
 import app.trombito.rallycopilot.data.vias.FuenteVias
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.motor.notas.ContextoVias
 import app.trombito.rallycopilot.motor.vias.DatosNotasVias
 import app.trombito.rallycopilot.motor.vias.GrafoVias
@@ -12,7 +13,6 @@ import app.trombito.rallycopilot.motor.vias.IndiceVias
 import app.trombito.rallycopilot.motor.vias.LectorViasNotas
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -55,8 +55,9 @@ class ContextoNotasRepositorio internal constructor(
     constructor(
         fuente: FuenteVias,
         @ApplicationContext contexto: Context,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
         siembra: EsperaDatosSembrados,
-    ) : this(fuente, File(contexto.filesDir, RUTA_VIAS_NOTAS), Dispatchers.IO, siembra)
+    ) : this(fuente, File(contexto.filesDir, RUTA_VIAS_NOTAS), dispatcher, siembra)
 
     private class Cargado(
         val vias: DatosVias,

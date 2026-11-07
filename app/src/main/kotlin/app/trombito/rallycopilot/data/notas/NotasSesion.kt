@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.notas
 
 import android.util.Log
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
+import app.trombito.rallycopilot.di.DispatcherDefault
 import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.motor.edicion.AccionEdicion
@@ -19,7 +20,6 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Deferred
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
@@ -42,11 +42,12 @@ class FabricaNotasSesion internal constructor(
         contexto: FuenteContextoNotas,
         recorridos: RepositorioRecorridos,
         notas: NotasEnVivoImpl,
+        @DispatcherDefault dispatcher: CoroutineDispatcher,
     ) : this(
         contexto,
         CalibradorRecorridos(recorridos),
         notas::publicar,
-        Dispatchers.Default,
+        dispatcher,
         { Log.w("NotasSesion", "Fallo en las notas: ${it.javaClass.simpleName}") },
     )
 

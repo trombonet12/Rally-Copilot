@@ -2,13 +2,12 @@ package app.trombito.rallycopilot.data.ubicacion
 
 import android.os.SystemClock
 import android.util.Log
+import app.trombito.rallycopilot.di.ApplicationScope
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.ubicacion.PosicionEstimada
 import app.trombito.rallycopilot.domain.ubicacion.conEstimacion
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,9 +37,12 @@ class PosicionEnVivo internal constructor(
     private val reloj: () -> Long,
 ) : FuenteUbicacion {
     @Inject
-    constructor(origen: FuenteUbicacionGps) : this(
+    constructor(
+        origen: FuenteUbicacionGps,
+        @ApplicationScope alcance: CoroutineScope,
+    ) : this(
         origen,
-        CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        alcance,
         SystemClock::elapsedRealtime,
     )
 

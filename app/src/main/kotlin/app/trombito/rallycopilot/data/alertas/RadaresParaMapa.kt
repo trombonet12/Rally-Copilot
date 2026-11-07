@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.alertas
 
 import app.trombito.rallycopilot.data.vias.DatosVias
 import app.trombito.rallycopilot.data.vias.FuenteVias
+import app.trombito.rallycopilot.di.DispatcherDefault
 import app.trombito.rallycopilot.domain.alertas.ProveedorRadaresMapa
 import app.trombito.rallycopilot.domain.alertas.RadaresEnMapa
 import app.trombito.rallycopilot.domain.alertas.TramoEnMapa
@@ -10,7 +11,6 @@ import app.trombito.rallycopilot.motor.alertas.TipoRadar
 import app.trombito.rallycopilot.motor.alertas.TrazadoTramoRadar
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -29,8 +29,8 @@ class RadaresParaMapa
     constructor(
         private val radares: FuenteRadares,
         private val vias: FuenteVias,
+        @DispatcherDefault private val dispatcher: CoroutineDispatcher,
     ) : ProveedorRadaresMapa {
-        private val dispatcher: CoroutineDispatcher = Dispatchers.Default
         private val mutex = Mutex()
         private var base: Triple<List<Radar>, DatosVias?, RadaresEnMapa>? = null
 

@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.notas
 
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
+import app.trombito.rallycopilot.di.DispatcherDefault
 import app.trombito.rallycopilot.domain.edicion.EdicionNotasEnVivo
 import app.trombito.rallycopilot.domain.edicion.EditorTramo
 import app.trombito.rallycopilot.domain.edicion.TramoEditable
@@ -17,12 +18,13 @@ import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.HojaNotas
 import app.trombito.rallycopilot.motor.notas.RutaMedida
 import app.trombito.rallycopilot.motor.tramos.Tramo
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 /** Genera la hoja automática de un tramo sobre su traza (la que el copiloto leería sin ediciones). */
 fun interface GeneradorHojaTramo {
@@ -33,14 +35,19 @@ fun interface GeneradorHojaTramo {
 class GeneradorHojaTramoImpl(
     private val contexto: FuenteContextoNotas,
     private val calibrador: CalibradorTabla,
+    private val dispatcher: CoroutineDispatcher,
 ) : GeneradorHojaTramo {
-    constructor(contexto: FuenteContextoNotas, recorridos: RepositorioRecorridos) :
-        this(contexto, CalibradorRecorridos(recorridos))
+    @Inject
+    constructor(
+        contexto: FuenteContextoNotas,
+        recorridos: RepositorioRecorridos,
+        @DispatcherDefault dispatcher: CoroutineDispatcher,
+    ) : this(contexto, CalibradorRecorridos(recorridos), dispatcher)
 
     override suspend fun generar(tramo: Tramo): HojaNotas {
         val datos = contexto.contexto()
         val factor = calibrador.factor()
-        return withContext(Dispatchers.Default) { generarHoja(RutaMedida(tramo.traza), datos, factor) }
+        return withContext(dispatcher) { generarHoja(RutaMedida(tramo.traza), datos, factor) }
     }
 }
 

@@ -136,6 +136,7 @@ class PrecargaDetalleTest {
         assertEquals(WorkInfo.State.ENQUEUED, trabajo.state)
         assertTrue(TrabajoDetalleSatelite.ETIQUETA_AUTOMATICO in trabajo.tags)
         assertEquals(NetworkType.UNMETERED, trabajo.constraints.requiredNetworkType)
+        assertTrue(trabajo.constraints.requiresBatteryNotLow())
     }
 
     @Test
@@ -172,6 +173,7 @@ class PrecargaDetalleTest {
 
         val trabajo = trabajos(TrabajoDetalleSatelite.NOMBRE_ZONA).single()
         assertEquals(NetworkType.CONNECTED, trabajo.constraints.requiredNetworkType)
+        assertFalse(trabajo.constraints.requiresBatteryNotLow())
     }
 
     @Test

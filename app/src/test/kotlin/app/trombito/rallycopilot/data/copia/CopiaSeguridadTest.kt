@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.RecorridoEntity
 import app.trombito.rallycopilot.domain.copia.CopiaInvalidaException
 import app.trombito.rallycopilot.domain.copia.MotivoCopiaInvalida
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -56,7 +57,7 @@ class CopiaSeguridadTest {
             .also { abiertas += it }
 
     private fun copia(maxBytes: Long = 200L * 1024 * 1024) =
-        CopiaSeguridad(base, archivo, InfoApp("1.2.3", 42), ahora = { FECHA }, maxBytes = maxBytes)
+        CopiaSeguridad(base, archivo, InfoApp("1.2.3", 42), Dispatchers.IO, ahora = { FECHA }, maxBytes = maxBytes)
 
     private fun insertar(distancia: Double): Long =
         runBlocking {

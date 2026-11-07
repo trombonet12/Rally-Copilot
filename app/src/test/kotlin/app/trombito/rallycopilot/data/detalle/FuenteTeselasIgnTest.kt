@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.data.datosmapa.EntornoDatosMapa
 import app.trombito.rallycopilot.data.datosmapa.RespuestaHttpException
 import app.trombito.rallycopilot.data.datosmapa.ServidorFalso
 import app.trombito.rallycopilot.motor.precarga.Tesela
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -37,7 +38,10 @@ class FuenteTeselasIgnTest {
     fun cerrar() = entorno.close()
 
     private fun fuente(reintentos: Int = 3) =
-        FuenteTeselasIgn(ClienteHttp.paraIgn(entorno.config), reintentos = reintentos, esperar = { esperas += it })
+        FuenteTeselasIgn(ClienteHttp.paraIgn(entorno.config), Dispatchers.IO, reintentos = reintentos, esperar = {
+            esperas +=
+                it
+        })
 
     @Test
     fun `pide la fila TMS con el user agent y devuelve el JPEG`() =

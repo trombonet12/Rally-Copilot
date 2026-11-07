@@ -26,12 +26,3 @@ data class ManifestDatos(
     /** El archivo con ese id, o null si no está en el manifest. */
     fun archivo(id: String): ArchivoDatos? = archivos.firstOrNull { it.id == id }
 }
-
-/**
- * Indica si este manifest trae algo que el [otro] no tiene: un archivo nuevo o con otro sha256.
- * No compara fechas ni versiones: solo el contenido manda.
- */
-fun ManifestDatos.esMasNuevoQue(otro: ManifestDatos?): Boolean {
-    if (otro == null) return true
-    return archivos.any { nuevo -> otro.archivo(nuevo.id)?.sha256 != nuevo.sha256 }
-}

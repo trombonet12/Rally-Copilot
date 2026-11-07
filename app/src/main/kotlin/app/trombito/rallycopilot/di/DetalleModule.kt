@@ -17,7 +17,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import java.io.File
 import javax.inject.Singleton
 
@@ -28,8 +28,14 @@ object DetalleModule {
 
     @Provides
     @Singleton
-    fun fuenteTeselas(config: ConfigDatosMapa): FuenteTeselas =
-        FuenteTeselasIgn(ClienteHttp.paraIgn(config.copy(userAgent = "${config.userAgent} (+$URL_PROYECTO)")))
+    fun fuenteTeselas(
+        config: ConfigDatosMapa,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
+    ): FuenteTeselas =
+        FuenteTeselasIgn(
+            ClienteHttp.paraIgn(config.copy(userAgent = "${config.userAgent} (+$URL_PROYECTO)")),
+            dispatcher,
+        )
 
     @Provides
     fun estadoEnergia(
@@ -49,5 +55,6 @@ object DetalleModule {
         config: ConfigDatosMapa,
         ajustesDao: AjustesMapasDao,
         pendientes: RutasPendientes,
-    ): PrecargaDetalle = PrecargaDetalleImpl(workManager, config, ajustesDao, pendientes, Dispatchers.IO)
+        @DispatcherIo dispatcher: CoroutineDispatcher,
+    ): PrecargaDetalle = PrecargaDetalleImpl(workManager, config, ajustesDao, pendientes, dispatcher)
 }

@@ -16,7 +16,6 @@
     <string name="edicion_guardar">Guardar</string>
     <string name="edicion_quitar">Quitar nota</string>
     <string name="edicion_dira">Dirá: «%1$s»</string>
-    <string name="edicion_nota_mapa">Nota a %1$d m: %2$s</string>
     <string name="edicion_editar_notas">Editar notas</string>
     <string name="edicion_tramo_titulo">Notas y sectores</string>
     <string name="edicion_ayuda">Toca una nota en el mapa o en la lista para elegirla; el lápiz de su fila (o tocarla otra vez en el mapa) la abre para corregirla. Toca un punto del trazo para añadir una nota. Arrastra los cortes de sector (C1, C2…) por el mapa para moverlos. Con dos dedos haces zoom.</string>
@@ -24,7 +23,6 @@
     <string name="edicion_ayuda_boton">Ayuda para editar las notas y los sectores</string>
     <string name="edicion_ayuda_entendido">Entendido</string>
     <string name="edicion_restaurar">Restaurar las notas automáticas</string>
-    <string name="edicion_sectores">Sectores</string>
     <string name="edicion_microsectores">Microsectores</string>
     <string name="edicion_microsectores_ayuda">Parciales cortos dentro del tramo (los puntitos del trazo). «+» pone más y «−» pone menos.</string>
     <string name="edicion_microsectores_valor">%1$d por km</string>
@@ -48,5 +46,4 @@
     <!-- Reconocimiento -->
     <string name="detalle_reconocer">Reconocer</string>
     <string name="detalle_reconocer_ayuda">Reconocer: el copiloto lee las notas de este tramo y puedes dictar o corregir las que falten. Esta pasada no cuenta para tiempos.</string>
-    <string name="reconocimiento_microfono">Dictar una nota</string>
 </resources>

@@ -35,13 +35,6 @@ class DeltaTest {
     }
 
     @Test
-    fun `delta en vivo contra la mejor`() {
-        // A 1000 m la mejor tardó 40 s; vamos a 43,2 s.
-        assertEquals(3_200L, Delta.enVivo(rapida, 1000.0, 43_200))
-        assertEquals(-1_000L, Delta.enVivo(rapida, 1000.0, 39_000))
-    }
-
-    @Test
     fun `parciales de sector con acumulado y diferencia del propio sector`() {
         val parciales = Delta.parciales(listOf(1000.0, 2000.0, 3000.0), 4000.0, lenta, rapida)
         assertEquals(4, parciales.size)

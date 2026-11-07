@@ -20,9 +20,6 @@ private fun cifra(
     letterSpacing = tracking.sp,
 )
 
-/** Cifra protagonista de conducción (crono, velocidad grande): cursiva Black 72 sp. */
-val CifraGrande = cifra(72, -2.0)
-
 /** Cifra media (velocidad en la píldora, parciales): cursiva Black 40 sp. */
 val CifraMedia = cifra(40, -1.0)
 

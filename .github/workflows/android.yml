@@ -69,7 +69,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .descargas
-          key: descargas-${{ runner.os }}-${{ hashFiles('app/build.gradle.kts', 'app/datos-incluidos.properties') }}
+          key: descargas-${{ runner.os }}-${{ hashFiles('app/build.gradle.kts', 'gradle/descargas.gradle.kts', 'app/datos-incluidos.properties') }}
       - name: Propiedades locales (solo sdk.dir)
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
       # minifyReleaseWithR8 sin firma: los fallos de R8 (reglas -dontwarn) salen aquí y no solo al publicar.
@@ -207,7 +207,7 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .descargas
-          key: descargas-${{ runner.os }}-${{ hashFiles('app/build.gradle.kts', 'app/datos-incluidos.properties') }}
+          key: descargas-${{ runner.os }}-${{ hashFiles('app/build.gradle.kts', 'gradle/descargas.gradle.kts', 'app/datos-incluidos.properties') }}
 
       - name: Propiedades locales (solo sdk.dir)
         if: steps.gate.outputs.candidato == 'true'

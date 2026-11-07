@@ -51,7 +51,4 @@ internal object ChuletaVoz {
                 .first()
         return formato(frase, orden is Orden.Pregunta)
     }
-
-    /** El ejemplo de «cuánto falta», para la bienvenida. */
-    fun ejemploPregunta(): String = ejemplo(Orden.Pregunta(TipoPregunta.CUANTO_FALTA))
 }

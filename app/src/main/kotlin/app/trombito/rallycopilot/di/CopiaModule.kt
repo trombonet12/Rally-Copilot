@@ -13,6 +13,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Singleton
 
 @Module
@@ -23,6 +24,7 @@ object CopiaModule {
     fun copiaDatos(
         @ApplicationContext contexto: Context,
         base: RallyDatabase,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
     ): CopiaDatos {
         val paquete = runCatching { contexto.packageManager.getPackageInfo(contexto.packageName, 0) }.getOrNull()
         val info =
@@ -30,7 +32,7 @@ object CopiaModule {
                 versionName = paquete?.versionName ?: "0",
                 versionCode = paquete?.let(PackageInfoCompat::getLongVersionCode) ?: 0L,
             )
-        return CopiaSeguridad(base, contexto.getDatabasePath(RallyDatabase.NOMBRE), info)
+        return CopiaSeguridad(base, contexto.getDatabasePath(RallyDatabase.NOMBRE), info, dispatcher)
     }
 
     @Provides

@@ -6,7 +6,6 @@ import app.trombito.rallycopilot.domain.copia.CopiaInvalidaException
 import app.trombito.rallycopilot.domain.copia.MotivoCopiaInvalida
 import app.trombito.rallycopilot.domain.copia.ResumenCopia
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
@@ -35,7 +34,7 @@ class CopiaSeguridad(
     private val base: RallyDatabase,
     private val archivoBase: File,
     private val info: InfoApp,
-    private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val dispatcher: CoroutineDispatcher,
     private val ahora: () -> Long = System::currentTimeMillis,
     private val maxBytes: Long = MAX_BYTES,
 ) : CopiaDatos {

@@ -2,6 +2,5 @@
 <resources>
     <!-- Componentes comunes del sistema visual WRC. -->
     <string name="wrc_exceso_velocidad">Por encima del límite</string>
-    <string name="wrc_cargando_descripcion">Cargando</string>
     <string name="wrc_cargando_esqueleto">Cargando la lista</string>
 </resources>

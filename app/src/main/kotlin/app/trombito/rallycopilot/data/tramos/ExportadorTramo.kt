@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.tramos
 
 import android.database.sqlite.SQLiteException
 import android.util.Log
+import app.trombito.rallycopilot.di.DispatcherDefault
 import app.trombito.rallycopilot.domain.edicion.EditorTramo
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.tramos.ExportaTramo
@@ -14,7 +15,7 @@ import app.trombito.rallycopilot.motor.importar.NotaArchivo
 import app.trombito.rallycopilot.motor.importar.TramoArchivo
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.RutaMedida
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -30,6 +31,7 @@ class ExportadorTramo
         private val tramos: RepositorioTramos,
         private val editor: EditorTramo,
         private val ediciones: RepositorioEdiciones,
+        @DispatcherDefault private val dispatcher: CoroutineDispatcher,
     ) : ExportaTramo {
         override suspend fun exportar(tramoId: String): TramoExportado? =
             try {
@@ -52,7 +54,7 @@ class ExportadorTramo
                     .firstOrNull { it.id == tramoId }
                     ?.nombre ?: NOMBRE_POR_DEFECTO
             val editadas = ediciones.observarDeTramo(tramoId).first()
-            return withContext(Dispatchers.Default) {
+            return withContext(dispatcher) {
                 val ruta = RutaMedida(tramo.traza)
                 val notas =
                     editable.hoja.elementos.map {

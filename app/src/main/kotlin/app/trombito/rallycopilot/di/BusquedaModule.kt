@@ -9,7 +9,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import java.io.File
 import javax.inject.Singleton
 
@@ -21,5 +21,6 @@ object BusquedaModule {
     fun buscador(
         @ApplicationContext contexto: Context,
         siembra: EsperaDatosSembrados,
-    ): Buscador = BuscadorSqlite(File(contexto.filesDir, "mapa/busqueda-mallorca.sqlite"), Dispatchers.IO, siembra)
+        @DispatcherIo dispatcher: CoroutineDispatcher,
+    ): Buscador = BuscadorSqlite(File(contexto.filesDir, "mapa/busqueda-mallorca.sqlite"), dispatcher, siembra)
 }

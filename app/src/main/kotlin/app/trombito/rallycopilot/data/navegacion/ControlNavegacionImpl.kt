@@ -6,6 +6,8 @@ import android.database.sqlite.SQLiteException
 import android.util.Log
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.di.ApplicationScope
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
@@ -16,14 +18,14 @@ import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
@@ -57,7 +59,9 @@ class ControlNavegacionImpl
             fuente: FuenteUbicacion,
             guiadoPendiente: RepositorioGuiadoPendiente,
             precarga: PrecargaDetalle,
-        ) : this(contexto, fuente, guiadoPendiente, CoroutineScope(SupervisorJob() + Dispatchers.IO), precarga)
+            @ApplicationScope alcance: CoroutineScope,
+            @DispatcherIo dispatcher: CoroutineDispatcher,
+        ) : this(contexto, fuente, guiadoPendiente, alcance + dispatcher, precarga)
 
         private val cola = Channel<suspend () -> Unit>(Channel.UNLIMITED)
 

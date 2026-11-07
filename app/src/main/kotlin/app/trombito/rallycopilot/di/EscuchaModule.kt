@@ -47,9 +47,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import javax.inject.Singleton
 
@@ -85,26 +84,24 @@ object EscuchaModule {
         audio: FabricaAudio,
         reconocedores: FabricaReconocedor,
         lugares: LugaresPronunciables,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
     ): Escucha =
         EscuchaImpl(
             foco = FocoAudioExclusivo(contexto),
             audio = audio,
             reconocedores = reconocedores,
             permiso = { tienePermisoMicrofono(contexto) },
-            dispatcher = Dispatchers.IO,
+            dispatcher = dispatcher,
             lugares = lugares::nombres,
         )
 
     @Provides
-    @Singleton
     fun repositorioEdiciones(dao: EdicionesDao): RepositorioEdiciones = RepositorioEdicionesRoom(dao)
 
     @Provides
-    @Singleton
     fun repositorioMarcas(dao: MarcasDao): RepositorioMarcas = RepositorioMarcasRoom(dao)
 
     @Provides
-    @Singleton
     fun contextoConduccion(
         notas: ProveedorNotas,
         crono: ProveedorCrono,
@@ -128,8 +125,8 @@ object EscuchaModule {
         ubicacion: FuenteUbicacion,
         buscador: Buscador,
         enrutador: Enrutador,
+        @ApplicationScope ambito: CoroutineScope,
     ): ControlOrdenes {
-        val ambito = CoroutineScope(SupervisorJob() + Dispatchers.Default)
         val preguntas =
             RespondedorPreguntas(
                 estado = { navegacion.estado.value },
@@ -180,12 +177,14 @@ object EscuchaModule {
     }
 
     @Provides
+    @Suppress("LongParameterList") // proveedor de Hilt: cada colaborador llega inyectado
     fun escuchaContinua(
         @ApplicationContext contexto: Context,
         audio: FabricaAudio,
         reconocedores: FabricaReconocedor,
         ajustes: RepositorioAjustesConduccion,
         control: ControlOrdenes,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
     ): EscuchaContinua =
         EscuchaContinua(
             audio = audio,
@@ -193,7 +192,7 @@ object EscuchaModule {
             permiso = { tienePermisoMicrofono(contexto) },
             ajustes = ajustes.ajustes,
             control = control,
-            dispatcher = Dispatchers.IO,
+            dispatcher = dispatcher,
             tic = ReproductorTic()::sonar,
         )
 

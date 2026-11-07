@@ -10,7 +10,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import javax.inject.Singleton
 
 @Module
@@ -20,6 +20,7 @@ object EnlacesModule {
     @Singleton
     fun resolvedorEnlaces(
         @ApplicationContext contexto: Context,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
     ): ResolvedorEnlaces {
         val conectividad = contexto.getSystemService(ConnectivityManager::class.java)
         val hayRed = {
@@ -28,6 +29,6 @@ object EnlacesModule {
                 conectividad.getNetworkCapabilities(red)?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ==
                 true
         }
-        return ResolvedorEnlacesHttp(hayRed, Dispatchers.IO)
+        return ResolvedorEnlacesHttp(hayRed, dispatcher)
     }
 }

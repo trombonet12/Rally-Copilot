@@ -87,13 +87,6 @@ object Delta {
         return if (a == null || m == null) null else Math.round(a - m)
     }
 
-    /** Delta en vivo: [tMs] transcurrido a [distanciaM] frente a lo que tardó la [mejor]; null si no la cubre. */
-    fun enVivo(
-        mejor: Pasada,
-        distanciaM: Double,
-        tMs: Long,
-    ): Long? = mejor.tiempoEn(distanciaM)?.let { Math.round(tMs - it) }
-
     /**
      * Parciales de cada sector delimitado por los [cortes] (más el inicio y [longitudM]). Sectores que alguna de las
      * pasadas no cubre no se incluyen.

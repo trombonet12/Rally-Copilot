@@ -11,14 +11,13 @@ import app.trombito.rallycopilot.data.voz.ReproductorPcm
 import app.trombito.rallycopilot.data.voz.SintetizadorTts
 import app.trombito.rallycopilot.data.voz.VocesInstaladas
 import app.trombito.rallycopilot.domain.voz.Locutor
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
 import java.io.File
 import java.util.concurrent.Executors
@@ -26,38 +25,41 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object VozModule {
-    @Provides
-    @Singleton
-    fun sintetizadorTts(motor: MotorTtsSherpa): SintetizadorTts = motor
+abstract class VozModule {
+    @Binds
+    abstract fun sintetizadorTts(motor: MotorTtsSherpa): SintetizadorTts
 
-    @Provides
+    @Binds
     @Singleton
-    fun focoAudio(gestor: GestorFocoAudio): FocoAudio = gestor
+    abstract fun focoAudio(gestor: GestorFocoAudio): FocoAudio
 
-    @Provides
-    @Singleton
-    fun reproductorPcm(): ReproductorPcm = ReproductorAudioTrack()
+    companion object {
+        @Provides
+        @Singleton
+        fun reproductorPcm(): ReproductorPcm = ReproductorAudioTrack()
 
-    @Provides
-    @Singleton
-    fun locutor(
-        @ApplicationContext contexto: Context,
-        sintetizador: SintetizadorTts,
-        reproductor: ReproductorPcm,
-        foco: FocoAudio,
-        voces: VocesInstaladas,
-    ): Locutor =
-        LocutorImpl(
-            cache = CacheFrases(File(contexto.cacheDir, "voz")),
-            sintetizador = sintetizador,
-            reproductor = reproductor,
-            foco = foco,
-            vozDisponible = voces::efectiva,
-            ambito = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-            dispatcherSintesis =
-                Executors
-                    .newSingleThreadExecutor { tarea -> Thread(tarea, "voz-sintesis") }
-                    .asCoroutineDispatcher(),
-        )
+        @Provides
+        @Singleton
+        @Suppress("LongParameterList") // proveedor de Hilt: cada colaborador llega inyectado
+        fun locutor(
+            @ApplicationContext contexto: Context,
+            sintetizador: SintetizadorTts,
+            reproductor: ReproductorPcm,
+            foco: FocoAudio,
+            voces: VocesInstaladas,
+            @ApplicationScope ambito: CoroutineScope,
+        ): Locutor =
+            LocutorImpl(
+                cache = CacheFrases(File(contexto.cacheDir, "voz")),
+                sintetizador = sintetizador,
+                reproductor = reproductor,
+                foco = foco,
+                vozDisponible = voces::efectiva,
+                ambito = ambito,
+                dispatcherSintesis =
+                    Executors
+                        .newSingleThreadExecutor { tarea -> Thread(tarea, "voz-sintesis") }
+                        .asCoroutineDispatcher(),
+            )
+    }
 }

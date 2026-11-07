@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.ruta
 import app.trombito.rallycopilot.data.datosmapa.ConfigDatosMapa
 import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.data.vias.FuenteVias
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
@@ -14,7 +15,6 @@ import app.trombito.rallycopilot.motor.ruta.RutaInvalida
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import com.valhalla.valhalla.ValhallaException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -40,9 +40,10 @@ class EnrutadorValhalla internal constructor(
     constructor(
         config: ConfigDatosMapa,
         fabrica: FabricaMotorRutas,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
         siembra: EsperaDatosSembrados,
         vias: FuenteVias,
-    ) : this(File(config.directorioMapa, NOMBRE_TAR), fabrica, Dispatchers.IO, System::nanoTime, siembra, vias)
+    ) : this(File(config.directorioMapa, NOMBRE_TAR), fabrica, dispatcher, System::nanoTime, siembra, vias)
 
     private val cerrojo = Mutex()
     private var motor: MotorRutas? = null

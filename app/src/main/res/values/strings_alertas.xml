@@ -21,8 +21,6 @@
     <string name="bocadillo_tramo_media">%1$s %2$d · media %3$d</string>
     <string name="bocadillo_tramo_sin_media">%1$s %2$d · media —</string>
     <string name="bocadillo_paso">Pasaste a %1$d</string>
-    <string name="bocadillo_paso_dentro">Pasaste a %1$d, dentro del límite</string>
-    <string name="bocadillo_paso_fuera">Pasaste a %1$d, por encima del límite</string>
 
     <!-- Antigüedad de los datos de incidencias (solo si pasan de 30 minutos o el último refresco falló) -->
     <string name="alerta_hace_minutos">hace %1$d min</string>
@@ -33,7 +31,6 @@
 
     <!-- Tarjeta de una incidencia del mapa -->
     <string name="alerta_tarjeta_cerrar">Cerrar incidencia</string>
-    <string name="alerta_marcador_descripcion">Incidencias de tráfico en el mapa</string>
 
     <!-- Panel de velocidad: exceso y media de tramo -->
     <string name="panel_exceso_descripcion">Por encima del límite de velocidad</string>

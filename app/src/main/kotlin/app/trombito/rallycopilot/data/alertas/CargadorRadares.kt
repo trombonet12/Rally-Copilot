@@ -3,11 +3,11 @@ package app.trombito.rallycopilot.data.alertas
 import android.content.Context
 import android.util.Log
 import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.motor.alertas.LectorRadares
 import app.trombito.rallycopilot.motor.alertas.Radar
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -35,8 +35,9 @@ class CargadorRadares internal constructor(
     @Inject
     constructor(
         @ApplicationContext contexto: Context,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
         siembra: EsperaDatosSembrados,
-    ) : this(File(contexto.filesDir, RUTA_RELATIVA), Dispatchers.IO, siembra)
+    ) : this(File(contexto.filesDir, RUTA_RELATIVA), dispatcher, siembra)
 
     private class Cargado(
         val modificado: Long,

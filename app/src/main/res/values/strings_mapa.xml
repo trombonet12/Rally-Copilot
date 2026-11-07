@@ -2,7 +2,6 @@
 <resources>
     <!-- Mapa -->
     <string name="comun_volver">Volver</string>
-    <string name="mapa_titulo">Mapa</string>
     <string name="mapa_cargando">Preparando el mapa…</string>
     <string name="mapa_vista_descripcion">Mapa de Mallorca</string>
     <string name="mapa_capa_selector">Tipo de mapa</string>
@@ -33,7 +32,6 @@
     <string name="panel_limite_descripcion">Límite de velocidad: %1$d kilómetros por hora</string>
     <string name="panel_limite_desconocido">?</string>
     <string name="panel_limite_desconocido_descripcion">Límite de velocidad desconocido en esta vía</string>
-    <string name="panel_via_descripcion">Vía: %1$s</string>
     <string name="placa_carretera_descripcion">carretera %1$s</string>
 
     <!-- Permiso de ubicación -->
@@ -50,7 +48,6 @@
     <string name="mapas_preparando">Preparando los mapas…</string>
     <string name="mapas_instalados_titulo">Mapas instalados</string>
     <string name="mapas_version">Versión %1$s</string>
-    <string name="mapas_tamano">Ocupan %1$s</string>
     <string name="mapas_con_satelite">Incluye satélite</string>
     <string name="mapas_sin_satelite">Sin satélite (se descarga aparte)</string>
     <string name="mapas_no_instalados">Todavía no hay mapas de Mallorca en este móvil.</string>
@@ -106,7 +103,6 @@
     <!-- Ajustes y Acerca de -->
     <string name="ajustes_titulo">Ajustes</string>
     <string name="ajustes_mapas_offline">Mapas offline</string>
-    <string name="ajustes_acerca_de">Acerca de</string>
     <string name="ajustes_zoom_titulo">Zoom del mapa</string>
     <string name="ajustes_zoom_muy_lejos">Mucho más lejos</string>
     <string name="ajustes_zoom_lejos">Más lejos</string>
@@ -124,7 +120,6 @@
     <string name="ajustes_seleccionado">Seleccionado</string>
     <string name="acerca_titulo">Acerca de</string>
     <string name="acerca_version">Versión %1$s</string>
-    <string name="acerca_licencia_titulo">Licencia</string>
     <string name="acerca_licencia_texto">Rally Copilot es software libre bajo la licencia GPL-3.0.</string>
     <string name="acerca_atribuciones_titulo">Datos y componentes</string>
     <string name="acerca_osm">OpenStreetMap: © OpenStreetMap contributors, licencia ODbL</string>

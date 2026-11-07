@@ -85,7 +85,75 @@ class DomainDependencyRuleTest {
         assertTrue("Entradas de la lista blanca que ya no existen: $obsoletas", obsoletas.isEmpty())
     }
 
+    @Test
+    fun motorHasNoAndroidImports() {
+        val motor = File("../motor/src/main/kotlin")
+        val fuentes = motor.walkTopDown().filter { it.isFile && it.extension == "kt" }.toList()
+        assertTrue("El escaneo no encontró archivos en ${motor.absolutePath}", fuentes.isNotEmpty())
+        val violaciones =
+            fuentes.flatMap { f ->
+                f
+                    .readLines()
+                    .map { it.trim() }
+                    .filter { it.startsWith("import android.") || it.startsWith("import androidx.") }
+                    .map { "${f.name}: $it" }
+            }
+        assertNone(violaciones)
+    }
+
+    @Test
+    fun productionHasNoGlobalScopeNorRunBlocking() {
+        val encontrados =
+            codigo("").flatMap { (archivo, lineas) ->
+                lineas
+                    .filter { "GlobalScope" in it || "runBlocking" in it }
+                    .map { archivo to it }
+            }
+        val violaciones =
+            encontrados
+                .filter { (archivo, _) -> archivo !in RUNBLOCKING_PERMITIDO }
+                .map { (archivo, linea) -> "$archivo: $linea" }
+        assertNone(violaciones)
+        val obsoletas = RUNBLOCKING_PERMITIDO.filter { permitido -> encontrados.none { it.first == permitido } }
+        assertTrue("Entradas de la lista blanca que ya no existen: $obsoletas", obsoletas.isEmpty())
+    }
+
+    @Test
+    fun domainHasNoDispatchers() {
+        val violaciones = codigo("domain").flatMap { (a, l) -> l.filter { "Dispatchers." in it }.map { "$a: $it" } }
+        assertNone(violaciones)
+    }
+
+    /** Los dispatchers de trabajo se inyectan (`@DispatcherIo`, `@DispatcherDefault`); la UI solo nombra `Main`. */
+    @Test
+    fun uiOnlyNamesTheMainDispatcher() {
+        val violaciones =
+            codigo("ui").flatMap { (a, l) ->
+                l.filter { "Dispatchers." in it && "Dispatchers.Main" !in it }.map { "$a: $it" }
+            }
+        assertNone(violaciones)
+    }
+
+    /** Líneas de código (sin comentarios ni KDoc) de cada archivo de `app/src/main` bajo [carpeta]. */
+    private fun codigo(carpeta: String): List<Pair<String, List<String>>> =
+        root
+            .walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .filter { carpeta.isEmpty() || it.relativeTo(root).invariantSeparatorsPath.startsWith("$carpeta/") }
+            .map { f ->
+                f.relativeTo(root).invariantSeparatorsPath to
+                    f.readLines().map { it.trim() }.filterNot {
+                        it.startsWith("*") || it.startsWith("//") || it.startsWith("/*")
+                    }
+            }.toList()
+
     private companion object {
+        /**
+         * Lista blanca de `runBlocking` en producción. `ServicioNavegacion` lee un ajuste con plazo en el arranque del
+         * servicio (`onCreate`), donde hay que decidir los tipos del primer plano antes de volver al sistema.
+         */
+        val RUNBLOCKING_PERMITIDO: Set<String> = setOf("data/navegacion/ServicioNavegacion.kt")
+
         /**
          * Lista blanca data -> ui. Solo Activities que el sistema lanza a través de un PendingIntent (p. ej. desde la
          * notificación del servicio de navegación) y que por tanto la capa de datos debe nombrar; cualquier otra

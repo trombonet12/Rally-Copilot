@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.tramos
 import app.trombito.rallycopilot.data.db.FilaResumenTramo
 import app.trombito.rallycopilot.data.db.PasadaEntity
 import app.trombito.rallycopilot.data.db.TramosDao
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.tramos.EstadisticasPerfil
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
@@ -20,182 +21,190 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 /** Tramos y pasadas en Room. Una fila ilegible (datos dañados) se ignora en las lecturas. */
 @Suppress("TooManyFunctions") // implementa el contrato completo del almacén de tramos
-class RepositorioTramosRoom(
-    private val dao: TramosDao,
-    private val dispatcher: CoroutineDispatcher,
-    /** Se avisa al crear un tramo para bajar el satélite de detalle de su corredor. */
-    private val precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
-) : RepositorioTramos {
-    override fun observarResumenes(filtro: FiltroTramos): Flow<List<ResumenTramo>> =
-        dao.observarFilasResumen().map { filas ->
-            filas
-                .filter {
-                    when (filtro) {
-                        FiltroTramos.TODOS -> true
-                        FiltroTramos.REPETIDOS -> it.pasadas >= PASADAS_PARA_REPETIDO
-                        FiltroTramos.FAVORITOS -> it.favorito
-                    }
-                }.map { it.aResumen() }
-        }
-
-    override fun observarPerfil(): Flow<EstadisticasPerfil> =
-        combine(dao.observarTotalesRecorridos(), dao.observarContadores()) { recorridos, contadores ->
-            EstadisticasPerfil(
-                recorridos = recorridos.recorridos,
-                distanciaTotalM = recorridos.distanciaM,
-                primerRecorridoMs = recorridos.primeroMs,
-                ultimoRecorridoMs = recorridos.ultimoMs,
-                tramos = contadores.tramos,
-                pasadas = contadores.pasadas,
-            )
-        }
-
-    override fun observarMejorPasada(tramoId: String): Flow<Pasada?> =
-        dao.observarMejorPasada(tramoId).map { fila -> fila?.let { leer(it) } }
-
-    override suspend fun cronometrables(): List<TramoCronometrable> =
-        withContext(dispatcher) {
-            val mejores = dao.mejoresPasadas().associateBy { it.tramoId }
-            dao.tramos().mapNotNull { fila ->
-                fila.aTramo()?.let { t -> TramoCronometrable(t, mejores[fila.id]?.aPasada(t.cortesExactosM())) }
+class RepositorioTramosRoom
+    @Inject
+    constructor(
+        private val dao: TramosDao,
+        @DispatcherIo private val dispatcher: CoroutineDispatcher,
+        /** Se avisa al crear un tramo para bajar el satélite de detalle de su corredor. */
+        private val precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
+    ) : RepositorioTramos {
+        override fun observarResumenes(filtro: FiltroTramos): Flow<List<ResumenTramo>> =
+            dao.observarFilasResumen().map { filas ->
+                filas
+                    .filter {
+                        when (filtro) {
+                            FiltroTramos.TODOS -> true
+                            FiltroTramos.REPETIDOS -> it.pasadas >= PASADAS_PARA_REPETIDO
+                            FiltroTramos.FAVORITOS -> it.favorito
+                        }
+                    }.map { it.aResumen() }
             }
-        }
 
-    override suspend fun mejorPasada(tramoId: String): Pasada? =
-        withContext(dispatcher) { dao.mejorPasada(tramoId)?.let { leer(it) } }
+        override fun observarPerfil(): Flow<EstadisticasPerfil> =
+            combine(dao.observarTotalesRecorridos(), dao.observarContadores()) { recorridos, contadores ->
+                EstadisticasPerfil(
+                    recorridos = recorridos.recorridos,
+                    distanciaTotalM = recorridos.distanciaM,
+                    primerRecorridoMs = recorridos.primeroMs,
+                    ultimoRecorridoMs = recorridos.ultimoMs,
+                    tramos = contadores.tramos,
+                    pasadas = contadores.pasadas,
+                )
+            }
 
-    override suspend fun tramo(tramoId: String): Tramo? = withContext(dispatcher) { dao.tramo(tramoId)?.aTramo() }
+        override fun observarMejorPasada(tramoId: String): Flow<Pasada?> =
+            dao.observarMejorPasada(tramoId).map { fila -> fila?.let { leer(it) } }
 
-    override suspend fun pasadasDetalladas(tramoId: String): List<PasadaDetallada> =
-        withContext(dispatcher) {
-            val tramo = dao.tramo(tramoId)?.aTramo() ?: return@withContext emptyList()
-            val filas = dao.pasadas(tramoId)
-            val mejorId = filas.minWithOrNull(compareBy({ it.totalMs }, { it.id }))?.id
-            filas.mapNotNull { fila ->
-                fila.aPasada(tramo.cortesExactosM())?.let { pasada ->
-                    PasadaDetallada(fila.id, fila.inicio, pasada, puntosDe(fila), fila.id == mejorId)
+        override suspend fun cronometrables(): List<TramoCronometrable> =
+            withContext(dispatcher) {
+                val mejores = dao.mejoresPasadas().associateBy { it.tramoId }
+                dao.tramos().mapNotNull { fila ->
+                    fila.aTramo()?.let { t -> TramoCronometrable(t, mejores[fila.id]?.aPasada(t.cortesExactosM())) }
                 }
             }
+
+        override suspend fun mejorPasada(tramoId: String): Pasada? =
+            withContext(dispatcher) { dao.mejorPasada(tramoId)?.let { leer(it) } }
+
+        override suspend fun tramo(tramoId: String): Tramo? = withContext(dispatcher) { dao.tramo(tramoId)?.aTramo() }
+
+        override suspend fun pasadasDetalladas(tramoId: String): List<PasadaDetallada> =
+            withContext(dispatcher) {
+                val tramo = dao.tramo(tramoId)?.aTramo() ?: return@withContext emptyList()
+                val filas = dao.pasadas(tramoId)
+                val mejorId = filas.minWithOrNull(compareBy({ it.totalMs }, { it.id }))?.id
+                filas.mapNotNull { fila ->
+                    fila.aPasada(tramo.cortesExactosM())?.let { pasada ->
+                        PasadaDetallada(fila.id, fila.inicio, pasada, puntosDe(fila), fila.id == mejorId)
+                    }
+                }
+            }
+
+        override suspend fun mejorPasadaDetallada(tramoId: String): PasadaDetallada? =
+            pasadasDetalladas(tramoId).firstOrNull { it.esMejor }
+
+        override suspend fun crear(
+            tramo: Tramo,
+            nombre: String?,
+            nombreAutomatico: String?,
+            creadoEnMs: Long,
+            primera: Pasada,
+            origen: OrigenPasada,
+        ) {
+            require(primera.tramoId == tramo.id) { "La pasada es de otro tramo" }
+            withContext(dispatcher) {
+                dao.crear(
+                    tramo.aEntidad(nombre?.takeIf { it.isNotBlank() }, creadoEnMs, nombreAutomatico),
+                    primera.aEntidad(origen, tramo.cortesExactosM()),
+                )
+            }
+            precarga.precargarTramos()
         }
 
-    override suspend fun mejorPasadaDetallada(tramoId: String): PasadaDetallada? =
-        pasadasDetalladas(tramoId).firstOrNull { it.esMejor }
+        override suspend fun crearSinPasadas(
+            tramo: Tramo,
+            nombre: String?,
+            nombreAutomatico: String?,
+            creadoEnMs: Long,
+        ) {
+            withContext(dispatcher) {
+                dao.insertarTramo(
+                    tramo
+                        .aEntidad(
+                            nombre?.takeIf { it.isNotBlank() },
+                            creadoEnMs,
+                            nombreAutomatico,
+                        ).copy(ultimoUso = creadoEnMs),
+                )
+            }
+            precarga.precargarTramos()
+        }
 
-    override suspend fun crear(
-        tramo: Tramo,
-        nombre: String?,
-        nombreAutomatico: String?,
-        creadoEnMs: Long,
-        primera: Pasada,
-        origen: OrigenPasada,
-    ) {
-        require(primera.tramoId == tramo.id) { "La pasada es de otro tramo" }
-        withContext(dispatcher) {
-            dao.crear(
-                tramo.aEntidad(nombre?.takeIf { it.isNotBlank() }, creadoEnMs, nombreAutomatico),
-                primera.aEntidad(origen, tramo.cortesExactosM()),
+        override suspend fun guardarPasada(
+            pasada: Pasada,
+            origen: OrigenPasada,
+        ): Long =
+            withContext(dispatcher) {
+                val tramo = checkNotNull(dao.tramo(pasada.tramoId)?.aTramo()) { "El tramo de la pasada no existe" }
+                dao.anadirPasada(pasada.aEntidad(origen, tramo.cortesExactosM()))
+            }
+
+        override suspend fun renombrar(
+            tramoId: String,
+            nombre: String?,
+        ) {
+            val limpio = nombre?.trim()?.takeIf { it.isNotEmpty() }
+            withContext(dispatcher) { check(dao.renombrar(tramoId, limpio) > 0) { "El tramo no existe" } }
+        }
+
+        override suspend fun marcarFavorito(
+            tramoId: String,
+            favorito: Boolean,
+        ) {
+            withContext(dispatcher) { check(dao.marcarFavorito(tramoId, favorito) > 0) { "El tramo no existe" } }
+        }
+
+        override suspend fun guardarCortes(
+            tramoId: String,
+            sectores: List<Double>,
+            microsectores: List<Double>,
+        ) {
+            val actual = checkNotNull(tramo(tramoId)) { "El tramo no existe" }
+            // `copy` valida los cortes (dentro de la meta y crecientes): uno inválido no llega a la base.
+            val nuevo = actual.copy(sectores = sectores, microsectores = microsectores)
+            withContext(dispatcher) {
+                dao.guardarCortes(
+                    tramoId,
+                    CodecTramos.codificarCortes(nuevo.sectores),
+                    CodecTramos.codificarCortes(nuevo.microsectores),
+                )
+            }
+        }
+
+        override suspend fun borrar(tramoId: String) {
+            withContext(dispatcher) { dao.borrar(tramoId) }
+        }
+
+        private suspend fun leer(fila: PasadaEntity): Pasada? =
+            dao.tramo(fila.tramoId)?.aTramo()?.let { fila.aPasada(it.cortesExactosM()) }
+
+        /** Los puntos del recorrido que caen en el intervalo de la pasada; vacío si no se guardó de dónde salió. */
+        private suspend fun puntosDe(fila: PasadaEntity): List<PuntoPasada> {
+            val recorrido = fila.recorridoId
+            val desde = fila.puntosDesdeMs
+            val hasta = fila.puntosHastaMs
+            if (recorrido == null || desde == null || hasta == null) return emptyList()
+            return dao
+                .puntosEntre(
+                    recorrido,
+                    desde,
+                    hasta,
+                ).map { PuntoPasada(it.lat, it.lon, it.tiempoMs, it.velocidadMs) }
+        }
+
+        private fun FilaResumenTramo.aResumen(): ResumenTramo {
+            val propio = nombre?.takeIf { it.isNotBlank() }
+            val automatico = nombreAutomatico?.takeIf { it.isNotBlank() }
+            return ResumenTramo(
+                id = id,
+                nombre = propio ?: automatico?.let(NombreAutomatico::titulo)?.ifEmpty { null } ?: NOMBRE_POR_DEFECTO,
+                nombrePropio = propio,
+                longitudM = longitudM,
+                pasadas = pasadas,
+                mejorTotalMs = mejorMs,
+                ultimoUsoMs = ultimoUso,
+                favorito = favorito,
+                subtitulo = automatico?.let(NombreAutomatico::subtitulo),
             )
         }
-        precarga.precargarTramos()
-    }
 
-    override suspend fun crearSinPasadas(
-        tramo: Tramo,
-        nombre: String?,
-        nombreAutomatico: String?,
-        creadoEnMs: Long,
-    ) {
-        withContext(dispatcher) {
-            dao.insertarTramo(
-                tramo
-                    .aEntidad(
-                        nombre?.takeIf { it.isNotBlank() },
-                        creadoEnMs,
-                        nombreAutomatico,
-                    ).copy(ultimoUso = creadoEnMs),
-            )
-        }
-        precarga.precargarTramos()
-    }
-
-    override suspend fun guardarPasada(
-        pasada: Pasada,
-        origen: OrigenPasada,
-    ): Long =
-        withContext(dispatcher) {
-            val tramo = checkNotNull(dao.tramo(pasada.tramoId)?.aTramo()) { "El tramo de la pasada no existe" }
-            dao.anadirPasada(pasada.aEntidad(origen, tramo.cortesExactosM()))
-        }
-
-    override suspend fun renombrar(
-        tramoId: String,
-        nombre: String?,
-    ) {
-        val limpio = nombre?.trim()?.takeIf { it.isNotEmpty() }
-        withContext(dispatcher) { check(dao.renombrar(tramoId, limpio) > 0) { "El tramo no existe" } }
-    }
-
-    override suspend fun marcarFavorito(
-        tramoId: String,
-        favorito: Boolean,
-    ) {
-        withContext(dispatcher) { check(dao.marcarFavorito(tramoId, favorito) > 0) { "El tramo no existe" } }
-    }
-
-    override suspend fun guardarCortes(
-        tramoId: String,
-        sectores: List<Double>,
-        microsectores: List<Double>,
-    ) {
-        val actual = checkNotNull(tramo(tramoId)) { "El tramo no existe" }
-        // `copy` valida los cortes (dentro de la meta y crecientes): uno inválido no llega a la base.
-        val nuevo = actual.copy(sectores = sectores, microsectores = microsectores)
-        withContext(dispatcher) {
-            dao.guardarCortes(
-                tramoId,
-                CodecTramos.codificarCortes(nuevo.sectores),
-                CodecTramos.codificarCortes(nuevo.microsectores),
-            )
+        private companion object {
+            const val PASADAS_PARA_REPETIDO = 2
+            const val NOMBRE_POR_DEFECTO = "Tramo sin nombre"
         }
     }
-
-    override suspend fun borrar(tramoId: String) {
-        withContext(dispatcher) { dao.borrar(tramoId) }
-    }
-
-    private suspend fun leer(fila: PasadaEntity): Pasada? =
-        dao.tramo(fila.tramoId)?.aTramo()?.let { fila.aPasada(it.cortesExactosM()) }
-
-    /** Los puntos del recorrido que caen en el intervalo de la pasada; vacío si no se guardó de dónde salió. */
-    private suspend fun puntosDe(fila: PasadaEntity): List<PuntoPasada> {
-        val recorrido = fila.recorridoId
-        val desde = fila.puntosDesdeMs
-        val hasta = fila.puntosHastaMs
-        if (recorrido == null || desde == null || hasta == null) return emptyList()
-        return dao.puntosEntre(recorrido, desde, hasta).map { PuntoPasada(it.lat, it.lon, it.tiempoMs, it.velocidadMs) }
-    }
-
-    private fun FilaResumenTramo.aResumen(): ResumenTramo {
-        val propio = nombre?.takeIf { it.isNotBlank() }
-        val automatico = nombreAutomatico?.takeIf { it.isNotBlank() }
-        return ResumenTramo(
-            id = id,
-            nombre = propio ?: automatico?.let(NombreAutomatico::titulo)?.ifEmpty { null } ?: NOMBRE_POR_DEFECTO,
-            nombrePropio = propio,
-            longitudM = longitudM,
-            pasadas = pasadas,
-            mejorTotalMs = mejorMs,
-            ultimoUsoMs = ultimoUso,
-            favorito = favorito,
-            subtitulo = automatico?.let(NombreAutomatico::subtitulo),
-        )
-    }
-
-    private companion object {
-        const val PASADAS_PARA_REPETIDO = 2
-        const val NOMBRE_POR_DEFECTO = "Tramo sin nombre"
-    }
-}

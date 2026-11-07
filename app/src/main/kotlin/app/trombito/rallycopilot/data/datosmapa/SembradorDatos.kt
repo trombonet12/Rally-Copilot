@@ -6,13 +6,13 @@ import android.util.Log
 import app.trombito.rallycopilot.data.db.DatosMapaDao
 import app.trombito.rallycopilot.data.db.archivos
 import app.trombito.rallycopilot.data.db.estado
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.motor.datos.ArchivoDatos
 import app.trombito.rallycopilot.motor.datos.ManifestDatos
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,7 +77,8 @@ class SembradorDatos internal constructor(
         @ApplicationContext contexto: Context,
         dao: DatosMapaDao,
         config: ConfigDatosMapa,
-    ) : this(dao, config, { contexto.assets.open(it) }, Dispatchers.IO)
+        @DispatcherIo dispatcher: CoroutineDispatcher,
+    ) : this(dao, config, { contexto.assets.open(it) }, dispatcher)
 
     private val alcance = CoroutineScope(SupervisorJob() + dispatcher)
     private val arrancado = AtomicBoolean(false)

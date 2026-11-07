@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.navegacion
 
 import app.trombito.rallycopilot.data.db.GuiadoPendienteDao
 import app.trombito.rallycopilot.data.db.GuiadoPendienteEntity
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.GuiadoPendiente
 import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
@@ -20,6 +21,7 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import javax.inject.Inject
 
 /**
  * Guiado pendiente en Room (una fila). [reloj] (ms epoch) sella el momento de guardar y decide la caducidad
@@ -30,6 +32,12 @@ class RepositorioGuiadoPendienteRoom(
     private val dispatcher: CoroutineDispatcher,
     private val reloj: () -> Long = System::currentTimeMillis,
 ) : RepositorioGuiadoPendiente {
+    @Inject
+    constructor(
+        dao: GuiadoPendienteDao,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
+    ) : this(dao, dispatcher, System::currentTimeMillis)
+
     override val pendiente: Flow<GuiadoPendiente?> =
         dao.observar().map { fila -> fila?.aDominio()?.takeIf { reloj() - it.desdeMs <= CADUCIDAD_MS } }
 

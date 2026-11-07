@@ -21,7 +21,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
 import javax.inject.Singleton
 
 @Module
@@ -45,15 +44,11 @@ abstract class TramosModule {
     @Binds
     abstract fun nombraTraza(implementacion: NombradorTramos): NombraTraza
 
+    @Binds
+    abstract fun repositorioTramos(implementacion: RepositorioTramosRoom): RepositorioTramos
+
     companion object {
         @Provides
         fun tramosDao(base: RallyDatabase): TramosDao = base.tramosDao()
-
-        @Provides
-        @Singleton
-        fun repositorioTramos(
-            dao: TramosDao,
-            precarga: PrecargaDetalle,
-        ): RepositorioTramos = RepositorioTramosRoom(dao, Dispatchers.IO, precarga)
     }
 }

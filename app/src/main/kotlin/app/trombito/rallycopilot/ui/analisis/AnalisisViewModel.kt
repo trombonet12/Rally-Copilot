@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
+import app.trombito.rallycopilot.di.DispatcherDefault
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
@@ -19,7 +20,6 @@ import app.trombito.rallycopilot.ui.RutaAnalisis
 import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -81,13 +81,9 @@ class AnalisisViewModel
         guardado: SavedStateHandle,
         private val repositorio: RepositorioTramos,
         private val datosMapa: RepositorioDatosMapa,
+        /** Dónde se calcula el análisis (cálculo numérico, fuera del hilo principal). */
+        @DispatcherDefault private val calculos: CoroutineDispatcher,
     ) : ViewModel() {
-        /**
-         * Dónde se calcula el análisis (cálculo numérico, fuera del hilo principal); sustituible en los tests antes de
-         * recoger [uiState], que es cuando empieza a calcular.
-         */
-        internal var calculos: CoroutineDispatcher = Dispatchers.Default
-
         private val ruta = guardado.toRoute<RutaAnalisis>()
         private val eleccion = MutableStateFlow<Eleccion>(Eleccion.Automatica)
         private val repeticion = MutableStateFlow(EstadoRepeticion())

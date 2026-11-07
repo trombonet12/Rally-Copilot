@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.importar
 import android.net.Uri
 import app.trombito.rallycopilot.data.alertas.LectorXmlAndroid
 import app.trombito.rallycopilot.data.tramos.GuardadorTramos
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.importar.ImportaArchivo
 import app.trombito.rallycopilot.domain.importar.MotivoFalloImportar
 import app.trombito.rallycopilot.domain.importar.ResultadoImportar
@@ -17,7 +18,7 @@ import app.trombito.rallycopilot.motor.importar.LectorKml
 import app.trombito.rallycopilot.motor.importar.MotivoErrorImportacion
 import app.trombito.rallycopilot.motor.importar.ResultadoImportacion
 import app.trombito.rallycopilot.motor.tramos.TramoDesdeRecorrido
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
 import java.io.FilterInputStream
@@ -54,9 +55,10 @@ class ImportadorTramos
         private val abridor: AbridorDocumentos,
         private val guardador: GuardadorTramos,
         private val guardadorArchivo: GuardaTramoArchivo,
+        @DispatcherIo private val dispatcher: CoroutineDispatcher,
     ) : ImportaArchivo {
         override suspend fun preparar(uri: String): ResultadoPreparar =
-            withContext(Dispatchers.IO) {
+            withContext(dispatcher) {
                 val direccion = Uri.parse(uri)
                 val documento = if (direccion.scheme == "content") abridor.abrir(direccion) else null
                 when {

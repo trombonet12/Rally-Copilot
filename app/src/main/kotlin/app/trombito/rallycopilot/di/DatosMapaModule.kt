@@ -21,7 +21,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
 import java.io.File
 import javax.inject.Singleton
@@ -79,13 +79,14 @@ object DatosMapaModule {
         sembrador: SembradorDatos,
         precarga: PrecargaDetalle,
         ajustesConduccion: RepositorioAjustesConduccion,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
     ): RepositorioDatosMapa =
         RepositorioDatosMapaImpl(
             dao,
             ajustesDao,
             workManager,
             config,
-            Dispatchers.IO,
+            dispatcher,
             sembrador,
             precarga,
         ) { ajustesConduccion.ajustes.first().complementosElegidos() }

@@ -123,12 +123,6 @@ class TeselasPrecargaTest {
     }
 
     @Test
-    fun `la tesela mide unos 118 m a z18 en Mallorca`() {
-        val lado = MercatorTesela.ladoTeselaM(39.6, 18)
-        assertTrue(lado in 115.0..120.0, "lado: $lado")
-    }
-
-    @Test
     fun `el encuadre visible a z14 en un movil mide unos 1_3 km de ancho`() {
         val r = EncuadreVisible.rectangulo(39.57, 2.65, 14.0, 360.0, 760.0)
         val anchoM = (r.este - r.oeste) * 111_320.0 * Math.cos(Math.toRadians(39.57))

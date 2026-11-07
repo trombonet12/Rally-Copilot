@@ -20,7 +20,6 @@
     <string name="complementos_descargar">Descargar</string>
     <string name="complementos_descargando">Descargando… %1$d %%</string>
     <string name="complementos_esperando">Esperando conexión</string>
-    <string name="complementos_cancelar">Cancelar</string>
     <string name="complementos_borrar_descripcion">Borrar %1$s</string>
     <string name="complementos_borrar_titulo">¿Borrar %1$s?</string>
     <string name="complementos_borrar_texto">Se liberan %1$s. Podrás volver a descargarlo cuando quieras.</string>
