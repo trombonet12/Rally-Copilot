@@ -1,6 +1,6 @@
 # Decisiones
 
-> Propósito: fuente única de decisiones técnicas y versiones fijadas, con su porqué · Audiencia: Joan y agentes · Actualizado: 2026-10-28 · Relacionado: [HERENCIA.md](HERENCIA.md), [investigacion/](investigacion/), [../QUESTIONS.md](../QUESTIONS.md)
+> Propósito: fuente única de decisiones técnicas y versiones fijadas, con su porqué · Audiencia: Joan y agentes · Actualizado: 2026-11-07 · Relacionado: [HERENCIA.md](HERENCIA.md), [investigacion/](investigacion/), [../QUESTIONS.md](../QUESTIONS.md)
 
 Formato: `- AAAA-MM-DD · tema · decisión · porqué`. Las entradas posteriores mandan sobre las anteriores (se indica
 «sustituye a…»). `VERIFICAR` = dato no confirmado. Las decisiones que afectan al producto **no** se toman aquí: van a
@@ -9,7 +9,7 @@ skill `registrar-decision`.
 
 ## Decisiones del usuario (2026-10-28)
 - 2026-10-28 · marca · Logo = mascota Trombito con casco de rally · elegido por Joan entre «mascota + casco» y «solo casco».
-- 2026-10-28 · release · Como Sous Chef: un push a `main` que cambia `version.properties` publica (GitHub Release + Play interna → prueba cerrada); los parches, por `workflow_dispatch` con `publicar` · elegido por Joan.
+- 2026-10-28 · release · Como Sous Chef: un push a `main` que cambia `version.properties` publica (GitHub Release + Play interna → prueba cerrada; Play pospuesto con `PLAY_HABILITADO`, 2026-10-28); los parches, por `workflow_dispatch` con `publicar` · elegido por Joan.
 - 2026-10-28 · identidad · `applicationId = app.trombito.rallycopilot` (debug `.dev`) · patrón de los hermanos; permanente en Play.
 - 2026-10-28 · git · Push solo con permiso explícito, cada vez (`permissions.ask`); force-push prohibido · corrección de Joan. **Sustituida** el mismo día: sin pedir permiso (push en `allow`), force-push sigue prohibido.
 - 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto (opus 1, sonnet 0,5, haiku 0,25) · regla de Joan.
@@ -83,6 +83,11 @@ Mandan sobre las recomendaciones de las investigaciones cuando difieren (marcado
 | ktlint (plugin / motor) | 14.2.0 / 1.8.0 | |
 | detekt | 1.23.8 | `config/detekt/detekt.yml` |
 | JUnit / Robolectric | 4.13.2 / 4.17 | androidx.test core 1.7.0, ext-junit 1.3.0 |
+| MapLibre Native Android | 13.6.1 | mapa vectorial y satélite |
+| Room / WorkManager | 2.8.5 / 2.12.0 | androidx.hilt 1.4.0 (hilt-work) |
+| valhalla-mobile | 0.6.4 | enrutado offline (Valhalla 3.9.1) |
+| sherpa-onnx | 1.13.8 | AAR descargado con SHA-256 fijo (fuera del catálogo como dependencia Maven) |
+| Vosk / JNA | 0.3.75 / 5.18.1 | órdenes por voz offline |
 
 ## Investigaciones previas (§8)
 Resumen y recomendación de cada investigación. El detalle (alternativas, licencias, fuentes) está en
@@ -93,9 +98,9 @@ considera decidido hasta que Joan responda.
 - 2026-10-28 · enrutado · **Recomendado: Valhalla vía `valhalla-mobile` 0.6.4 (MIT, Valhalla 3.9.1)** para rutas, recálculo, instrucciones en es-ES, map matching (`trace_route`/`trace_attributes`) y atributos de vía. **Ferrostar 0.59.0 (BSD-3)** solo como máquina de estados giro a giro, condicionado a un spike de 1–2 días en H2; si no encaja, seguimiento propio mínimo. Plan B: BRouter. Descartados: GraphHopper (sin soporte Android oficial desde la 2.0), OSRM (no apto para móvil), OsmAnd (GPL, VERIFICAR) · única opción con offline real, recálculo, español y map matching empaquetados para Android con licencia permisiva. Detalle: [investigacion/enrutado-offline.md](investigacion/enrutado-offline.md).
 
 ### Mapas y teselas
-- 2026-10-28 · mapas · **Recomendado: MapLibre Native Android 13.7.1 (BSD-2)** con estilo Protomaps en oscuro. Vectorial: `mallorca.pmtiles` local (`pmtiles://file://`). Satélite PNOA en dos capas: base z0–16 en PMTiles + detalle z17–19 en un MBTiles que escribe la app; descargador propio (cola, reintentos, límite de espacio, solo WiFi), no `OfflineManager` · vectorial y ráster offline en una sola librería sin GMS; PMTiles es un archivo único de solo lectura, MBTiles admite escritura incremental. Detalle: [investigacion/mapas-y-teselas.md](investigacion/mapas-y-teselas.md).
+- 2026-10-28 · mapas · **Recomendado: MapLibre Native Android 13.7.1 (BSD-2)** (**sustituida**: se fijó la 13.6.1, ver § Respuestas de Joan) con estilo Protomaps en oscuro. Vectorial: `mallorca.pmtiles` local (`pmtiles://file://`). Satélite PNOA en dos capas: base z0–16 en PMTiles + detalle z17–19 en un MBTiles que escribe la app; descargador propio (cola, reintentos, límite de espacio, solo WiFi), no `OfflineManager` · vectorial y ráster offline en una sola librería sin GMS; PMTiles es un archivo único de solo lectura, MBTiles admite escritura incremental. Detalle: [investigacion/mapas-y-teselas.md](investigacion/mapas-y-teselas.md).
 - 2026-10-28 · satélite · Estimación medida con teselas PNOA reales: **≈25 000 teselas y ≈450 MB para z0–16** de Mallorca (el «~600 MB» del prompt es un techo razonable); corredor z17–18 ≈100 MB por cada 100 km; zona manual z18–19 ≈5,4 MB/km² · dimensiona el límite de espacio por defecto.
-- 2026-10-28 · atribución · En el mapa: «© OpenStreetMap contributors» y, en satélite, «CC-BY 4.0 scne.es» («Obra derivada de…» si se recomprime). VERIFICAR texto y condiciones de descarga masiva con el CNIG (consulta@cnig.es).
+- 2026-10-28 · atribución · (**Sustituida** por la decisión de Joan de no atribuir sobre el mapa, § Respuestas de Joan.) En el mapa: «© OpenStreetMap contributors» y, en satélite, «CC-BY 4.0 scne.es» («Obra derivada de…» si se recomprime). VERIFICAR texto y condiciones de descarga masiva con el CNIG (consulta@cnig.es).
 - 2026-10-28 · spike (H1) · Resultado en el emulador: `pmtiles://file://` funciona para vectorial y ráster sin red; **`mbtiles://` funciona solo con ruta absoluta** (`mbtiles:///data/…/x.mbtiles`; con `file://` da «MBTilesFileSource only supports absolute path urls»), verificado con PNOA z17 de Palma · la capa de detalle z17–19 de H9 irá en MBTiles escribible sin servidor HTTP local. Glyphs y sprites con `file://` funcionan. Tamaños reales: vectorial 32,6 MB, vías 2,2 MB (33 327 vías, 8 576 con `maxspeed`), satélite z0–16 364 MB (37 631 teselas; 12 154 de mar sin cobertura).
 - 2026-10-28 · CI datos · El `GITHUB_TOKEN` dio 403 al crear la release al final de un job de 1 h 12 min (en un job corto funciona): se publica desde un job aparte con token nuevo · VERIFICAR la causa exacta (caducidad del token de instalación).
 - 2026-10-28 · mapas (H1) · **MapLibre Android 13.6.1** (2026-09-08; la 13.7.1 tiene < 2 semanas) envuelto en `AndroidView`, **sin `maplibre-compose`** · API estable y una dependencia menos; el mapa es una vista, el resto de la UI es Compose.

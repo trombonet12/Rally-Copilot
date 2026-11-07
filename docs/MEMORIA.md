@@ -37,4 +37,4 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-11-01 · interfaz · Los ajustes tienen que ser claros y enseñar en vivo cómo cambia cada cosa (vista previa al tocar), y lo que se toca conduciendo debe poder cambiarse desde el mapa · la pantalla de Ajustes de H4 le pareció «tétrica y poco intuitiva»; aplicarlo a cualquier ajuste nuevo.
 
 ## Correcciones
-- 2026-10-28 · git · «El push no es que esté prohibido» · no bloquear el push con deny ni hooks; se hace cuando Joan lo pide.
+- 2026-10-28 · git · «El push no es que esté prohibido» · no bloquear el push con deny ni hooks (cuándo se hace: ver la entrada de permisos del 2026-11-01).
