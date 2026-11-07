@@ -83,4 +83,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente (pausa pedida por Joan, 2026-11-07):** H14 completo (a–e) en 28 commits locales SIN push; gate en verde en el último commit. Revisión final hecha con el dump (capturas en `docs/capturas/h14/`, sin commitear). A medias y sin commitear: el pulido final (iconos de rotonda y ceda redibujados, «Luego» compacto, botón SALIDA cortado, snackbar «Casa guardada» que tapa la píldora, cámara en la última posición conocida, icono de casco en Ajustes > Copiloto, prueba con fuente 1,3×). Para retomar: reanudar ese agente o revisar `git diff`, recapturar 25b/29/19c/20b/13b/08, pasar el gate, versión 1.2 con whatsnew, push y release v1.2.0. Los datos `datos-2026.11.06-14` ya están fijados.
+- **Agente:** H14 cerrado y publicado como v1.2.0 (2026-11-07). Siguiente: lo que salga de la prueba en coche de Joan (pendientes en ROADMAP H14), batería E2E y H11 cuando haya material.

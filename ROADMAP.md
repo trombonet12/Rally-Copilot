@@ -568,7 +568,13 @@ Lo descrito en Objetivo.
 - Detector de salida con deriva simulada; numeración de salidas de rotonda; filtros de indicaciones; tests de Compose de los componentes nuevos.
 
 ### Estado
-En curso: H14a (2026-11-03).
+Completado (2026-11-07, v1.2.0), con todos los sub-hitos H14a–e y una revisión final en el emulador con los datos de Joan (capturas en `docs/capturas/h14/`).
+**Pendiente:**
+- Probarlo en el coche: curvas por rumbo, rotondas, puentes, radares y voz con micrófono real.
+- Lugares con palabras que Vosk no conoce, como Pollença o Llucmajor, que no se pueden pedir por voz.
+- Transcripción parcial en la burbuja de escucha.
+- «Dónde estoy» sin punto kilométrico.
+- `NotificacionNavegacion` con su propio formateo.
 
 ## Cambios respecto a la propuesta inicial
 - **H1** deja el corredor z17–18 y la zona manual z18–19 para **H9**, porque dependen de rutas y tramos guardados.
