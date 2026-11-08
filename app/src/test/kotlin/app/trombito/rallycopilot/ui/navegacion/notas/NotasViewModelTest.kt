@@ -37,7 +37,10 @@ class FalsoProveedorNotas(
 @OptIn(ExperimentalCoroutinesApi::class)
 class NotasViewModelTest {
     private val proveedor = FalsoProveedorNotas()
-    private val ajustes = FalsoRepositorioAjustesConduccion()
+
+    // Cruces y puentes vienen apagados de base; estos tests parten de todo activo.
+    private val todoActivo = AjustesConduccion(avisarCruces = true, avisarPuentes = true)
+    private val ajustes = FalsoRepositorioAjustesConduccion(todoActivo)
 
     private val hoja =
         HojaNotas(
@@ -110,13 +113,13 @@ class NotasViewModelTest {
                     .activa,
             )
             // Muy tarde (2,5 s + 1 s) son 70 m: aún no.
-            ajustes.mutable.value = AjustesConduccion(anticipacion = NivelAnticipacion.MUY_TARDE)
+            ajustes.mutable.value = todoActivo.copy(anticipacion = NivelAnticipacion.MUY_TARDE)
             assertFalse(
                 vm.uiState.value.visibles
                     .first()
                     .activa,
             )
-            ajustes.mutable.value = AjustesConduccion(anticipacion = NivelAnticipacion.MUY_PRONTO)
+            ajustes.mutable.value = todoActivo.copy(anticipacion = NivelAnticipacion.MUY_PRONTO)
             assertTrue(
                 vm.uiState.value.visibles
                     .first()
@@ -149,7 +152,7 @@ class NotasViewModelTest {
             val vm = crear()
             proveedor.mutable.value = en(100.0)
             assertFalse(vm.uiState.value.simplificadas)
-            ajustes.mutable.value = AjustesConduccion(notasSimplificadas = true)
+            ajustes.mutable.value = todoActivo.copy(notasSimplificadas = true)
             assertTrue(vm.uiState.value.simplificadas)
         }
 
@@ -204,7 +207,7 @@ class NotasViewModelTest {
     @Test
     fun `sin cruces la franja no ensena el aviso de cruce, suelto ni unido, y deja el resto`() =
         runTest {
-            ajustes.mutable.value = AjustesConduccion(avisarCruces = false)
+            ajustes.mutable.value = todoActivo.copy(avisarCruces = false)
             val vm = crear()
             proveedor.mutable.value = NotasEnCurso(hojaConAvisos, 100.0, 20.0, OrigenNotas.GUIADO)
             assertEquals(listOf(TipoAviso.ROTONDA, TipoAviso.PUENTE), tiposVisibles(vm))
@@ -214,7 +217,7 @@ class NotasViewModelTest {
     @Test
     fun `sin rotondas la franja no ensena el aviso de rotonda, suelto ni unido, y deja el resto`() =
         runTest {
-            ajustes.mutable.value = AjustesConduccion(avisarRotondas = false)
+            ajustes.mutable.value = todoActivo.copy(avisarRotondas = false)
             val vm = crear()
             proveedor.mutable.value = NotasEnCurso(hojaConAvisos, 100.0, 20.0, OrigenNotas.GUIADO)
             assertEquals(listOf(TipoAviso.CRUCE, TipoAviso.PUENTE), tiposVisibles(vm))
@@ -224,7 +227,7 @@ class NotasViewModelTest {
     @Test
     fun `sin salidas de autopista la franja no cambia`() =
         runTest {
-            ajustes.mutable.value = AjustesConduccion(avisarSalidasAutopista = false)
+            ajustes.mutable.value = todoActivo.copy(avisarSalidasAutopista = false)
             val vm = crear()
             proveedor.mutable.value = NotasEnCurso(hojaConAvisos, 100.0, 20.0, OrigenNotas.GUIADO)
             assertEquals(listOf(TipoAviso.CRUCE, TipoAviso.ROTONDA), tiposVisibles(vm))
@@ -236,9 +239,9 @@ class NotasViewModelTest {
             val vm = crear()
             proveedor.mutable.value = NotasEnCurso(hojaConAvisos, 100.0, 20.0, OrigenNotas.GUIADO)
             assertEquals(listOf(TipoAviso.CRUCE, TipoAviso.ROTONDA), tiposVisibles(vm))
-            ajustes.mutable.value = AjustesConduccion(avisarCruces = false, avisarRotondas = false)
+            ajustes.mutable.value = todoActivo.copy(avisarCruces = false, avisarRotondas = false)
             assertEquals(listOf(TipoAviso.PUENTE), tiposVisibles(vm))
-            ajustes.mutable.value = AjustesConduccion()
+            ajustes.mutable.value = todoActivo
             assertEquals(listOf(TipoAviso.CRUCE, TipoAviso.ROTONDA), tiposVisibles(vm))
         }
 }
