@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Atajos del icono (mantener pulsado) -->
+    <string name="atajo_libre_corto">Libre</string>
+    <string name="atajo_libre_largo">Conducir libre</string>
+    <string name="atajo_repetir_corto">Repetir</string>
+    <string name="atajo_repetir_largo">Repetir último tramo</string>
+    <string name="atajo_sin_tramos">Aún no hay ningún tramo cronometrado que repetir</string>
+
+    <!-- Widget «Última salida» -->
+    <string name="widget_titulo">Última salida</string>
+    <string name="widget_vacio">Conduce tu primer tramo</string>
+    <string name="widget_mejor">mejor %1$s</string>
+    <string name="widget_conducir">Conducir</string>
+    <string name="widget_conducir_descripcion">Conducir libre: abre el mapa siguiendo al coche</string>
+    <string name="widget_descripcion">Tu último tramo, su tiempo y tu mejor marca</string>
+</resources>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget «Última salida» 4×1, redimensionable. Se refresca al cerrar la app (ActualizadorWidget) y, como mínimo, cada
+     30 min (el mínimo que respeta Android). Android 12+ usa xml-v31/ (mismo contenido más las celdas objetivo). -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_descripcion"
+    android:initialLayout="@layout/widget_ultima_salida"
+    android:minWidth="250dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="180dp"
+    android:minResizeHeight="40dp"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="1800000"
+    android:widgetCategory="home_screen" />

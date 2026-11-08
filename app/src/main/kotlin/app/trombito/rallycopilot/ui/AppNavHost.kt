@@ -1,10 +1,14 @@
 package app.trombito.rallycopilot.ui
 
+import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -14,6 +18,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.ui.ajustes.AccionesAyuda
 import app.trombito.rallycopilot.ui.ajustes.AcercaDeRoute
 import app.trombito.rallycopilot.ui.ajustes.AjustesRoute
@@ -32,16 +38,34 @@ import app.trombito.rallycopilot.ui.mistramos.DibujarRoute
 import app.trombito.rallycopilot.ui.mistramos.EditarTramoRoute
 import app.trombito.rallycopilot.ui.mistramos.ImportarViewModel
 import app.trombito.rallycopilot.ui.mistramos.MisTramosRoute
+import app.trombito.rallycopilot.ui.navegacion.NavegacionViewModel
 import app.trombito.rallycopilot.ui.perfil.PerfilRoute
 import app.trombito.rallycopilot.ui.reconocimiento.ReconocimientoViewModel
 import app.trombito.rallycopilot.ui.tutorial.BienvenidaRoute
 import app.trombito.rallycopilot.ui.tutorial.EstadoPistas
 import app.trombito.rallycopilot.ui.tutorial.LocalPistas
 import app.trombito.rallycopilot.ui.tutorial.TutorialViewModel
+import app.trombito.rallycopilot.ui.widget.AtajosViewModel
+import app.trombito.rallycopilot.ui.widget.pasoDeAtajo
 
-/** El mapa, sin flecha de volver: lo cierra el atrás del sistema o la ✕ de su hoja (la pila de navegación). */
+/**
+ * El mapa, sin flecha de volver: lo cierra el atrás del sistema o la ✕ de su hoja (la pila de navegación).
+ * [atajoPendiente] es el destino que pidió «Repetir último tramo»: se abre su vista previa de ruta una sola vez
+ * (el ViewModel de navegación es el mismo que usa [MapaRoute], porque comparten la entrada de la pila).
+ */
 @Composable
-private fun DestinoMapa(nav: NavHostController) {
+private fun DestinoMapa(
+    nav: NavHostController,
+    atajoPendiente: Destino?,
+    onAtajoAplicado: () -> Unit,
+) {
+    val navegacion: NavegacionViewModel = hiltViewModel()
+    LaunchedEffect(atajoPendiente) {
+        if (atajoPendiente != null) {
+            navegacion.elegirDestino(atajoPendiente)
+            onAtajoAplicado()
+        }
+    }
     MapaRoute(
         onAbrirMapasOffline = { nav.navigate(RutaMapasOffline) },
         onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
@@ -53,15 +77,20 @@ private fun DestinoMapa(nav: NavHostController) {
 fun AppNavHost(
     importacion: ImportarViewModel = hiltViewModel(),
     tutorial: TutorialViewModel = hiltViewModel(),
+    atajos: AtajosViewModel = hiltViewModel(),
 ) {
     val nav = rememberNavController()
     NavegarAlImportarDeFuera(importacion, nav)
+    var atajoPendiente by remember { mutableStateOf<Destino?>(null) }
+    NavegarAlAtajo(atajos, nav) { atajoPendiente = it }
     val vistas by tutorial.pistasVistas.collectAsStateWithLifecycle()
     val pistas = remember(vistas) { EstadoPistas(vistas, tutorial::onPistaEntendida) }
     // La bienvenida va antes de Inicio solo la primera vez; sin parpadeo porque el flag se lee al crear el ViewModel.
     val arranque: Any = if (tutorial.bienvenidaVista) RutaInicio else RutaBienvenida
     CompositionLocalProvider(LocalPistas provides pistas) {
-        NavHost(navController = nav, startDestination = arranque) { destinos(nav, importacion, tutorial) }
+        NavHost(navController = nav, startDestination = arranque) {
+            destinos(nav, importacion, tutorial, atajoPendiente) { atajoPendiente = null }
+        }
     }
 }
 
@@ -69,9 +98,11 @@ private fun NavGraphBuilder.destinos(
     nav: NavHostController,
     importacion: ImportarViewModel,
     tutorial: TutorialViewModel,
+    atajoPendiente: Destino?,
+    onAtajoAplicado: () -> Unit,
 ) {
     composable<RutaInicio> { InicioRoute(onEntrada = { abrirEntrada(nav, it) }) }
-    composable<RutaMapa> { DestinoMapa(nav) }
+    composable<RutaMapa> { DestinoMapa(nav, atajoPendiente, onAtajoAplicado) }
     composable<RutaMapasOffline> {
         MapasOfflineRoute(onVolver = { nav.popBackStack() }, onDescargarZona = { nav.navigate(RutaZonaDetalle) })
     }
@@ -186,6 +217,28 @@ private fun NavegarAlImportarDeFuera(
         importacion.irAMisTramos.collect {
             val yaEsta = nav.currentDestination?.hasRoute<RutaMisTramos>() == true
             if (!yaEsta) nav.navigate(RutaMisTramos) { launchSingleTop = true }
+        }
+    }
+}
+
+/**
+ * Los atajos del icono y el botón del widget: abren el mapa (si no se está ya en él) en libre o con la ruta a la salida
+ * del último tramo; sin tramos, en libre y con un aviso discreto. [alPedirDestino] recibe el destino para el mapa.
+ */
+@Composable
+private fun NavegarAlAtajo(
+    atajos: AtajosViewModel,
+    nav: NavHostController,
+    alPedirDestino: (Destino) -> Unit,
+) {
+    val contexto = LocalContext.current
+    LaunchedEffect(atajos, nav) {
+        atajos.destinos.collect { destino ->
+            val enMapa = nav.currentDestination?.hasRoute<RutaMapa>() == true
+            val paso = pasoDeAtajo(destino, enMapa)
+            paso.destinoEnMapa?.let(alPedirDestino)
+            if (paso.abrirMapa) nav.navigate(RutaMapa) { popUpTo<RutaInicio>() }
+            if (paso.avisarSinTramos) Toast.makeText(contexto, R.string.atajo_sin_tramos, Toast.LENGTH_LONG).show()
         }
     }
 }

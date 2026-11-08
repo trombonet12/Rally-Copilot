@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fondo del widget: carbón con esquinas redondas y una muesca roja a la izquierda (el único acento). -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_carbon" />
+            <corners android:radius="18dp" />
+        </shape>
+    </item>
+    <item
+        android:width="3dp"
+        android:gravity="start|fill_vertical"
+        android:top="14dp"
+        android:bottom="14dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@color/widget_rojo" />
+        </shape>
+    </item>
+</layer-list>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copia de res/xml/shortcuts.xml para el debug: su applicationId lleva el sufijo «.dev», y los atajos estáticos exigen
+     el paquete exacto. Mantener las dos iguales salvo targetPackage. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="conducir_libre"
+        android:enabled="true"
+        android:icon="@drawable/ic_atajo_conducir"
+        android:shortcutShortLabel="@string/atajo_libre_corto"
+        android:shortcutLongLabel="@string/atajo_libre_largo">
+        <intent
+            android:action="app.trombito.rallycopilot.action.ATAJO"
+            android:targetPackage="app.trombito.rallycopilot.dev"
+            android:targetClass="app.trombito.rallycopilot.MainActivity">
+            <extra android:name="atajo" android:value="conducir_libre" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="repetir_ultimo"
+        android:enabled="true"
+        android:icon="@drawable/ic_atajo_repetir"
+        android:shortcutShortLabel="@string/atajo_repetir_corto"
+        android:shortcutLongLabel="@string/atajo_repetir_largo">
+        <intent
+            android:action="app.trombito.rallycopilot.action.ATAJO"
+            android:targetPackage="app.trombito.rallycopilot.dev"
+            android:targetClass="app.trombito.rallycopilot.MainActivity">
+            <extra android:name="atajo" android:value="repetir_ultimo" />
+        </intent>
+    </shortcut>
+</shortcuts>

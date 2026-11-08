@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Atajos estáticos del icono (mantener pulsado). Los dos abren MainActivity con la acción ATAJO y el extra «atajo»,
+     que AppNavHost traduce en navegación (ver ui/widget/Atajo.kt). El debug lleva su copia en src/debug/res/xml con el
+     paquete «.dev». -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="conducir_libre"
+        android:enabled="true"
+        android:icon="@drawable/ic_atajo_conducir"
+        android:shortcutShortLabel="@string/atajo_libre_corto"
+        android:shortcutLongLabel="@string/atajo_libre_largo">
+        <intent
+            android:action="app.trombito.rallycopilot.action.ATAJO"
+            android:targetPackage="app.trombito.rallycopilot"
+            android:targetClass="app.trombito.rallycopilot.MainActivity">
+            <extra android:name="atajo" android:value="conducir_libre" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="repetir_ultimo"
+        android:enabled="true"
+        android:icon="@drawable/ic_atajo_repetir"
+        android:shortcutShortLabel="@string/atajo_repetir_corto"
+        android:shortcutLongLabel="@string/atajo_repetir_largo">
+        <intent
+            android:action="app.trombito.rallycopilot.action.ATAJO"
+            android:targetPackage="app.trombito.rallycopilot"
+            android:targetClass="app.trombito.rallycopilot.MainActivity">
+            <extra android:name="atajo" android:value="repetir_ultimo" />
+        </intent>
+    </shortcut>
+</shortcuts>

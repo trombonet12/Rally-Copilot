@@ -23,6 +23,9 @@ import app.trombito.rallycopilot.ui.mistramos.ImportarViewModel
 import app.trombito.rallycopilot.ui.mistramos.uriDeImportacion
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import app.trombito.rallycopilot.ui.theme.oscuroAhora
+import app.trombito.rallycopilot.ui.widget.ActualizadorWidget
+import app.trombito.rallycopilot.ui.widget.AtajosViewModel
+import app.trombito.rallycopilot.ui.widget.atajo
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -34,6 +37,8 @@ class MainActivity : ComponentActivity() {
     private val actualizacion: ActualizacionDatosViewModel by viewModels()
 
     private val importar: ImportarViewModel by viewModels()
+
+    private val atajos: AtajosViewModel by viewModels()
 
     @Inject lateinit var incidencias: RepositorioIncidencias
 
@@ -62,7 +67,11 @@ class MainActivity : ComponentActivity() {
         }
         actualizacion.comprobarActualizacion()
         // Al recrear la actividad (giro) el intent llega otra vez: ya se importó.
-        if (savedInstanceState == null) intent.uriDeImportacion()?.let(importar::importarEntrante)
+        if (savedInstanceState == null) {
+            intent.uriDeImportacion()?.let(importar::importarEntrante)
+            // Atajo del icono o botón del widget con la app fría; con la app viva llega por onNewIntent.
+            intent.atajo()?.let(atajos::pedir)
+        }
         // Incidencias de la DGT al abrir la app (a lo sumo cada 5 min); sin red se queda con la copia.
         lifecycleScope.launch { incidencias.refrescar() }
         setContent {
@@ -81,6 +90,13 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         intent.uriDeImportacion()?.let(importar::importarEntrante)
+        intent.atajo()?.let(atajos::pedir)
+    }
+
+    /** Al salir de la app se repinta el widget «Última salida» (puede haberse guardado una pasada). */
+    override fun onStop() {
+        super.onStop()
+        ActualizadorWidget.pedir(this)
     }
 
     private companion object {

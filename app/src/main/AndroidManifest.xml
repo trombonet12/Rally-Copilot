@@ -47,6 +47,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Atajos del icono (mantener pulsado): «Conducir libre» y «Repetir último tramo». -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+
             <!--
                 GPX y KML recibidos de otras apps («Abrir con» y «Compartir»), solo como content:// y solo para importarlos
                 como tramos: la app no lee nada fuera del Uri recibido y rechaza lo que pase de 20 MB. Los .gpx/.kml con
@@ -76,6 +81,18 @@
                 <data android:mimeType="application/octet-stream" />
             </intent-filter>
         </activity>
+
+        <!-- Widget «Última salida» de la pantalla de inicio: lo actualiza el sistema (30 min) y la app al cerrarse. -->
+        <receiver
+            android:name=".ui.widget.WidgetUltimaSalida"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_ultima_salida" />
+        </receiver>
 
         <!--
             Compartir un tramo como GPX por el menú de Android: el archivo se escribe en cache/compartir/ y se entrega con un
