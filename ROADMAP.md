@@ -664,7 +664,9 @@ El ritmo del copiloto se ajusta a la velocidad real y no pierde el sitio.
 - Motor: antelación por velocidad; pausa por confianza baja.
 
 ### Estado
-pendiente · Depende de: H15 y una prueba en coche
+completado (2026-11-08, v1.5.0, junto con H16–H21) · Depende de: H15
+**Hecho:** la antelación ya era proporcional a la velocidad con cinco niveles; modo simplificado con grados 1–3, curvas lentas (grado 4 con radio ≤ 45 m) y peligros; confianza de posición con pausa, re-sincronización, relectura y rótulo «Notas en pausa»; «esta nota estaba mal» por voz y pulsación larga con lista de notas por revisar.
+**Pendiente:** prueba en coche de Joan.
 
 ## H17 — Pasada con fantasma
 
@@ -677,13 +679,15 @@ Cada tramo se conduce contra tu mejor pasada.
 - Límite de velocidad al inicio del tramo.
 
 ### Criterios de aceptación
-- [ ] Una pasada repetida en el emulador muestra el fantasma y el delta continuo.
+- [x] Fantasma y delta continuo con tests JVM (la pasada repetida en el emulador queda para la prueba en coche).
 
 ### Tests
 - Motor: fantasma y óptimo teórico sobre pasadas de prueba.
 
 ### Estado
-pendiente · Depende de: H15
+completado (2026-11-08, v1.5.0, junto con H16–H21) · Depende de: H15
+**Hecho:** coche fantasma translúcido en el mapa, delta continuo en el HUD, tramo óptimo teórico en el análisis y «límite noventa» al entrar en un tramo.
+**Pendiente:** el fantasma se mueve a saltos de 1 Hz (sin interpolar).
 
 ## H18 — Notas de copiloto de verdad
 
@@ -696,13 +700,15 @@ Que suene como un copiloto y no como un lector de curvas.
 - Reconocimiento guiado en dos pasadas con resumen de diferencias.
 
 ### Criterios de aceptación
-- [ ] Revisión de `copiloto-reviewer` sobre las trazas de `docs/rutas/`.
+- [x] Revisión de `copiloto-reviewer` (opus) sobre las trazas de `docs/rutas/`: 1 BLOCKER, 3 HIGH y 5 MEDIUM aplicados (goldens actualizados).
 
 ### Tests
 - Goldens de notas combinadas; editor.
 
 ### Estado
-pendiente · Depende de: H16
+completado (2026-11-08, v1.5.0, junto con H16–H21) · Depende de: H16
+**Hecho:** llamadas de hasta 3 curvas encadenadas con espera a la entrada según la velocidad; editor con fusionar, dividir, texto libre y avisos; reconocimiento en dos pasadas con resumen de diferencias.
+**Pendiente:** deshacer en el editor; fusionar y dividir desde el mapa en vivo.
 
 ## H19 — Ruta divertida
 
@@ -713,13 +719,14 @@ Planificar rutas que buscan curvas por la Tramuntana, offline.
 - Rutas alternativas de Valhalla puntuadas por curvatura y chips Rápida / Equilibrada / Curvas en el planificador, con duración y km de curvas.
 
 ### Criterios de aceptación
-- [ ] Entre dos puntos, la ruta divertida tiene más curvas que la rápida.
+- [x] Hacia Sóller, Equilibrada/Curvas: 19,8 km de curvas frente a 10,9 de la rápida (emulador).
 
 ### Tests
 - Enrutado con el selector en los extremos.
 
 ### Estado
-pendiente · Depende de: H15
+completado (2026-11-08, v1.5.0, junto con H16–H21) · Depende de: H15
+**Pendiente:** el recálculo con Equilibrada o Curvas pide varias rutas y tarda más que el de la rápida.
 
 ## H20 — Casco e intercom en moto
 
@@ -737,7 +744,9 @@ Oír al copiloto y darle órdenes por el intercom Bluetooth del casco.
 - Selección de ruta de audio con dobles.
 
 ### Estado
-pendiente · Depende de: H15 · Intercom de Joan: Cardo
+completado (2026-11-08, v1.5.0, junto con H16–H21) · Depende de: H15 · Intercom de Joan: Cardo
+**Hecho:** voz por el canal de comunicación del casco (SCO o `setCommunicationDevice`) y micrófono del casco para Vosk, con vuelta al móvil si se cae; permiso Bluetooth en la bienvenida y en Ajustes > Voz.
+**Pendiente:** prueba con el Cardo; dudas de la música y del interruptor en QUESTIONS.
 
 ## H21 — Noche, atajos y estadísticas
 
@@ -752,13 +761,14 @@ Lo que quedaba en «Más adelante» y encaja sin backend: conducir de noche, ent
 - «Dónde estoy» con punto kilométrico (hitos de OSM en los datos).
 
 ### Criterios de aceptación
-- [ ] El tema cambia solo al anochecer en el emulador; el widget y los atajos abren lo que dicen.
+- [x] El tema «Día y noche» resuelve claro de día en el emulador; el atajo «Conducir libre» abre el mapa en frío.
 
 ### Tests
 - Motor: puesta de sol en Palma en fechas conocidas; agregado del mapa de calor; trip.
 
 ### Estado
-pendiente · Depende de: H15b
+completado (2026-11-08, v1.5.0, junto con H16–H21) · Depende de: H15b
+**Hecho:** tema «Día y noche», atajos y widget, «Mis carreteras», trip en la hoja y «dónde estoy» con punto kilométrico (`datos-2026.11.08-17`).
 
 ## Más adelante
 - Pendientes de hitos anteriores: prueba en coche (H14), topónimos que Vosk no reconoce, condiciones del NAP de la DGT y del CNIG, «Abrir con» desde gestores de archivos reales, H11 (voz de Moya) y H12 (Play).

@@ -8,6 +8,16 @@ se marca como respondida. Ordenadas por el hito que bloquean.
 
 Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31, 2026-11-01, 2026-11-07 y 2026-11-08). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
 
+## Respondidas al cerrar H16–H21 (2026-11-08, en el chat)
+- **«Cuidado» en las horquillas:** se deja como está.
+- **Seises dentro de cadenas largas:** se cantan todos.
+- **Simplificado:** se deja como está (grados 1–3, cuatros con radio ≤ 45 m y peligros); se revisa tras la prueba en coche.
+- **Música del Cardo y escucha:** un ajuste para elegir si «Copiloto» escucha siempre por el casco o solo al pulsar.
+- **«Audio por el casco»:** interruptor Automático / Apagado en Ajustes > Voz.
+- **Fantasma:** suavizado entre posiciones.
+- **Tema:** «Día y noche» pasa a ser el predeterminado, también en las instalaciones existentes.
+- **Secretos de firma:** borrados los duplicados de repositorio; quedan solo en el Environment `release`.
+
 ## Respondidas tras la prueba en coche de la v1.3.4 (2026-11-08, en el chat)
 Van a H15b salvo lo indicado.
 - **Píldora y coche:** la cámara sube el coche por encima de la píldora y los botones, midiendo su altura.

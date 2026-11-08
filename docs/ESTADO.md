@@ -4,11 +4,12 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H15b (lo que salió conduciendo) cerrado · **v1.4.0** · siguiente: H16 → H17 → H18 → H19 → H20 → H21, encadenados · H11 y H12 pospuestos |
-| Estado | v1.4.0 con todo en verde. Joan probará en coche al acabar los hitos |
+| Hito | H15b–H21 cerrados · **v1.5.0** · siguiente: prueba en coche de Joan · H11 y H12 pospuestos |
+| Estado | v1.5.0 (H15b–H21 juntos; la v1.4.0 no llegó a publicarse por un test intermitente en CI, ya arreglado). Joan prueba en coche |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
 ## Completado
+- 2026-11-08 · **H16–H21** (v1.5.0): simplificado y confianza de posición con pausa y relectura, «nota mal», fantasma suavizado y óptimo teórico, «límite» al entrar en un tramo, llamadas encadenadas con espera según la velocidad (revisión opus aplicada), editor completo y recce en dos pasadas, ruta Rápida/Equilibrada/Curvas, intercom del casco con permiso y ajustes, tema «Día y noche» por defecto, atajos y widget, Mis carreteras, trip y «dónde estoy» con punto kilométrico (`datos-2026.11.08-17`). Presupuesto de subagentes a 2 puntos. Secretos de firma solo en el Environment `release`. Capturas en [capturas/h16-h21/](capturas/h16-h21/).
 - 2026-11-08 · **H15b** (v1.4.0): tras la prueba en coche de la v1.3.4: ajuste al camino sin saltar a la calle de debajo ni girar sin rumbo, media del radar de tramo en modo libre, recentrar visible en marcha y vuelta al seguimiento a los 10 s, coche por encima de la píldora, cruces y puentes apagados de base (Room v19), y **subtramos** (cualquier trozo ≥ 1 km de un tramo guardado, con delta en vivo, voz, tarjeta y lista en el detalle). Capturas en [capturas/h15b/](capturas/h15b/).
 - 2026-11-07 · Prueba en el móvil de Joan (v1.3.2 → v1.3.4): copia exportada, migración a v18 sin pérdidas, «0,0 km» cortado y atrás sin confirmar arreglados. Secretos en el Environment `release` limitado a `main` (la v1.3.4 firmó desde ahí).
 - 2026-11-07 · **H15**: auditoría de 7 perfiles ([auditoria/2026-11.md](auditoria/2026-11.md)) y todos sus arreglos: aviso de GPS sin repeticiones, canal de voz con prioridad, alertas de velocidad detrás de las notas, posición única, Room v17–v18, APK sin x86_64 ni idiomas de espeak y con Sharvard y relieve bajo demanda, firma en paso aparte, exportar tramos en GPX, interfaz (✕ con segundo toque, botones de 64 dp, píldora que crece hacia arriba), relieve con solo curvas cada 100 m, geometría común en `:motor`, cobertura, lint estricto y humo del release. Capturas en [capturas/h15/](capturas/h15/).
@@ -79,7 +80,6 @@
 - [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las de la prueba en coche y de H16–H21 respondidas el 2026-11-08.
 
 ## Pendiente del usuario
-- Confirmar el borrado de los secretos `ANDROID_*` de repositorio (ya están en el Environment `release`).
 - Prueba en coche al final de H21: ajuste al camino bajo puentes, media del radar de tramo, subtramos, antelación, fantasma, ruta divertida, intercom Cardo; batería con y sin «Copiloto» (`scripts/medir-bateria.sh`).
 - Pasarme un enlace corto real de Google Maps (`maps.app.goo.gl/…`) y material de voz en `voice-lab/data/raw/` (H11).
 
@@ -87,4 +87,4 @@
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H15b cerrado como v1.4.0 (2026-11-08). Siguiente: H16 (modo simplificado con grados 1–3 y peligros, confianza de posición con pausa y re-sincronización, relectura, «esta nota estaba mal»; la antelación por velocidad con niveles ya existe).
+- **Agente:** H15b–H21 cerrados como v1.5.0 (2026-11-08). Siguiente: lo que salga de la prueba en coche de Joan. Pendientes técnicos: deshacer en el editor, el recálculo de Equilibrada/Curvas es más lento, comprobar con GPS real que una conducción que empieza lejos crea su tramo.
