@@ -131,7 +131,9 @@
     <!-- Hoja de conducción, columna de botones y banda de GPS -->
     <string name="mapa_sin_gps">Sin señal GPS</string>
     <string name="mapa_buscar_destino">Buscar un destino</string>
-    <string name="hoja_km_recorridos">%1$s recorridos</string>
+    <string name="hoja_km_recorridos">Trip: %1$s</string>
+    <string name="hoja_trip_a_cero">Trip a cero</string>
+    <string name="hoja_trip_accion">Poner el trip a cero</string>
     <string name="hoja_crono_en_pausa">Cronómetro en pausa: sin señal GPS</string>
     <!-- Hoja del copiloto -->
     <string name="rapidos_seccion_modo">Modo</string>

@@ -1,21 +1,37 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -39,6 +55,7 @@ import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 import app.trombito.rallycopilot.ui.tramos.CronoMiniEnPanel
 import app.trombito.rallycopilot.ui.tramos.EscalaCronoMini
+import kotlinx.coroutines.delay
 
 /** La hoja de conducción (96-112 dp): ✕ a la izquierda, el centro de cada modo y la lupa a la derecha. */
 const val ETIQUETA_HOJA = "panel"
@@ -48,6 +65,9 @@ const val ETIQUETA_BUSCAR_DESTINO = "mapa-buscar-destino"
 
 /** Etiqueta de los kilómetros recorridos del modo libre. */
 const val ETIQUETA_KM_RECORRIDOS = "hoja-km-recorridos"
+
+/** Etiqueta del «Trip a cero» que sustituye un momento a los km tras reiniciar el trip. */
+const val ETIQUETA_TRIP_CONFIRMACION = "hoja-trip-confirmacion"
 
 /** Etiqueta de la fila de la vía en la hoja (placa y nombre). */
 const val ETIQUETA_VIA = "panel-via"
@@ -71,6 +91,8 @@ internal class AccionesHoja(
     val onBuscarDestino: (() -> Unit)?,
     /** La lupa guiando: abre la búsqueda sobre el mapa. */
     val onBuscarGuiando: () -> Unit,
+    /** Mantener pulsado el trip del modo libre lo pone a cero; null (sin acción) no deja reiniciarlo desde aquí. */
+    val onTripACero: (() -> Unit)? = null,
 )
 
 /** Los `ref` de OSM separados por «;», sin vacíos ni repetidos y como mucho [MAX_PLACAS]. */
@@ -110,7 +132,11 @@ internal fun HojaConduccion(
                 BotonSalirMapa(acciones.onSalir, armado = datos.cierreArmado)
             }
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center) {
-                if (guiando != null) CentroGuiado(guiando, datos, reloj) else CentroLibre(datos, reloj)
+                if (guiando != null) {
+                    CentroGuiado(guiando, datos, reloj)
+                } else {
+                    CentroLibre(datos, reloj, acciones.onTripACero)
+                }
             }
             if (guiando != null) {
                 BotonBuscarGuiando(acciones.onBuscarGuiando)
@@ -134,6 +160,7 @@ private val ALTO_FILA_HOJA = 72.dp
 private fun CentroLibre(
     datos: DatosHoja,
     reloj: () -> Long,
+    onTripACero: (() -> Unit)?,
 ) {
     val libre = datos.control as? EstadoNavegacion.Libre
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -141,22 +168,80 @@ private fun CentroLibre(
         Row(horizontalArrangement = Arrangement.spacedBy(Espacio.m), verticalAlignment = Alignment.CenterVertically) {
             // La vía cede ancho (con puntos suspensivos) para que los kilómetros se lean siempre enteros.
             FilaVia(datos.estado, Modifier.weight(1f, fill = false))
-            libre?.let {
-                val km = FormatoEs.kilometrosDesdeMetros(it.distanciaM)
-                val descripcion = stringResource(R.string.hoja_km_recorridos, km)
-                Text(
-                    text = km,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier.testTag(ETIQUETA_KM_RECORRIDOS).semantics { contentDescription = descripcion },
-                )
-            }
+            libre?.let { KmTrip(it, onTripACero) }
         }
     }
 }
+
+/**
+ * El trip de la hoja, como el de un roadbook: los km desde el último reinicio (no el total de la conducción, que se
+ * guarda aparte). Mantenerlo pulsado (o la acción de accesibilidad, o la voz) lo pone a cero: háptico y, durante
+ * [CONFIRMACION_TRIP_MS], «Trip a cero» en su lugar. Sin [onTripACero] no se puede reiniciar desde aquí.
+ */
+@Composable
+private fun KmTrip(
+    libre: EstadoNavegacion.Libre,
+    onTripACero: (() -> Unit)?,
+) {
+    val km = FormatoEs.kilometrosDesdeMetros(libre.tripM)
+    val haptico = LocalHapticFeedback.current
+    var avisos by remember(libre.desdeMs) { mutableIntStateOf(0) }
+    var confirmando by remember(libre.desdeMs) { mutableStateOf(false) }
+    var anteriorM by remember(libre.desdeMs) { mutableDoubleStateOf(libre.tripM) }
+    // Un trip que baja es un reinicio, venga de la pulsación o de la voz: se confirma igual.
+    LaunchedEffect(libre.tripM) {
+        if (libre.tripM < anteriorM) avisos++
+        anteriorM = libre.tripM
+    }
+    LaunchedEffect(avisos) {
+        if (avisos > 0) {
+            confirmando = true
+            delay(CONFIRMACION_TRIP_MS)
+            confirmando = false
+        }
+    }
+    val reiniciar: () -> Unit = {
+        haptico.performHapticFeedback(HapticFeedbackType.LongPress)
+        onTripACero?.invoke()
+        avisos++
+    }
+    val aviso = stringResource(R.string.hoja_trip_a_cero)
+    val descripcion = if (confirmando) aviso else stringResource(R.string.hoja_km_recorridos, km)
+    val etiquetaAccion = stringResource(R.string.hoja_trip_accion)
+    Text(
+        text = if (confirmando) aviso else km,
+        style = MaterialTheme.typography.bodyMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = if (confirmando) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        softWrap = false,
+        modifier =
+            Modifier
+                .testTag(if (confirmando) ETIQUETA_TRIP_CONFIRMACION else ETIQUETA_KM_RECORRIDOS)
+                .padding(horizontal = Espacio.s)
+                .then(
+                    if (onTripACero != null) {
+                        Modifier.pointerInput(onTripACero) { detectTapGestures(onLongPress = { reiniciar() }) }
+                    } else {
+                        Modifier
+                    },
+                ).semantics {
+                    contentDescription = descripcion
+                    if (confirmando) liveRegion = LiveRegionMode.Polite
+                    if (onTripACero != null) {
+                        customActions =
+                            listOf(
+                                CustomAccessibilityAction(etiquetaAccion) {
+                                    reiniciar()
+                                    true
+                                },
+                            )
+                    }
+                },
+    )
+}
+
+private const val CONFIRMACION_TRIP_MS = 1_500L
 
 /** El tiempo restante, kilómetros y llegada; el cronómetro pequeño a su lado. */
 @Composable

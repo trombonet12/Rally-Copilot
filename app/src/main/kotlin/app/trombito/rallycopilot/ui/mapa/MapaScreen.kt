@@ -470,6 +470,7 @@ private fun HojaDeLaZona(
             onTerminar = { confirmacion.pulsar(requiere, contenido.navegacion.acciones.onTerminar) },
             onBuscarDestino = barra?.let { { it.pedirFoco() } },
             onBuscarGuiando = contenido.navegacion.acciones.onAbrirBusqueda,
+            onTripACero = contenido.navegacion.acciones.onTripACero,
         ),
         modifier,
     )

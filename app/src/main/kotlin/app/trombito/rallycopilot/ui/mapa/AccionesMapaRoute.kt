@@ -103,6 +103,7 @@ internal fun accionesNavegacion(vm: NavegacionViewModel) =
         onAnadirParadaDelPunto = vm::anadirParadaDelPunto,
         onFijarCasa = vm::fijarCasaDelPunto,
         onAbrirBusqueda = vm::abrirBusquedaGuiando,
+        onTripACero = vm::reiniciarTrip,
         onCerrarBusqueda = vm::cerrarBusquedaGuiando,
         onCerrarPunto = vm::cerrarPunto,
         onAnadirParada = vm::anadirParada,

@@ -279,6 +279,20 @@ class InterpreteOrdenesTest {
     }
 
     @Test
+    fun `trip a cero`() {
+        comprobarTodas(
+            Orden.TripACero,
+            "trip a cero",
+            "poner trip a cero",
+            "reinicia el trip",
+            "copiloto, trip a cero",
+            "oye, pon el trip a cero por favor",
+        )
+        // Una nota dictada con «trip» suelto no es esta orden.
+        comprobar("derecha tres trip a cero", null)
+    }
+
+    @Test
     fun `esta nota estaba mal`() {
         comprobarTodas(
             Orden.NotaMal,

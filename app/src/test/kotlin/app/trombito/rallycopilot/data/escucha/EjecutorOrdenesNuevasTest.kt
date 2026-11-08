@@ -459,6 +459,28 @@ class EjecutorOrdenesNuevasTest {
         }
 
     @Test
+    fun `trip a cero por voz reinicia el trip sin tocar el total y responde trip a cero`() =
+        runBlocking {
+            banco.control.publicar(EstadoNavegacion.Libre(0L, 3_240.0))
+
+            banco.decir(Orden.TripACero)
+
+            assertEquals(EstadoNavegacion.Libre(0L, 3_240.0, tripM = 0.0), banco.control.estado.value)
+            assertEquals(listOf("trip a cero"), banco.locutor.dichas.toList())
+        }
+
+    @Test
+    fun `trip a cero sin modo libre no hay trip`() =
+        runBlocking {
+            banco.control.publicar(EstadoNavegacion.Inactiva)
+
+            banco.decir(Orden.TripACero)
+
+            assertEquals(0, banco.control.reinicios)
+            assertEquals(listOf("no hay trip"), banco.locutor.dichas.toList())
+        }
+
+    @Test
     fun `nota mal marca la ultima nota dicha con su posicion y el tramo activo`() =
         runBlocking {
             banco.memoria.recordarNota(NotaDicha("derecha cuatro larga", 1_200.0, tiempoMs = 770L))

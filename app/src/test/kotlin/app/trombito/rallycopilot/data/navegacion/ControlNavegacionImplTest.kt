@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -79,6 +80,44 @@ class ControlNavegacionImplTest {
         ahora = 9_000_000L
         conReloj.empezarReconocimiento("t1")
         assertEquals(EstadoNavegacion.Libre(9_000_000L, 0.0, "t1"), conReloj.estado.value)
+    }
+
+    @Test
+    fun `el trip al empezar vale lo mismo que el total y al reiniciarlo cuenta desde ahi sin tocar el total`() {
+        control.empezarLibre()
+        val id = checkNotNull(control.tomarSolicitud()).id
+
+        control.publicar(id, EstadoNavegacion.Libre(0L, 1_500.0))
+        assertEquals(EstadoNavegacion.Libre(0L, 1_500.0, tripM = 1_500.0), control.estado.value)
+
+        assertTrue(control.reiniciarTrip())
+        assertEquals(EstadoNavegacion.Libre(0L, 1_500.0, tripM = 0.0), control.estado.value)
+
+        control.publicar(id, EstadoNavegacion.Libre(0L, 1_850.0))
+        assertEquals(EstadoNavegacion.Libre(0L, 1_850.0, tripM = 350.0), control.estado.value)
+
+        // Un segundo reinicio vuelve a cero desde el total de ese momento.
+        assertTrue(control.reiniciarTrip())
+        control.publicar(id, EstadoNavegacion.Libre(0L, 2_000.0))
+        assertEquals(150.0, (control.estado.value as EstadoNavegacion.Libre).tripM, 0.001)
+    }
+
+    @Test
+    fun `sin modo libre no hay trip que reiniciar y una sesion nueva empieza con el trip igual al total`() {
+        assertFalse(control.reiniciarTrip())
+
+        control.empezarLibre()
+        val id = checkNotNull(control.tomarSolicitud()).id
+        control.publicar(id, EstadoNavegacion.Libre(0L, 800.0))
+        assertTrue(control.reiniciarTrip())
+
+        control.terminar()
+        assertFalse(control.reiniciarTrip())
+        control.empezarLibre()
+        val nueva = checkNotNull(control.tomarSolicitud()).id
+        control.publicar(nueva, EstadoNavegacion.Libre(0L, 300.0))
+
+        assertEquals(EstadoNavegacion.Libre(0L, 300.0, tripM = 300.0), control.estado.value)
     }
 
     @Test

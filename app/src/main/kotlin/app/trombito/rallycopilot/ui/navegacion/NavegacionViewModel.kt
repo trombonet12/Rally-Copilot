@@ -320,6 +320,11 @@ class NavegacionViewModel
             }
         }
 
+        /** Mantener pulsado el trip de la hoja: lo pone a cero sin tocar el total de la conducción. */
+        fun reiniciarTrip() {
+            control.reiniciarTrip()
+        }
+
         private fun guiando(): Boolean = control.estado.value is EstadoNavegacion.Guiando
 
         /** Cambia las paradas de la vista previa y recalcula las rutas; sin cambios no hace nada. */

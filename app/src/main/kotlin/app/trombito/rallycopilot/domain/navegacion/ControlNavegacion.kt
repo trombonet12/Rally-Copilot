@@ -17,12 +17,15 @@ sealed interface EstadoNavegacion {
 
     /**
      * Modo libre (sin destino): sigue la vía y graba el recorrido. Con [reconocimientoTramoId] es una pasada de
-     * reconocimiento de ese tramo: lee sus notas, sin cronometrar.
+     * reconocimiento de ese tramo: lee sus notas, sin cronometrar. [distanciaM] es el total de la conducción (lo que se
+     * guarda del recorrido); [tripM] es lo recorrido desde el último [ControlNavegacion.reiniciarTrip] y, al empezar,
+     * vale lo mismo que el total.
      */
     data class Libre(
         val desdeMs: Long,
         val distanciaM: Double,
         val reconocimientoTramoId: String? = null,
+        val tripM: Double = distanciaM,
     ) : EstadoNavegacion
 
     /**
@@ -120,4 +123,10 @@ interface ControlNavegacion {
     ) = editarParadas(OrdenParadas.Mover(desde, hasta))
 
     fun terminar()
+
+    /**
+     * Pone a cero el trip del modo libre (como el de un roadbook): desde aquí cuenta los km del trip, sin tocar el
+     * total ni lo que se graba del recorrido. Devuelve false si no hay modo libre en curso.
+     */
+    fun reiniciarTrip(): Boolean
 }

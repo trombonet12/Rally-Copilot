@@ -147,6 +147,15 @@ class FalsoControlNavegacion : ControlNavegacion {
         terminadas++
         mutable.value = EstadoNavegacion.Inactiva
     }
+
+    var reinicios = 0
+
+    override fun reiniciarTrip(): Boolean {
+        val libre = mutable.value as? EstadoNavegacion.Libre ?: return false
+        reinicios++
+        mutable.value = libre.copy(tripM = 0.0)
+        return true
+    }
 }
 
 /** Guiado pendiente en memoria; [borrados] cuenta las veces que se ha borrado. */

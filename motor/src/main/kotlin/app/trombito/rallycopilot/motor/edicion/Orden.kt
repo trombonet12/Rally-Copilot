@@ -117,6 +117,9 @@ sealed interface Orden {
     /** Dejar una [Marca] de radar en la posición actual. */
     data object RadarAqui : Orden
 
+    /** Poner a cero el trip de la hoja (los km desde el último reinicio); el total de la conducción no cambia. */
+    data object TripACero : Orden
+
     // --- Navegación ---------------------------------------------------------------------------------------------
 
     /** Ir a [lugar] («llévame a Sóller»): el nombre, normalizado (sin tildes), tal como lo oyó el reconocedor. */

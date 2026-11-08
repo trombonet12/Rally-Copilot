@@ -3,6 +3,8 @@ package app.trombito.rallycopilot.ui.mapa
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
@@ -28,6 +30,7 @@ import app.trombito.rallycopilot.ui.tramos.cronoListo
 import app.trombito.rallycopilot.ui.tramos.cronoSinTramo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -102,7 +105,85 @@ class HojaConduccionTest {
         assertTrue(banco.hay(ETIQUETA_VIA))
         assertEquals(listOf("Ma-1110"), banco.textos(banco.conEtiqueta(ETIQUETA_VIA)))
         assertEquals(listOf("3,2 km"), textos(ETIQUETA_KM_RECORRIDOS))
-        assertEquals("3,2 km recorridos", banco.descripcion(banco.conEtiqueta(ETIQUETA_KM_RECORRIDOS)))
+        assertEquals("Trip: 3,2 km", banco.descripcion(banco.conEtiqueta(ETIQUETA_KM_RECORRIDOS)))
+    }
+
+    @Test
+    fun `la hoja enseña el trip y no el total de la conduccion`() {
+        poner(EstadoNavegacion.Libre(0L, 3_240.0, tripM = 1_200.0))
+        assertEquals(listOf("1,2 km"), textos(ETIQUETA_KM_RECORRIDOS))
+        assertEquals("Trip: 1,2 km", banco.descripcion(banco.conEtiqueta(ETIQUETA_KM_RECORRIDOS)))
+    }
+
+    @Test
+    fun `mantener pulsados los km pone el trip a cero y confirma un momento`() {
+        var reinicios = 0
+        poner(libre, acc = AccionesHoja({}, {}, {}, {}, onTripACero = { reinicios++ }))
+
+        banco.mantener(banco.conEtiqueta(ETIQUETA_KM_RECORRIDOS))
+
+        assertEquals(1, reinicios)
+        assertEquals(listOf("Trip a cero"), textos(ETIQUETA_TRIP_CONFIRMACION))
+        assertEquals("Trip a cero", banco.descripcion(banco.conEtiqueta(ETIQUETA_TRIP_CONFIRMACION)))
+
+        banco.esperarEnReal(2_000L)
+
+        assertFalse(banco.hay(ETIQUETA_TRIP_CONFIRMACION))
+        assertEquals(listOf("3,2 km"), textos(ETIQUETA_KM_RECORRIDOS))
+    }
+
+    @Test
+    fun `un toque corto en los km no reinicia el trip`() {
+        var reinicios = 0
+        poner(libre, acc = AccionesHoja({}, {}, {}, {}, onTripACero = { reinicios++ }))
+
+        banco.mantener(banco.conEtiqueta(ETIQUETA_KM_RECORRIDOS), ms = 50L)
+
+        assertEquals(0, reinicios)
+        assertFalse(banco.hay(ETIQUETA_TRIP_CONFIRMACION))
+    }
+
+    @Test
+    fun `la accion de accesibilidad pone el trip a cero igual que la pulsacion larga`() {
+        var reinicios = 0
+        poner(libre, acc = AccionesHoja({}, {}, {}, {}, onTripACero = { reinicios++ }))
+        val acciones = banco.conEtiqueta(ETIQUETA_KM_RECORRIDOS).config.getOrNull(SemanticsActions.CustomActions)
+
+        assertEquals(listOf("Poner el trip a cero"), acciones!!.map { it.label })
+        assertTrue(acciones.single().action())
+        banco.reposo()
+
+        assertEquals(1, reinicios)
+        assertTrue(banco.hay(ETIQUETA_TRIP_CONFIRMACION))
+    }
+
+    @Test
+    fun `sin accion de reinicio los km no se pueden pulsar ni tienen accion de accesibilidad`() {
+        poner(libre, acc = AccionesHoja({}, {}, {}, {}))
+
+        banco.mantener(banco.conEtiqueta(ETIQUETA_KM_RECORRIDOS))
+
+        assertFalse(banco.hay(ETIQUETA_TRIP_CONFIRMACION))
+        assertNull(banco.conEtiqueta(ETIQUETA_KM_RECORRIDOS).config.getOrNull(SemanticsActions.CustomActions))
+    }
+
+    @Test
+    fun `un reinicio por voz baja el trip a cero, se confirma y el total no cambia`() {
+        var control by mutableStateOf<EstadoNavegacion>(EstadoNavegacion.Libre(0L, 3_240.0))
+        banco.poner {
+            RallyCopilotTheme { HojaConduccion(DatosHoja(estado(), control, null), acciones) }
+        }
+        assertEquals(listOf("3,2 km"), textos(ETIQUETA_KM_RECORRIDOS))
+
+        control = EstadoNavegacion.Libre(0L, 3_240.0, tripM = 0.0)
+        banco.reposo()
+
+        assertEquals(listOf("Trip a cero"), textos(ETIQUETA_TRIP_CONFIRMACION))
+        assertEquals(3_240.0, (control as EstadoNavegacion.Libre).distanciaM, 0.0)
+
+        banco.esperarEnReal(2_000L)
+
+        assertEquals(listOf("0,0 km"), textos(ETIQUETA_KM_RECORRIDOS))
     }
 
     @Test

@@ -23,12 +23,13 @@ import kotlinx.coroutines.flow.first
  *   ([IniciarRutaA]); guarda los demás resultados para [otro], que vale durante [ventanaOtroMs] y pasa al siguiente.
  * - [volverACasa]: la casa de los ajustes; sin ella, dice cómo fijarla.
  * - [anadirParada]: solo con un guiado en curso.
+ * - [tripACero]: pone a cero el trip de la hoja (modo libre).
  * - [cancelarRuta] y [masCercano] hacen una pregunta de sí o no: queda [esperaConfirmacion] hasta la respuesta
  *   ([confirmar]) o hasta [descartarConfirmacion], como en `ConduccionPorVoz`.
  *
  * Todas devuelven la frase que dice el copiloto.
  */
-@Suppress("LongParameterList") // colaboradores de la navegación: búsqueda, ruta, control, ajustes, posición y reloj
+@Suppress("LongParameterList", "TooManyFunctions") // una función por orden de voz; colaboradores de la navegación
 class NavegacionPorVoz(
     private val buscador: Buscador,
     private val iniciar: IniciarRutaA,
@@ -119,6 +120,9 @@ class NavegacionPorVoz(
         return if (si) accion() else ConduccionPorVoz.CANCELADO
     }
 
+    /** Pone a cero el trip de la hoja (solo en modo libre, que es donde la hoja lo enseña). */
+    fun tripACero(): String = if (control.reiniciarTrip()) TRIP_A_CERO else SIN_TRIP
+
     /** Lo que se dijo en vez de una respuesta anula la pregunta pendiente. */
     fun descartarConfirmacion() {
         pendiente = null
@@ -148,5 +152,11 @@ class NavegacionPorVoz(
 
         /** Cómo se llama el destino que sale de la casa de los ajustes. */
         const val NOMBRE_CASA = "casa"
+
+        /** Lo que dice el copiloto al poner el trip a cero. */
+        const val TRIP_A_CERO = "trip a cero"
+
+        /** Sin modo libre (guiando o sin conducción) no hay trip que poner a cero. */
+        const val SIN_TRIP = "no hay trip"
     }
 }

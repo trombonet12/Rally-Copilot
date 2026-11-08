@@ -91,6 +91,9 @@ class ControlNavegacionImpl
         @Volatile
         private var pendiente: SolicitudConId? = null
 
+        /** Metros del total de la conducción en el último reinicio del trip. Solo se toca con el [cerrojo]. */
+        private var tripBaseM = 0.0
+
         /** Órdenes de edición de paradas hacia la sesión guiada en curso; el servicio se las pasa a la sesión. */
         internal val ordenes = Channel<OrdenParadas>(Channel.UNLIMITED)
 
@@ -148,11 +151,22 @@ class ControlNavegacionImpl
             if (_estado.value is EstadoNavegacion.Guiando) ordenes.trySend(orden)
         }
 
+        override fun reiniciarTrip(): Boolean =
+            synchronized(cerrojo) {
+                val libre = _estado.value as? EstadoNavegacion.Libre
+                if (libre != null) {
+                    tripBaseM = libre.distanciaM
+                    _estado.value = libre.copy(tripM = 0.0)
+                }
+                libre != null
+            }
+
         override fun terminar() {
             pendiente = null
             borrarPendiente()
             synchronized(cerrojo) {
                 vigente = SIN_SESION
+                tripBaseM = 0.0
                 _estado.value = EstadoNavegacion.Inactiva
             }
             contexto.stopService(Intent(contexto, ServicioNavegacion::class.java))
@@ -185,6 +199,7 @@ class ControlNavegacionImpl
             descartarOrdenesViejas()
             synchronized(cerrojo) {
                 vigente = id
+                tripBaseM = 0.0
                 _estado.value = inicial
             }
             try {
@@ -226,7 +241,13 @@ class ControlNavegacionImpl
         ) {
             synchronized(cerrojo) {
                 if (id == vigente) {
-                    _estado.value = nuevo
+                    // El trip lo lleva el control: la sesión publica el total y aquí se le resta el último reinicio.
+                    _estado.value =
+                        if (nuevo is EstadoNavegacion.Libre) {
+                            nuevo.copy(tripM = (nuevo.distanciaM - tripBaseM).coerceAtLeast(0.0))
+                        } else {
+                            nuevo
+                        }
                     if (nuevo is EstadoNavegacion.Llegada) borrarPendiente()
                     if (nuevo is EstadoNavegacion.Guiando) guardarParadasSiCambian(nuevo)
                 }

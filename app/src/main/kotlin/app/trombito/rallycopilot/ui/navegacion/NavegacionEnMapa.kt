@@ -43,6 +43,8 @@ data class AccionesNavegacion(
     val onQuitarParada: (Int) -> Unit = {},
     /** Mueve la parada de la posición `desde` a la posición `hasta`. */
     val onMoverParada: (Int, Int) -> Unit = { _, _ -> },
+    /** Mantener pulsado el trip de la hoja (modo libre): lo pone a cero. */
+    val onTripACero: () -> Unit = {},
 )
 
 /**

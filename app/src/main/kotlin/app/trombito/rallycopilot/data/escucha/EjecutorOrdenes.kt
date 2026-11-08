@@ -91,6 +91,7 @@ class AnotadorNotaMalImpl(
  *   el tramo activo.
  * - [Orden.NotaMal]: guarda una marca `nota-mal` en la última nota dicha («anotado»; «no hay nota» si hace más de
  *   30 s o no hubo ninguna).
+ * - [Orden.TripACero]: pone a cero el trip de la hoja («trip a cero»; «no hay trip» si no hay modo libre).
  * - [Orden.Nota] / [Orden.Quitar] / [Orden.Cuidado]: publican una [EdicionPendiente] (ligadas al tramo activo o
  *   pendientes; la fusión con las notas es de `NotasSesion`).
  * - [Orden.Ajuste] (modo, volumen, anticipación, filtros, capa, orientación, zoom): [AjustesPorVoz].
@@ -152,6 +153,7 @@ class EjecutorOrdenes(
             Orden.Repite -> repetir()
             Orden.MarcaAqui -> marcar(etiqueta = null)
             Orden.NotaMal -> anotarNotaMal()
+            Orden.TripACero -> navegacion.tripACero()
             Orden.RadarAqui -> marcar(Marca.ETIQUETA_RADAR).let { if (it == HECHO) "radar marcado" else it }
             is Orden.Nota, Orden.Quitar, Orden.Cuidado -> editar(orden)
             is Orden.Ajuste -> controles.aplicar(orden)

@@ -34,7 +34,7 @@ internal enum class GrupoVoz(
                 -> NAVEGACION
 
                 is Orden.Satelite, is Orden.NorteArriba, is Orden.Zoom, Orden.Salida, Orden.ParaCrono,
-                Orden.RadarAqui,
+                Orden.RadarAqui, Orden.TripACero,
                 -> MAPA
 
                 else -> EDICION

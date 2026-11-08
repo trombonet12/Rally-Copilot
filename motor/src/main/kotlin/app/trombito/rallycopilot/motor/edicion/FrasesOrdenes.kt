@@ -92,6 +92,7 @@ object FrasesOrdenes {
                 ),
             Orden.RadarAqui to
                 listOf("radar", "avisa radar aquí", "radar aquí", "marca radar", "marca un radar", "hay un radar"),
+            Orden.TripACero to listOf("trip a cero", "poner trip a cero", "reinicia el trip"),
             Orden.NotaMal to
                 listOf("nota mal", "esa nota está mal", "nota equivocada", "esa estaba mal"),
             Orden.VolverACasa to
