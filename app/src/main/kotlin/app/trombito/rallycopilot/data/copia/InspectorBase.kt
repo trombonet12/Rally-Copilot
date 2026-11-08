@@ -95,6 +95,7 @@ internal object EstructuraRoom {
             "pasada",
             "recorrido",
             "recorrido_punto",
+            "subtramo",
             "tramo",
         )
 
@@ -105,6 +106,8 @@ internal object EstructuraRoom {
             "index_marca_tramoId",
             "index_pasada_recorridoId",
             "index_pasada_tramoId_totalMs",
+            "index_subtramo_recorridoId",
+            "index_subtramo_tramoRefId",
         )
 
     /** Tablas que crean SQLite, Android o Room por su cuenta. */

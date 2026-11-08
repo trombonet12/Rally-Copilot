@@ -18,6 +18,7 @@ import androidx.room.RoomDatabase
             MarcaEntity::class,
             EdicionNotaEntity::class,
             CalibracionEntity::class,
+            SubtramoEntity::class,
         ],
     version = RallyDatabase.VERSION,
     exportSchema = true,
@@ -39,10 +40,12 @@ abstract class RallyDatabase : RoomDatabase() {
 
     abstract fun edicionesDao(): EdicionesDao
 
+    abstract fun subtramosDao(): SubtramosDao
+
     companion object {
         const val NOMBRE = "rally.db"
 
         /** Versión del esquema; `TODAS_LAS_MIGRACIONES` tiene que llegar hasta aquí. */
-        const val VERSION = 18
+        const val VERSION = 19
     }
 }

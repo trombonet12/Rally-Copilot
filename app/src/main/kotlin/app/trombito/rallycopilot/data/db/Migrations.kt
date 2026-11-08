@@ -275,6 +275,30 @@ val MIGRATION_17_18: Migration =
     }
 
 /**
+ * v18 -> v19: avisos de puentes (columna `avisarPuentes`, apagada), cruces apagados también en la fila existente
+ * (decisión de Joan, 2026-11-08: el valor por defecto de la columna sigue en 1, SQLite no lo cambia sin rehacer la
+ * tabla) y la tabla `subtramo` con sus índices. El SQL es el `createSql` de `schemas/.../19.json`.
+ */
+val MIGRATION_18_19: Migration =
+    object : Migration(18, 19) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `avisarPuentes` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("UPDATE `ajustes_conduccion` SET `avisarCruces` = 0")
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `subtramo` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`recorridoId` INTEGER, `tramoRefId` TEXT NOT NULL, `desdeM` REAL NOT NULL, " +
+                    "`hastaM` REAL NOT NULL, `longitudM` REAL NOT NULL, `inicio` INTEGER NOT NULL, " +
+                    "`tiempoMs` INTEGER NOT NULL, `mejorMs` INTEGER, `latDesde` REAL NOT NULL, " +
+                    "`lonDesde` REAL NOT NULL, `latHasta` REAL NOT NULL, `lonHasta` REAL NOT NULL, " +
+                    "FOREIGN KEY(`recorridoId`) REFERENCES `recorrido`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , " +
+                    "FOREIGN KEY(`tramoRefId`) REFERENCES `tramo`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            )
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_subtramo_recorridoId` ON `subtramo` (`recorridoId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_subtramo_tramoRefId` ON `subtramo` (`tramoRefId`)")
+        }
+    }
+
+/**
  * Todas las migraciones, en orden, de la v1 a la versión actual de [RallyDatabase]. Es la única lista: la usan la base
  * de producción y los tests; una migración nueva se añade aquí y `MigracionRoomTest` vigila que la cadena no tenga
  * huecos hasta `RallyDatabase.version`.
@@ -298,4 +322,5 @@ val TODAS_LAS_MIGRACIONES: Array<Migration> =
         MIGRATION_15_16,
         MIGRATION_16_17,
         MIGRATION_17_18,
+        MIGRATION_18_19,
     )

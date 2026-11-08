@@ -9,6 +9,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -435,14 +436,15 @@ class MigracionRoomTest {
                     .also { base = it }
             val dao = nueva.ajustesConduccionDao()
             val migrados = dao.observar().first()!!
-            assertEquals(true, migrados.avisarCruces)
+            // Los cruces quedan apagados por la migración v18 -> v19 (decisión de Joan, 2026-11-08).
+            assertEquals(false, migrados.avisarCruces)
             assertEquals(true, migrados.avisarSalidasAutopista)
             assertEquals(true, migrados.avisarRotondas)
             assertEquals(2, migrados.nivelZoom)
             assertEquals(true, migrados.cronometrar)
-            dao.guardar(migrados.copy(avisarCruces = false, avisarRotondas = false))
+            dao.guardar(migrados.copy(avisarCruces = true, avisarRotondas = false))
             val nuevos = dao.observar().first()!!
-            assertEquals(false, nuevos.avisarCruces)
+            assertEquals(true, nuevos.avisarCruces)
             assertEquals(true, nuevos.avisarSalidasAutopista)
             assertEquals(false, nuevos.avisarRotondas)
             assertEquals(RallyDatabase.VERSION, nueva.openHelper.writableDatabase.version)
@@ -463,7 +465,7 @@ class MigracionRoomTest {
             val migrados = dao.observar().first()!!
             assertEquals(false, migrados.salidaManual)
             assertEquals(2, migrados.nivelZoom)
-            assertEquals(true, migrados.avisarCruces)
+            assertEquals(false, migrados.avisarCruces)
             dao.guardar(migrados.copy(salidaManual = true))
             assertEquals(true, dao.observar().first()!!.salidaManual)
             assertEquals(RallyDatabase.VERSION, nueva.openHelper.writableDatabase.version)
@@ -554,5 +556,55 @@ class MigracionRoomTest {
             assertEquals(false, guardados.avisarVelocidad)
             assertEquals("RAPIDA", guardados.velocidadHabla)
             assertEquals(RallyDatabase.VERSION, nueva.openHelper.writableDatabase.version)
+        }
+
+    @Test
+    fun `de v18 a v19 apaga los cruces, deja los puentes apagados y crea subtramo con sus claves e indices`() =
+        runBlocking {
+            crearBase(18)
+            val archivo = contexto.getDatabasePath(nombreBase)
+            SQLiteDatabase.openDatabase(archivo.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+                // En la v18 la fila existente tiene los cruces encendidos y el resto de avisos también.
+                db.rawQuery("SELECT avisarCruces FROM ajustes_conduccion", null).use {
+                    assertTrue(it.moveToFirst())
+                    assertEquals(1, it.getInt(0))
+                }
+            }
+            val nueva =
+                Room
+                    .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
+                    .addMigrations(*TODAS_LAS_MIGRACIONES)
+                    .allowMainThreadQueries()
+                    .build()
+                    .also { base = it }
+
+            val dao = nueva.ajustesConduccionDao()
+            val migrados = checkNotNull(dao.observar().first())
+            assertEquals(false, migrados.avisarCruces)
+            assertEquals(false, migrados.avisarPuentes)
+            assertEquals(true, migrados.avisarSalidasAutopista)
+            assertEquals(true, migrados.avisarRotondas)
+            assertEquals(true, migrados.avisarRadares)
+            assertEquals(2, migrados.nivelZoom)
+            dao.guardar(migrados.copy(avisarCruces = true, avisarPuentes = true))
+            val guardados = checkNotNull(dao.observar().first())
+            assertEquals(true, guardados.avisarCruces)
+            assertEquals(true, guardados.avisarPuentes)
+
+            val db = nueva.openHelper.writableDatabase
+            assertEquals(RallyDatabase.VERSION, db.version)
+            assertEquals(
+                setOf("recorrido.id|CASCADE", "tramo.id|CASCADE"),
+                db.query("PRAGMA foreign_key_list(`subtramo`)").use { c ->
+                    buildSet { while (c.moveToNext()) add("${c.getString(2)}.${c.getString(4)}|${c.getString(6)}") }
+                },
+            )
+            assertEquals(
+                setOf("index_subtramo_recorridoId", "index_subtramo_tramoRefId"),
+                db.query("PRAGMA index_list(`subtramo`)").use { c ->
+                    buildSet { while (c.moveToNext()) add(c.getString(1)) }
+                },
+            )
+            assertEquals(emptyList<SubtramoEntity>(), nueva.subtramosDao().observarDeTramo("x").first())
         }
 }

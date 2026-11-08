@@ -31,7 +31,9 @@ enum class Orientacion { RUMBO, NORTE }
  * oscuro, claro o el del sistema. [cronometrar] activa los tramos cronometrados (desactivado: no se crean tramos ni
  * pasadas ni se detectan los guardados, pero las notas y la navegación siguen); [notasGrandes] cambia la pantalla de
  * conducción al modo roadbook (notas enormes, casi sin mapa). [avisarCruces], [avisarSalidasAutopista] y
- * [avisarRotondas] dicen qué indicaciones se dicen y se ven (todas por defecto; ver `FiltroIndicaciones` del motor).
+ * [avisarRotondas] dicen qué indicaciones se dicen y se ven (por defecto, las salidas de autopista y las rotondas; los
+ * cruces están apagados de base desde la v19 de Room; ver `FiltroIndicaciones` del motor). [avisarPuentes] activa los
+ * avisos de puentes (apagado de base).
  * [salidaManual] hace que el cronómetro de la conducción no arranque solo al moverse el coche sino cuando Joan pulsa
  * «Salida» (cuenta atrás); desactivado = salida automática. [casa] es el punto al que lleva «volver a casa» (`null` =
  * aún no se ha fijado; se fija con `fijarCasa`). [avisarRadares], [avisarIncidencias] y [avisarVelocidad] (exceso y
@@ -54,7 +56,7 @@ data class AjustesConduccion(
     val tema: Tema = Tema.PREDETERMINADO,
     val cronometrar: Boolean = true,
     val notasGrandes: Boolean = false,
-    val avisarCruces: Boolean = true,
+    val avisarCruces: Boolean = false,
     val avisarSalidasAutopista: Boolean = true,
     val avisarRotondas: Boolean = true,
     val salidaManual: Boolean = false,
@@ -63,6 +65,7 @@ data class AjustesConduccion(
     val avisarIncidencias: Boolean = true,
     val avisarVelocidad: Boolean = true,
     val velocidadHabla: VelocidadHabla = VelocidadHabla.NORMAL,
+    val avisarPuentes: Boolean = false,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }

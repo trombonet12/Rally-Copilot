@@ -6,6 +6,20 @@ import androidx.room.Query
 import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
+/** Resultados de los subtramos cronometrados durante las conducciones. */
+@Dao
+interface SubtramosDao {
+    @Insert
+    suspend fun insertar(subtramo: SubtramoEntity): Long
+
+    @Query("SELECT * FROM subtramo WHERE recorridoId = :recorridoId ORDER BY inicio, id")
+    fun observarDeRecorrido(recorridoId: Long): Flow<List<SubtramoEntity>>
+
+    /** Los subtramos de un tramo de referencia, el más reciente primero. */
+    @Query("SELECT * FROM subtramo WHERE tramoRefId = :tramoId ORDER BY inicio DESC, id DESC")
+    fun observarDeTramo(tramoId: String): Flow<List<SubtramoEntity>>
+}
+
 @Suppress("TooManyFunctions") // un DAO por agregado: tramos, pasadas, mejores y la transacción de crear
 @Dao
 abstract class TramosDao {
@@ -43,6 +57,10 @@ abstract class TramosDao {
 
     @Query("SELECT * FROM pasada WHERE tramoId = :tramoId ORDER BY inicio DESC, id DESC")
     abstract suspend fun pasadas(tramoId: String): List<PasadaEntity>
+
+    /** Todas las pasadas (tramo, tiempo total y marcas) de golpe, para el detector de subtramos. */
+    @Query("SELECT tramoId, totalMs, marcas FROM pasada ORDER BY tramoId, totalMs, id")
+    abstract suspend fun todasLasMarcasDePasadas(): List<FilaMarcasPasada>
 
     /** Puntos del recorrido dentro del intervalo (inclusive) del reloj de los puntos, en orden. */
     @Query(

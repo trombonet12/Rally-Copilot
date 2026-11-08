@@ -60,6 +60,53 @@ data class PasadaEntity(
     val puntosHastaMs: Long? = null,
 )
 
+/**
+ * Resultado de un trozo cronometrado de un tramo guardado durante una conducción (subtramo). [desdeM]..[hastaM] son
+ * metros sobre la traza del tramo de referencia [tramoRefId] y [longitudM] su longitud; [inicio] es la entrada (epoch
+ * ms), [tiempoMs] lo que se tardó y [mejorMs] el mejor tiempo previo en ese trozo (null si era el primero). Las cuatro
+ * coordenadas son los extremos del trozo. Se borra en cascada con su recorrido y con su tramo de referencia.
+ */
+@Entity(
+    tableName = "subtramo",
+    foreignKeys = [
+        ForeignKey(
+            entity = RecorridoEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["recorridoId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+        ForeignKey(
+            entity = TramoEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["tramoRefId"],
+            onDelete = ForeignKey.CASCADE,
+        ),
+    ],
+    indices = [Index(value = ["recorridoId"]), Index(value = ["tramoRefId"])],
+)
+data class SubtramoEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val recorridoId: Long?,
+    val tramoRefId: String,
+    val desdeM: Double,
+    val hastaM: Double,
+    val longitudM: Double,
+    val inicio: Long,
+    val tiempoMs: Long,
+    val mejorMs: Long?,
+    val latDesde: Double,
+    val lonDesde: Double,
+    val latHasta: Double,
+    val lonHasta: Double,
+)
+
+/** Una pasada reducida a lo que necesita el detector de subtramos: su tramo, su tiempo total y su curva (consulta). */
+data class FilaMarcasPasada(
+    val tramoId: String,
+    val totalMs: Long,
+    val marcas: String,
+)
+
 /** Fila de la lista de tramos: el tramo con el resumen de sus pasadas (consulta, no tabla). */
 data class FilaResumenTramo(
     val id: String,

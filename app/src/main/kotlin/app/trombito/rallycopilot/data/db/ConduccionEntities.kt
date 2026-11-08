@@ -25,7 +25,9 @@ data class AjustesConduccionEntity(
     @ColumnInfo(defaultValue = "'OSCURO'") val tema: String = "OSCURO",
     @ColumnInfo(defaultValue = "1") val cronometrar: Boolean = true,
     @ColumnInfo(defaultValue = "0") val notasGrandes: Boolean = false,
-    @ColumnInfo(defaultValue = "1") val avisarCruces: Boolean = true,
+    // La columna conserva el valor por defecto 1 en SQL (SQLite no lo cambia sin rehacer la tabla); desde la v19 el de
+    // dominio es false y la migración apaga la fila existente.
+    @ColumnInfo(defaultValue = "1") val avisarCruces: Boolean = false,
     @ColumnInfo(defaultValue = "1") val avisarSalidasAutopista: Boolean = true,
     @ColumnInfo(defaultValue = "1") val avisarRotondas: Boolean = true,
     @ColumnInfo(defaultValue = "0") val salidaManual: Boolean = false,
@@ -37,6 +39,8 @@ data class AjustesConduccionEntity(
     @ColumnInfo(defaultValue = "1") val avisarIncidencias: Boolean = true,
     @ColumnInfo(defaultValue = "1") val avisarVelocidad: Boolean = true,
     @ColumnInfo(defaultValue = "'NORMAL'") val velocidadHabla: String = "NORMAL",
+    // Avisos de puentes y túneles (v19); apagados de base.
+    @ColumnInfo(defaultValue = "0") val avisarPuentes: Boolean = false,
 )
 
 /** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */

@@ -100,19 +100,20 @@ class RepositorioAjustesConduccionImplTest {
         }
 
     @Test
-    fun `los tres avisos estan activados por defecto y cada uno se guarda por separado`() =
+    fun `cruces y puentes estan apagados por defecto y cada aviso se guarda por separado`() =
         runBlocking {
             val defecto = repositorio.ajustes.first()
-            assertEquals(true, defecto.avisarCruces)
+            assertEquals(false, defecto.avisarCruces)
+            assertEquals(false, defecto.avisarPuentes)
             assertEquals(true, defecto.avisarSalidasAutopista)
             assertEquals(true, defecto.avisarRotondas)
-            assertEquals(true, defecto.filtroIndicaciones.todoActivo)
 
-            val ajustes = defecto.copy(avisarCruces = false, avisarRotondas = false)
+            val ajustes = defecto.copy(avisarCruces = true, avisarPuentes = true, avisarRotondas = false)
             repositorio.guardar(ajustes)
             val leido = repositorio.ajustes.first()
             assertEquals(ajustes, leido)
-            assertEquals(false, leido.filtroIndicaciones.avisarCruces)
+            assertEquals(true, leido.avisarPuentes)
+            assertEquals(true, leido.filtroIndicaciones.avisarCruces)
             assertEquals(true, leido.filtroIndicaciones.avisarSalidasAutopista)
             assertEquals(false, leido.filtroIndicaciones.avisarRotondas)
         }

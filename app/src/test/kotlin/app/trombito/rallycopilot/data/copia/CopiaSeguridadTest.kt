@@ -6,9 +6,12 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.RecorridoEntity
+import app.trombito.rallycopilot.data.db.SubtramoEntity
+import app.trombito.rallycopilot.data.db.TramoEntity
 import app.trombito.rallycopilot.domain.copia.CopiaInvalidaException
 import app.trombito.rallycopilot.domain.copia.MotivoCopiaInvalida
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -146,6 +149,39 @@ class CopiaSeguridadTest {
         assertEquals(100.0, runBlocking { base.recorridosDao().recorrido(a) }?.distanciaM)
         assertEquals(200.0, runBlocking { base.recorridosDao().recorrido(b) }?.distanciaM)
         assertNull(runBlocking { base.recorridosDao().recorrido(b + 1) })
+    }
+
+    @Test
+    fun `una copia de la v actual con subtramos se acepta y los conserva`() {
+        runBlocking {
+            base.tramosDao().insertarTramo(
+                TramoEntity("t", null, "x", 5_000.0, "", "", creadoEn = 1),
+            )
+            base.subtramosDao().insertar(
+                SubtramoEntity(
+                    recorridoId = null,
+                    tramoRefId = "t",
+                    desdeM = 10.0,
+                    hastaM = 510.0,
+                    longitudM = 500.0,
+                    inicio = 7,
+                    tiempoMs = 30_000,
+                    mejorMs = 31_000,
+                    latDesde = 39.7,
+                    lonDesde = 2.9,
+                    latHasta = 39.71,
+                    lonHasta = 2.91,
+                ),
+            )
+        }
+        val zip = exportar()
+
+        importar(zip)
+
+        base = abrir()
+        val subtramos = runBlocking { base.subtramosDao().observarDeTramo("t").first() }
+        assertEquals(listOf(30_000L), subtramos.map { it.tiempoMs })
+        assertEquals(31_000L, subtramos.single().mejorMs)
     }
 
     @Test
