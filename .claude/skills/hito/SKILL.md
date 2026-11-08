@@ -34,7 +34,7 @@ Operación `$0` sobre el hito `$1` (sección `## Hn` de `ROADMAP.md`, estructura
 1. Convertir el Alcance en lotes (tabla en `ESTADO.md` o bajo el hito): Lote · Agente [modelo] · Archivos (propiedad exclusiva) · Validación · Paralelo con.
 2. Cada lote cumple CLAUDE.md § Delegación: 1 objetivo, brief ≤ 40 líneas, ≤ 5 archivos, 1 comando de validación, respuesta ≤ 15 líneas.
 3. Modelo explícito (`haiku` mecánico · `sonnet` ingeniería · `opus` seguridad/arquitectura/revisión de notas). Si un script puede hacerlo, ningún modelo.
-4. Paralelo solo con archivos disjuntos y **presupuesto simultáneo ≤ 1 punto** (opus 1 · sonnet 0,5 · haiku 0,25). `gradle/libs.versions.toml` y `settings.gradle.kts` son del agente principal.
+4. Paralelo solo con archivos disjuntos y **presupuesto simultáneo ≤ 2 puntos** (opus 1 · sonnet 0,5 · haiku 0,25). `gradle/libs.versions.toml` y `settings.gradle.kts` son del agente principal.
 5. Cambios sensibles (ubicación, permisos, CI, firma) → revisión de seguridad [opus] en un lote propio.
 
 ### split

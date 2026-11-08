@@ -47,8 +47,8 @@ JDK 21 vía `~/.gradle/gradle.properties` (`org.gradle.java.installations.paths`
   respuesta ≤ 15 líneas. Plantilla `docs/_templates/BRIEF.template.md` (skill delegate-task).
 - Modelo siempre explícito (nunca omitir `model`): haiku = mecánico · sonnet = ingeniería · opus =
   seguridad/arquitectura/revisión de notas de rally. Si un script puede hacerlo, ningún modelo.
-- **Presupuesto simultáneo ≤ 1 punto: opus 1 · sonnet 0,5 · haiku 0,25** (1 opus, o 2 sonnet, o 4 haiku, o
-  1 sonnet + 2 haiku). Si se pasa, encadenar. Paralelo solo con archivos disjuntos.
+- **Presupuesto simultáneo ≤ 2 puntos: opus 1 · sonnet 0,5 · haiku 0,25** (p. ej. 4 sonnet, 2 opus, 1 opus +
+  2 sonnet, 8 haiku). Si se pasa, encadenar. Paralelo solo con archivos disjuntos.
 - Solo el agente principal hace commits y push.
 - Reservados al agente principal: CLAUDE.md, .claude/settings.json, .claude/hooks/**, docs/_templates/**,
   docs/ESTADO.md, docs/DECISIONES.md, docs/MEMORIA.md, ROADMAP.md, QUESTIONS.md, gradle/libs.versions.toml,

@@ -12,7 +12,7 @@ skill `registrar-decision`.
 - 2026-10-28 · release · Como Sous Chef: un push a `main` que cambia `version.properties` publica (GitHub Release + Play interna → prueba cerrada; Play pospuesto con `PLAY_HABILITADO`, 2026-10-28); los parches, por `workflow_dispatch` con `publicar` · elegido por Joan.
 - 2026-10-28 · identidad · `applicationId = app.trombito.rallycopilot` (debug `.dev`) · patrón de los hermanos; permanente en Play.
 - 2026-10-28 · git · Push solo con permiso explícito, cada vez (`permissions.ask`); force-push prohibido · corrección de Joan. **Sustituida** el mismo día: sin pedir permiso (push en `allow`), force-push sigue prohibido.
-- 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto (opus 1, sonnet 0,5, haiku 0,25) · regla de Joan.
+- 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto (opus 1, sonnet 0,5, haiku 0,25) · regla de Joan. **Sustituida** el 2026-11-08: ≤ 2 puntos.
 - 2026-10-28 · memoria · `docs/MEMORIA.md` importada desde CLAUDE.md + skill `recordar` · petición de Joan.
 
 ## Respuestas de Joan a QUESTIONS.md (2026-10-28)

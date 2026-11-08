@@ -28,7 +28,7 @@ Produce un diseño previo para la feature descrita en `$ARGUMENTS`, sin escribir
 4. Flujo de datos: offline por defecto; Room como persistencia de usuario; datos de mapas descargados desde la app; red solo para mapas e incidencias. Para la conducción: estado que sobrevive a pantalla apagada, segundo plano y muerte del proceso (foreground service de ubicación).
 5. Impacto: hitos afectados, decisiones que contradice o que faltan, migraciones Room, tests críticos (TDD en notas, cronometraje, detección de tramos, deltas, parsing), permisos Android, batería y privacidad.
 6. Si hay decisión estructural nueva, delegar en `registrar-decision`. Si el riesgo es alto, pedir `architecture-review` con un revisor [opus].
-7. Plan de lotes con los límites de CLAUDE.md § Delegación: 1 objetivo, ≤ 5 archivos, 1 comando de validación, respuesta ≤ 15 líneas, modelo explícito. Paralelo solo con archivos disjuntos y **presupuesto simultáneo ≤ 1 punto** (opus 1 · sonnet 0,5 · haiku 0,25). Los archivos reservados quedan para el agente principal.
+7. Plan de lotes con los límites de CLAUDE.md § Delegación: 1 objetivo, ≤ 5 archivos, 1 comando de validación, respuesta ≤ 15 líneas, modelo explícito. Paralelo solo con archivos disjuntos y **presupuesto simultáneo ≤ 2 puntos** (opus 1 · sonnet 0,5 · haiku 0,25). Los archivos reservados quedan para el agente principal.
 8. Redactar cada lote con `docs/_templates/BRIEF.template.md` (skill `delegate-task`).
 
 ## Validaciones / tests

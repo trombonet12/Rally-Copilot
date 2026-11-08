@@ -41,7 +41,7 @@
 | Módulo de dominio `:receta` | → `:motor` (Kotlin/JVM puro: geometría, notas, cronometraje, sectores, deltas, GPX/KML) | Misma idea (lógica crítica testeable sin Android), otro dominio |
 | Push | Sous Chef lo permite; aquí **pide permiso cada vez** (`permissions.ask`), force-push prohibido | Regla del usuario: el push dispara releases |
 | Dudas no bloqueantes | Sous Chef: decidir y anotar. Aquí: producto/UI/alcance → `QUESTIONS.md`; técnico menor → `docs/DECISIONES.md` | Regla del usuario: no decidir producto |
-| Delegación | Paralelo máx. 5 → **presupuesto ≤ 1 punto** (opus 1, sonnet 0,5, haiku 0,25) | Regla del usuario |
+| Delegación | Paralelo máx. 5 → **presupuesto ≤ 2 puntos** (≤ 1 hasta 2026-11-08) (opus 1, sonnet 0,5, haiku 0,25) | Regla del usuario |
 | Fases `docs/fases/` (referenciadas pero inexistentes en Sous Chef) | → hitos en `ROADMAP.md`; skill `phase` → `hito` | El usuario pide ROADMAP con hitos |
 | ADRs `docs/adr/` + `decisiones.md` | → `docs/DECISIONES.md` (fuente única) + `docs/investigacion/*.md`; skill `create-adr` → `registrar-decision` | El usuario pide DECISIONES.md |
 | Memoria | Nueva: `docs/MEMORIA.md` importada desde CLAUDE.md + skill `recordar` | Petición del usuario: recordar entre sesiones |

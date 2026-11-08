@@ -55,6 +55,6 @@ Skills propuestas para hitos futuros (aún sin SKILL.md): `notas-calibrar` (H3),
 - session-handoff | [normal|compact] | Actualizar docs/ESTADO.md al cerrar tarea o sesión [normal|compact]
 - recordar | [lo que hay que recordar] | Guardar en docs/MEMORIA.md lo que el usuario pide recordar entre sesiones
 - hito | [start|plan|split|complete] [Hn] | Gestionar un hito de ROADMAP.md (start | plan = lotes | split = sub-hitos | complete = gates y cierre)
-- delegate-task | — | Generar un brief para un subagente con BRIEF.template.md y comprobar límites y presupuesto de subagentes (≤ 1 punto)
+- delegate-task | — | Generar un brief para un subagente con BRIEF.template.md y comprobar límites y presupuesto de subagentes (≤ 2 puntos)
 - docs-update | [architecture|data-model|testing|ci|voz|runbook] | Actualizar el doc afectado según DOC.template.md
 - docs-check | [links|consistency] | Revisar docs/** y los .md de la raíz (enlaces/anclas rotos, coherencia con DECISIONES.md, VERIFICAR)

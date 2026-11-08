@@ -1,6 +1,6 @@
 ---
 name: delegate-task
-description: Generar un brief para un subagente con BRIEF.template.md y comprobar límites de tamaño, validación y presupuesto de subagentes (≤ 1 punto); si no cumple, dividir. No ejecuta la delegación.
+description: Generar un brief para un subagente con BRIEF.template.md y comprobar límites de tamaño, validación y presupuesto de subagentes (≤ 2 puntos); si no cumple, dividir. No ejecuta la delegación.
 allowed-tools: Read, Grep, Glob, Bash(wc *)
 ---
 
@@ -30,7 +30,7 @@ Redacta el brief de un subagente con `docs/_templates/BRIEF.template.md`, compru
    - Exactamente **1** comando de validación, real (`./gradlew :motor:test`, `./gradlew testDebugUnitTest`, `node scripts/check-claude-assets.mjs`…).
    - Respuesta pedida ≤ 15 líneas.
    - Modelo explícito.
-5. **Presupuesto de subagentes simultáneos ≤ 1 punto**: opus = 1 · sonnet = 0,5 · haiku = 0,25. Sumar los que ya están corriendo más los nuevos; si pasa de 1, encadenar en vez de paralelizar. Válidos: 1 opus · 2 sonnet · 4 haiku · 1 sonnet + 2 haiku.
+5. **Presupuesto de subagentes simultáneos ≤ 2 puntos**: opus = 1 · sonnet = 0,5 · haiku = 0,25. Sumar los que ya están corriendo más los nuevos; si pasa de 2, encadenar en vez de paralelizar. Válidos: 2 opus · 4 sonnet · 8 haiku · 1 opus + 2 sonnet.
 6. En paralelo con otros: archivos permitidos **disjuntos**. Dos lotes no tocan a la vez `gradle/libs.versions.toml`.
 7. Archivos reservados (CLAUDE.md, `.claude/settings.json`, `.claude/hooks/**`, `docs/_templates/**`, `docs/ESTADO.md`, `docs/DECISIONES.md`, `docs/MEMORIA.md`, `ROADMAP.md`, `QUESTIONS.md`, `gradle/libs.versions.toml`, `settings.gradle.kts`) nunca en ARCHIVOS PERMITIDOS; el subagente pide el cambio en su respuesta.
 8. Las dudas de producto que encuentre el subagente vuelven en su respuesta; el agente principal las apunta en `QUESTIONS.md`.
@@ -45,7 +45,7 @@ Redacta el brief de un subagente con `docs/_templates/BRIEF.template.md`, compru
 ## Definition of Done
 - [ ] Brief con todas las líneas de la plantilla y ≤ 40 líneas.
 - [ ] Un objetivo, un comando de validación, respuesta ≤ 15 líneas, modelo explícito.
-- [ ] Presupuesto simultáneo ≤ 1 punto comprobado.
+- [ ] Presupuesto simultáneo ≤ 2 puntos comprobado.
 - [ ] Archivos permitidos dentro del límite, disjuntos en paralelo y sin reservados.
 - [ ] Prohibido git commit/push declarado en el brief (solo el agente principal commitea; el push, con permiso del usuario).
 

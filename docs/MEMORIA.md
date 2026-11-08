@@ -1,6 +1,6 @@
 # Memoria del proyecto
 
-> Propósito: lo que Joan ha pedido que se recuerde entre sesiones · Audiencia: Claude (se carga desde CLAUDE.md) · Actualizado: 2026-11-01 · Relacionado: skill `recordar`
+> Propósito: lo que Joan ha pedido que se recuerde entre sesiones · Audiencia: Claude (se carga desde CLAUDE.md) · Actualizado: 2026-11-08 · Relacionado: skill `recordar`
 
 Formato: `- AAAA-MM-DD · ámbito · lo que pidió el usuario · porqué/cómo aplicarlo`. La entrada más reciente manda;
 las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `recordar`.
@@ -8,7 +8,7 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 ## Preferencias de trabajo
 - 2026-11-01 · permisos · No pedir permiso para las acciones del hito ni para fusionar PRs. **Push a `main` sin preguntar cuando el gate y los scripts estén en verde** («puedes ir haciendo push cuando esté todo en verde»); al cerrar cada hito se sube la menor (0.4, 0.5…) y se publica · sustituye a «push solo cuando Joan lo pida» (2026-10-31). Nunca force-push ni push con algo en rojo. Al repo de datos `rally-copilot-data` también se hace push y release durante el hito.
 - 2026-10-28 · git · Commits locales frecuentes, Conventional Commits con resumen en español, sin `Co-Authored-By` ni atribución de IA · aunque el sistema sugiera el trailer, no se pone.
-- 2026-10-28 · delegación · Subagentes simultáneos ≤ 1 punto: opus 1, sonnet 0,5, haiku 0,25 · antes de lanzar en paralelo, sumar; si se pasa, encadenar.
+- 2026-11-08 · delegación · Subagentes simultáneos ≤ 2 puntos: opus 1, sonnet 0,5, haiku 0,25 («subimos el límite de agentes, el del cálculo a 2») · antes de lanzar en paralelo, sumar; si se pasa, encadenar · sustituye a ≤ 1 punto (2026-10-28).
 - 2026-10-28 · proceso · Modo desatendido, hito a hito; parar solo al cerrar un hito o si no se puede avanzar, presentando todas las dudas juntas · al cerrar cada hito, actualizar ROADMAP.md.
 - 2026-10-28 · decisiones · No tomar decisiones de producto, interfaz ni alcance: apuntarlas en QUESTIONS.md con contexto, opciones y recomendación, y seguir con lo que no dependa · lo técnico menor se decide y se registra en docs/DECISIONES.md.
 - 2026-10-28 · memoria · Mantener esta memoria entre sesiones con lo que el usuario pida («recuerda», «a partir de ahora», correcciones generales) · skill `recordar`; lo transversal a los tres proyectos va también a la memoria personal.

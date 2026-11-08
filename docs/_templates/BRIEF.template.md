@@ -1,6 +1,6 @@
 <!-- Brief de subagente: ≤ 40 líneas. Un objetivo, ≤ 5 archivos (o ≤ 3 skills / ≤ 4 agentes / ≤ 3 docs largos / ≤ 4 workflows),
      un comando de validación, respuesta ≤ 15 líneas. Si no cumple, dividir.
-     Presupuesto simultáneo de subagentes ≤ 1 punto: opus 1 · sonnet 0,5 · haiku 0,25. -->
+     Presupuesto simultáneo de subagentes ≤ 2 puntos: opus 1 · sonnet 0,5 · haiku 0,25. -->
 ROL/AGENTE: <nombre | general-purpose + "Actúa según .claude/agents/<x>.md" (léelo primero)>
 MODELO: <haiku|sonnet|opus>
 OBJETIVO: <una frase>

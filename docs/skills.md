@@ -6,7 +6,7 @@
 
 Total: 41 skills (3 manuales).
 
-Presupuesto de descripciones: 7269 / 16000 caracteres (suma de name + description de las skills no manuales).
+Presupuesto de descripciones: 7270 / 16000 caracteres (suma de name + description de las skills no manuales).
 
 ## 1. Arquitectura y diseño
 
@@ -80,6 +80,6 @@ Presupuesto de descripciones: 7269 / 16000 caracteres (suma de name + descriptio
 | [session-handoff](../.claude/skills/session-handoff/SKILL.md) | `[normal\|compact]`                                     | no     | Actualizar docs/ESTADO.md al cerrar tarea o sesión [normal\|compact]; compact es la versión mínima antes de compactar contexto. No para arrancar (session-start).                                        |
 | [recordar](../.claude/skills/recordar/SKILL.md)               | `[lo que hay que recordar]`                             | no     | Guardar en docs/MEMORIA.md lo que el usuario pide que se recuerde entre sesiones («a partir de ahora», «siempre», «nunca», correcciones generales); no para decisiones técnicas (registrar-decision).    |
 | [hito](../.claude/skills/hito/SKILL.md)                       | `[start\|plan\|split\|complete] [Hn]`                   | no     | Gestionar un hito Hn de ROADMAP.md (start = arranque \| plan = lotes \| split = sub-hitos \| complete = gates y cierre); nunca empieza un hito no pedido; no es session-start/handoff.                   |
-| [delegate-task](../.claude/skills/delegate-task/SKILL.md)     | —                                                       | no     | Generar un brief para un subagente con BRIEF.template.md y comprobar límites de tamaño, validación y presupuesto de subagentes (≤ 1 punto); si no cumple, dividir. No ejecuta la delegación.             |
+| [delegate-task](../.claude/skills/delegate-task/SKILL.md)     | —                                                       | no     | Generar un brief para un subagente con BRIEF.template.md y comprobar límites de tamaño, validación y presupuesto de subagentes (≤ 2 puntos); si no cumple, dividir. No ejecuta la delegación.            |
 | [docs-update](../.claude/skills/docs-update/SKILL.md)         | `[architecture\|data-model\|testing\|ci\|voz\|runbook]` | no     | Actualizar el doc afectado (architecture\|data-model\|testing\|ci\|voz\|runbook) según DOC.template.md; no para ESTADO/DECISIONES/ROADMAP ni enlaces (docs-check).                                       |
 | [docs-check](../.claude/skills/docs-check/SKILL.md)           | `[links\|consistency]`                                  | no     | Revisar docs/** y los .md de la raíz (links = enlaces/anclas rotos \| consistency = datos vs DECISIONES.md, VERIFICAR); solo informa, no edita (docs-update).                                            |
