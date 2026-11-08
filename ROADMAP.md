@@ -617,14 +617,40 @@ completado (2026-11-07, v1.3.0) · Depende de: H14 · Dudas: [QUESTIONS.md § Au
 **Decidido sin hacer:** `verification-metadata.xml` de Gradle (choca con Dependabot; ver DECISIONES), test de Hilt con el grafo real (no hay `hilt-android-testing`).
 **Pendiente:** medir batería con «Copiloto» en el móvil con ruido real; mover los secretos de firma al Environment `release` (Joan); `runBlocking` del servicio (necesario para declarar el micrófono a tiempo); revisar las excepciones de lint PluralsCandidate y LocalContextResourcesRead; renombrar «Origen → Destino» los tramos antiguos.
 
+## H15b — Lo que salió conduciendo
+
+### Objetivo
+Arreglar lo que Joan encontró en la primera prueba en coche de la v1.3.4 y cronometrar los trozos de carreteras ya
+conducidas aunque el viaje vaya a otro sitio.
+
+### Alcance
+- **L1 Ajuste al camino:** en modo libre el coche no salta a la calle que pasa por debajo ni gira 360°: rumbo estimado al elegir la vía, candidatas a contramano descartadas en marcha, nivel (puente/túnel) recordado, histéresis al cambiar de vía, una actualización del mapa por fijación y nunca rumbo 0° por falta de dato.
+- **L2 Media del tramo en modo libre:** el radar de tramo arma la media al pasar por el inicio y la cierra en el fin; en guiado, el emparejado usa el rumbo de la vía.
+- **L3 Centrar:** visible siempre que el mapa no siga al coche; en marcha vuelve a seguirlo solo a los 10 s sin tocar el mapa.
+- **L4 Coche visible:** la cámara coloca el coche por encima de la píldora de velocidad y los botones.
+- **L5 Cruces y puentes:** apagados de base (también al actualizar) con interruptor de puentes nuevo.
+- **L6 Subtramos:** cualquier trozo ≥ 1 km de un tramo guardado, en su sentido, se cronometra y se compara con todas las pasadas que lo cubren; delta en vivo, tarjeta y voz corta al salir, lista en el resumen.
+
+### Criterios de aceptación
+- [ ] `gps-replay` por la Vía de Cintura sin saltos a las calles de debajo.
+- [ ] Media del tramo en modo libre en el emulador.
+- [ ] Un viaje que comparte 2 km con un tramo guardado muestra su subtramo con delta.
+- [ ] Gate, scripts y humo en verde; capturas en `docs/capturas/h15b/`.
+
+### Tests
+- Motor: ajuste al camino con cruces a distinto nivel y rumbo nulo; media en modo libre con los tramos reales; subtramos (entrar a mitad, salir antes, sentido contrario, solapes, < 1 km). Migración 18→19.
+
+### Estado
+en curso (2026-11-08) · Depende de: H15 · Dudas: [QUESTIONS.md](QUESTIONS.md#respondidas-tras-la-prueba-en-coche-de-la-v134-2026-11-08-en-el-chat)
+
 ## H16 — Calibración en coche
 
 ### Objetivo
 El ritmo del copiloto se ajusta a la velocidad real y no pierde el sitio.
 
 ### Alcance
-- Antelación de las notas en niveles y proporcional a la velocidad; relectura si se pierde.
-- Modo simplificado (solo curvas a partir de un grado).
+- Antelación de las notas proporcional a la velocidad con nivel Pronto/Normal/Tarde (Ajustes y hoja del copiloto); relectura si se pierde.
+- Modo simplificado: solo grados 1–3 y peligros.
 - Confianza de posición: notas en pausa con GPS pobre o fuera del recorrido, y re-sincronizar.
 - «Esta nota estaba mal»: marca local y lista de revisión.
 - Fuera: lo que pida una prueba en coche que aún no se ha hecho.
@@ -644,7 +670,7 @@ pendiente · Depende de: H15 y una prueba en coche
 Cada tramo se conduce contra tu mejor pasada.
 
 ### Alcance
-- Delta continuo y coche fantasma en el mapa.
+- Delta continuo en el HUD y coche fantasma translúcido en el mapa (también en subtramos).
 - Tramo óptimo teórico (mejor sector de cada pasada).
 - Límite de velocidad al inicio del tramo.
 
@@ -682,7 +708,7 @@ pendiente · Depende de: H16
 Planificar rutas que buscan curvas por la Tramuntana, offline.
 
 ### Alcance
-- Coste de curvatura en Valhalla y selector de sinuosidad.
+- Rutas alternativas de Valhalla puntuadas por curvatura y chips Rápida / Equilibrada / Curvas en el planificador, con duración y km de curvas.
 
 ### Criterios de aceptación
 - [ ] Entre dos puntos, la ruta divertida tiene más curvas que la rápida.
@@ -709,11 +735,31 @@ Oír al copiloto y darle órdenes por el intercom Bluetooth del casco.
 - Selección de ruta de audio con dobles.
 
 ### Estado
-pendiente · Depende de: H15 · Necesita el modelo de intercom de Joan
+pendiente · Depende de: H15 · Intercom de Joan: Cardo
+
+## H21 — Noche, atajos y estadísticas
+
+### Objetivo
+Lo que quedaba en «Más adelante» y encaja sin backend: conducir de noche, entrar rápido y ver qué carreteras haces.
+
+### Alcance
+- Modo nocturno automático por la puesta y la salida del sol, calculadas sin red.
+- Atajos «Conducir libre» y «Repetir último tramo»; widget «Última salida».
+- Pantalla «Mis carreteras» (desde Mis tramos): mapa de calor de lo conducido, km totales, curvas por grado y carreteras con más curvas.
+- Trip en la hoja de conducción: se pone a cero manteniéndolo pulsado o con «trip a cero».
+- «Dónde estoy» con punto kilométrico (hitos de OSM en los datos).
+
+### Criterios de aceptación
+- [ ] El tema cambia solo al anochecer en el emulador; el widget y los atajos abren lo que dicen.
+
+### Tests
+- Motor: puesta de sol en Palma en fechas conocidas; agregado del mapa de calor; trip.
+
+### Estado
+pendiente · Depende de: H15b
 
 ## Más adelante
-- Modo nocturno automático, widgets y atajos, trip parcial en el HUD, estadísticas de curvatura y mapa de calor.
-- Pendientes de hitos anteriores: prueba en coche (H14), topónimos que Vosk no reconoce, «Dónde estoy» con punto kilométrico, condiciones del NAP de la DGT y del CNIG, «Abrir con» desde gestores de archivos reales, H11 (voz de Moya) y H12 (Play).
+- Pendientes de hitos anteriores: prueba en coche (H14), topónimos que Vosk no reconoce, condiciones del NAP de la DGT y del CNIG, «Abrir con» desde gestores de archivos reales, H11 (voz de Moya) y H12 (Play).
 
 ## Cambios respecto a la propuesta inicial
 - **H1** deja el corredor z17–18 y la zona manual z18–19 para **H9**, porque dependen de rutas y tramos guardados.

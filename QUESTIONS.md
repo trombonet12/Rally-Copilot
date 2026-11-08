@@ -1,12 +1,24 @@
 # Preguntas abiertas
 
-> Propósito: dudas de producto, interfaz o alcance que decide Joan · Audiencia: Joan · Actualizado: 2026-11-07 · Relacionado: [ROADMAP.md](ROADMAP.md), [docs/DECISIONES.md](docs/DECISIONES.md)
+> Propósito: dudas de producto, interfaz o alcance que decide Joan · Audiencia: Joan · Actualizado: 2026-11-08 · Relacionado: [ROADMAP.md](ROADMAP.md), [docs/DECISIONES.md](docs/DECISIONES.md)
 
 Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuesta se sigue con lo que no depende de
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31, 2026-11-01 y 2026-11-07). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31, 2026-11-01, 2026-11-07 y 2026-11-08). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+
+## Respondidas tras la prueba en coche de la v1.3.4 (2026-11-08, en el chat)
+Van a H15b salvo lo indicado.
+- **Píldora y coche:** la cámara sube el coche por encima de la píldora y los botones, midiendo su altura.
+- **Centrar:** visible siempre que el mapa no siga al coche; en marcha vuelve a seguirlo solo a los 10 s sin tocar el mapa (sustituye a «recentrar se oculta por encima de 20 km/h»).
+- **Subtramos:** cualquier trozo ≥ 1 km de un tramo guardado, en su sentido, entrando o saliendo por cualquier punto; delta en vivo y resumen al salir; se compara con todos los tramos y viajes anteriores que pasen por esas carreteras. Cada viaje se sigue guardando como tramo.
+- **Cruces y puentes:** apagados de base, también en las instalaciones existentes; interruptor nuevo de puentes.
+- **Hitos:** H16–H20 y «Más adelante» (H21), encadenados con una versión por hito y la prueba en coche al final. H11 (Moya) y H12 (Play) siguen pospuestos. Intercom: Cardo.
+- **H16:** antelación automática por velocidad con nivel Pronto/Normal/Tarde; modo simplificado con grados 1–3 y peligros.
+- **H17:** coche fantasma en el mapa y delta continuo.
+- **H19:** chips Rápida / Equilibrada / Curvas en el planificador.
+- **H21:** modo nocturno por la puesta y salida del sol; atajos «Conducir libre» y «Repetir último tramo» y widget de la última salida; pantalla «Mis carreteras» con mapa de calor y estadísticas; trip en la hoja que se pone a cero manteniéndolo pulsado o por voz.
 
 ## Respondidas en la auditoría (2026-11-07, en el chat)
 Contexto y opciones en [docs/auditoria/2026-11.md](docs/auditoria/2026-11.md). Todo va a H15 salvo lo indicado.
