@@ -28,7 +28,13 @@ class GeneradorNotasTest {
     @Test
     fun `una curva da su direccion posicion y grado`() {
         val nota = una(curva(inicio = 120.0, arco = 40.0, direccion = Direccion.IZQUIERDA, angulo = 100.0))
-        assertEquals(Nota(120.0, 160.0, Direccion.IZQUIERDA, 3), nota)
+        assertEquals(Nota(120.0, 160.0, Direccion.IZQUIERDA, 3, radioMinM = 100.0), nota)
+    }
+
+    @Test
+    fun `la nota lleva el radio minimo de la curva`() {
+        val curva = Curva(0.0, 40.0, Direccion.DERECHA, 70.0, 100.0, 100.0, 100.0, 37.5)
+        assertEquals(37.5, una(curva).radioMinM!!, 0.0)
     }
 
     @Test

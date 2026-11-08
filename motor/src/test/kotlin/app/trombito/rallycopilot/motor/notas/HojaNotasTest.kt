@@ -77,7 +77,7 @@ class HojaNotasTest {
     @Test
     fun `un aviso a menos de 20 m de una nota que continua una cadena se mete dentro de la cadena`() {
         val notas = listOf(nota(100.0, unida = true), nota(150.0, direccion = Direccion.IZQUIERDA))
-        val elementos = Ensamblado.unir(notas, listOf(aviso(140.0, TipoAviso.RASANTE)))
+        val elementos = Ensamblado.unir(notas, listOf(aviso(145.0, TipoAviso.RASANTE)))
         assertEquals(listOf("derecha cuatro", "rasante, izquierda cuatro"), elementos.map { it.frase })
     }
 
@@ -86,6 +86,44 @@ class HojaNotasTest {
         val notas = listOf(nota(100.0, unida = true), nota(150.0, direccion = Direccion.IZQUIERDA))
         val elementos = Ensamblado.unir(notas, listOf(aviso(140.0, TipoAviso.CAMBIO_RASANTE)))
         assertEquals(listOf("derecha cuatro", "izquierda cuatro"), elementos.map { it.frase })
+    }
+
+    @Test
+    fun `un cambio de rasante dentro del arco de una nota de grado 2 o menos o de una horquilla se descarta`() {
+        for (grado in listOf(1, 2, null)) {
+            val n = nota(100.0, grado = grado, finM = 160.0)
+            val elementos = Ensamblado.unir(listOf(n), listOf(aviso(130.0, TipoAviso.CAMBIO_RASANTE)))
+            assertEquals("grado $grado", 1, elementos.size)
+            assertTrue("grado $grado", HojaNotas(elementos).avisos.isEmpty())
+        }
+    }
+
+    @Test
+    fun `un cambio de rasante dentro del arco de una nota de grado 3 o mas no se descarta`() {
+        val n = nota(100.0, grado = 3, finM = 160.0)
+        val elementos = Ensamblado.unir(listOf(n), listOf(aviso(130.0, TipoAviso.CAMBIO_RASANTE)))
+        assertEquals(listOf("derecha tres", "cambio de rasante"), elementos.map { it.frase })
+    }
+
+    @Test
+    fun `un rasante dentro del arco de una nota se canta sobre rasante al final y no rompe la cadena`() {
+        val notas =
+            listOf(
+                nota(100.0, grado = 4, finM = 160.0, unida = true),
+                nota(170.0, grado = 3, direccion = Direccion.IZQUIERDA),
+            )
+        val elementos = Ensamblado.unir(notas, listOf(aviso(130.0, TipoAviso.RASANTE)))
+        assertEquals(listOf("derecha cuatro sobre rasante", "izquierda tres"), elementos.map { it.frase })
+        assertTrue(elementos.all { it is ElementoHoja.DeNota })
+        assertEquals(TipoAviso.RASANTE, HojaNotas(elementos).avisos.single().tipo)
+    }
+
+    @Test
+    fun `sobre rasante va despues de sobre puente y antes de la distancia`() {
+        val n = nota(100.0, finM = 160.0).copy(distanciaSiguienteM = 50)
+        val elementos =
+            Ensamblado.unir(listOf(n), listOf(aviso(120.0, TipoAviso.PUENTE), aviso(140.0, TipoAviso.RASANTE)))
+        assertEquals(listOf("derecha cuatro sobre puente sobre rasante, cincuenta"), elementos.map { it.frase })
     }
 
     @Test
@@ -177,7 +215,7 @@ class HojaNotasTest {
                 TipoAviso.ROTONDA to "rotonda",
                 TipoAviso.ESTRECHA to "estrecha",
                 TipoAviso.BACHE to "cuidado, resalto",
-                TipoAviso.BADEN to "cuidado badén",
+                TipoAviso.BADEN to "cuidado, badén",
                 TipoAviso.PASO_A_NIVEL to "paso a nivel",
                 TipoAviso.STOP to "stop",
                 TipoAviso.CEDA to "ceda el paso",

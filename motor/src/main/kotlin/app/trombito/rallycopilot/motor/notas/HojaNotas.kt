@@ -11,12 +11,14 @@ sealed interface ElementoHoja {
      * Nota de curva con los [avisosUnidos] (los que caen a menos de 20 m antes de ella), que se cantan en la misma
      * frase: «rasante, derecha tres». El «cuidado» (de la nota o de un aviso de precaución) va siempre primero:
      * «cuidado, rasante, horquilla izquierda». [sobrePuente] es el puente que cae dentro de la curva: se canta al
-     * final de la nota («derecha tres sobre puente, cincuenta»).
+     * final de la nota («derecha tres sobre puente, cincuenta»); igual el rasante ([sobreRasante]: «derecha tres sobre
+     * rasante»).
      */
     data class DeNota(
         val nota: Nota,
         val avisosUnidos: List<Aviso> = emptyList(),
         val sobrePuente: Aviso? = null,
+        val sobreRasante: Aviso? = null,
     ) : ElementoHoja {
         override val posicionM: Double get() = nota.posicionM
         override val frase: String get() = frase(simplificada = false)
@@ -32,7 +34,8 @@ sealed interface ElementoHoja {
         private fun cuerpo(simplificada: Boolean): String {
             val base = FrasesNota.frase(nota.copy(cuidado = false, distanciaSiguienteM = null), simplificada)
             val conPuente = if (sobrePuente != null) "$base sobre puente" else base
-            return nota.distanciaSiguienteM?.let { "$conPuente, ${FrasesNota.enPalabras(it)}" } ?: conPuente
+            val conRasante = if (sobreRasante != null) "$conPuente sobre rasante" else conPuente
+            return nota.distanciaSiguienteM?.let { "$conRasante, ${FrasesNota.enPalabras(it)}" } ?: conRasante
         }
     }
 
@@ -58,7 +61,7 @@ data class HojaNotas(
             elementos
                 .flatMap {
                     when (it) {
-                        is ElementoHoja.DeNota -> it.avisosUnidos + listOfNotNull(it.sobrePuente)
+                        is ElementoHoja.DeNota -> it.avisosUnidos + listOfNotNull(it.sobrePuente, it.sobreRasante)
                         is ElementoHoja.DeAviso -> listOf(it.aviso)
                     }
                 }.sortedBy { it.posicionM }
@@ -112,11 +115,16 @@ internal object Ensamblado {
     /** Distancia máxima antes de una nota para que un aviso se cante junto a ella. */
     const val UNION_MAX_M = 20.0
 
+    /** Grado hasta el cual (y en la horquilla) un cambio de rasante dentro del arco de la nota se descarta. */
+    private const val GRADO_CAMBIO_DESCARTADO = 2
+
     /**
      * Elementos de la hoja. Un aviso a menos de [UNION_MAX_M] antes de una nota se une a ella, también si es
      * continuación de una cadena «x y y» (queda dentro de la cadena), salvo un cambio de rasante, que en ese caso se
-     * descarta. Un puente que cae dentro de una curva se canta «sobre puente» al final de su nota. El resto va suelto.
-     * [avisos] debe venir ordenada por posición.
+     * descarta. Un puente que cae dentro de una curva se canta «sobre puente» al final de su nota; un rasante, «sobre
+     * rasante» (sin romper la cadena). Un cambio de rasante que cae dentro del arco de una nota de grado 2 o menos o de
+     * una horquilla se descarta (artefacto del MDT en una curva cerrada). El resto va suelto. [avisos] debe venir
+     * ordenada por posición.
      */
     fun unir(
         notas: List<Nota>,
@@ -124,32 +132,73 @@ internal object Ensamblado {
     ): List<ElementoHoja> {
         val unidos = List(notas.size) { ArrayList<Aviso>() }
         val sobrePuente = arrayOfNulls<Aviso>(notas.size)
+        val sobreRasante = arrayOfNulls<Aviso>(notas.size)
         val sueltos = ArrayList<Aviso>()
         var j = 0
         for (aviso in avisos) {
             while (j < notas.size && notas[j].posicionM < aviso.posicionM) j++
-            val dentro = if (aviso.tipo == TipoAviso.PUENTE) dentroDe(notas, j - 1, aviso) else false
-            val cadena = j > 0 && notas[j - 1].unidaConSiguiente
-            when {
-                dentro -> {
-                    if (sobrePuente[j - 1] == null) sobrePuente[j - 1] = aviso
-                }
-
-                j < notas.size && notas[j].posicionM - aviso.posicionM < UNION_MAX_M -> {
-                    if (!cadena || aviso.tipo != TipoAviso.CAMBIO_RASANTE) unidos[j].add(aviso)
-                }
-
-                else -> {
-                    sueltos.add(aviso)
-                }
+            when (destino(notas, j, aviso)) {
+                Destino.SOBRE_PUENTE -> if (sobrePuente[j - 1] == null) sobrePuente[j - 1] = aviso
+                Destino.SOBRE_RASANTE -> if (sobreRasante[j - 1] == null) sobreRasante[j - 1] = aviso
+                Destino.DESCARTADO -> Unit
+                Destino.UNIDO -> unidos[j].add(aviso)
+                Destino.SUELTO -> sueltos.add(aviso)
             }
         }
-        val deNotas = notas.mapIndexed { i, n -> ElementoHoja.DeNota(n, unidos[i], sobrePuente[i]) }
+        val deNotas = notas.mapIndexed { i, n -> ElementoHoja.DeNota(n, unidos[i], sobrePuente[i], sobreRasante[i]) }
         val deAvisos = sueltos.map { ElementoHoja.DeAviso(it) }
         return (deAvisos + deNotas).sortedWith(
             compareBy<ElementoHoja> { it.posicionM }.thenBy { it is ElementoHoja.DeNota },
         )
     }
+
+    /** Qué se hace con [aviso], cuya nota siguiente es la [j] (la anterior, `j - 1`, es la que puede contenerlo). */
+    private fun destino(
+        notas: List<Nota>,
+        j: Int,
+        aviso: Aviso,
+    ): Destino {
+        val dentro = if (dentroDe(notas, j - 1, aviso)) destinoDentro(notas[j - 1], aviso) else null
+        val cambioEnCadena = aviso.tipo == TipoAviso.CAMBIO_RASANTE && j > 0 && notas[j - 1].unidaConSiguiente
+        return when {
+            dentro != null -> {
+                dentro
+            }
+
+            j < notas.size && notas[j].posicionM - aviso.posicionM < UNION_MAX_M -> {
+                if (cambioEnCadena) Destino.DESCARTADO else Destino.UNIDO
+            }
+
+            else -> {
+                Destino.SUELTO
+            }
+        }
+    }
+
+    /** Destino de un [aviso] que cae dentro del arco de [nota], o `null` si no tiene un trato especial. */
+    private fun destinoDentro(
+        nota: Nota,
+        aviso: Aviso,
+    ): Destino? =
+        when {
+            aviso.tipo == TipoAviso.PUENTE -> {
+                Destino.SOBRE_PUENTE
+            }
+
+            aviso.tipo == TipoAviso.RASANTE -> {
+                Destino.SOBRE_RASANTE
+            }
+
+            aviso.tipo == TipoAviso.CAMBIO_RASANTE && (nota.grado ?: 0) <= GRADO_CAMBIO_DESCARTADO -> {
+                Destino.DESCARTADO
+            }
+
+            else -> {
+                null
+            }
+        }
+
+    private enum class Destino { SOBRE_PUENTE, SOBRE_RASANTE, DESCARTADO, UNIDO, SUELTO }
 
     private fun dentroDe(
         notas: List<Nota>,

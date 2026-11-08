@@ -32,7 +32,7 @@ enum class TipoAviso(
     ROTONDA("rotonda"),
     ESTRECHA("estrecha"),
     BACHE("cuidado, resalto", esCuidado = true, palabra = "resalto"),
-    BADEN("cuidado badén", esCuidado = true, palabra = "badén"),
+    BADEN("cuidado, badén", esCuidado = true, palabra = "badén"),
     PASO_A_NIVEL("paso a nivel"),
     STOP("stop"),
     CEDA("ceda el paso"),

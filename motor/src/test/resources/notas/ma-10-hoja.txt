@@ -134,8 +134,7 @@
 16975 m  izquierda seis, ochenta  [17° R150 m]
 17125 m  cuidado, derecha dos larga, cien  [147° R29 m]
 17340 m  izquierda cinco larga y  [53° R411 m]
-17510 m  derecha cinco y  [31° R71 m]
-17518 m  rasante
+17510 m  derecha cinco sobre rasante y  [31° R71 m]
 17570 m  izquierda cuatro abre, cien  [89° R30 m]
 17750 m  derecha seis larga, ochenta  [13° R846 m]
 17990 m  cuidado, derecha dos larga cierra y  [149° R31 m]
@@ -199,8 +198,7 @@
 25930 m  izquierda seis larga y  [24° R461 m]
 26060 m  derecha cinco larga, treinta  [50° R97 m]
 26190 m  izquierda cinco larga y  [57° R154 m]
-26360 m  cuidado, derecha tres larga, ochenta  [108° R85 m]
-26424 m  rasante
+26360 m  cuidado, derecha tres larga sobre rasante, ochenta  [108° R85 m]
 26605 m  derecha seis, sesenta  [17° R142 m]
 26725 m  cuidado, izquierda cuatro larga, treinta  [76° R52 m]
 26870 m  izquierda tres larga cierra y  [118° R195 m]
@@ -208,15 +206,13 @@
 27415 m  izquierda seis y  [23° R124 m]
 27515 m  cuidado, derecha cuatro y  [70° R62 m]
 27620 m  izquierda cinco, ciento veinte  [36° R67 m]
-27810 m  derecha seis, cuarenta  [25° R102 m]
-27855 m  rasante
+27810 m  derecha seis sobre rasante, cuarenta  [25° R102 m]
 27915 m  derecha seis larga y  [21° R841 m]
 27968 m  compresión
 28030 m  izquierda cinco y  [54° R89 m]
 28120 m  derecha cinco larga y  [31° R402 m]
 28250 m  izquierda cinco y  [52° R41 m]
-28305 m  derecha seis y  [27° R158 m]
-28328 m  rasante
+28305 m  derecha seis sobre rasante y  [27° R158 m]
 28385 m  cuidado, izquierda cuatro larga abre, sesenta  [89° R46 m]
 28550 m  derecha cuatro larga abre y  [63° R264 m]
 28705 m  izquierda cinco, cuarenta  [30° R73 m]
@@ -225,8 +221,7 @@
 29085 m  izquierda tres abre y  [118° R24 m]
 29170 m  derecha cinco y  [57° R30 m]
 29215 m  izquierda cinco y  [41° R52 m]
-29265 m  derecha cinco, ciento veinte  [37° R62 m]
-29295 m  rasante
+29265 m  derecha cinco sobre rasante, ciento veinte  [37° R62 m]
 29440 m  izquierda cuatro cierra y  [71° R53 m]
 29535 m  derecha cuatro abre, treinta  [75° R35 m]
 29635 m  izquierda cuatro larga y  [67° R79 m]

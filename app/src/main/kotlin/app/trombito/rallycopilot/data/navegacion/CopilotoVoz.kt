@@ -185,10 +185,10 @@ class CopilotoVoz(
         val visibles = visibles(notas, a, v)
         val maniobras = maniobras(ruta, posicionM, v, a)
         val pendientes = pendientesVigentes().filterNot { enPausa && it.tipo == TipoFrase.NOTA }
-        val activas = llamadasActivas(notas, visibles, a, idDe, enPausa) + maniobras + habladas + pendientes
-        val previstas =
-            llamadas(notas, visibles.map { it.copy(activa = true) }, a, idDe, conEspera = false).map { it.frase } +
-                maniobras + inminentesPrevistos(ruta, posicionM, a)
+        val activas = llamadasActivas(notas, visibles, a, idDe, enPausa, v) + maniobras + habladas + pendientes
+        val llamadasPrevistas =
+            llamadas(notas, visibles.map { it.copy(activa = true) }, a, idDe, conEspera = false, vMs = v)
+        val previstas = llamadasPrevistas.map { it.frase } + maniobras + inminentesPrevistos(ruta, posicionM, a)
         if (!locutor.hablando.value) decirSiguiente(activas, previstas, posicionM, vMs, a)
         preparar(previstas, posicionM, a)
     }
@@ -200,8 +200,9 @@ class CopilotoVoz(
         a: AjustesConduccion,
         idDe: (ElementoHoja) -> String,
         enPausa: Boolean,
+        vMs: Double,
     ): List<Frase> {
-        val llamadas = if (enPausa) emptyList() else llamadas(notas, visibles, a, idDe, conEspera = true)
+        val llamadas = if (enPausa) emptyList() else llamadas(notas, visibles, a, idDe, conEspera = true, vMs = vMs)
         llamadas.forEach { entradas[it.frase.id] = it.entradaM }
         return llamadas.map { it.frase }
     }
@@ -310,11 +311,18 @@ class CopilotoVoz(
         a: AjustesConduccion,
         idDe: (ElementoHoja) -> String,
         conEspera: Boolean,
+        vMs: Double,
     ): List<LlamadaNota> {
         if (notas == null || visibles.isEmpty()) return emptyList()
         val hoja = hojaFiltrada.de(notas.hoja, a.filtroIndicaciones)
         val estado =
-            EstadoLlamadas(notas.posicionM, a.notasSimplificadas, if (conEspera) ultimaCantadaHastaM else null)
+            EstadoLlamadas(
+                notas.posicionM,
+                a.notasSimplificadas,
+                if (conEspera) ultimaCantadaHastaM else null,
+                vMs,
+                a.anticipacion,
+            )
         return LlamadasNotas.de(hoja, visibles, estado, idDe)
     }
 

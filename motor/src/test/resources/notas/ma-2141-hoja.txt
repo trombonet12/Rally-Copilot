@@ -24,27 +24,21 @@
  2275 m  derecha cinco y  [39° R56 m]
  2325 m  izquierda cuatro larga y  [88° R200 m]
  2500 m  derecha cinco y  [46° R65 m]
- 2570 m  izquierda cuatro larga abre y  [81° R103 m]
- 2658 m  rasante
+ 2570 m  izquierda cuatro larga abre sobre rasante y  [81° R103 m]
  2750 m  derecha cinco y  [35° R78 m]
  2820 m  izquierda seis, ciento cincuenta  [21° R180 m]
  3100 m  izquierda cinco y  [35° R76 m]
  3118 m  cambio de rasante
- 3185 m  cuidado, puente, horquilla derecha larga y  [265° R19 m]
- 3230 m  rasante
+ 3185 m  cuidado, puente, horquilla derecha larga sobre rasante y  [265° R19 m]
  3335 m  izquierda cinco, treinta  [54° R55 m]
  3445 m  cuidado, derecha dos larga cierra y  [131° R84 m]
  3565 m  compresión, izquierda dos abre, treinta  [125° R22 m]
- 3623 m  cambio de rasante
  3675 m  derecha cuatro cierra, treinta  [78° R27 m]
  3760 m  derecha cuatro y  [85° R22 m]
  3810 m  izquierda seis y  [22° R101 m]
  3875 m  cuidado, derecha uno, cuarenta  [172° R9 m]
- 3888 m  cambio de rasante
  3975 m  cuidado, horquilla izquierda y  [192° R13 m]
- 4023 m  cambio de rasante
  4060 m  cuidado, horquilla derecha larga y  [207° R79 m]
- 4133 m  cambio de rasante
  4180 m  cuidado, izquierda uno y  [153° R13 m]
  4240 m  derecha cuatro abre y  [69° R109 m]
  4345 m  izquierda cuatro abre y  [76° R33 m]
@@ -52,22 +46,17 @@
  4475 m  izquierda cinco larga, cien  [53° R143 m]
  4488 m  cambio de rasante
  4720 m  cuidado, izquierda uno, setenta  [178° R12 m]
- 4738 m  cambio de rasante
  4865 m  horquilla derecha muy larga y  [192° R148 m]
  5085 m  izquierda cinco y  [30° R117 m]
  5155 m  cuidado, derecha uno cierra y  [178° R11 m]
- 5173 m  cambio de rasante
  5225 m  cuidado, horquilla izquierda larga y  [231° R32 m]
- 5303 m  cambio de rasante
  5360 m  derecha cinco y  [39° R157 m]
  5460 m  izquierda cuatro, veinte  [65° R40 m]
  5550 m  derecha cuatro larga cierra y  [78° R107 m]
  5675 m  izquierda seis, cuarenta  [16° R115 m]
  5755 m  izquierda seis y  [16° R173 m]
  5835 m  cuidado, horquilla derecha, cincuenta  [194° R24 m]
- 5878 m  cambio de rasante
  5975 m  cuidado, horquilla izquierda y  [181° R8 m]
- 5993 m  cambio de rasante
  6040 m  derecha seis y  [18° R195 m]
  6100 m  izquierda seis y  [20° R260 m]
  6180 m  cuidado, derecha uno abre y  [179° R8 m]
@@ -75,7 +64,6 @@
  6375 m  derecha seis, veinte  [23° R91 m]
  6450 m  derecha seis, ciento cincuenta  [20° R120 m]
  6660 m  cuidado, horquilla derecha, cien  [182° R8 m]
- 6663 m  cambio de rasante
  6820 m  izquierda seis, cuarenta  [28° R94 m]
  6925 m  izquierda tres y  [116° R30 m]
  7020 m  derecha cuatro larga abre, ochenta  [73° R234 m]
@@ -83,7 +71,6 @@
  7315 m  cuidado, izquierda tres larga abre, veinte  [109° R57 m]
  7470 m  derecha cinco, treinta  [60° R37 m]
  7560 m  cuidado, derecha uno larga cierra, treinta  [159° R59 m]
- 7708 m  cambio de rasante
  7775 m  derecha seis y  [14° R169 m]
  7835 m  izquierda cinco, cien  [36° R66 m]
  8010 m  cuidado, izquierda dos larga abre, ciento veinte  [126° R157 m]

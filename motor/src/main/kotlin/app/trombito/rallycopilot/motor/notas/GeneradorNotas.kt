@@ -67,6 +67,7 @@ class GeneradorNotas(
             modificadores = modificadores(c.curva, c.grado, vRefKmh),
             distanciaSiguienteM = distancia,
             unidaConSiguiente = siguiente != null && distancia == null,
+            radioMinM = c.curva.radioMinM,
         )
     }
 
@@ -146,6 +147,10 @@ class GeneradorNotas(
 
         /** Tope de la velocidad de curva al encadenar: una curva muy abierta no es «a 800 km/h». */
         const val VELOCIDAD_MAX_KMH = 130.0
-        val DISTANCIAS_M = listOf(10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 150, 200, 250, 300, 400, 500, 600, 700, 800)
+        val DISTANCIAS_M = DISTANCIAS_NOTA_M
     }
 }
+
+/** Distancias (m) que se cantan entre dos notas; el hueco se redondea hacia abajo a una de ellas. */
+internal val DISTANCIAS_NOTA_M =
+    listOf(10, 20, 30, 40, 50, 60, 70, 80, 100, 120, 150, 200, 250, 300, 400, 500, 600, 700, 800)

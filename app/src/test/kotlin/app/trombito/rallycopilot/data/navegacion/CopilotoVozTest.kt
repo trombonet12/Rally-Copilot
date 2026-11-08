@@ -922,13 +922,14 @@ class CopilotoVozLlamadasTest {
     fun `la siguiente llamada espera a entrar en la ultima nota de la anterior`() {
         val locutor = LocutorFalso()
         val copiloto = copiloto(locutor)
-        val hoja = listOf(nota(400.0), nota(480.0, Direccion.DERECHA, grado = 4))
+        val hoja = listOf(nota(400.0), nota(500.0, Direccion.DERECHA, grado = 4))
 
         copiloto.fijar(hoja, 300.0)
         assertEquals(listOf("izquierda tres"), locutor.dichas)
 
-        // La derecha ya está activa (a 85 m) pero aún no se ha entrado en la izquierda.
-        copiloto.fijar(hoja, 365.0)
+        // La derecha ya está activa (a 115 m) pero aún no se ha entrado en la izquierda y queda fuera del margen
+        // (v · T_nivel = 100 m a 20 m/s con anticipación normal).
+        copiloto.fijar(hoja, 385.0)
         copiloto.fijar(hoja, 395.0)
         assertEquals(listOf("izquierda tres"), locutor.dichas)
 

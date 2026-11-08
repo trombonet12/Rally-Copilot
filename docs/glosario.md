@@ -29,6 +29,7 @@ flowchart LR
 | Grado | «uno» a «seis» (en palabras) según el ángulo girado (§ Grados por ángulo), o la palabra simplificada (§ Notas simplificadas). Horquilla: sin grado. Escuadra: la palabra «escuadra» en lugar del grado. | `FrasesNota.giro`, `FrasesNota.enPalabras` |
 | Modificadores | `larga` o `muy larga`, luego `cierra` o `abre`; o solo `escuadra`. | `GeneradorNotas.modificadores` |
 | «sobre puente» | Un puente que cae dentro del arco de la curva; se canta al final de la nota, antes de la distancia. | `Ensamblado.unir` (`sobrePuente`) |
+| «sobre rasante» | Un rasante (cresta) que cae dentro del arco de la curva se canta igual al final de la nota, después de «sobre puente» si lo hay, sin romper la cadena «y». Ej.: «derecha cuatro larga abre sobre rasante y». | `Ensamblado.unir` (`sobreRasante`) |
 | Distancia | `, y el número en palabras` si el hueco hasta la siguiente no va unido. Ej.: «, cincuenta». | `GeneradorNotas.distanciaA` |
 | «y» | Sin distancia cuando la nota va unida a la siguiente. El motor no escribe la «y» en la frase de la hoja; la añade el test de los goldens (`HojaNotasRealTest`). `FrasesNota.secuencia` une con « y » o separa con «. » para la voz. | `Nota.unidaConSiguiente`, `FrasesNota.secuencia` |
 
@@ -129,14 +130,14 @@ Avisos de `ExtractorAvisos` (`TipoAviso`). Se cantan solos o unidos a una nota. 
 | rotonda | `junction=roundabout` | Al empezar el tramo; los cruces a 25 m o menos antes de una rotonda no salen | Sin ejemplo en los goldens |
 | estrecha | `lanes=1` en vía de doble sentido, o `width` < 5 m | Al empezar el tramo | Sin ejemplo en los goldens |
 | resalto | Nodo `bump`, `hump`, `table`, `cushion`, `rumble_strip(s)`, `speed_bump`, `speed_hump` o `speed_table`. Frase «cuidado, resalto» (la palabra «resalto» si va unido) | En el nodo | ma-2141 `12386 m  cuidado, resalto`; ma-10 `7955 m  cuidado, resalto, izquierda seis y` |
-| cuidado badén | Nodo `dip` o `ford`. Frase «cuidado badén» (unido: «cuidado, badén») | En el nodo | Sin ejemplo en los goldens |
+| cuidado, badén | Nodo `dip` o `ford`. Frase «cuidado, badén» (unido: «cuidado, badén», una sola vez) | En el nodo | Sin ejemplo en los goldens |
 | paso a nivel | Nodo `level_crossing` o `railway_crossing` | En el nodo | ma-10 `1024 m  paso a nivel` |
 | stop | Nodo `highway=stop`, solo si es de nuestra vía (ver abajo) | En el nodo | ma-10 `7876 m  stop`; ma-2141 `5 m  stop` |
 | ceda el paso | Nodo `give_way`, solo si es de nuestra vía (ver abajo) | En el nodo | ma-10 `322 m  ceda el paso` |
 | semáforo | Nodo `traffic_signals` | En el nodo | Sin ejemplo en los goldens |
 | cruce | Nodo del grafo que es cruce (3 o más ramas) con una rama de rango ≥ unclassified o giro > 30° (`GrafoVias.cruces`, docs/DECISIONES.md § calibración de notas (H3)), fuera de rotondas. Desde H14a no se avisa si la ruta va por `motorway`, `trunk` o `*_link`, ni si las demás ramas son `*_link` (docs/DECISIONES.md § Notas de rally, 2026-11-06) | En el cruce | ma-2141 `10797 m  cruce`; ma-10 `0 m  cruce, izquierda seis y` |
-| rasante | Cresta del perfil MDT05: pendiente de subida ≥ 4 % seguida de bajada ≤ −2 % en 60 m (`pendienteSubidaCrestaPct`, `pendienteBajadaCrestaPct`, `ventanaCrestaM`) | En la cresta | ma-2141 `2658 m  rasante` |
-| cambio de rasante | Solo convexo: la pendiente baja ≥ 8 puntos en menos de 40 m (`variacionCambioPuntos`, `ventanaCambioM`). No sale si la racha contiene una cresta | En el cambio | ma-2141 `3623 m  cambio de rasante` |
+| rasante | Cresta del perfil MDT05: pendiente de subida ≥ 4 % seguida de bajada ≤ −2 % en 60 m (`pendienteSubidaCrestaPct`, `pendienteBajadaCrestaPct`, `ventanaCrestaM`) | En la cresta | ma-2141 `2570 m  izquierda cuatro larga abre sobre rasante y` (dentro de la curva) |
+| cambio de rasante | Solo convexo: la pendiente baja ≥ 8 puntos en menos de 40 m (`variacionCambioPuntos`, `ventanaCambioM`). No sale si la racha contiene una cresta | En el cambio | ma-2141 `3118 m  cambio de rasante` |
 | compresión | Vaguada cóncava marcada, simétrica del cambio de rasante: la pendiente sube ≥ 10 puntos en menos de 40 m (`variacionCompresionPuntos`, `ventanaCompresionM`). Umbral propio, más exigente que el convexo (8) para no avisar vaguadas suaves del MDT; con 8 saldrían 13 en los dos goldens y con 10 salen 5 | En la vaguada | ma-10 `15458 m  compresión`; ma-2141 `3565 m  compresión, izquierda dos abre, treinta` |
 | salto | Cresta con caída de pendiente ≥ 20 puntos en menos de 30 m (`variacionSaltoPuntos`, `ventanaSaltoM`) | En la cresta | ma-2141 `10047 m  salto` |
 | cuidado | `hazard=*` de la vía, nodo `hazard:*`, o `hazard:curve` sin nota a 30 m (suelto) | En el punto | Sin aviso suelto «cuidado» en los goldens; sale junto a notas como «cuidado,» |
@@ -144,6 +145,7 @@ Avisos de `ExtractorAvisos` (`TipoAviso`). Se cantan solos o unidos a una nota. 
 - **Rasantes:** prioridad salto > rasante > cambio de rasante = compresión (a igual prioridad gana la primera). Dos rasantes a menos de 60 m (`separacionM`) se quedan con la de mayor prioridad. Las rasantes a 30 m o menos de un extremo de puente o túnel se descartan (artefacto del MDT, `JUNTA_M`).
 - **Stop y ceda de un cruce:** no se avisan si la ruta llega por la vía principal del cruce (de mayor rango, o de igual rango con la misma `ref`). En un nodo que no es cruce, siempre se avisan. Un nodo sin aristas (no está en el grafo) también sale.
 - **Unión:** los avisos a menos de 20 m antes de una nota se cantan con ella: «salto, izquierda seis y» (ma-10 `25110 m`). Dentro de una cadena «y», un cambio de rasante se descarta; los demás avisos (también la compresión: «compresión, derecha cuatro») se unen igual.
+- **Dentro del arco de una curva:** un puente se canta «sobre puente» y un rasante «sobre rasante» al final de la nota; un cambio de rasante que cae en el arco de una nota de grado 2 o menos o de una horquilla se descarta (artefacto del MDT en una curva cerrada; en una de grado 3 o más sigue sus reglas normales).
 - Los avisos que no se unen salen sueltos, en su posición.
 
 ## Precaución («cuidado,»)
@@ -160,11 +162,11 @@ Marcas generosas a propósito (docs/DECISIONES.md § Respuestas de Joan a QUESTI
 
 Un aviso «cuidado» unido a una nota que ya lleva «cuidado,» no se repite: la frase lo dice una sola vez, al principio.
 
-Ejemplos: ma-2141 `140 m  cuidado, derecha uno larga cierra sobre puente y` y `3445 m  cuidado, derecha dos larga cierra y` (cierra fuerte); ma-2141 `4133 m  cambio de rasante` seguido de `4180 m  cuidado, izquierda uno y` (rasante antes, a 47 m).
+Ejemplos: ma-2141 `140 m  cuidado, derecha uno larga cierra sobre puente y` y `3445 m  cuidado, derecha dos larga cierra y` (cierra fuerte); ma-2141 `4180 m  cuidado, izquierda uno y` (rasante antes: un cambio de rasante a 47 m, que ya no se canta porque cae dentro del arco de la horquilla anterior pero sigue marcando el «cuidado»).
 
 ## Notas simplificadas
 
-Modo «simplificada» (Ajustes): solo cambia el grado por palabra (`GradoSimplificado`); dirección, horquilla, modificadores, sobre puente, distancias y avisos se mantienen.
+Modo «simplificada» (Ajustes): el grado se canta como palabra (`GradoSimplificado`); dirección, horquilla, modificadores, sobre puente, sobre rasante, distancias y avisos se mantienen. Además filtra qué se canta (decisión de Joan, 2026-11-08: «grados 1–3 y peligros»; `CandidatasNotas.seCantaSimplificada`):
 
 | Grado | Palabra |
 |---|---|
@@ -175,6 +177,18 @@ Modo «simplificada» (Ajustes): solo cambia el grado por palabra (`GradoSimplif
 | 5–6 | suave |
 
 Ej.: «derecha cuatro abre, cincuenta» → «derecha media abre, cincuenta»; «izquierda uno» → «izquierda muy cerrada».
+
+- **Notas que se cantan:** grado 1–3, horquilla y escuadra; **grado 4 con radio mínimo de 45 m o menos** (`Nota.radioMinM`, curva lenta aunque el ángulo sea moderado; sin radio, como en las notas dictadas o editadas, no cuenta); cualquier grado con «cuidado», con «cierra» o con un aviso unido de peligro.
+- **Avisos sueltos de peligro que se cantan:** resalto, badén, cuidado, stop, ceda, paso a nivel, estrecha, salto, **rasante, cambio de rasante, compresión, rotonda y semáforo**. No se cantan puente, túnel ni cruce.
+- **Cadenas:** una nota que el modo quita corta la cadena «y». La nota cantada anterior no lleva «y» ni su distancia original: dice la distancia hasta la **siguiente nota que sí se canta** (redondeada como en § Distancias; nada si no hay o queda a menos de 10 m). Ej.: «izquierda cerrada, sesenta» y, aparte, «derecha media».
+
+## Llamadas del copiloto
+
+Cómo se cantan las notas de la hoja (`LlamadasNotas`, `CadenasNotas`; en modo normal y simplificado):
+
+- **Una llamada** = una nota o una cadena «y» de **3 notas como mucho y unas 12 palabras** (se cuenta el texto completo, avisos y distancia incluidos); una cadena más larga se parte desde su primera nota. Si la llamada se corta mientras la última nota sigue unida a la siguiente (por el tope, por pasar de 12 palabras o por un aviso suelto en medio), su frase termina en « y»: «izquierda tres y derecha cuatro y izquierda dos y».
+- **Casi recta:** una nota de grado 6 con radio mínimo de más de 500 m no se canta (sigue en la hoja y en pantalla), salvo que lleve «cuidado», texto propio o avisos; corta la cadena como una nota quitada por el simplificado.
+- **Espera a la entrada:** una llamada no sale mientras no se haya entrado en la última nota de la anterior y su primera nota quede a más de `max(80 m, v · T_nivel)` (T del nivel de anticipación en uso, § Niveles de anticipación). Un aviso suelto no espera, pero no se canta antes que una nota anterior que sí espera.
 
 ## Niveles de anticipación
 
@@ -188,6 +202,7 @@ Distancia para empezar a cantar: `d = v · (T_nivel + t_voz)`, con `t_voz` = 1 s
 | TARDE | 3,5 | 113 m |
 | MUY_TARDE | 2,5 | 88 m |
 
+- El margen de espera a la entrada de la curva anterior (§ Llamadas del copiloto) es `max(80 m, v · T_nivel)`: a 25 m/s con `NORMAL` son 125 m.
 - `SelectorNotas` devuelve los 3 siguientes elementos desde 5 m por detrás de la posición; `activa` es `true` cuando la distancia ya está dentro de `d`.
 - Las distancias de la tabla son cálculos con los valores del código, no pruebas en carretera.
 

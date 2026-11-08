@@ -26,6 +26,8 @@ enum class GradoSimplificado { HORQUILLA, MUY_CERRADA, CERRADA, MEDIA, SUAVE }
  * pide precaución (su frase empieza por «cuidado,»); lo decide la hoja de notas, no el generador de notas.
  * [textoLibre] es lo que escribió Joan para esta nota («cuidado gravilla, derecha tres»): si lo hay, se canta y se
  * muestra tal cual en lugar de la frase generada (la distancia a la siguiente se sigue cantando después).
+ * [radioMinM] es el radio mínimo de la curva medida (m); `null` en las notas dictadas o editadas. El modo simplificado
+ * lo usa para cantar una curva lenta de grado 4 y para callar una de grado 6 casi recta.
  */
 data class Nota(
     val posicionM: Double,
@@ -37,6 +39,7 @@ data class Nota(
     val unidaConSiguiente: Boolean = false,
     val cuidado: Boolean = false,
     val textoLibre: String? = null,
+    val radioMinM: Double? = null,
 ) {
     init {
         require(grado == null || grado in GRADO_MIN..GRADO_MAX) { "Grado fuera de $GRADO_MIN..$GRADO_MAX: $grado" }
