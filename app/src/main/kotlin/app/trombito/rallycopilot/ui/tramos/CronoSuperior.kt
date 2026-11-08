@@ -5,6 +5,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -13,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.domain.tramos.ResultadoCrono
 
@@ -36,8 +39,9 @@ val LocalAccionesSalidaCrono = staticCompositionLocalOf<AccionesSalidaCrono?> { 
 
 /**
  * Lo que el cronómetro pone arriba del mapa, bajo el banner de maniobra, la franja de notas y el banner de alerta: el
- * HUD completo si el tramo es conocido (con mejor pasada), la tarjeta de meta unos segundos al cruzarla y nada en
- * cualquier otro caso (con un tramo nuevo o sin tramo solo hay [CronometroMini] en el panel inferior). Con [compacto]
+ * HUD completo si el tramo es conocido (con mejor pasada), la tarjeta de meta unos segundos al cruzarla, la línea del
+ * subtramo en marcha y la tarjeta del último subtramo cerrado durante [DURACION_TARJETA_SUBTRAMO_MS]; en cualquier
+ * otro caso nada (con un tramo nuevo o sin tramo solo hay [CronometroMini] en el panel inferior). Con [compacto]
  * (apaisado) todo es más bajo.
  */
 @Composable
@@ -49,9 +53,19 @@ fun CronoSuperior(
 ) {
     if (crono == null) return
     val resultado = crono.resultado
-    when {
-        resultado != null -> MetaTemporal(resultado, compacto, modifier)
-        vistaCrono(crono) == VistaCrono.HUD -> HudCrono(crono, modifier, compacto, reloj)
+    if (resultado != null) {
+        MetaTemporal(resultado, compacto, modifier)
+        return
+    }
+    val hud = vistaCrono(crono) == VistaCrono.HUD
+    val vivo = crono.subtramo
+    val tarjeta = rememberSubtramoReciente(crono.ultimoSubtramo, reloj)
+    if (hud || vivo != null || tarjeta != null) {
+        Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            if (hud) HudCrono(crono, Modifier, compacto, reloj)
+            if (vivo != null) SubtramoEnVivo(crono, vivo, compacto = compacto, reloj = reloj)
+            if (tarjeta != null) TarjetaSubtramo(tarjeta, compacta = compacto)
+        }
     }
 }
 

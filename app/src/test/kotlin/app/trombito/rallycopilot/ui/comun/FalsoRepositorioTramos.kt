@@ -66,7 +66,9 @@ class FalsoRepositorioTramos(
     pasadas: Map<String, List<PasadaDetallada>> = emptyMap(),
     trazas: Map<String, Tramo> = emptyMap(),
     perfil: EstadisticasPerfil = EstadisticasPerfil(0, 0.0, null, null, 0, 0),
+    subtramos: List<SubtramoGuardado> = emptyList(),
 ) : RepositorioTramos {
+    val subtramosMutable = MutableStateFlow(subtramos)
     val resumenesMutable = MutableStateFlow(resumenes)
     val perfilMutable = MutableStateFlow(perfil)
     val pasadasPorTramo = pasadas.toMutableMap()
@@ -111,7 +113,8 @@ class FalsoRepositorioTramos(
     override fun observarSubtramosDeRecorrido(recorridoId: Long): Flow<List<SubtramoGuardado>> =
         MutableStateFlow(emptyList())
 
-    override fun observarSubtramosDeTramo(tramoId: String): Flow<List<SubtramoGuardado>> = MutableStateFlow(emptyList())
+    override fun observarSubtramosDeTramo(tramoId: String): Flow<List<SubtramoGuardado>> =
+        subtramosMutable.map { lista -> lista.filter { it.tramoRefId == tramoId } }
 
     override suspend fun tramo(tramoId: String): Tramo? = tramos[tramoId]
 

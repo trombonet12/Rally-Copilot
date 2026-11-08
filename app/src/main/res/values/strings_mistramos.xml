@@ -82,4 +82,10 @@
     <string name="detalle_compartir_fallo">No se pudo preparar el archivo del tramo. Inténtalo de nuevo.</string>
     <string name="detalle_no_existe_titulo">Tramo no encontrado</string>
     <string name="detalle_no_existe_texto">Este tramo ya no existe. Vuelve a la lista para elegir otro.</string>
+    <string name="detalle_subtramos_titulo">Subtramos</string>
+    <string name="detalle_subtramo_rango">km %1$s → %2$s</string>
+    <string name="detalle_subtramo_descripcion">Subtramo del kilómetro %1$s al %2$s, %3$s. Tiempo: %4$s. %5$s</string>
+    <string name="detalle_subtramo_primera_vez">Primera vez</string>
+    <string name="detalle_subtramo_primera_vez_descripcion">Primera vez en este trozo.</string>
+    <string name="detalle_subtramo_delta_descripcion">Respecto al mejor de entonces: %1$s.</string>
 </resources>

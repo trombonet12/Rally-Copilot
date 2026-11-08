@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.mistramos
 import androidx.lifecycle.SavedStateHandle
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.tramos.ExportaTramo
+import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
 import app.trombito.rallycopilot.domain.tramos.TramoExportado
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
@@ -44,6 +45,12 @@ class DetalleTramoViewModelTest {
                         ),
                 ),
             trazas = mapOf("t1" to tramoFalso("t1")),
+            subtramos =
+                listOf(
+                    SubtramoGuardado("t1", 1_200.0, 3_600.0, 2_400.0, 5_000L, 112_300L, 115_400L),
+                    SubtramoGuardado("t1", 0.0, 1_500.0, 1_500.0, 9_000L, 70_000L, null),
+                    SubtramoGuardado("t2", 0.0, 800.0, 800.0, 7_000L, 40_000L, 41_000L),
+                ),
         )
 
     private val datosMapa = FalsoRepositorioDatosMapa(estilosDisponibles = EstilosMapa("{}", null))
@@ -85,6 +92,20 @@ class DetalleTramoViewModelTest {
             assertEquals(listOf(false, true, false), estado.pasadas.map { it.esMejor })
             assertEquals(105_000L, estado.pasadas.first().totalMs)
             assertEquals(3_000L, estado.pasadas.first().inicioMs)
+        }
+
+    @Test
+    fun `los subtramos del tramo salen el mas reciente primero con su delta contra el mejor de entonces`() =
+        runTest {
+            val filas = crear().uiState.value.subtramos
+            assertEquals(listOf(9_000L, 5_000L), filas.map { it.inicioMs })
+            assertEquals(listOf(null, -3_100L), filas.map { it.deltaMs })
+            assertEquals(listOf(0.0, 1_200.0), filas.map { it.desdeM })
+            assertEquals(112_300L, filas.last().tiempoMs)
+            val deT2 = crear("t2").uiState.value.subtramos
+            val deNadie = crear("fantasma").uiState.value.subtramos
+            assertEquals(1, deT2.size)
+            assertEquals(0, deNadie.size)
         }
 
     @Test

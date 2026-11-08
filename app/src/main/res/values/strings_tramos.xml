@@ -54,4 +54,12 @@
     <string name="crono_meta_descripcion">Meta. Tiempo: %1$s.</string>
     <string name="crono_meta_descripcion_delta">Respecto a tu mejor tiempo: %1$s.</string>
     <string name="crono_meta_descripcion_nuevo_mejor">Nuevo mejor tiempo.</string>
+    <!-- Subtramos: trozos de un tramo guardado cronometrados dentro de la conducción -->
+    <string name="subtramo_hud_titulo">Subtramo · %1$s</string>
+    <string name="subtramo_hud_descripcion">Subtramo de %1$s. Tiempo: %2$s. Respecto a tu mejor tiempo: %3$s</string>
+    <string name="subtramo_hud_descripcion_sin_delta">Subtramo de %1$s. Tiempo: %2$s</string>
+    <string name="subtramo_tarjeta_titulo">Subtramo %1$s</string>
+    <string name="subtramo_tarjeta_descripcion">Subtramo de %1$s cerrado. Tiempo: %2$s.</string>
+    <string name="subtramo_primera_vez">Primera vez</string>
+    <string name="subtramo_primera_vez_descripcion">Primera vez en este trozo.</string>
 </resources>

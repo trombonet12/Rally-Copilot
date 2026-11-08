@@ -264,6 +264,7 @@ private fun ContenidoDetalle(
         items(estado.pasadas, key = { it.id }) { pasada ->
             TarjetaPasada(pasada) { acciones.onVerAnalisis(pasada.id) }
         }
+        seccionSubtramos(estado.subtramos)
     }
 }
 

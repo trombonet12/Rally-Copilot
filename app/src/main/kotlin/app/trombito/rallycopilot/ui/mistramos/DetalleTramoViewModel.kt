@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
+import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
 import app.trombito.rallycopilot.domain.tramos.TramoExportado
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.RutaTramo
@@ -56,6 +57,7 @@ class DetalleTramoViewModel
         private class Carga(
             val traza: List<PuntoGeo>,
             val pasadas: List<FilaPasada>,
+            val subtramos: List<FilaSubtramo> = emptyList(),
         )
 
         private val resumen: Flow<ResumenTramo?> =
@@ -74,10 +76,16 @@ class DetalleTramoViewModel
                     )
                 }
 
+        private val subtramos: Flow<List<FilaSubtramo>> =
+            repositorio.observarSubtramosDeTramo(tramoId).map(::filasDeSubtramos)
+
+        private val datos: Flow<Carga> =
+            combine(carga, subtramos) { cargada, filas -> Carga(cargada.traza, cargada.pasadas, filas) }
+
         val uiState: StateFlow<DetalleTramoUiState> =
             combine(
                 resumen,
-                carga,
+                datos,
                 renombrando,
                 estiloMapa,
                 compartir,
@@ -88,6 +96,7 @@ class DetalleTramoViewModel
                     traza = datos.traza,
                     estiloMapaJson = estilo,
                     pasadas = datos.pasadas,
+                    subtramos = datos.subtramos,
                     renombrando = editando && tramo != null,
                     compartir = estadoCompartir,
                 )
@@ -140,6 +149,13 @@ class DetalleTramoViewModel
             renombrando.value = false
             viewModelScope.launch { repositorio.renombrar(tramoId, nombre.trim().ifEmpty { null }) }
         }
+
+        private fun filasDeSubtramos(guardados: List<SubtramoGuardado>): List<FilaSubtramo> =
+            guardados
+                .sortedByDescending { it.inicio }
+                .mapIndexed { i, s ->
+                    FilaSubtramo(i, s.inicio, s.desdeM, s.hastaM, s.tiempoMs, s.mejorMs?.let { s.tiempoMs - it })
+                }
 
         private fun filasDe(pasadas: List<PasadaDetallada>): List<FilaPasada> {
             val mejor = pasadas.minOfOrNull { it.totalMs } ?: return emptyList()
