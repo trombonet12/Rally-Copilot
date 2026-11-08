@@ -57,6 +57,17 @@
     <string name="analisis_sin_comparada">sin comparada</string>
     <string name="analisis_fila_descripcion">%1$s: tiempo %2$s, diferencia %3$s, velocidad media %4$s, máxima %5$s</string>
 
+    <!-- Tarjeta del óptimo teórico -->
+    <string name="analisis_optimo_titulo">Óptimo teórico</string>
+    <string name="analisis_optimo_ayuda">Tu mejor tiempo en cada sector, juntos.</string>
+    <string name="analisis_optimo_ganancia">Frente a tu mejor pasada</string>
+    <string name="analisis_optimo_ya_optima">Tu mejor pasada ya es el óptimo</string>
+    <string name="analisis_optimo_sector_pasada">Pasada del %1$s</string>
+    <string name="analisis_optimo_descripcion">Óptimo teórico: %1$s. %2$s</string>
+    <string name="analisis_optimo_descripcion_ganancia">Ganarías %1$s sobre tu mejor pasada.</string>
+    <string name="analisis_optimo_descripcion_ya_optima">Tu mejor pasada ya es el óptimo.</string>
+    <string name="analisis_optimo_sector_descripcion">%1$s: %2$s, de la pasada del %3$s</string>
+
     <!-- Tarjeta de meta -->
     <string name="analisis_meta_boton">Ver análisis</string>
     <string name="analisis_meta_boton_descripcion">Ver el análisis de la pasada que acabas de hacer</string>

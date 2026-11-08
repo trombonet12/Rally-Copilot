@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.domain.tramos
 
+import app.trombito.rallycopilot.motor.tramos.PosicionFantasma
 import kotlinx.coroutines.flow.StateFlow
 
 /** Tramo que se está cronometrando: lo que la UI necesita para la barra de progreso y las marcas. */
@@ -81,6 +82,9 @@ data class SubtramoResultado(
  *
  * [subtramo] es el subtramo en marcha; es null mientras haya un tramo completo vivo (manda el tramo). [ultimoSubtramo]
  * es el último subtramo cerrado en la conducción (la UI lo enseña unos segundos desde su `momentoMs`).
+ *
+ * [fantasma] es dónde iba el coche de la mejor pasada a este mismo instante del cronómetro (coche fantasma del mapa);
+ * null sin tramo vivo, sin mejor pasada o antes de que el fantasma salga.
  */
 data class CronoEnCurso(
     val tramo: TramoCronometrado?,
@@ -96,6 +100,7 @@ data class CronoEnCurso(
     val esperaSalidaManual: Boolean = false,
     val subtramo: SubtramoVivo? = null,
     val ultimoSubtramo: SubtramoResultado? = null,
+    val fantasma: PosicionFantasma? = null,
 )
 
 /** Da la salida del cronómetro de la conducción en curso (salida manual); sin conducción no hace nada. */

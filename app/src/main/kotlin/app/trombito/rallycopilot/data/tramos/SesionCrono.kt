@@ -21,6 +21,7 @@ import app.trombito.rallycopilot.motor.tramos.DetectorSubtramo
 import app.trombito.rallycopilot.motor.tramos.DetectorTramo
 import app.trombito.rallycopilot.motor.tramos.EventoCrono
 import app.trombito.rallycopilot.motor.tramos.EventoTramo
+import app.trombito.rallycopilot.motor.tramos.Fantasma
 import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.SubtramoHecho
 import app.trombito.rallycopilot.motor.tramos.Tramo
@@ -77,6 +78,9 @@ class SesionCrono(
         val inicioMs: Long,
         val mejor: Pasada?,
     ) {
+        /** El coche de la mejor pasada; null sin ella o si sus marcas no sirven (no debe romper el cronómetro). */
+        val fantasma: Fantasma? =
+            mejor?.takeIf { it.tramoId == tramo.id && it.tiempos.size >= 2 }?.let { Fantasma(tramo, it) }
         val parciales = ArrayList<ParcialCrono>()
         val idPasada: String get() = inicioFijacionMs.toString()
     }
@@ -424,6 +428,7 @@ class SesionCrono(
             parciales = vivo.parciales.toList(),
             ultimaMarca = vivo.parciales.lastOrNull(),
             hayMejorPasada = vivo.mejor != null,
+            fantasma = vivo.fantasma?.posicionEn(transcurrido),
         )
     }
 

@@ -22,7 +22,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.tramos.PosicionFantasma
 import app.trombito.rallycopilot.ui.ajustes.EstadoVozDescarga
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.AlertasViewModel
@@ -119,7 +121,7 @@ fun MapaRoute(
                     camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel, edicionViewModel),
                     preferencias =
                         preferenciasVista(estado, ruta, alertas, edicion.value.marcadores, estela.value)
-                            .copy(reservaPuntoPx = reservaPuntoPx.intValue),
+                            .copy(reservaPuntoPx = reservaPuntoPx.intValue, fantasma = fantasmaDelCrono(crono)),
                     modifier = modificador,
                 )
             },
@@ -181,6 +183,10 @@ private fun preferenciasVista(
     notas = notas,
     estela = estela,
 )
+
+/** El fantasma solo se ve con un tramo vivo (sin resultado de meta) y mejor pasada con la que correr. */
+internal fun fantasmaDelCrono(crono: CronoEnCurso?): PosicionFantasma? =
+    crono?.takeIf { it.tramo != null && it.resultado == null && it.hayMejorPasada }?.fantasma
 
 /** La ruta del guiado o de la vista previa lista para pintar; conserva la instancia mientras no cambien los puntos. */
 @Composable

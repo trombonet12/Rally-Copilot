@@ -27,6 +27,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.tramos.PosicionFantasma
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.ui.alertas.BocadilloMapa
 import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
@@ -123,6 +124,8 @@ data class PreferenciasVistaMapa(
      * [LocalZonaInferior].
      */
     val zonaInferiorPx: Int = 0,
+    /** Coche fantasma de la mejor pasada (translúcido, bajo el coche real); null = ninguno. */
+    val fantasma: PosicionFantasma? = null,
 )
 
 /**
@@ -302,6 +305,7 @@ private class ControladorMapa(
     private var mapa: MapLibreMap? = null
     private var estilo: Style? = null
     private val capaEstela = CapaEstela()
+    private val capaFantasma = CapaFantasma()
     private var estiloPedido: String? = null
     private var estiloAplicado: String? = null
     private var posicion: Fijacion? = null
@@ -447,6 +451,9 @@ private class ControladorMapa(
         if (nuevas.bocadillo != previas.bocadillo) CapaBocadillo.actualizar(capas, vista.context, nuevas.bocadillo)
         if (nuevas.notas != previas.notas) CapaNotas.actualizar(capas, nuevas.notas)
         if (nuevas.estela != previas.estela) capaEstela.actualizar(capas, nuevas.estela)
+        if (nuevas.fantasma != previas.fantasma || nuevas.icono != previas.icono) {
+            capaFantasma.actualizar(capas, vista.context, nuevas.icono, nuevas.fantasma)
+        }
     }
 
     private fun aplicarEstilo(json: String) {
@@ -465,6 +472,8 @@ private class ControladorMapa(
             CapaRadares.instalar(cargado, vista.context, preferencias.radares)
             CapaIncidencias.instalar(cargado, vista.context, preferencias.incidencias)
             CapaNotas.instalar(cargado, preferencias.notas)
+            // El fantasma, antes de la ubicación y del bocadillo: queda por debajo del coche real.
+            capaFantasma.instalar(cargado, vista.context, preferencias.icono, preferencias.fantasma)
             CapaBocadillo.instalar(cargado, vista.context, preferencias.bocadillo)
             asegurarUbicacion()
         }

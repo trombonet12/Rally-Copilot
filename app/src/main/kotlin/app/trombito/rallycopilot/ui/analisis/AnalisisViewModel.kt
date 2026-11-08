@@ -13,6 +13,7 @@ import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.motor.analisis.AnalisisPasada
 import app.trombito.rallycopilot.motor.analisis.PuntoSerie
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.tramos.OptimoTeorico
 import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
@@ -47,6 +48,24 @@ fun comparadaPorDefecto(
 ): Long? {
     val otras = pasadas.filter { it.id != analizadaId }
     return (otras.firstOrNull { it.esMejor } ?: otras.minByOrNull { it.totalMs })?.id
+}
+
+/**
+ * Óptimo teórico de [tramo] con todas sus [pasadas] (el motor lo calcula; aquí solo se anota de qué día es la pasada
+ * de cada sector). Null con menos de dos pasadas (con una el óptimo es ella misma) o si no hay óptimo completo.
+ */
+internal fun optimoUi(
+    tramo: Tramo,
+    pasadas: List<PasadaDetallada>,
+): OptimoUi? {
+    val optimo = if (pasadas.size < 2) null else OptimoTeorico.de(tramo, pasadas.map { it.pasada })
+    return optimo?.let {
+        OptimoUi(
+            totalMs = it.totalMs,
+            gananciaMs = it.gananciaMs,
+            sectores = it.sectores.map { s -> SectorOptimoUi(s.numero, s.tiempoMs, pasadas[s.pasadaIndice].inicioMs) },
+        )
+    }
 }
 
 private fun analizar(
@@ -123,6 +142,7 @@ class AnalisisViewModel
                 val comparadaId: Long?,
                 val analisis: AnalisisPasada,
                 val velocidadComparada: List<PuntoSerie>,
+                val optimo: OptimoUi?,
             ) : Datos
         }
 
@@ -229,7 +249,7 @@ class AnalisisViewModel
                 val analisis = analizar(base.tramo, base.actual, comparada?.pasada)
                 // La velocidad de la comparada sale de su propio análisis (sin compararla con nada).
                 val velocidadComparada = comparada?.let { analizar(base.tramo, it, null).velocidad }.orEmpty()
-                Datos.Listo(base, comparada?.id, analisis, velocidadComparada)
+                Datos.Listo(base, comparada?.id, analisis, velocidadComparada, optimoUi(base.tramo, base.pasadas))
             } catch (e: IllegalArgumentException) {
                 Datos.Problema(ProblemaAnalisis.ILEGIBLE).also {
                     // Solo el tipo de la excepción: sin coordenadas ni identificadores.
@@ -266,6 +286,7 @@ class AnalisisViewModel
                         repeticion = rep,
                         posicion = t?.let { datos.analisis.repeticion.en(it) },
                         cursorM = t?.let { distanciaEnTiempo(carga.actual.pasada.tiempos, it) },
+                        optimo = datos.optimo,
                     )
                 }
             }

@@ -156,6 +156,7 @@ private fun DatosDelAnalisis(
         SelectorComparada(estado, acciones.onComparar)
         SeccionGraficos(datos, estado.cursorM, acciones.onCursor)
         TablaParciales(analisis)
+        estado.optimo?.let { TarjetaOptimo(it) }
     }
 }
 

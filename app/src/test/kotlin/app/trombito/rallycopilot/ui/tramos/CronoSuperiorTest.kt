@@ -79,6 +79,16 @@ class CronoSuperiorTest {
     }
 
     @Test
+    fun `con mejor pasada el delta continuo esta siempre visible aunque aun no haya valor`() {
+        poner(cronoConocido(deltaMs = null, progresoM = 0.0))
+        assertTrue(banco.hay(ETIQUETA_CRONO_DELTA))
+        assertEquals(listOf("—"), textos(ETIQUETA_CRONO_DELTA))
+        crono = cronoConocido(deltaMs = -800L)
+        banco.esperar(100L)
+        assertEquals(listOf("▼ −0,8"), textos(ETIQUETA_CRONO_DELTA))
+    }
+
+    @Test
     fun `listo muestra LISTO en vez de 00 00 y no cuenta tiempo`() {
         poner(cronoListo())
         assertTrue(banco.hay(ETIQUETA_CRONO_MINI))

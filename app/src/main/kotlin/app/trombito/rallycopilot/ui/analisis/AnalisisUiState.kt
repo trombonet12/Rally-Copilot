@@ -12,6 +12,23 @@ data class OpcionComparada(
     val esMejor: Boolean,
 )
 
+/** El mejor tiempo de un sector del tramo y [pasadaInicioMs] (epoch) de la pasada que lo aportó. */
+data class SectorOptimoUi(
+    val numero: Int,
+    val tiempoMs: Long,
+    val pasadaInicioMs: Long,
+)
+
+/**
+ * Tramo óptimo teórico: [totalMs] suma los mejores sectores y [gananciaMs] (≥ 0) es lo que se ganaría frente a la
+ * mejor pasada completa (null si ninguna cubre el tramo entero).
+ */
+data class OptimoUi(
+    val totalMs: Long,
+    val gananciaMs: Long?,
+    val sectores: List<SectorOptimoUi>,
+)
+
 /** Por qué no hay análisis que mostrar. */
 enum class ProblemaAnalisis {
     /** El tramo o la pasada ya no existen. */
@@ -40,6 +57,8 @@ data class AnalisisUiState(
     val repeticion: EstadoRepeticion = EstadoRepeticion(),
     val posicion: PosicionRepeticion? = null,
     val cursorM: Double? = null,
+    /** Óptimo teórico del tramo; null con menos de dos pasadas (no habría nada que juntar). */
+    val optimo: OptimoUi? = null,
 ) {
     /** La pasada comparada elegida, si la hay. */
     val comparada: OpcionComparada? get() = opciones.firstOrNull { it.id == comparadaId }

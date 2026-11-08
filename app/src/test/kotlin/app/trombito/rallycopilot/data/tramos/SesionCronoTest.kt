@@ -575,6 +575,28 @@ class SesionCronoTest {
         }
 
     @Test
+    fun `con tramo vivo y mejor pasada se publica el fantasma y va por detras de un coche mas rapido`() =
+        runTest {
+            val primera = conducir(conduccion(40.0))
+            assertTrue(primera.estados.all { it.fantasma == null })
+
+            val c = conducir(conduccion(60.0, margenM = 100.0, base = 9_000_000L))
+
+            val vivos = c.estados.filter { it.tramo != null && it.resultado == null }
+            val conFantasma = vivos.filter { it.fantasma != null }
+            assertTrue(conFantasma.size > 50)
+            val ultimo = conFantasma.last()
+            val fantasma = checkNotNull(ultimo.fantasma)
+            val detras = fantasma.distanciaM < ultimo.progresoM
+            assertTrue("fantasma ${fantasma.distanciaM} y coche ${ultimo.progresoM}", detras)
+            // Avanza con el cronómetro: nunca retrocede.
+            val distancias = conFantasma.map { checkNotNull(it.fantasma).distanciaM }
+            assertEquals(distancias.sorted(), distancias)
+            // Sin tramo vivo (antes de entrar o tras la meta) no hay fantasma.
+            assertTrue(c.estados.filter { it.tramo == null || it.resultado != null }.all { it.fantasma == null })
+        }
+
+    @Test
     fun `un trayecto que solo recorre parte de un tramo guardado no lo completa y crea un tramo nuevo`() =
         runTest {
             conducir(conduccion(40.0))
