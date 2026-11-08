@@ -125,6 +125,8 @@ private fun accionesDe(
     onDescargarVoz = viewModel::onDescargarVoz,
     onActivarConCopiloto = viewModel::onActivarConCopiloto,
     onVolumenVoz = viewModel::onVolumenVoz,
+    onAudioCasco = viewModel::onAudioCasco,
+    onEscuchaCascoSiempre = viewModel::onEscuchaCascoSiempre,
     onEscucharEjemplo = viewModel::onEscucharEjemplo,
     onTema = viewModel::onTema,
     onCapa = viewModel::onCapa,

@@ -299,6 +299,19 @@ val MIGRATION_18_19: Migration =
     }
 
 /**
+ * v19 -> v20: ajustes del intercom del casco. `audioCasco` (1: automático, la voz y el micrófono van por el casco si lo
+ * hay) y `escuchaCascoSiempre` (0: con casco, «Copiloto» no escucha sin parar, solo al pulsar el micrófono, para que la
+ * música del intercom no pase a calidad de llamada). El SQL es el `createSql` de `schemas/.../20.json`.
+ */
+val MIGRATION_19_20: Migration =
+    object : Migration(19, 20) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `audioCasco` INTEGER NOT NULL DEFAULT 1")
+            db.execSQL("ALTER TABLE `ajustes_conduccion` ADD COLUMN `escuchaCascoSiempre` INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+/**
  * Todas las migraciones, en orden, de la v1 a la versión actual de [RallyDatabase]. Es la única lista: la usan la base
  * de producción y los tests; una migración nueva se añade aquí y `MigracionRoomTest` vigila que la cadena no tenga
  * huecos hasta `RallyDatabase.version`.
@@ -323,4 +336,5 @@ val TODAS_LAS_MIGRACIONES: Array<Migration> =
         MIGRATION_16_17,
         MIGRATION_17_18,
         MIGRATION_18_19,
+        MIGRATION_19_20,
     )

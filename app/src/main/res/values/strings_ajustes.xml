@@ -111,6 +111,14 @@
     <string name="ajustes_intercom_estado_concedido">Intercom del casco: concedido</string>
     <string name="ajustes_intercom_conceder">Conceder</string>
     <string name="ajustes_intercom_abrir_ajustes">Abrir ajustes</string>
+    <string name="ajustes_audio_casco_titulo">Audio por el casco</string>
+    <string name="ajustes_audio_casco_auto">Automático: con casco conectado, la voz y el micrófono van por él.</string>
+    <string name="ajustes_audio_casco_apagado">Apagado: voz y micrófono siempre por el móvil, aunque haya casco.</string>
+    <string name="ajustes_audio_casco_info">Automático usa el intercom del casco cuando está conectado. Apagado deja la voz y el micrófono en el móvil y no toca la música del casco.</string>
+    <string name="ajustes_escucha_casco_titulo">Escucha con casco</string>
+    <string name="ajustes_escucha_casco_siempre">Siempre: «Copiloto» escucha sin parar, y la música del casco suena en calidad de llamada.</string>
+    <string name="ajustes_escucha_casco_pulsar">Solo al pulsar el micrófono: la música del casco suena bien y «Copiloto» no escucha.</string>
+    <string name="ajustes_escucha_casco_info">Con el casco conectado, escuchar la palabra «Copiloto» sin parar mantiene abierto el canal de llamada del casco y la música pierde calidad. Solo al pulsar, el canal se abre únicamente mientras hablas con el copiloto. Sin casco no cambia nada.</string>
 
     <!-- Volumen -->
     <string name="ajustes_volumen_titulo">Volumen del copiloto</string>

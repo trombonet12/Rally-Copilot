@@ -7,18 +7,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.coroutineContext
 
 /**
- * Palabra de activación «Copiloto» (activada por defecto). Mientras dura la conducción y el ajuste
- * `activarConCopiloto` esté activo, escucha el micrófono sin parar con una gramática mínima (`["copiloto", "[unk]"]`)
- * y, al oír la palabra, suelta el micrófono y deja que [control] escuche una orden (con foco exclusivo); después vuelve
- * a esperar la palabra.
+ * Palabra de activación «Copiloto» (activada por defecto). Mientras dura la conducción, el ajuste
+ * `activarConCopiloto` esté activo y no haya casco con «Escucha con casco» en «solo al pulsar» ([cascoActivo]), escucha
+ * el micrófono sin parar con una gramática mínima (`["copiloto", "[unk]"]`) y, al oír la palabra, suelta el micrófono
+ * y deja que [control] escuche una orden (con foco exclusivo); después vuelve a esperar la palabra.
  *
  * Coste (sin medir en móvil; ver `docs/investigacion/asr-offline.md`): el micrófono abierto todo el rato (con el
  * indicador de privacidad del sistema encendido), un servicio en primer plano de tipo micrófono y el reconocedor
@@ -35,6 +36,12 @@ class EscuchaContinua(
     private val dispatcher: CoroutineDispatcher,
     /** Señal sonora tras oír la palabra, antes de escuchar la orden; debe volver cuando haya acabado de sonar. */
     private val tic: suspend () -> Unit = {},
+    /**
+     * `true` mientras haya un intercom de casco utilizable. Con casco y `escuchaCascoSiempre` apagado no se escucha sin
+     * parar (el micrófono del casco obliga a abrir el canal de llamada y la música pierde calidad): solo vale el botón
+     * del micrófono. Sin casco, o con el audio por el casco apagado, la escucha sigue por el móvil.
+     */
+    private val cascoActivo: Flow<Boolean> = flowOf(false),
 ) {
     /**
      * Escucha hasta que se cancele; sigue los cambios del ajuste y del permiso. [hablando] dice si el copiloto está
@@ -45,7 +52,7 @@ class EscuchaContinua(
         hablando: () -> Boolean = { false },
         registro: ((String) -> Unit)? = null,
     ) {
-        ajustes.map { it.activarConCopiloto }.distinctUntilChanged().collectLatest { activo ->
+        escuchaSinParar().collectLatest { activo ->
             while (activo && coroutineContext.isActive) {
                 if (!permiso() || !esperarPalabra(hablando, registro)) {
                     delay(REINTENTO_MS)
@@ -57,6 +64,11 @@ class EscuchaContinua(
             }
         }
     }
+
+    /** Si hay que escuchar la palabra sin parar: «Copiloto» activo y, con casco, solo si se pidió escuchar siempre. */
+    private fun escuchaSinParar(): Flow<Boolean> =
+        combine(ajustes, cascoActivo) { a, casco -> a.activarConCopiloto && (a.escuchaCascoSiempre || !casco) }
+            .distinctUntilChanged()
 
     /** `true` si se oyó la palabra; `false` si el micrófono o el modelo no están disponibles. */
     private suspend fun esperarPalabra(

@@ -607,4 +607,29 @@ class MigracionRoomTest {
             )
             assertEquals(emptyList<SubtramoEntity>(), nueva.subtramosDao().observarDeTramo("x").first())
         }
+
+    @Test
+    fun `de v19 a v20 deja el audio por el casco automatico y la escucha solo al pulsar y admite cambiarlos`() =
+        runBlocking {
+            crearBase(19)
+            val nueva =
+                Room
+                    .databaseBuilder(contexto, RallyDatabase::class.java, nombreBase)
+                    .addMigrations(*TODAS_LAS_MIGRACIONES)
+                    .allowMainThreadQueries()
+                    .build()
+                    .also { base = it }
+
+            val dao = nueva.ajustesConduccionDao()
+            val migrados = checkNotNull(dao.observar().first())
+            assertEquals(true, migrados.audioCasco)
+            assertEquals(false, migrados.escuchaCascoSiempre)
+            assertEquals(2, migrados.nivelZoom)
+            assertEquals(true, migrados.avisarRadares)
+            dao.guardar(migrados.copy(audioCasco = false, escuchaCascoSiempre = true))
+            val guardados = checkNotNull(dao.observar().first())
+            assertEquals(false, guardados.audioCasco)
+            assertEquals(true, guardados.escuchaCascoSiempre)
+            assertEquals(RallyDatabase.VERSION, nueva.openHelper.writableDatabase.version)
+        }
 }

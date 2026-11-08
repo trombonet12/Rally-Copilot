@@ -79,6 +79,16 @@ class AjustesViewModel
             viewModelScope.launch { repositorio.elegirActivarConCopiloto(activar) }
         }
 
+        /** «Audio por el casco»: automático (por el intercom si lo hay) o apagado (siempre por el móvil). */
+        fun onAudioCasco(automatico: Boolean) {
+            guardar { it.copy(audioCasco = automatico) }
+        }
+
+        /** «Escucha con casco»: «Copiloto» escucha siempre o solo al pulsar el micrófono. */
+        fun onEscuchaCascoSiempre(siempre: Boolean) {
+            guardar { it.copy(escuchaCascoSiempre = siempre) }
+        }
+
         fun onModoCopiloto(modo: ModoCopiloto) {
             viewModelScope.launch { repositorio.elegirModoCopiloto(modo) }
         }

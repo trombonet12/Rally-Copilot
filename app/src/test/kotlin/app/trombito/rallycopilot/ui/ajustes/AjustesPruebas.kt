@@ -68,6 +68,14 @@ internal fun BancoCompose.ponerAjustes(
                     ajustes = ajustes.copy(volumenVoz = it)
                     acciones.onVolumenVoz(it)
                 },
+                onAudioCasco = {
+                    ajustes = ajustes.copy(audioCasco = it)
+                    acciones.onAudioCasco(it)
+                },
+                onEscuchaCascoSiempre = {
+                    ajustes = ajustes.copy(escuchaCascoSiempre = it)
+                    acciones.onEscuchaCascoSiempre(it)
+                },
                 onTema = {
                     ajustes = ajustes.copy(tema = it)
                     acciones.onTema(it)

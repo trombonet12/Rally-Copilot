@@ -41,6 +41,9 @@ data class AjustesConduccionEntity(
     @ColumnInfo(defaultValue = "'NORMAL'") val velocidadHabla: String = "NORMAL",
     // Avisos de puentes y túneles (v19); apagados de base.
     @ColumnInfo(defaultValue = "0") val avisarPuentes: Boolean = false,
+    // Intercom del casco (v20): «Audio por el casco» automático (1) y «Escucha con casco» solo al pulsar (0).
+    @ColumnInfo(defaultValue = "1") val audioCasco: Boolean = true,
+    @ColumnInfo(defaultValue = "0") val escuchaCascoSiempre: Boolean = false,
 )
 
 /** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */

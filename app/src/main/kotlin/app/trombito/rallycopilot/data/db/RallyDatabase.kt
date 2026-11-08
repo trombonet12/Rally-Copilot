@@ -46,6 +46,6 @@ abstract class RallyDatabase : RoomDatabase() {
         const val NOMBRE = "rally.db"
 
         /** Versión del esquema; `TODAS_LAS_MIGRACIONES` tiene que llegar hasta aquí. */
-        const val VERSION = 19
+        const val VERSION = 20
     }
 }

@@ -33,7 +33,10 @@ enum class Orientacion { RUMBO, NORTE }
  * conducción al modo roadbook (notas enormes, casi sin mapa). [avisarCruces], [avisarSalidasAutopista] y
  * [avisarRotondas] dicen qué indicaciones se dicen y se ven (por defecto, las salidas de autopista y las rotondas; los
  * cruces están apagados de base desde la v19 de Room; ver `FiltroIndicaciones` del motor). [avisarPuentes] activa los
- * avisos de puentes (apagado de base).
+ * avisos de puentes (apagado de base). [audioCasco] es «Audio por el casco»: automático (voz y micrófono por el
+ * intercom Bluetooth si lo hay) o apagado (siempre por el móvil); [escuchaCascoSiempre] decide si, con casco,
+ * «Copiloto» escucha sin parar (la música del intercom pasa a calidad de llamada) o solo al pulsar el micrófono (por
+ * defecto).
  * [salidaManual] hace que el cronómetro de la conducción no arranque solo al moverse el coche sino cuando Joan pulsa
  * «Salida» (cuenta atrás); desactivado = salida automática. [casa] es el punto al que lleva «volver a casa» (`null` =
  * aún no se ha fijado; se fija con `fijarCasa`). [avisarRadares], [avisarIncidencias] y [avisarVelocidad] (exceso y
@@ -66,6 +69,8 @@ data class AjustesConduccion(
     val avisarVelocidad: Boolean = true,
     val velocidadHabla: VelocidadHabla = VelocidadHabla.NORMAL,
     val avisarPuentes: Boolean = false,
+    val audioCasco: Boolean = true,
+    val escuchaCascoSiempre: Boolean = false,
 ) {
     init {
         require(nivelZoom in NIVEL_MIN..NIVEL_MAX) { "nivelZoom fuera de rango: $nivelZoom" }

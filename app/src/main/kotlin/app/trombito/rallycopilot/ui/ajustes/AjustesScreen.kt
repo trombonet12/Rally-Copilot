@@ -70,6 +70,8 @@ data class AccionesAjustes(
     val onDescargarVoz: (VozCopiloto) -> Unit = {},
     val onActivarConCopiloto: (Boolean) -> Unit = {},
     val onVolumenVoz: (Int) -> Unit = {},
+    val onAudioCasco: (Boolean) -> Unit = {},
+    val onEscuchaCascoSiempre: (Boolean) -> Unit = {},
     val onEscucharEjemplo: () -> Unit = {},
     val onTema: (Tema) -> Unit = {},
     val onCapa: (CapaMapa) -> Unit = {},

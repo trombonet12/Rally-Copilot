@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.data.audio.FabricaAudioRuta
+import app.trombito.rallycopilot.data.audio.ModoAudio
 import app.trombito.rallycopilot.data.audio.RutaAudio
 import app.trombito.rallycopilot.data.db.EdicionesDao
 import app.trombito.rallycopilot.data.db.MarcasDao
@@ -56,6 +57,7 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import javax.inject.Singleton
 
 /** Órdenes de voz: escucha con Vosk, ejecución sobre la conducción, marcas y ediciones de notas en Room. */
@@ -210,6 +212,7 @@ abstract class EscuchaModule {
                 control = control,
                 dispatcher = dispatcher,
                 tic = ReproductorTic(ruta)::sonar,
+                cascoActivo = ruta.modo.map { it == ModoAudio.CASCO },
             )
 
         private fun tienePermisoMicrofono(contexto: Context): Boolean =

@@ -53,6 +53,8 @@ const val ETIQUETA_VOZ_DESCARGAR_PREFIJO = "ajustes-voz-descargar-"
 const val ETIQUETA_VOZ_ESTADO_PREFIJO = "ajustes-voz-estado-"
 const val ETIQUETA_VOZ_PROBAR_PRIMERO = "ajustes-voz-probar-primero"
 const val ETIQUETA_AJUSTES_ACTIVAR_COPILOTO = "ajustes-activar-con-copiloto"
+const val ETIQUETA_AJUSTES_AUDIO_CASCO = "ajustes-audio-casco"
+const val ETIQUETA_AJUSTES_ESCUCHA_CASCO = "ajustes-escucha-casco"
 
 /** Copiloto: los cuatro modos con icono y una línea cada uno. La vista previa de arriba enseña el elegido. */
 @Composable
@@ -107,6 +109,7 @@ internal fun ControlesVoz(
         ControlVolumen(ajustes.volumenVoz, acciones.onVolumenVoz)
     }
     ControlIntercom()
+    ControlesCasco(ajustes, acciones)
     Opcion(R.string.habla_titulo, R.string.habla_detalle) {
         SelectorVelocidadHabla(ajustes.velocidadHabla, acciones.onVelocidadHabla)
     }
@@ -130,6 +133,43 @@ internal fun ControlesEscucha(
         etiqueta = ETIQUETA_AJUSTES_ACTIVAR_COPILOTO,
         detalle = stringResource(R.string.ajustes_copiloto_palabra_corto),
         info = stringResource(R.string.ajustes_copiloto_palabra_detalle),
+    )
+}
+
+/**
+ * «Audio por el casco» (automático o apagado) y «Escucha con casco» (siempre o solo al pulsar). Valen con o sin el
+ * permiso de Bluetooth y también antes de Android 12 (allí el intercom no lo necesita), así que no dependen de él.
+ */
+@Composable
+internal fun ControlesCasco(
+    ajustes: AjustesConduccion,
+    acciones: AccionesAjustes,
+) {
+    FilaInterruptor(
+        titulo = stringResource(R.string.ajustes_audio_casco_titulo),
+        marcado = ajustes.audioCasco,
+        onCambio = acciones.onAudioCasco,
+        etiqueta = ETIQUETA_AJUSTES_AUDIO_CASCO,
+        detalle =
+            stringResource(
+                if (ajustes.audioCasco) R.string.ajustes_audio_casco_auto else R.string.ajustes_audio_casco_apagado,
+            ),
+        info = stringResource(R.string.ajustes_audio_casco_info),
+    )
+    FilaInterruptor(
+        titulo = stringResource(R.string.ajustes_escucha_casco_titulo),
+        marcado = ajustes.escuchaCascoSiempre,
+        onCambio = acciones.onEscuchaCascoSiempre,
+        etiqueta = ETIQUETA_AJUSTES_ESCUCHA_CASCO,
+        detalle =
+            stringResource(
+                if (ajustes.escuchaCascoSiempre) {
+                    R.string.ajustes_escucha_casco_siempre
+                } else {
+                    R.string.ajustes_escucha_casco_pulsar
+                },
+            ),
+        info = stringResource(R.string.ajustes_escucha_casco_info),
     )
 }
 

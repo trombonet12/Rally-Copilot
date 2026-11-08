@@ -35,7 +35,7 @@ class RutaAudioCasco(
     private val permiso: () -> Boolean,
     private val ambito: CoroutineScope,
     private val reloj: () -> Long,
-    /** Ajuste «Audio por el casco»: de momento siempre automático (ver DECISIONES/QUESTIONS). */
+    /** Ajuste «Audio por el casco»: `true` = automático (usa el casco si lo hay), `false` = siempre por el móvil. */
     private val activado: () -> Boolean = { true },
 ) : RutaAudio {
     private val estado = MutableStateFlow(ModoAudio.ALTAVOZ)
@@ -53,6 +53,14 @@ class RutaAudioCasco(
 
     init {
         sistema.escucharCambios { refrescar() }
+        refrescar()
+    }
+
+    /**
+     * Hay que llamarlo cuando cambia [activado]: recalcula [modo] y, si el casco deja de valer, corta el canal (las
+     * reservas vivas pasan al móvil como en una caída).
+     */
+    fun reevaluar() {
         refrescar()
     }
 

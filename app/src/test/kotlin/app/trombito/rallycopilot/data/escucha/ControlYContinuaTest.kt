@@ -8,9 +8,11 @@ import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runCurrent
@@ -169,6 +171,7 @@ class ControlYContinuaTest {
         permiso: Boolean,
         control: ControlOrdenes,
         tic: suspend () -> Unit = {},
+        cascoActivo: Flow<Boolean> = flowOf(false),
     ) = EscuchaContinua(
         audio,
         { ReconocedorDeActivacion(true) },
@@ -177,6 +180,7 @@ class ControlYContinuaTest {
         control,
         Dispatchers.IO,
         tic,
+        cascoActivo,
     )
 
     @Test
@@ -320,4 +324,84 @@ class ControlYContinuaTest {
             assertEquals(0, aperturas.get())
             assertEquals(0, control.peticiones.get())
         }
+
+    @Test
+    fun `con casco y escucha solo al pulsar no abre el microfono, y con escucha siempre si`() =
+        runBlocking {
+            val aperturas = AtomicInteger()
+            val audio =
+                FabricaAudio {
+                    aperturas.incrementAndGet()
+                    null
+                }
+            val control = ControlFalso()
+            ajustes.mutable.value =
+                ajustes.mutable.value.copy(activarConCopiloto = true, escuchaCascoSiempre = false)
+
+            val soloAlPulsar =
+                ambito.launch { continua(audio, true, control, cascoActivo = flowOf(true)).correr() }
+            Thread.sleep(300)
+            soloAlPulsar.cancel()
+            assertEquals(0, aperturas.get())
+
+            // Sin casco la escucha sigue por el móvil aunque el ajuste esté en «solo al pulsar».
+            val sinCasco =
+                ambito.launch { continua(audio, true, control, cascoActivo = flowOf(false)).correr() }
+            Thread.sleep(300)
+            sinCasco.cancel()
+            assertTrue(aperturas.get() >= 1)
+
+            val antes = aperturas.get()
+            ajustes.mutable.value = ajustes.mutable.value.copy(escuchaCascoSiempre = true)
+            val siempre =
+                ambito.launch { continua(audio, true, control, cascoActivo = flowOf(true)).correr() }
+            Thread.sleep(300)
+            siempre.cancel()
+            assertTrue(aperturas.get() > antes)
+        }
+
+    @Test
+    fun `al conectarse el casco la escucha continua se detiene y al caerse vuelve`() =
+        runBlocking {
+            val abiertas = AtomicInteger()
+            val cerradas = AtomicInteger()
+            val audio =
+                FabricaAudio {
+                    abiertas.incrementAndGet()
+                    object : FuenteAudio {
+                        override fun leer(buffer: ShortArray): Int {
+                            buffer.fill(0)
+                            LockSupport.parkNanos(UN_MS_EN_NS)
+                            return buffer.size
+                        }
+
+                        override fun close() {
+                            cerradas.incrementAndGet()
+                        }
+                    }
+                }
+            val casco = MutableStateFlow(false)
+            ajustes.mutable.value =
+                ajustes.mutable.value.copy(activarConCopiloto = true, escuchaCascoSiempre = false)
+            val trabajo =
+                ambito.launch { continua(audio, true, ControlFalso(), cascoActivo = casco).correr() }
+            esperar { abiertas.get() == 1 }
+
+            casco.value = true
+            esperar { cerradas.get() == 1 }
+            Thread.sleep(300)
+            assertEquals(1, abiertas.get())
+
+            casco.value = false
+            esperar { abiertas.get() == 2 }
+            trabajo.cancel()
+        }
+
+    private fun esperar(condicion: () -> Boolean) {
+        val limite = System.nanoTime() + 5_000 * UN_MS_EN_NS
+        while (!condicion()) {
+            check(System.nanoTime() < limite) { "la condición no llegó a cumplirse" }
+            Thread.sleep(10)
+        }
+    }
 }

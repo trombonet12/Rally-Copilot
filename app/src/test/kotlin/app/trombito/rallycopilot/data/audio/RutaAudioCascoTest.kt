@@ -176,6 +176,26 @@ class RutaAudioCascoTest {
     }
 
     @Test
+    fun `apagar el ajuste en caliente corta el canal, deja la reserva perdida y pasa al altavoz`() {
+        sistema.comunicacion = listOf(intercom)
+        val ruta = ruta(API_31)
+        val reserva = ruta.reservar(UsoRuta.SALIDA)
+        assertEquals(ModoAudio.CASCO, ruta.modo.value)
+
+        activado = false
+        ruta.reevaluar()
+
+        assertEquals(ModoAudio.ALTAVOZ, ruta.modo.value)
+        assertTrue(reserva.perdida)
+        assertEquals(listOf("modo:true", "fijar:7", "liberar", "modo:false"), sistema.eventos)
+        assertNull(ruta.reservar(UsoRuta.ENTRADA).dispositivo)
+
+        activado = true
+        ruta.reevaluar()
+        assertEquals(ModoAudio.CASCO, ruta.modo.value)
+    }
+
+    @Test
     fun `si el sistema rechaza abrir el canal va por el altavoz y restaura el modo de audio`() {
         sistema.comunicacion = listOf(intercom)
         sistema.aceptaComunicacion = false
