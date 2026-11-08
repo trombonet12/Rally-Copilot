@@ -69,6 +69,8 @@ object FrasesOrdenes {
             Orden.NotasSimplificadas(false) to listOf("notas completas", "notas normales", "notas detalladas"),
             Orden.Avisar(Indicacion.CRUCES, false) to listOf("sin cruces", "sin los cruces"),
             Orden.Avisar(Indicacion.CRUCES, true) to listOf("con cruces", "con los cruces"),
+            Orden.Avisar(Indicacion.PUENTES, false) to listOf("sin puentes", "sin los puentes"),
+            Orden.Avisar(Indicacion.PUENTES, true) to listOf("con puentes", "con los puentes"),
             Orden.Avisar(Indicacion.ROTONDAS, false) to listOf("sin rotondas", "sin glorieta"),
             Orden.Avisar(Indicacion.ROTONDAS, true) to listOf("con rotondas", "con glorieta"),
             Orden.Avisar(Indicacion.SALIDAS, false) to listOf("sin salidas", "sin salidas de autopista"),

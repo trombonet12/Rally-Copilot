@@ -48,7 +48,7 @@ private val LADO_INDICACION = 56.dp
 private const val LUCES_SALIDA = 5
 private const val OPACIDAD_APAGADA = 0.35f
 
-/** Indicaciones: los tres iconos con su nombre; el que está desactivado se ve apagado y tachado. */
+/** Indicaciones: los cuatro iconos con su nombre; el que está desactivado se ve apagado y tachado. */
 @Composable
 internal fun PrevistaIndicaciones(ajustes: AjustesConduccion) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -57,6 +57,12 @@ internal fun PrevistaIndicaciones(ajustes: AjustesConduccion) {
             icono = painterResource(R.drawable.ic_nota_cruce),
             nombre = stringResource(R.string.ajustes_prevista_cruces),
             activa = ajustes.avisarCruces,
+        )
+        IndicacionPrevista(
+            clave = "puentes",
+            icono = painterResource(R.drawable.ic_nota_puente),
+            nombre = stringResource(R.string.ajustes_prevista_puentes),
+            activa = ajustes.avisarPuentes,
         )
         IndicacionPrevista(
             clave = "salidas",

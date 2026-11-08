@@ -62,6 +62,7 @@ internal fun accionesCopiloto(vm: CopilotoViewModel) =
         onEscucharEjemplo = vm::onEscucharEjemplo,
         onNotasGrandes = vm::onNotasGrandes,
         onAvisarCruces = vm::onAvisarCruces,
+        onAvisarPuentes = vm::onAvisarPuentes,
         onAvisarSalidasAutopista = vm::onAvisarSalidasAutopista,
         onAvisarRotondas = vm::onAvisarRotondas,
         onAvisarRadares = vm::onAvisarRadares,

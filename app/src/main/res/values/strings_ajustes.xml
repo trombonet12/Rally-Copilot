@@ -15,7 +15,7 @@
     <string name="ajustes_valor_voz">%1$s · %2$d %%</string>
     <string name="ajustes_valor_voz_sin_elegir">Sin elegir · %1$d %%</string>
     <string name="ajustes_valor_indicaciones_todas">Todas activas</string>
-    <string name="ajustes_valor_indicaciones_algunas">%1$d de 3 activas</string>
+    <string name="ajustes_valor_indicaciones_algunas">%1$d de 4 activas</string>
     <string name="ajustes_valor_indicaciones_ninguna">Ninguna activa</string>
     <string name="ajustes_valor_tramos_automatica">Salida automática</string>
     <string name="ajustes_valor_tramos_manual">Salida manual</string>
@@ -75,6 +75,7 @@
     <string name="ajustes_prevista_indicaciones_si">%1$s: avisa</string>
     <string name="ajustes_prevista_indicaciones_no">%1$s: no avisa</string>
     <string name="ajustes_prevista_cruces">Cruces</string>
+    <string name="ajustes_prevista_puentes">Puentes</string>
     <string name="ajustes_prevista_salidas">Salidas</string>
     <string name="ajustes_prevista_rotondas">Rotondas</string>
     <string name="ajustes_prevista_mapa_descripcion">Mapa de ejemplo: %1$s, %2$s, icono %3$s</string>

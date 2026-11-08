@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.motor.ruta.TipoManiobra
  *
  * - [avisarCruces]: el aviso «cruce» de la hoja de notas. Girar en un cruce de la ruta es una maniobra de navegación y
  *   se dice siempre.
+ * - [avisarPuentes]: el aviso «puente» de la hoja de notas (los puentes y los pasos sobre estructuras).
  * - [avisarSalidasAutopista]: las maniobras de salida de autovía/autopista y de incorporación.
  * - [avisarRotondas]: el aviso «rotonda» de la hoja y las maniobras de entrada y salida de rotonda.
  */
@@ -17,15 +18,17 @@ data class FiltroIndicaciones(
     val avisarCruces: Boolean = true,
     val avisarSalidasAutopista: Boolean = true,
     val avisarRotondas: Boolean = true,
+    val avisarPuentes: Boolean = true,
 ) {
     /** `true` si no se calla nada. */
-    val todoActivo: Boolean get() = avisarCruces && avisarSalidasAutopista && avisarRotondas
+    val todoActivo: Boolean get() = avisarCruces && avisarSalidasAutopista && avisarRotondas && avisarPuentes
 
     /** `false` si el aviso de la hoja está desactivado. */
     fun permite(tipo: TipoAviso): Boolean =
         when (tipo) {
             TipoAviso.CRUCE -> avisarCruces
             TipoAviso.ROTONDA -> avisarRotondas
+            TipoAviso.PUENTE -> avisarPuentes
             else -> true
         }
 

@@ -78,6 +78,7 @@ data class AccionesAjustes(
     val onSalidaManual: (Boolean) -> Unit = {},
     val onNotasGrandes: (Boolean) -> Unit = {},
     val onAvisarCruces: (Boolean) -> Unit = {},
+    val onAvisarPuentes: (Boolean) -> Unit = {},
     val onAvisarSalidasAutopista: (Boolean) -> Unit = {},
     val onAvisarRotondas: (Boolean) -> Unit = {},
     val onAvisarRadares: (Boolean) -> Unit = {},

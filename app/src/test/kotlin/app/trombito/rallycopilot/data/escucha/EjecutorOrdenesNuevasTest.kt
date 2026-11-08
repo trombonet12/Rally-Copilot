@@ -231,24 +231,28 @@ class EjecutorOrdenesNuevasTest {
         }
 
     @Test
-    fun `los filtros de cruces rotondas y salidas se activan y desactivan por separado`() =
+    fun `los filtros de cruces puentes rotondas y salidas se activan y desactivan por separado`() =
         runBlocking {
             banco.decir(Orden.Avisar(Indicacion.CRUCES, false))
+            banco.decir(Orden.Avisar(Indicacion.PUENTES, false))
             banco.decir(Orden.Avisar(Indicacion.ROTONDAS, false))
             banco.decir(Orden.Avisar(Indicacion.SALIDAS, false))
             val apagados = banco.ajustes.mutable.value
             assertFalse(apagados.avisarCruces)
+            assertFalse(apagados.avisarPuentes)
             assertFalse(apagados.avisarRotondas)
             assertFalse(apagados.avisarSalidasAutopista)
 
+            banco.decir(Orden.Avisar(Indicacion.PUENTES, true))
             banco.decir(Orden.Avisar(Indicacion.ROTONDAS, true))
             val parcial = banco.ajustes.mutable.value
             assertFalse(parcial.avisarCruces)
+            assertTrue(parcial.avisarPuentes)
             assertTrue(parcial.avisarRotondas)
             assertFalse(parcial.avisarSalidasAutopista)
 
             assertEquals(
-                listOf("sin cruces", "sin rotondas", "sin salidas", "con rotondas"),
+                listOf("sin cruces", "sin puentes", "sin rotondas", "sin salidas", "con puentes", "con rotondas"),
                 banco.locutor.dichas.toList(),
             )
         }

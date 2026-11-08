@@ -2,6 +2,7 @@
 <resources>
     <!-- Indicaciones que el copiloto dice y enseña: interruptores con icono de la hoja del copiloto -->
     <string name="indicaciones_cruces">Avisar de cruces</string>
+    <string name="indicaciones_puentes">Avisar de puentes</string>
     <string name="indicaciones_salidas_autopista">Avisar de salidas y entradas de autopista</string>
     <string name="indicaciones_rotondas">Avisar de rotondas</string>
     <string name="indicaciones_estado_activo">Activado</string>

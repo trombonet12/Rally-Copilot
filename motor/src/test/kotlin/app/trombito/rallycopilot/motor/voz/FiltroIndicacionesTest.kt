@@ -18,6 +18,7 @@ class FiltroIndicacionesTest {
     private val sinCruces = FiltroIndicaciones(avisarCruces = false)
     private val sinSalidas = FiltroIndicaciones(avisarSalidasAutopista = false)
     private val sinRotondas = FiltroIndicaciones(avisarRotondas = false)
+    private val sinPuentes = FiltroIndicaciones(avisarPuentes = false)
 
     private fun aviso(
         posicionM: Double,
@@ -35,6 +36,8 @@ class FiltroIndicacionesTest {
                 aviso(500.0, TipoAviso.STOP),
             ),
         )
+
+    private fun frases(hoja: HojaNotas) = hoja.elementos.map { it.frase }
 
     private fun tipos(hoja: HojaNotas) = hoja.elementos.filterIsInstance<ElementoHoja.DeAviso>().map { it.aviso.tipo }
 
@@ -61,6 +64,35 @@ class FiltroIndicacionesTest {
             listOf(TipoAviso.CRUCE, TipoAviso.PUENTE, TipoAviso.STOP),
             tipos(sinRotondas.aplicar(hoja)),
         )
+    }
+
+    @Test
+    fun `sin puentes la hoja pierde solo el aviso de puente`() {
+        assertEquals(
+            listOf(TipoAviso.CRUCE, TipoAviso.ROTONDA, TipoAviso.STOP),
+            tipos(sinPuentes.aplicar(hoja)),
+        )
+        assertTrue(curva in sinPuentes.aplicar(hoja).elementos)
+    }
+
+    @Test
+    fun `un puente unido a una curva se quita de su frase solo sin puentes`() {
+        val unida =
+            ElementoHoja.DeNota(
+                Nota(300.0, 330.0, Direccion.DERECHA, grado = 3),
+                avisosUnidos = listOf(Aviso(290.0, TipoAviso.PUENTE)),
+            )
+        assertEquals("puente, derecha tres", unida.frase)
+        val hojaUnida = HojaNotas(listOf(unida))
+        assertEquals("derecha tres", frases(sinPuentes.aplicar(hojaUnida)).single())
+        assertEquals("puente, derecha tres", frases(sinCruces.aplicar(hojaUnida)).single())
+    }
+
+    @Test
+    fun `puentes y cruces apagados dejan la rotonda y el resto, y el filtro ya no es todo activo`() {
+        val filtro = FiltroIndicaciones(avisarCruces = false, avisarPuentes = false)
+        assertEquals(listOf(TipoAviso.ROTONDA, TipoAviso.STOP), tipos(filtro.aplicar(hoja)))
+        assertTrue(!filtro.todoActivo && !sinPuentes.todoActivo)
     }
 
     @Test
@@ -102,9 +134,15 @@ class FiltroIndicacionesTest {
     }
 
     @Test
-    fun `todo desactivado quita cruces y rotondas pero deja el resto`() {
-        val nada = FiltroIndicaciones(avisarCruces = false, avisarSalidasAutopista = false, avisarRotondas = false)
-        assertEquals(listOf(TipoAviso.PUENTE, TipoAviso.STOP), tipos(nada.aplicar(hoja)))
+    fun `todo desactivado quita cruces, puentes y rotondas pero deja el resto`() {
+        val nada =
+            FiltroIndicaciones(
+                avisarCruces = false,
+                avisarSalidasAutopista = false,
+                avisarRotondas = false,
+                avisarPuentes = false,
+            )
+        assertEquals(listOf(TipoAviso.STOP), tipos(nada.aplicar(hoja)))
     }
 
     // Maniobras de navegación (voz)
@@ -123,6 +161,7 @@ class FiltroIndicacionesTest {
             assertEquals("$tipo sin salidas", tipo !in salidas, sinSalidas.permite(tipo))
             assertEquals("$tipo sin rotondas", tipo !in rotondas, sinRotondas.permite(tipo))
             assertTrue("$tipo sin cruces", sinCruces.permite(tipo))
+            assertTrue("$tipo sin puentes", sinPuentes.permite(tipo))
         }
     }
 

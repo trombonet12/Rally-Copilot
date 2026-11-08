@@ -227,12 +227,20 @@ class AjustesVistaPreviaTest {
     @Test
     fun `la vista previa de indicaciones tacha la que se desactiva`() {
         banco.ponerAjustes(seccion = SeccionAjustes.INDICACIONES)
-        listOf("cruces" to "Cruces", "salidas" to "Salidas", "rotondas" to "Rotondas").forEach { (clave, nombre) ->
+        // De base cruces y puentes están apagados; salidas y rotondas, activas.
+        listOf("cruces" to "Cruces", "puentes" to "Puentes").forEach { (clave, nombre) ->
+            assertEquals("$nombre: no avisa", descripcionDe(ETIQUETA_PREVISTA_INDICACION_PREFIJO + clave))
+        }
+        listOf("salidas" to "Salidas", "rotondas" to "Rotondas").forEach { (clave, nombre) ->
             assertEquals("$nombre: avisa", descripcionDe(ETIQUETA_PREVISTA_INDICACION_PREFIJO + clave))
         }
         banco.pulsarInterruptor(ETIQUETA_AJUSTES_CRUCES)
-        assertEquals(ToggleableState.Off, estadoDe(ETIQUETA_AJUSTES_CRUCES))
-        assertEquals("Cruces: no avisa", descripcionDe(ETIQUETA_PREVISTA_INDICACION_PREFIJO + "cruces"))
+        assertEquals(ToggleableState.On, estadoDe(ETIQUETA_AJUSTES_CRUCES))
+        assertEquals("Cruces: avisa", descripcionDe(ETIQUETA_PREVISTA_INDICACION_PREFIJO + "cruces"))
+        assertEquals("Puentes: no avisa", descripcionDe(ETIQUETA_PREVISTA_INDICACION_PREFIJO + "puentes"))
+        banco.pulsarInterruptor(ETIQUETA_AJUSTES_PUENTES)
+        assertEquals(ToggleableState.On, estadoDe(ETIQUETA_AJUSTES_PUENTES))
+        assertEquals("Puentes: avisa", descripcionDe(ETIQUETA_PREVISTA_INDICACION_PREFIJO + "puentes"))
         assertEquals("Salidas: avisa", descripcionDe(ETIQUETA_PREVISTA_INDICACION_PREFIJO + "salidas"))
         banco.pulsarInterruptor(ETIQUETA_AJUSTES_ROTONDAS)
         assertEquals("Rotondas: no avisa", descripcionDe(ETIQUETA_PREVISTA_INDICACION_PREFIJO + "rotondas"))

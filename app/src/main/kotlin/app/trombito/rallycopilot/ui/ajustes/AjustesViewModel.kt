@@ -141,9 +141,13 @@ class AjustesViewModel
             guardar { it.copy(notasGrandes = grandes) }
         }
 
-        /** Indicaciones que dice y enseña el copiloto: cruces, salidas y entradas de autopista y rotondas. */
+        /** Indicaciones que dice y enseña el copiloto: cruces, puentes, salidas y entradas de autopista y rotondas. */
         fun onAvisarCruces(avisar: Boolean) {
             guardar { it.copy(avisarCruces = avisar) }
+        }
+
+        fun onAvisarPuentes(avisar: Boolean) {
+            guardar { it.copy(avisarPuentes = avisar) }
         }
 
         fun onAvisarSalidasAutopista(avisar: Boolean) {

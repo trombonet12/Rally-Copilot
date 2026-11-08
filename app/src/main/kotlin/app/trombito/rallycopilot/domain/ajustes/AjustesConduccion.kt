@@ -74,7 +74,7 @@ data class AjustesConduccion(
 
     /** Las preferencias de indicaciones como filtro del motor. */
     val filtroIndicaciones: FiltroIndicaciones
-        get() = FiltroIndicaciones(avisarCruces, avisarSalidasAutopista, avisarRotondas)
+        get() = FiltroIndicaciones(avisarCruces, avisarSalidasAutopista, avisarRotondas, avisarPuentes)
 
     /** Las familias de avisos que se dicen, como filtro del motor. */
     val filtroAvisos: FiltroAvisos

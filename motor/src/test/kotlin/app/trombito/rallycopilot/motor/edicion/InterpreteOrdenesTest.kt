@@ -251,6 +251,8 @@ class InterpreteOrdenesTest {
     fun `filtros de cruces rotondas y salidas`() {
         comprobarTodas(Orden.Avisar(Indicacion.CRUCES, false), "sin cruces", "sin los cruces")
         comprobarTodas(Orden.Avisar(Indicacion.CRUCES, true), "con cruces", "con los cruces")
+        comprobarTodas(Orden.Avisar(Indicacion.PUENTES, false), "sin puentes", "sin los puentes")
+        comprobarTodas(Orden.Avisar(Indicacion.PUENTES, true), "con puentes", "con los puentes")
         comprobarTodas(Orden.Avisar(Indicacion.ROTONDAS, false), "sin rotondas", "sin glorieta")
         comprobarTodas(Orden.Avisar(Indicacion.ROTONDAS, true), "con rotondas", "con glorieta")
         comprobarTodas(Orden.Avisar(Indicacion.SALIDAS, false), "sin salidas", "sin salidas de autopista")

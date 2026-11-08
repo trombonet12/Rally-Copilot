@@ -183,7 +183,7 @@ enum class TipoLugar(
 }
 
 /** Indicaciones que se pueden quitar o poner por voz (los filtros de `FiltroIndicaciones`). */
-enum class Indicacion { CRUCES, ROTONDAS, SALIDAS }
+enum class Indicacion { CRUCES, PUENTES, ROTONDAS, SALIDAS }
 
 /**
  * Marca dejada con «marca aquí» o «avisa radar aquí»: [posicionM] sobre la traza del tramo (si hay), [tiempoMs] del

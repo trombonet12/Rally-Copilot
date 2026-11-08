@@ -38,6 +38,6 @@ internal fun CapaMapa.nombreCorto(): Int =
         CapaMapa.SATELITE -> R.string.ajustes_capa_satelite
     }
 
-/** Cuántas de las tres indicaciones (cruces, salidas, rotondas) están activadas. */
+/** Cuántas de las cuatro indicaciones (cruces, puentes, salidas, rotondas) están activadas. */
 internal fun AjustesConduccion.indicacionesActivas(): Int =
-    listOf(avisarCruces, avisarSalidasAutopista, avisarRotondas).count { it }
+    listOf(avisarCruces, avisarPuentes, avisarSalidasAutopista, avisarRotondas).count { it }

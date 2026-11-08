@@ -140,6 +140,7 @@
     <string name="rapidos_seccion_salida">Salida</string>
     <string name="rapidos_seccion_volumen">Volumen</string>
     <string name="rapidos_indicacion_cruces">Cruces</string>
+    <string name="rapidos_indicacion_puentes">Puentes</string>
     <string name="rapidos_indicacion_autopista">Autopista</string>
     <string name="rapidos_indicacion_rotondas">Rotondas</string>
 </resources>

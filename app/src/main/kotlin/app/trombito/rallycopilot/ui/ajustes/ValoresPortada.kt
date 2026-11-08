@@ -63,7 +63,7 @@ private fun valorEscucha(activada: Boolean): String {
     return stringResource(texto)
 }
 
-private const val TOTAL_INDICACIONES = 3
+private const val TOTAL_INDICACIONES = 4
 
 @Composable
 private fun valorVoz(ajustes: AjustesConduccion): String {

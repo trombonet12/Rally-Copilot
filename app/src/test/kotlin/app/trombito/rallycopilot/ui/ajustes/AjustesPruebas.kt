@@ -96,6 +96,10 @@ internal fun BancoCompose.ponerAjustes(
                     ajustes = ajustes.copy(avisarCruces = it)
                     acciones.onAvisarCruces(it)
                 },
+                onAvisarPuentes = {
+                    ajustes = ajustes.copy(avisarPuentes = it)
+                    acciones.onAvisarPuentes(it)
+                },
                 onAvisarSalidasAutopista = {
                     ajustes = ajustes.copy(avisarSalidasAutopista = it)
                     acciones.onAvisarSalidasAutopista(it)

@@ -62,6 +62,7 @@ abstract class AjustesRapidosBase {
             onAnticipacion = { copiloto = copiloto.copy(anticipacion = it) },
             onNotasSimplificadas = { copiloto = copiloto.copy(notasSimplificadas = it) },
             onAvisarCruces = { copiloto = copiloto.copy(avisarCruces = it) },
+            onAvisarPuentes = { copiloto = copiloto.copy(avisarPuentes = it) },
             onAvisarSalidasAutopista = { copiloto = copiloto.copy(avisarSalidasAutopista = it) },
             onAvisarRotondas = { copiloto = copiloto.copy(avisarRotondas = it) },
             onSalidaManual = { copiloto = copiloto.copy(salidaManual = it) },
@@ -201,22 +202,43 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
     private fun marcado(etiqueta: String) = banco.conEtiqueta(etiqueta).config.getOrNull(SemanticsProperties.Selected)
 
     @Test
-    fun `la hoja trae tres interruptores de indicaciones, todos activados al empezar`() {
+    fun `la hoja trae cuatro interruptores de indicaciones, con cruces y puentes apagados de base`() {
         abrir()
-        listOf(ETIQUETA_AVISAR_CRUCES, ETIQUETA_AVISAR_SALIDAS_AUTOPISTA, ETIQUETA_AVISAR_ROTONDAS).forEach {
-            assertTrue("falta $it", banco.hay(it))
-            assertEquals("$it activado", true, marcado(it))
-            assertTrue("$it pulsable", banco.esPulsable(banco.conEtiqueta(it)))
+        val activadosDeBase =
+            mapOf(
+                ETIQUETA_AVISAR_CRUCES to false,
+                ETIQUETA_AVISAR_PUENTES to false,
+                ETIQUETA_AVISAR_SALIDAS_AUTOPISTA to true,
+                ETIQUETA_AVISAR_ROTONDAS to true,
+            )
+        activadosDeBase.forEach { (etiqueta, activado) ->
+            assertTrue("falta $etiqueta", banco.hay(etiqueta))
+            assertEquals("$etiqueta de base", activado, marcado(etiqueta))
+            assertTrue("$etiqueta pulsable", banco.esPulsable(banco.conEtiqueta(etiqueta)))
         }
+    }
+
+    @Test
+    fun `el interruptor de puentes cambia solo el suyo, en vivo, y se puede volver a apagar`() {
+        abrir()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_PUENTES))
+        assertTrue(copiloto.avisarPuentes)
+        assertFalse(copiloto.avisarCruces)
+        assertTrue(copiloto.avisarSalidasAutopista && copiloto.avisarRotondas)
+        assertEquals(true, marcado(ETIQUETA_AVISAR_PUENTES))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_PUENTES))
+        assertFalse(copiloto.avisarPuentes)
+        assertEquals(false, marcado(ETIQUETA_AVISAR_PUENTES))
+        assertTrue("la hoja sigue abierta", banco.hay(ETIQUETA_RAPIDOS_PANEL))
     }
 
     @Test
     fun `cada interruptor de indicaciones cambia solo el suyo, en vivo, y se puede volver a activar`() {
         abrir()
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_CRUCES))
-        assertFalse(copiloto.avisarCruces)
+        assertTrue(copiloto.avisarCruces)
         assertTrue(copiloto.avisarSalidasAutopista && copiloto.avisarRotondas)
-        assertEquals(false, marcado(ETIQUETA_AVISAR_CRUCES))
+        assertEquals(true, marcado(ETIQUETA_AVISAR_CRUCES))
 
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_SALIDAS_AUTOPISTA))
         assertFalse(copiloto.avisarSalidasAutopista)
@@ -227,8 +249,8 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
         assertEquals(false, marcado(ETIQUETA_AVISAR_ROTONDAS))
 
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_CRUCES))
-        assertTrue(copiloto.avisarCruces)
-        assertEquals(true, marcado(ETIQUETA_AVISAR_CRUCES))
+        assertFalse(copiloto.avisarCruces)
+        assertEquals(false, marcado(ETIQUETA_AVISAR_CRUCES))
         assertTrue("la hoja sigue abierta", banco.hay(ETIQUETA_RAPIDOS_PANEL))
     }
 

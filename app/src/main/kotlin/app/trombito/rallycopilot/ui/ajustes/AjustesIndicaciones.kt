@@ -6,10 +6,11 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 
 const val ETIQUETA_AJUSTES_CRUCES = "ajustes-avisar-cruces"
+const val ETIQUETA_AJUSTES_PUENTES = "ajustes-avisar-puentes"
 const val ETIQUETA_AJUSTES_SALIDAS = "ajustes-avisar-salidas"
 const val ETIQUETA_AJUSTES_ROTONDAS = "ajustes-avisar-rotondas"
 
-/** Indicaciones: qué dice y enseña el copiloto (cruces, salidas y entradas de autopista, rotondas). */
+/** Indicaciones: qué dice y enseña el copiloto (cruces, puentes, salidas y entradas de autopista, rotondas). */
 @Composable
 internal fun ControlesIndicaciones(
     ajustes: AjustesConduccion,
@@ -20,6 +21,12 @@ internal fun ControlesIndicaciones(
         marcado = ajustes.avisarCruces,
         onCambio = acciones.onAvisarCruces,
         etiqueta = ETIQUETA_AJUSTES_CRUCES,
+    )
+    FilaInterruptor(
+        titulo = stringResource(R.string.indicaciones_puentes),
+        marcado = ajustes.avisarPuentes,
+        onCambio = acciones.onAvisarPuentes,
+        etiqueta = ETIQUETA_AJUSTES_PUENTES,
     )
     FilaInterruptor(
         titulo = stringResource(R.string.indicaciones_salidas_autopista),

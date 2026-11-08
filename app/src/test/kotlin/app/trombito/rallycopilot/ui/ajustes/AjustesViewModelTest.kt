@@ -210,13 +210,20 @@ class AjustesViewModelTest {
         runTest {
             repositorio.mutable.value = AjustesConduccion(nivelZoom = 1)
             val vm = crear()
-            vm.onAvisarCruces(false)
-            assertEquals(false, repositorio.mutable.value.avisarCruces)
+            vm.onAvisarCruces(true)
+            vm.onAvisarPuentes(true)
+            assertEquals(true, repositorio.mutable.value.avisarCruces)
+            assertEquals(true, repositorio.mutable.value.avisarPuentes)
             assertTrue(repositorio.mutable.value.avisarSalidasAutopista)
+            vm.onAvisarCruces(false)
+            vm.onAvisarPuentes(false)
             vm.onAvisarSalidasAutopista(false)
             vm.onAvisarRotondas(false)
             val guardado = repositorio.mutable.value
-            assertFalse(guardado.avisarCruces || guardado.avisarSalidasAutopista || guardado.avisarRotondas)
+            assertFalse(
+                guardado.avisarCruces || guardado.avisarPuentes ||
+                    guardado.avisarSalidasAutopista || guardado.avisarRotondas,
+            )
             assertEquals(1, guardado.nivelZoom)
             vm.onAvisarRotondas(true)
             assertTrue(repositorio.mutable.value.avisarRotondas)

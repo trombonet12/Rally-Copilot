@@ -201,22 +201,30 @@ class CopilotoViewModelTest {
         runTest {
             repositorio.mutable.value = AjustesConduccion(modoCopiloto = ModoCopiloto.NOTAS)
             val vm = crear()
-            assertTrue(vm.uiState.value.avisarCruces)
+            assertFalse(vm.uiState.value.avisarCruces)
+            assertFalse(vm.uiState.value.avisarPuentes)
             assertTrue(vm.uiState.value.avisarSalidasAutopista)
             assertTrue(vm.uiState.value.avisarRotondas)
 
-            vm.onAvisarCruces(false)
-            assertFalse(vm.uiState.value.avisarCruces)
-            assertFalse(repositorio.mutable.value.avisarCruces)
+            vm.onAvisarCruces(true)
+            vm.onAvisarPuentes(true)
+            assertTrue(vm.uiState.value.avisarCruces)
+            assertTrue(vm.uiState.value.avisarPuentes)
+            assertTrue(repositorio.mutable.value.avisarCruces)
+            assertTrue(repositorio.mutable.value.avisarPuentes)
             assertTrue(repositorio.mutable.value.avisarRotondas)
+
+            vm.onAvisarPuentes(false)
+            assertFalse(vm.uiState.value.avisarPuentes)
+            assertTrue(vm.uiState.value.avisarCruces)
 
             vm.onAvisarSalidasAutopista(false)
             vm.onAvisarRotondas(false)
             assertFalse(vm.uiState.value.avisarSalidasAutopista)
             assertFalse(vm.uiState.value.avisarRotondas)
 
-            vm.onAvisarCruces(true)
-            assertTrue(vm.uiState.value.avisarCruces)
+            vm.onAvisarCruces(false)
+            assertFalse(vm.uiState.value.avisarCruces)
             assertFalse(repositorio.mutable.value.avisarRotondas)
             assertEquals(ModoCopiloto.NOTAS, repositorio.mutable.value.modoCopiloto)
         }

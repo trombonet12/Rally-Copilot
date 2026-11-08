@@ -28,7 +28,7 @@ internal suspend fun RepositorioAjustesConduccion.cambiar(
  * - [Orden.Silencio] / [Orden.Habla]: el modo SILENCIO y el modo en que estaba antes (COMPLETO si no se sabe).
  * - [Orden.Modo]: «modo notas», «solo avisos», «completo».
  * - [Orden.Volumen]: pasos de [PASO_VOLUMEN] % dentro del rango de `AjustesConduccion`.
- * - [Orden.NotasSimplificadas] y [Orden.Avisar] (cruces, rotondas, salidas).
+ * - [Orden.NotasSimplificadas] y [Orden.Avisar] (cruces, puentes, rotondas, salidas).
  * - [Orden.Satelite], [Orden.NorteArriba] y [Orden.Zoom]: el mapa ([MapaPorVoz]).
  */
 class AjustesPorVoz(
@@ -101,12 +101,14 @@ class AjustesPorVoz(
         val nombre =
             when (orden.indicacion) {
                 Indicacion.CRUCES -> "cruces"
+                Indicacion.PUENTES -> "puentes"
                 Indicacion.ROTONDAS -> "rotondas"
                 Indicacion.SALIDAS -> "salidas"
             }
         return ajustes.cambiar("${if (orden.activar) "con" else "sin"} $nombre") {
             when (orden.indicacion) {
                 Indicacion.CRUCES -> it.copy(avisarCruces = orden.activar)
+                Indicacion.PUENTES -> it.copy(avisarPuentes = orden.activar)
                 Indicacion.ROTONDAS -> it.copy(avisarRotondas = orden.activar)
                 Indicacion.SALIDAS -> it.copy(avisarSalidasAutopista = orden.activar)
             }

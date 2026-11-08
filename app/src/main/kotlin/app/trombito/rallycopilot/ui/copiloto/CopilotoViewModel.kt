@@ -46,8 +46,9 @@ data class CopilotoUiState(
     val volumenVoz: Int = AjustesConduccion.VOLUMEN_VOZ_NORMAL,
     /** Modo roadbook: la pantalla de conducción enseña las notas enormes y casi nada de mapa. */
     val notasGrandes: Boolean = false,
-    /** Indicaciones que se dicen y se ven (cruces, salidas y entradas de autopista, rotondas); todas por defecto. */
-    val avisarCruces: Boolean = true,
+    /** Indicaciones que se dicen y se ven (cruces, puentes, autopista, rotondas); cruces y puentes apagados. */
+    val avisarCruces: Boolean = false,
+    val avisarPuentes: Boolean = false,
     val avisarSalidasAutopista: Boolean = true,
     val avisarRotondas: Boolean = true,
     /** Familias de avisos que se dicen por voz y lo deprisa que habla el copiloto (todo encendido y normal). */
@@ -98,6 +99,7 @@ class CopilotoViewModel
                     volumenVoz = ajustes.volumenVoz,
                     notasGrandes = ajustes.notasGrandes,
                     avisarCruces = ajustes.avisarCruces,
+                    avisarPuentes = ajustes.avisarPuentes,
                     avisarSalidasAutopista = ajustes.avisarSalidasAutopista,
                     avisarRotondas = ajustes.avisarRotondas,
                     avisarRadares = ajustes.avisarRadares,
@@ -158,6 +160,10 @@ class CopilotoViewModel
         /** Interruptores de indicaciones de la hoja rápida: valen desde la siguiente fijación, conduciendo. */
         fun onAvisarCruces(avisar: Boolean) {
             cambiar { it.copy(avisarCruces = avisar) }
+        }
+
+        fun onAvisarPuentes(avisar: Boolean) {
+            cambiar { it.copy(avisarPuentes = avisar) }
         }
 
         fun onAvisarSalidasAutopista(avisar: Boolean) {

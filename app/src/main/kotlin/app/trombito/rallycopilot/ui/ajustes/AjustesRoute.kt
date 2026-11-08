@@ -133,6 +133,7 @@ private fun accionesDe(
     onSalidaManual = viewModel::onSalidaManual,
     onNotasGrandes = viewModel::onNotasGrandes,
     onAvisarCruces = viewModel::onAvisarCruces,
+    onAvisarPuentes = viewModel::onAvisarPuentes,
     onAvisarSalidasAutopista = viewModel::onAvisarSalidasAutopista,
     onAvisarRotondas = viewModel::onAvisarRotondas,
     onAvisarRadares = viewModel::onAvisarRadares,

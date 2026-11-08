@@ -49,6 +49,7 @@ import app.trombito.rallycopilot.ui.theme.Radios
 
 const val ETIQUETA_RAPIDOS_PANEL = "mapa-rapidos-panel"
 const val ETIQUETA_AVISAR_CRUCES = "rapidos-avisar-cruces"
+const val ETIQUETA_AVISAR_PUENTES = "rapidos-avisar-puentes"
 const val ETIQUETA_AVISAR_SALIDAS_AUTOPISTA = "rapidos-avisar-salidas-autopista"
 const val ETIQUETA_AVISAR_ROTONDAS = "rapidos-avisar-rotondas"
 const val ETIQUETA_SALIDA_MANUAL = "rapidos-salida-manual"
@@ -59,7 +60,7 @@ private val LADO_ICONO = 28.dp
 /**
  * Hoja del copiloto: una hoja modal a todo el ancho (radio 16 dp arriba) de como mucho el 60 % del alto, con scroll.
  * Secciones con rótulo de 12 sp: «Modo» (los cuatro modos con su nombre bajo el icono y la vista previa de la nota),
- * «Anticipación: 5 s», «Indicaciones» (notas simplificadas y los tres avisos), «Salida» del cronómetro y «Volumen».
+ * «Anticipación: 5 s», «Indicaciones» (notas simplificadas y los cuatro avisos), «Salida» del cronómetro y «Volumen».
  * Cada cambio se guarda y vale al momento, sin cerrar la hoja ni parar la conducción; se cierra al tocar fuera, al
  * arrastrarla o con atrás. En apaisado las secciones van en dos columnas para que quepan en poca altura.
  */
@@ -177,7 +178,7 @@ private fun SeccionesAjustes(
     }
 }
 
-/** Interruptores con icono y su nombre debajo: cruces, salidas y entradas de autopista y rotondas. */
+/** Interruptores con icono y su nombre debajo: cruces, puentes, salidas y entradas de autopista y rotondas. */
 @Composable
 private fun InterruptoresIndicaciones(
     estado: CopilotoUiState,
@@ -191,6 +192,14 @@ private fun InterruptoresIndicaciones(
             activado = estado.avisarCruces,
             onCambio = acciones.onAvisarCruces,
             prueba = ETIQUETA_AVISAR_CRUCES,
+        )
+        InterruptorIndicacion(
+            icono = R.drawable.ic_nota_puente,
+            descripcion = stringResource(R.string.indicaciones_puentes),
+            etiqueta = stringResource(R.string.rapidos_indicacion_puentes),
+            activado = estado.avisarPuentes,
+            onCambio = acciones.onAvisarPuentes,
+            prueba = ETIQUETA_AVISAR_PUENTES,
         )
         InterruptorIndicacion(
             icono = R.drawable.ic_nota_salida_autopista,

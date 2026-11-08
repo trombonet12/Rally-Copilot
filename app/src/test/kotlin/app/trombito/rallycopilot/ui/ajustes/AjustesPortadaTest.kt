@@ -59,7 +59,7 @@ class AjustesPortadaTest {
         assertTrue(tarjeta(SeccionAjustes.COPILOTO), "Completo" in tarjeta(SeccionAjustes.COPILOTO))
         assertTrue("Anticipación 5 s" in tarjeta(SeccionAjustes.NOTAS))
         assertTrue("Sin elegir · 100 %" in tarjeta(SeccionAjustes.VOZ))
-        assertTrue("Todas activas" in tarjeta(SeccionAjustes.INDICACIONES))
+        assertTrue("2 de 4 activas" in tarjeta(SeccionAjustes.INDICACIONES))
         assertTrue("Salida automática" in tarjeta(SeccionAjustes.TRAMOS))
         assertTrue("Rumbo arriba · Mapa" in tarjeta(SeccionAjustes.MAPA))
         assertTrue("«Copiloto» activado" in tarjeta(SeccionAjustes.ESCUCHA))
@@ -74,7 +74,9 @@ class AjustesPortadaTest {
                 anticipacion = NivelAnticipacion.MUY_PRONTO,
                 voz = VozCopiloto.SHARVARD,
                 volumenVoz = 120,
-                avisarCruces = false,
+                avisarCruces = true,
+                avisarPuentes = true,
+                avisarRotondas = false,
                 salidaManual = true,
                 orientacion = Orientacion.NORTE,
                 capa = CapaMapa.SATELITE,
@@ -85,7 +87,7 @@ class AjustesPortadaTest {
         assertTrue("Silencio" in tarjeta(SeccionAjustes.COPILOTO))
         assertTrue("Anticipación 8 s" in tarjeta(SeccionAjustes.NOTAS))
         assertTrue("Sharvard · 120 %" in tarjeta(SeccionAjustes.VOZ))
-        assertTrue("2 de 3 activas" in tarjeta(SeccionAjustes.INDICACIONES))
+        assertTrue("3 de 4 activas" in tarjeta(SeccionAjustes.INDICACIONES))
         assertTrue("Salida manual" in tarjeta(SeccionAjustes.TRAMOS))
         assertTrue("Norte arriba · Satélite" in tarjeta(SeccionAjustes.MAPA))
         assertTrue("«Copiloto» activado" in tarjeta(SeccionAjustes.ESCUCHA))
@@ -98,6 +100,7 @@ class AjustesPortadaTest {
             AjustesConduccion(
                 cronometrar = false,
                 avisarCruces = false,
+                avisarPuentes = false,
                 avisarSalidasAutopista = false,
                 avisarRotondas = false,
             ),
