@@ -18,6 +18,8 @@ import kotlin.math.sin
  *   polilínea y solo cuenta si queda a [DISTANCIA_CAMINO_M] (30 m) o menos y, si tiene rumbo, difiere menos de
  *   [UMBRAL_RUMBO_GRADOS] (45°) del rumbo de la ruta en ese punto. [candidatas] recibe el progreso en la ruta (m).
  *   Si la ruta pasa dos veces por el mismo radar, solo cuenta el pasaje más cercano (el primero en empate).
+ *   Los radares de tramo no se descartan por rumbo (el de su recta no es el de la vía): cuenta la cercanía y que el
+ *   fin quede después del inicio.
  * - **Libre** ([candidatasLibre]): sin camino conocido, el «camino» es la recta que sale de la posición con el rumbo
  *   de marcha; un radar cuenta si está delante y a ≤ 30 m de esa recta. En curva solo se verá al acercarse; con la
  *   geometría de la vía actual como `ruta` saldría antes.
@@ -38,12 +40,23 @@ class AlertasRadar(
     ruta: List<PuntoGeo>? = null,
 ) {
     private val camino = ruta?.let { CaminoPlano(it) }
-    private val enRuta: List<Colocado> =
+    private val colocados: List<Colocado> =
         if (camino == null) emptyList() else radares.mapNotNull { colocar(camino, it) }.sortedBy { it.progresoM }
+    private val parejas: List<Pair<Colocado, TramoRadar>> =
+        colocados
+            .filter { it.radar.tipo == TipoRadar.TRAMO_INICIO }
+            .mapNotNull { inicio -> emparejar(inicio)?.let { inicio to it } }
 
-    /** Tramos completos de la ruta (inicio y fin con el mismo `tramo_id`, en ese orden de marcha). */
-    val tramos: List<TramoRadar> =
-        enRuta.filter { it.radar.tipo == TipoRadar.TRAMO_INICIO && !it.contrario }.mapNotNull { emparejar(it) }
+    /**
+     * Tramos completos de la ruta (inicio y fin con el mismo `tramo_id`, en ese orden de marcha). Se colocan por
+     * cercanía a la ruta y por orden (fin después de inicio), no por el rumbo de la recta inicio-fin, que en una vía
+     * con curvas no es el de la ruta.
+     */
+    val tramos: List<TramoRadar> = parejas.map { it.second }
+
+    /** Lo que avisa [candidatas]: sin inicios de tramo sin pareja (la ruta pasa por ellos en el sentido contrario). */
+    private val enRuta: List<Colocado> =
+        colocados.filter { it.radar.tipo != TipoRadar.TRAMO_INICIO || parejas.any { (ini, _) -> ini === it } }
 
     /** Avisos vigentes en el progreso [posicionM] de la ruta yendo a [vMs]; vacío si no se creó con ruta. */
     fun candidatas(
@@ -117,13 +130,20 @@ class AlertasRadar(
         radar: Radar,
     ): Colocado? {
         val p = camino.masCercano(radar.punto, AjusteCamino.SIN_VENTANA)?.takeIf { it.distanciaM <= DISTANCIA_CAMINO_M }
-        val contrario = p?.let { contrarioSiCuenta(radar, camino.rumboEn(it, SEMIVENTANA_M)) }
+        val esTramo = radar.tipo == TipoRadar.TRAMO_INICIO || radar.tipo == TipoRadar.TRAMO_FIN
+        // Los de tramo no se descartan por rumbo (el de la recta no es el de la vía): vale la cercanía y el orden.
+        val contrario =
+            if (esTramo) {
+                p?.let { false }
+            } else {
+                p?.let { contrarioSiCuenta(radar, camino.rumboEn(it, SEMIVENTANA_M)) }
+            }
         return if (p == null || contrario == null) null else Colocado(radar, p.progresoM, contrario)
     }
 
     private fun emparejar(inicio: Colocado): TramoRadar? {
         val id = inicio.radar.tramoId ?: return null
-        val fin = enRuta.firstOrNull { it.radar.tipo == TipoRadar.TRAMO_FIN && it.radar.tramoId == id }
+        val fin = colocados.firstOrNull { it.radar.tipo == TipoRadar.TRAMO_FIN && it.radar.tramoId == id }
         return if (fin == null || fin.progresoM <= inicio.progresoM) {
             null
         } else {

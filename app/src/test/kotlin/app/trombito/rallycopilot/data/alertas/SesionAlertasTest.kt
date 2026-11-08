@@ -375,13 +375,35 @@ class SesionAlertasTest {
         }
 
     @Test
-    fun `en libre no hay velocidad media de tramo`() =
+    fun `en libre mide la media del tramo entre el radar de inicio y el de fin`() =
         runTest {
             val inicio = Radar("t1-i", TipoRadar.TRAMO_INICIO, punto(1000.0), null, 50, "t1", "test")
             val fin = Radar("t1-f", TipoRadar.TRAMO_FIN, punto(3000.0), null, 50, "t1", "test")
             val e = escenario(radares = listOf(inicio, fin), ruta = null)
 
+            // Dentro del tramo: la media ya se publica y supera el limite.
             for (s in 0..12) e.sesion.alFijar(fijacion(punto(800.0 + s * 30.0), s, 30.0), 30.0, null, null)
+            val enCurso = checkNotNull(e.ultima.tramo)
+            assertEquals(108.0, checkNotNull(enCurso.mediaKmh), 1.0)
+            assertEquals(50, enCurso.limiteKmh)
+            assertTrue(enCurso.superaLimite)
+            assertTrue(!enCurso.terminado)
+
+            // Al pasar por el radar de fin se cierra y se retiene la media final unos segundos.
+            for (s in 13..78) e.sesion.alFijar(fijacion(punto(800.0 + s * 30.0), s, 30.0), 30.0, null, null)
+            val final = checkNotNull(e.ultima.tramo)
+            assertTrue(final.terminado)
+            assertEquals(108.0, checkNotNull(final.mediaKmh), 1.0)
+        }
+
+    @Test
+    fun `en libre sin pasar por el inicio no hay media de tramo`() =
+        runTest {
+            val inicio = Radar("t1-i", TipoRadar.TRAMO_INICIO, punto(1000.0), null, 50, "t1", "test")
+            val fin = Radar("t1-f", TipoRadar.TRAMO_FIN, punto(3000.0), null, 50, "t1", "test")
+            val e = escenario(radares = listOf(inicio, fin), ruta = null)
+
+            for (s in 0..12) e.sesion.alFijar(fijacion(punto(1200.0 + s * 30.0), s, 30.0), 30.0, null, null)
 
             assertNull(e.ultima.tramo)
         }

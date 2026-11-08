@@ -13,6 +13,7 @@ import app.trombito.rallycopilot.motor.alertas.AlertasRadar
 import app.trombito.rallycopilot.motor.alertas.EstadoTramo
 import app.trombito.rallycopilot.motor.alertas.ExcesoVelocidad
 import app.trombito.rallycopilot.motor.alertas.FiltroIncidencias
+import app.trombito.rallycopilot.motor.alertas.MediaTramoLibre
 import app.trombito.rallycopilot.motor.alertas.Radar
 import app.trombito.rallycopilot.motor.alertas.VelocidadMediaTramo
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
@@ -58,8 +59,9 @@ class FabricaAlertasSesion
  *   vía siguiente se ve así a la distancia de aviso) y, además, radares con la geometría de la vía actual (orientada
  *   en el sentido de la marcha) y los que queden delante en línea recta; la posición de cada frase es `notasM` más
  *   la distancia al radar, así que comparte eje con las notas (sin notas el eje arranca en 0 en cada fijación). No
- *   hay velocidad media (solo en guiado: un tramo mide más que la predicción); las incidencias se cantan solo si
- *   están en la carretera predicha, y las relevantes (radio de 3 km) van al mapa.
+ *   la velocidad media de los radares de tramo se mide con la distancia realmente recorrida entre su radar de inicio
+ *   y el de fin ([MediaTramoLibre]); las incidencias se cantan solo si están en la carretera predicha, y las
+ *   relevantes (radio de 3 km) van al mapa.
  * - Los radares se leen en segundo plano al [arrancar]: hasta entonces (o sin archivo) no hay avisos de radar.
  */
 class SesionAlertas internal constructor(
@@ -79,7 +81,10 @@ class SesionAlertas internal constructor(
     private var incidenciasConstruidasMs = 0L
     private var radarRuta: AlertasRadar? = null
     private var libres: RadaresLibres? = null
-    private var media: VelocidadMediaTramo? = null
+
+    /** Media de tramo: con ruta, por progreso sobre ella; en libre, por distancia recorrida (ignora el progreso). */
+    private var medirTramo: (Double?, Fijacion) -> EstadoTramo? = { _, _ -> null }
+
     private val pasos = PasosRadar()
     private var filtro: FiltroIncidencias? = null
     private var tramoFinal: Pair<TramoActivo, Long>? = null
@@ -158,7 +163,7 @@ class SesionAlertas internal constructor(
                     emptyList()
                 }
             }
-        val estadoTramo = sobreRuta?.let { media?.actualizar(it, fijacion.tiempoMs) }
+        val estadoTramo = medirTramo(sobreRuta, fijacion)
         val kmh = velocidadMs?.msAKmh() ?: Double.NaN
         val estadoExceso = exceso.actualizar(kmh, via?.limiteKmh, fijacion.tiempoMs)
         val frasesIncidencias =
@@ -212,7 +217,11 @@ class SesionAlertas internal constructor(
             radaresSucios = false
             libres = RadaresLibres(cargados)
             radarRuta = ruta?.let { AlertasRadar(cargados, it) }
-            media = radarRuta?.let { VelocidadMediaTramo(it.tramos) }
+            val guiada = radarRuta?.let { VelocidadMediaTramo(it.tramos) }
+            val libre = if (ruta == null) MediaTramoLibre(cargados) else null
+            medirTramo = { progresoM, fijacion ->
+                libre?.actualizar(fijacion) ?: progresoM?.let { guiada?.actualizar(it, fijacion.tiempoMs) }
+            }
         }
         val ahora = ahoraMs()
         val caducado = ahora - incidenciasConstruidasMs !in 0L until REFILTRO_MS

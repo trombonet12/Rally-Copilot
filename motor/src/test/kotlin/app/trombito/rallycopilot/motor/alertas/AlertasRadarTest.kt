@@ -173,10 +173,25 @@ class AlertasRadarTest {
         assertEquals(0, enRuta(radar(tipo = TipoRadar.ZONA_MOVIL, rumbo = 180.0)).candidatas(4900.0, 10.0).size)
         val tramo = radar("t", TipoRadar.TRAMO_INICIO, rumbo = 180.0, tramo = "t")
         assertEquals(0, enRuta(tramo).candidatas(4900.0, 10.0).size)
-        assertEquals(
-            emptyList<TramoRadar>(),
-            enRuta(tramo, radar("f", TipoRadar.TRAMO_FIN, 7000.0, rumbo = 180.0, tramo = "t")).tramos,
-        )
+        // El tramo del otro sentido: la ruta pasa antes por su fin que por su inicio.
+        val contra = radar("t", TipoRadar.TRAMO_INICIO, 7000.0, rumbo = 180.0, tramo = "t")
+        val contraFin = radar("f", TipoRadar.TRAMO_FIN, 5000.0, rumbo = 180.0, tramo = "t")
+        assertEquals(emptyList<TramoRadar>(), enRuta(contra, contraFin).tramos)
+        assertEquals(0, enRuta(contra, contraFin).candidatas(6900.0, 10.0).size)
+    }
+
+    @Test
+    fun `un tramo con curvas empareja aunque el rumbo de su recta no sea el de la ruta`() {
+        // Ruta en L: 3 km al norte y 3 km al este. La recta inicio-fin va a 63 grados y la ruta lleva 0 en el inicio
+        // (mas de 45 de diferencia): antes se descartaba el par.
+        val enL = GeoPruebas.rutaNorte(3000.0) + (1..6).map { punto(3000.0, it * 500.0) }
+        val ini = radar("i", TipoRadar.TRAMO_INICIO, 2000.0, rumbo = 63.0, tramo = "t", limite = 80)
+        val fin = radar("f", TipoRadar.TRAMO_FIN, 3000.0, esteM = 2000.0, rumbo = 63.0, tramo = "t", limite = 80)
+        val a = AlertasRadar(listOf(ini, fin), enL)
+        val tramo = a.tramos.single()
+        assertEquals(2000.0, tramo.inicioM, 0.5)
+        assertEquals(5000.0, tramo.finM, 2.0)
+        assertEquals(listOf("tramo de radar, límite ochenta"), textos(a, 1900.0, 20.0))
     }
 
     @Test
@@ -231,7 +246,11 @@ class AlertasRadarTest {
 
     @Test
     fun `un tramo sin limite no lo dice`() {
-        val a = enRuta(radar("t-ini", TipoRadar.TRAMO_INICIO, limite = null, tramo = "t"))
+        val a =
+            enRuta(
+                radar("t-ini", TipoRadar.TRAMO_INICIO, limite = null, tramo = "t"),
+                radar("t-fin", TipoRadar.TRAMO_FIN, norteM = 7000.0, limite = null, tramo = "t"),
+            )
         assertEquals(listOf("tramo de radar"), textos(a, 4885.0, 20.0))
     }
 

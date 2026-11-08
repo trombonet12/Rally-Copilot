@@ -31,7 +31,8 @@ data class EstadoTramo(
  *   Además, como mucho [MAX_POR_TRAMO] (2) avisos por tramo y con al menos [SEPARACION_MS] (60 s) entre ellos.
  *   [EstadoTramo.superaLimite] (para el rojo de la UI) sigue siendo «media > límite», sin histéresis.
  *
- * Solo modo ruta: los tramos salen de [AlertasRadar.tramos] (posiciones sobre la ruta).
+ * Solo modo ruta: los tramos salen de [AlertasRadar.tramos] (posiciones sobre la ruta). En modo libre la media la
+ * mide [MediaTramoLibre] con el mismo cálculo y los mismos avisos ([MedicionTramo]).
  */
 class VelocidadMediaTramo(
     private val tramos: List<TramoRadar>,
@@ -43,13 +44,8 @@ class VelocidadMediaTramo(
 
     private class Activo(
         val tramo: TramoRadar,
-        val inicioMs: Double,
-    ) {
-        var superaciones = 0
-        var ultimoAvisoMs: Long? = null
-        var armado = true
-        var pendiente: Frase? = null
-    }
+        val medicion: MedicionTramo,
+    )
 
     private var previa: Muestra? = null
     private var activo: Activo? = null
@@ -67,9 +63,10 @@ class VelocidadMediaTramo(
         return actual?.let {
             if (posicionM >= it.tramo.finM) {
                 activo = null
-                cerrar(it, checkNotNull(anterior), ahora)
+                val finMs = instanteEn(checkNotNull(anterior), ahora, it.tramo.finM)
+                it.medicion.cerrar(it.tramo.finM - it.tramo.inicioM, finMs)
             } else {
-                medir(it, posicionM, ahoraMs)
+                it.medicion.medir(posicionM - it.tramo.inicioM, ahoraMs)
             }
         }
     }
@@ -82,64 +79,8 @@ class VelocidadMediaTramo(
             tramos
                 .filter { it.finM > it.inicioM && anterior.posicionM < it.inicioM && it.inicioM <= ahora.posicionM }
                 .minByOrNull { it.inicioM }
-        return tramo?.let { Activo(it, instanteEn(anterior, ahora, it.inicioM)) }
+        return tramo?.let { Activo(it, MedicionTramo(it, instanteEn(anterior, ahora, it.inicioM))) }
     }
-
-    private fun cerrar(
-        actual: Activo,
-        anterior: Muestra,
-        ahora: Muestra,
-    ): EstadoTramo {
-        val tramo = actual.tramo
-        val finMs = instanteEn(anterior, ahora, tramo.finM)
-        val media = mediaKmh(tramo.finM - tramo.inicioM, finMs - actual.inicioMs)
-        val supera = supera(media, tramo.limiteKmh)
-        return EstadoTramo(tramo, media, terminado = true, superaLimite = supera, frase = null)
-    }
-
-    private fun medir(
-        actual: Activo,
-        posicionM: Double,
-        ahoraMs: Long,
-    ): EstadoTramo {
-        val tramo = actual.tramo
-        val recorrido = posicionM - tramo.inicioM
-        val media = if (recorrido >= RECORRIDO_MIN_M) mediaKmh(recorrido, ahoraMs - actual.inicioMs) else null
-        val supera = supera(media, tramo.limiteKmh)
-        if (media != null && !supera) {
-            actual.armado = true
-            actual.pendiente = null
-        } else if (actual.armado && puedeAvisar(actual, media, ahoraMs)) {
-            actual.armado = false
-            actual.superaciones++
-            actual.ultimoAvisoMs = ahoraMs
-            val id = "tramo-media-${tramo.id}-${actual.superaciones}"
-            actual.pendiente = Frase(id, TEXTO, TipoFrase.AVISO_VELOCIDAD, null)
-        }
-        return EstadoTramo(tramo, media, terminado = false, superaLimite = supera, frase = actual.pendiente)
-    }
-
-    /** Media por encima del límite en [HISTERESIS_KMH] o más, con cupo por tramo y separación desde el último aviso. */
-    private fun puedeAvisar(
-        actual: Activo,
-        media: Double?,
-        ahoraMs: Long,
-    ): Boolean {
-        val limite = actual.tramo.limiteKmh ?: return false
-        val separado = actual.ultimoAvisoMs?.let { ahoraMs - it >= SEPARACION_MS } ?: true
-        return media != null && media >= limite + HISTERESIS_KMH && separado && actual.superaciones < MAX_POR_TRAMO
-    }
-
-    private fun supera(
-        media: Double?,
-        limiteKmh: Int?,
-    ): Boolean = media != null && limiteKmh != null && media > limiteKmh
-
-    /** km/h para [metros] en [milisegundos] (`m · 3600 / ms`, exacto con enteros); `null` si el tiempo no avanza. */
-    private fun mediaKmh(
-        metros: Double,
-        milisegundos: Double,
-    ): Double? = if (milisegundos > 0.0) metros * MS_POR_HORA_KM / milisegundos else null
 
     /** Instante (ms, interpolado) en que se pasó por [posicionM] entre las dos muestras. */
     private fun instanteEn(
@@ -154,7 +95,6 @@ class VelocidadMediaTramo(
     companion object {
         /** Antes de recorrer esto dentro del tramo la media no es fiable y no se da. */
         const val RECORRIDO_MIN_M = 100.0
-        private const val MS_POR_HORA_KM = 3600.0
 
         /** La media debe superar el límite en esto (km/h) o más para avisar. */
         const val HISTERESIS_KMH = 3.0
@@ -164,6 +104,77 @@ class VelocidadMediaTramo(
 
         /** Avisos máximos por tramo. */
         const val MAX_POR_TRAMO = 2
-        private const val TEXTO = "media alta"
+    }
+}
+
+/**
+ * Medida de un tramo ya abierto, común a guiado ([VelocidadMediaTramo]) y libre ([MediaTramoLibre]): la media sobre
+ * lo recorrido desde [inicioMs] (instante interpolado de la entrada), la histéresis y el cupo de avisos «media alta».
+ */
+internal class MedicionTramo(
+    private val tramo: TramoRadar,
+    private val inicioMs: Double,
+) {
+    private var superaciones = 0
+    private var ultimoAvisoMs: Long? = null
+    private var armado = true
+    private var pendiente: Frase? = null
+
+    /** Estado con [recorridoM] metros desde la entrada en el instante [ahoraMs]. */
+    fun medir(
+        recorridoM: Double,
+        ahoraMs: Long,
+    ): EstadoTramo {
+        val media =
+            if (recorridoM >= VelocidadMediaTramo.RECORRIDO_MIN_M) mediaKmh(recorridoM, ahoraMs - inicioMs) else null
+        val supera = supera(media, tramo.limiteKmh)
+        if (media != null && !supera) {
+            armado = true
+            pendiente = null
+        } else if (armado && puedeAvisar(media, ahoraMs)) {
+            armado = false
+            superaciones++
+            ultimoAvisoMs = ahoraMs
+            pendiente = Frase("tramo-media-${tramo.id}-$superaciones", TEXTO, TipoFrase.AVISO_VELOCIDAD, null)
+        }
+        return EstadoTramo(tramo, media, terminado = false, superaLimite = supera, frase = pendiente)
+    }
+
+    /** Estado final: [recorridoM] metros entre la entrada y la salida, que se pasó en el instante [finMs]. */
+    fun cerrar(
+        recorridoM: Double,
+        finMs: Double,
+    ): EstadoTramo {
+        val media = mediaKmh(recorridoM, finMs - inicioMs)
+        return EstadoTramo(tramo, media, terminado = true, superaLimite = supera(media, tramo.limiteKmh), frase = null)
+    }
+
+    /** Media por encima del límite en la histéresis o más, con cupo por tramo y separación desde el último aviso. */
+    private fun puedeAvisar(
+        media: Double?,
+        ahoraMs: Long,
+    ): Boolean {
+        val limite = tramo.limiteKmh ?: return false
+        val separado = ultimoAvisoMs?.let { ahoraMs - it >= VelocidadMediaTramo.SEPARACION_MS } ?: true
+        return media != null &&
+            media >= limite + VelocidadMediaTramo.HISTERESIS_KMH &&
+            separado &&
+            superaciones < VelocidadMediaTramo.MAX_POR_TRAMO
+    }
+
+    private fun supera(
+        media: Double?,
+        limiteKmh: Int?,
+    ): Boolean = media != null && limiteKmh != null && media > limiteKmh
+
+    /** km/h para [metros] en [milisegundos] (`m · 3600 / ms`, exacto con enteros); `null` si el tiempo no avanza. */
+    private fun mediaKmh(
+        metros: Double,
+        milisegundos: Double,
+    ): Double? = if (milisegundos > 0.0) metros * MS_POR_HORA_KM / milisegundos else null
+
+    private companion object {
+        const val MS_POR_HORA_KM = 3600.0
+        const val TEXTO = "media alta"
     }
 }
