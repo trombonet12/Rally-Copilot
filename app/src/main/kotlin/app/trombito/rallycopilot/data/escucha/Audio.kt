@@ -1,10 +1,14 @@
 package app.trombito.rallycopilot.data.escucha
 
 import android.annotation.SuppressLint
+import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
+import app.trombito.rallycopilot.data.audio.ReservaAudio
+import app.trombito.rallycopilot.data.audio.RutaAudio
+import app.trombito.rallycopilot.data.audio.UsoRuta
 
 /** Frecuencia de muestreo del micrófono y del reconocedor (el modelo es de banda ancha a 16 kHz). */
 const val FRECUENCIA_HZ = 16_000
@@ -91,19 +95,30 @@ class FabricaAudioRecord internal constructor(
     }
 }
 
+/**
+ * Micrófono de un intercom de casco: [AudioRecord] con la fuente de comunicación (la que sigue al canal SCO) y
+ * [casco] como dispositivo preferido.
+ */
+fun fabricaAudioCasco(casco: AudioDeviceInfo?): FabricaAudio =
+    FabricaAudioRecord { grabadoraReal(MediaRecorder.AudioSource.VOICE_COMMUNICATION, casco) }
+
 @SuppressLint("MissingPermission") // lo comprueba quien llama (Escucha.tienePermiso)
-private fun grabadoraReal(): Grabadora {
+private fun grabadoraReal(
+    fuente: Int = MediaRecorder.AudioSource.VOICE_RECOGNITION,
+    preferido: AudioDeviceInfo? = null,
+): Grabadora {
     val canal = AudioFormat.CHANNEL_IN_MONO
     val formato = AudioFormat.ENCODING_PCM_16BIT
     val minimo = AudioRecord.getMinBufferSize(FRECUENCIA_HZ, canal, formato)
     val grabadora =
         AudioRecord(
-            MediaRecorder.AudioSource.VOICE_RECOGNITION,
+            fuente,
             FRECUENCIA_HZ,
             canal,
             formato,
             maxOf(minimo, FRECUENCIA_HZ),
         )
+    if (preferido != null) grabadora.preferredDevice = preferido
     return object : Grabadora {
         override val inicializada: Boolean get() = grabadora.state == AudioRecord.STATE_INITIALIZED
 

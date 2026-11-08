@@ -18,6 +18,10 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Escucha de «Copiloto» con la pantalla apagada: el servicio de conducción añade el tipo micrófono. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- Casco: la voz y el micrófono pasan por el intercom Bluetooth (canal de comunicación SCO). BLUETOOTH_CONNECT se pide
+         en tiempo de ejecución desde Android 12; si se deniega, todo sigue por el altavoz y el micrófono del móvil. -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <uses-feature
         android:name="android.hardware.location.gps"

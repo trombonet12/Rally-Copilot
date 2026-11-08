@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import app.trombito.rallycopilot.data.audio.FabricaAudioRuta
+import app.trombito.rallycopilot.data.audio.RutaAudio
 import app.trombito.rallycopilot.data.db.EdicionesDao
 import app.trombito.rallycopilot.data.db.MarcasDao
 import app.trombito.rallycopilot.data.db.RallyDatabase
@@ -26,6 +28,7 @@ import app.trombito.rallycopilot.data.escucha.RepositorioEdicionesRoom
 import app.trombito.rallycopilot.data.escucha.RepositorioMarcasRoom
 import app.trombito.rallycopilot.data.escucha.ReproductorTic
 import app.trombito.rallycopilot.data.escucha.RespondedorPreguntas
+import app.trombito.rallycopilot.data.escucha.fabricaAudioCasco
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.busqueda.Buscador
 import app.trombito.rallycopilot.domain.escucha.AnotadorNotaMal
@@ -76,7 +79,12 @@ abstract class EscuchaModule {
 
         @Provides
         @Singleton
-        fun fabricaAudio(): FabricaAudio = FabricaAudioRecord()
+        fun fabricaAudio(ruta: RutaAudio): FabricaAudio =
+            FabricaAudioRuta(
+                ruta = ruta,
+                movil = FabricaAudioRecord(),
+                casco = { reserva -> fabricaAudioCasco(ruta.infoEntrada(reserva)) },
+            )
 
         @Provides
         @Singleton
@@ -185,6 +193,7 @@ abstract class EscuchaModule {
         fun escuchaContinua(
             @ApplicationContext contexto: Context,
             audio: FabricaAudio,
+            ruta: RutaAudio,
             reconocedores: FabricaReconocedor,
             ajustes: RepositorioAjustesConduccion,
             control: ControlOrdenes,
@@ -197,7 +206,7 @@ abstract class EscuchaModule {
                 ajustes = ajustes.ajustes,
                 control = control,
                 dispatcher = dispatcher,
-                tic = ReproductorTic()::sonar,
+                tic = ReproductorTic(ruta)::sonar,
             )
 
         private fun tienePermisoMicrofono(contexto: Context): Boolean =

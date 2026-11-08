@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.di
 
 import android.content.Context
+import app.trombito.rallycopilot.data.audio.RutaAudio
 import app.trombito.rallycopilot.data.voz.CacheFrases
 import app.trombito.rallycopilot.data.voz.FocoAudio
 import app.trombito.rallycopilot.data.voz.GestorFocoAudio
@@ -36,7 +37,7 @@ abstract class VozModule {
     companion object {
         @Provides
         @Singleton
-        fun reproductorPcm(): ReproductorPcm = ReproductorAudioTrack()
+        fun reproductorPcm(ruta: RutaAudio): ReproductorPcm = ReproductorAudioTrack(ruta)
 
         @Provides
         @Singleton

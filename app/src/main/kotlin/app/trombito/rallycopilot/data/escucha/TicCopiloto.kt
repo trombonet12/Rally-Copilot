@@ -3,6 +3,11 @@ package app.trombito.rallycopilot.data.escucha
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import app.trombito.rallycopilot.data.audio.ReservaAudio
+import app.trombito.rallycopilot.data.audio.RutaAudio
+import app.trombito.rallycopilot.data.audio.RutaSoloAltavoz
+import app.trombito.rallycopilot.data.audio.UsoRuta
+import app.trombito.rallycopilot.data.voz.AtributosVoz
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.sin
@@ -32,34 +37,51 @@ object GeneradorTic {
 /**
  * Reproduce el tic por el canal de guía de navegación (`USAGE_ASSISTANCE_NAVIGATION_GUIDANCE`, el mismo que la voz del
  * copiloto) y espera a que acabe, para que el micrófono no lo oiga como parte de la orden. Si el dispositivo no lo
- * puede reproducir, no suena y no pasa nada.
+ * puede reproducir, no suena y no pasa nada. Con intercom de casco ([ruta]) suena por él, como la voz.
  */
-class ReproductorTic {
+class ReproductorTic(
+    private val ruta: RutaAudio = RutaSoloAltavoz,
+) {
     suspend fun sonar() {
         val muestras = GeneradorTic.pcm()
-        val pista = crearPista(muestras) ?: return
+        val reserva = ruta.reservar(UsoRuta.SALIDA)
         try {
-            pista.play()
-            delay(GeneradorTic.DURACION_MS + MARGEN_MS)
-        } catch (e: IllegalStateException) {
-            // Pista en mal estado: sin tic, la orden se escucha igual.
-            android.util.Log.w("TicCopiloto", "No se pudo reproducir el tic: ${e.javaClass.simpleName}")
+            // El tic es lo primero que suena: si el canal del casco aún se está abriendo, se espera a que esté.
+            delay(reserva.msHastaListo())
+            val pista = crearPista(reserva, muestras) ?: return
+            try {
+                pista.play()
+                delay(GeneradorTic.DURACION_MS + MARGEN_MS)
+            } catch (e: IllegalStateException) {
+                // Pista en mal estado: sin tic, la orden se escucha igual.
+                android.util.Log.w("TicCopiloto", "No se pudo reproducir el tic: ${e.javaClass.simpleName}")
+            } finally {
+                pista.release()
+            }
         } finally {
-            pista.release()
+            reserva.close()
         }
     }
 
-    private fun crearPista(muestras: ShortArray): AudioTrack? =
+    private fun crearPista(
+        reserva: ReservaAudio,
+        muestras: ShortArray,
+    ): AudioTrack? =
         try {
+            val porCasco = reserva.dispositivo != null
             val pista =
                 AudioTrack
                     .Builder()
                     .setAudioAttributes(
-                        AudioAttributes
-                            .Builder()
-                            .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .build(),
+                        if (porCasco) {
+                            AtributosVoz.atributosCasco
+                        } else {
+                            AudioAttributes
+                                .Builder()
+                                .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .build()
+                        },
                     ).setAudioFormat(
                         AudioFormat
                             .Builder()
@@ -70,6 +92,7 @@ class ReproductorTic {
                     ).setBufferSizeInBytes(muestras.size * Short.SIZE_BYTES)
                     .setTransferMode(AudioTrack.MODE_STATIC)
                     .build()
+            if (porCasco) pista.preferredDevice = ruta.infoSalida(reserva)
             pista.write(muestras, 0, muestras.size)
             pista
         } catch (e: UnsupportedOperationException) {

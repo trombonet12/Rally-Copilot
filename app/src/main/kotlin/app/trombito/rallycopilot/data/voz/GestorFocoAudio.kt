@@ -15,6 +15,18 @@ object AtributosVoz {
             .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
             .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
             .build()
+
+    /**
+     * Con intercom de casco la voz va como comunicación: es el uso que sigue al dispositivo fijado con
+     * `setCommunicationDevice`/SCO (la guía de navegación va por la estrategia multimedia y puede quedarse en A2DP o
+     * en el altavoz).
+     */
+    val atributosCasco: AudioAttributes =
+        AudioAttributes
+            .Builder()
+            .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+            .build()
 }
 
 /** Foco de audio alrededor de cada frase. */
