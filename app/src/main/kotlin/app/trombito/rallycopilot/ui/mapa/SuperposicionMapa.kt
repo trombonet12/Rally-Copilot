@@ -108,7 +108,7 @@ internal fun BoxScope.SuperposicionDelMapa(
         escuchando = ui.copiloto.escuchando,
         onEscuchar = copilotoViewModel::onEscuchar,
     )
-    // La pasada vive en el control de navegación (singleton): esta instancia del ViewModel ve la misma que la del tramo.
+    // La pasada vive en el control de navegación (singleton): este ViewModel ve la misma que el del tramo.
     val reconocimiento: ReconocimientoViewModel = hiltViewModel()
     val resumen by reconocimiento.resumen.collectAsStateWithLifecycle()
     ResumenReconocimiento(
