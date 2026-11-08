@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.data.audio.PermisoBluetooth
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.mapa.abrirAjustesDeLaApp
@@ -46,7 +47,7 @@ import app.trombito.rallycopilot.ui.theme.Medidas
 const val ETIQUETA_PERMISO_PREFIJO = "bienvenida-permiso-"
 const val ETIQUETA_PERMISO_BOTON_PREFIJO = "bienvenida-permiso-boton-"
 
-/** Los tres permisos que pide la bienvenida. */
+/** Los permisos que pide la bienvenida (el del intercom solo desde Android 12). */
 enum class TipoPermiso(
     val clave: String,
     @StringRes val titulo: Int,
@@ -71,6 +72,19 @@ enum class TipoPermiso(
         R.string.tutorial_permiso_notificaciones_para,
         R.string.tutorial_permiso_notificaciones_denegado,
     ),
+    INTERCOM(
+        "intercom",
+        R.string.tutorial_permiso_intercom,
+        R.string.tutorial_permiso_intercom_para,
+        R.string.tutorial_permiso_intercom_denegado,
+    ),
+    ;
+
+    companion object {
+        /** Los permisos que la bienvenida pide en esa versión de Android: el del intercom solo existe desde la 12. */
+        fun aplicables(sdk: Int = Build.VERSION.SDK_INT): List<TipoPermiso> =
+            entries.filter { it != INTERCOM || PermisoBluetooth.hayQuePedir(sdk) }
+    }
 }
 
 /** Estado de un permiso en la bienvenida. */
@@ -85,7 +99,7 @@ class PermisoBienvenida(
 )
 
 /**
- * Los tres permisos con el flujo del sistema (un diálogo por permiso). El estado se relee al volver de los ajustes;
+ * Los permisos con el flujo del sistema (un diálogo por permiso). El estado se relee al volver de los ajustes;
  * lo que se pidió y no está concedido es «denegado». Antes de Android 13 las notificaciones no piden nada.
  */
 @Composable
@@ -96,7 +110,7 @@ fun rememberPermisosBienvenida(): List<PermisoBienvenida> {
     val lanzador =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { revision++ }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { revision++ }
-    return TipoPermiso.entries.map { tipo ->
+    return TipoPermiso.aplicables().map { tipo ->
         // `revision` fuerza la relectura del sistema tras pedir o volver de los ajustes.
         val concedido = revision >= 0 && contexto.concedido(tipo)
         val estado =
@@ -133,6 +147,10 @@ private fun TipoPermiso.permisosDeAndroid(): Array<String> =
             } else {
                 emptyArray()
             }
+        }
+
+        TipoPermiso.INTERCOM -> {
+            if (PermisoBluetooth.hayQuePedir()) arrayOf(PermisoBluetooth.PERMISO) else emptyArray()
         }
     }
 
@@ -216,4 +234,5 @@ private fun TipoPermiso.icono(): ImageVector =
         TipoPermiso.UBICACION -> Iconos.Lugar
         TipoPermiso.MICROFONO -> Iconos.Microfono
         TipoPermiso.NOTIFICACIONES -> IconoCampana
+        TipoPermiso.INTERCOM -> Iconos.Auricular
     }

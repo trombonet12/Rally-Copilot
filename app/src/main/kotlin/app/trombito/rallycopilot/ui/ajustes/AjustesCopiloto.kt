@@ -106,6 +106,7 @@ internal fun ControlesVoz(
     Opcion(R.string.ajustes_volumen_titulo, R.string.ajustes_volumen_aviso) {
         ControlVolumen(ajustes.volumenVoz, acciones.onVolumenVoz)
     }
+    ControlIntercom()
     Opcion(R.string.habla_titulo, R.string.habla_detalle) {
         SelectorVelocidadHabla(ajustes.velocidadHabla, acciones.onVelocidadHabla)
     }

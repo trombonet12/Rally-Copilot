@@ -103,6 +103,15 @@
     <string name="ajustes_notas_grandes_corto">Roadbook: la nota enorme y casi sin mapa.</string>
     <string name="ajustes_notas_grandes_detalle">Pantalla de roadbook: la nota enorme y casi sin mapa. También con el botón del panel.</string>
 
+    <!-- Intercom del casco (permiso Bluetooth) -->
+    <string name="ajustes_intercom_titulo">Intercom del casco</string>
+    <string name="ajustes_intercom_detalle">Para oír al copiloto y hablarle por el intercom del casco hace falta el permiso de Bluetooth. Sin él, la voz sigue por el altavoz del móvil.</string>
+    <string name="ajustes_intercom_concedido">Concedido</string>
+    <string name="ajustes_intercom_sin_permiso">Sin permiso: la voz sale por el altavoz del móvil.</string>
+    <string name="ajustes_intercom_estado_concedido">Intercom del casco: concedido</string>
+    <string name="ajustes_intercom_conceder">Conceder</string>
+    <string name="ajustes_intercom_abrir_ajustes">Abrir ajustes</string>
+
     <!-- Volumen -->
     <string name="ajustes_volumen_titulo">Volumen del copiloto</string>
     <string name="ajustes_volumen_valor">%1$d %%</string>

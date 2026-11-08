@@ -53,6 +53,9 @@
     <string name="tutorial_permiso_notificaciones">Notificaciones</string>
     <string name="tutorial_permiso_notificaciones_para">Para mantener la guía activa con la pantalla apagada.</string>
     <string name="tutorial_permiso_notificaciones_denegado">Sin avisos no verás la guía fuera de la app; dentro sigue igual.</string>
+    <string name="tutorial_permiso_intercom">Intercom del casco</string>
+    <string name="tutorial_permiso_intercom_para">Para oír al copiloto y hablarle por el intercom del casco.</string>
+    <string name="tutorial_permiso_intercom_denegado">Sin este permiso la voz sale por el altavoz del móvil y no por el casco.</string>
     <string name="tutorial_permiso_conceder">Conceder</string>
     <string name="tutorial_permiso_concedido">Concedido</string>
     <string name="tutorial_permiso_ajustes">Abrir ajustes</string>
