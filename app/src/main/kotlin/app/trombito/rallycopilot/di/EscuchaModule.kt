@@ -43,6 +43,7 @@ import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.tramos.ControlSalidaCrono
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
+import app.trombito.rallycopilot.domain.vias.ProveedorPuntoKilometrico
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -134,6 +135,7 @@ abstract class EscuchaModule {
             crono: ProveedorCrono,
             salida: ControlSalidaCrono,
             vias: ProveedorViaActual,
+            puntosKm: ProveedorPuntoKilometrico,
             ubicacion: FuenteUbicacion,
             buscador: Buscador,
             enrutador: Enrutador,
@@ -146,6 +148,7 @@ abstract class EscuchaModule {
                     vias = vias,
                     ubicacion = ubicacion,
                     ahoraMs = System::currentTimeMillis,
+                    puntosKm = puntosKm,
                 )
             val conduccion =
                 ConduccionPorVoz(

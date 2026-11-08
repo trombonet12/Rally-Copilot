@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.escucha
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
+import app.trombito.rallycopilot.domain.vias.ProveedorPuntoKilometrico
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.motor.edicion.TipoPregunta
@@ -22,9 +23,11 @@ import java.time.ZoneId
  *   la conducción llega al instante con la última conocida, y [vias]); sin vía o sin límite, «no lo sé».
  * - «¿cómo voy?»: el cronómetro en vivo ([crono]): tiempo del tramo y diferencia con el mejor si lo hay.
  *
- * El punto kilométrico y el municipio no están en los datos de vías (solo nombre y ref), así que «¿dónde estoy?» dice
- * la carretera y su nombre.
+ * «¿Dónde estoy?» dice la carretera, su nombre y, si los hitos kilométricos de OSM (archivo opcional, [puntosKm]) dan
+ * el de esa carretera cerca de la posición, el kilómetro («Ma diez, kilómetro veintitrés»); sin ese archivo o sin
+ * hito cercano, solo la carretera y su nombre. El municipio no está en los datos.
  */
+@Suppress("LongParameterList") // colaboradores de las preguntas de voz, inyectados
 class RespondedorPreguntas(
     private val estado: () -> EstadoNavegacion,
     private val crono: ProveedorCrono,
@@ -32,13 +35,14 @@ class RespondedorPreguntas(
     private val ubicacion: FuenteUbicacion,
     private val ahoraMs: () -> Long,
     private val zona: () -> ZoneId = ZoneId::systemDefault,
+    private val puntosKm: ProveedorPuntoKilometrico = ProveedorPuntoKilometrico.Ninguno,
 ) {
     suspend fun responder(tipo: TipoPregunta): String =
         when (tipo) {
             TipoPregunta.CUANTO_FALTA -> cuantoFalta()
             TipoPregunta.HORA_LLEGADA -> horaLlegada()
             TipoPregunta.LIMITE -> RespuestasVoz.limite(viaActual()?.limiteKmh)
-            TipoPregunta.DONDE_ESTOY -> viaActual().let { RespuestasVoz.dondeEstoy(it?.nombre, it?.ref) }
+            TipoPregunta.DONDE_ESTOY -> dondeEstoy()
             TipoPregunta.COMO_VOY -> comoVoy()
         }
 
@@ -95,11 +99,17 @@ class RespondedorPreguntas(
         }
     }
 
+    private suspend fun fijacionActual(): Fijacion? =
+        withTimeoutOrNull(ESPERA_FIJACION_MS) { ubicacion.fijaciones().firstOrNull() }
+
     /** La vía de la posición actual, o `null` si no hay fijación a tiempo o no hay vía (o datos) allí. */
-    private suspend fun viaActual(): ViaActual? {
-        val fijacion: Fijacion =
-            withTimeoutOrNull(ESPERA_FIJACION_MS) { ubicacion.fijaciones().firstOrNull() } ?: return null
-        return vias.viaEn(fijacion)
+    private suspend fun viaActual(): ViaActual? = fijacionActual()?.let { vias.viaEn(it) }
+
+    private suspend fun dondeEstoy(): String {
+        val fijacion = fijacionActual()
+        val via = fijacion?.let { vias.viaEn(it) }
+        val km = if (fijacion != null) puntosKm.puntoKilometrico(via?.ref, fijacion.punto)?.km else null
+        return RespuestasVoz.dondeEstoy(via?.nombre, via?.ref, km)
     }
 
     private companion object {

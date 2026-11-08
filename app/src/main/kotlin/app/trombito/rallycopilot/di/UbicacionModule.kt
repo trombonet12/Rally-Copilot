@@ -1,10 +1,12 @@
 package app.trombito.rallycopilot.di
 
 import app.trombito.rallycopilot.data.ubicacion.PosicionEnVivo
+import app.trombito.rallycopilot.data.vias.CargadorPk
 import app.trombito.rallycopilot.data.vias.CargadorVias
 import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.data.vias.ProveedorViaActualOsm
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
+import app.trombito.rallycopilot.domain.vias.ProveedorPuntoKilometrico
 import app.trombito.rallycopilot.domain.vias.ProveedorViaActual
 import dagger.Binds
 import dagger.Module
@@ -22,4 +24,7 @@ abstract class UbicacionModule {
 
     @Binds
     abstract fun fuenteVias(implementacion: CargadorVias): FuenteVias
+
+    @Binds
+    abstract fun proveedorPuntoKilometrico(implementacion: CargadorPk): ProveedorPuntoKilometrico
 }

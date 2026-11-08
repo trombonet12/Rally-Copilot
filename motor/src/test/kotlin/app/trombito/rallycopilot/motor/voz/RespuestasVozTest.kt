@@ -72,6 +72,21 @@ class RespuestasVozTest {
     }
 
     @Test
+    fun `donde estoy con punto kilometrico lo dice en palabras tras la carretera`() {
+        assertEquals("estás en la Ma diez, kilómetro veintitrés", RespuestasVoz.dondeEstoy(null, "Ma-10", 23.2))
+        assertEquals(
+            "estás en la Ma once, carretera de Sóller, kilómetro treinta y uno",
+            RespuestasVoz.dondeEstoy("carretera de Sóller", "Ma-11", 30.6),
+        )
+        assertEquals("estás en la Ma diez, kilómetro cero", RespuestasVoz.dondeEstoy(null, "Ma-10", 0.2))
+        assertEquals("estás en la Ma diez, kilómetro cien", RespuestasVoz.dondeEstoy(null, "Ma-10", 99.6))
+        // sin carretera no hay de qué dar el kilómetro; un valor absurdo se calla
+        assertEquals("estás en Carrer Major", RespuestasVoz.dondeEstoy("Carrer Major", null, 5.0))
+        assertEquals("estás en la Ma diez", RespuestasVoz.dondeEstoy(null, "Ma-10", Double.NaN))
+        assertEquals("estás en la Ma diez", RespuestasVoz.dondeEstoy(null, "Ma-10", -3.0))
+    }
+
+    @Test
     fun `donde estoy con carretera y nombre`() {
         assertEquals(
             "estás en la Ma once, carretera de Sóller",

@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.motor.voz
 
 import app.trombito.rallycopilot.motor.edicion.TipoLugar
 import app.trombito.rallycopilot.motor.notas.FrasesNota
+import kotlin.math.roundToInt
 
 /**
  * Frases cortas con las que el copiloto responde a las preguntas de voz y confirma las órdenes, en español y con las
@@ -69,20 +70,26 @@ object RespuestasVoz {
     /** «el límite es noventa» o «no lo sé» si la vía no tiene límite conocido. */
     fun limite(kmh: Int?): String = if (kmh == null) NO_SE else "el límite es ${FrasesNota.enPalabras(kmh)}"
 
-    /** «estás en la Ma once, carretera de Sóller»; con solo uno de los dos, ese; sin ninguno, «no lo sé». */
+    /**
+     * «estás en la Ma once, carretera de Sóller, kilómetro veintitrés»; con solo uno de los dos, ese; sin ninguno,
+     * «no lo sé». El [km] (punto kilométrico de la carretera, redondeado al entero) solo se dice si hay carretera.
+     */
     fun dondeEstoy(
         nombre: String?,
         ref: String?,
+        km: Double? = null,
     ): String {
         val carretera = ref?.let(::refHablada)
         val calle = nombre?.trim()?.takeIf { it.isNotEmpty() }
+        val punto = km?.takeIf { it.isFinite() && it >= 0.0 }?.let { "kilómetro ${kilometroHablado(it)}" }
         return when {
-            carretera != null && calle != null -> "estás en la $carretera, $calle"
-            carretera != null -> "estás en la $carretera"
+            carretera != null -> listOfNotNull("estás en la $carretera", calle, punto).joinToString(", ")
             calle != null -> "estás en $calle"
             else -> NO_SE
         }
     }
+
+    private fun kilometroHablado(km: Double): String = FormatoHablado.numero(km.roundToInt())
 
     /** `Ma-2141` -> «Ma dos mil ciento cuarenta y uno»; solo la primera de varias (`Ma-13;Ma-13A`). */
     private fun refHablada(ref: String): String? {
