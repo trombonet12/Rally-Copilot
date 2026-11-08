@@ -11,9 +11,11 @@ import app.trombito.rallycopilot.domain.tramos.EstadisticasPerfil
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.NombreAutomatico
 import app.trombito.rallycopilot.domain.tramos.OrigenPasada
+import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.MarcaTiempo
 import app.trombito.rallycopilot.motor.tramos.Pasada
+import app.trombito.rallycopilot.motor.tramos.SubtramoHecho
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -37,7 +39,7 @@ class RepositorioTramosRoomTest {
     fun preparar() {
         val contexto = ApplicationProvider.getApplicationContext<Context>()
         base = Room.inMemoryDatabaseBuilder(contexto, RallyDatabase::class.java).allowMainThreadQueries().build()
-        repositorio = RepositorioTramosRoom(base.tramosDao(), Dispatchers.Unconfined)
+        repositorio = RepositorioTramosRoom(base.tramosDao(), base.subtramosDao(), Dispatchers.Unconfined)
     }
 
     @After
@@ -47,13 +49,44 @@ class RepositorioTramosRoomTest {
     fun `crear un tramo con o sin pasadas encola el detalle de su corredor`() =
         runBlocking {
             val precarga = FalsaPrecarga()
-            val conAviso = RepositorioTramosRoom(base.tramosDao(), Dispatchers.Unconfined, precarga)
+            val conAviso =
+                RepositorioTramosRoom(base.tramosDao(), base.subtramosDao(), Dispatchers.Unconfined, precarga)
             val t = tramo("a")
 
             conAviso.crear(t, null, null, 5_000L, pasada(t, 100.0), OrigenPasada(4_000L))
             conAviso.crearSinPasadas(tramo("b"), null, null, 6_000L)
 
             assertEquals(2, precarga.tramos)
+        }
+
+    @Test
+    fun `las pasadas para subtramos salen agrupadas por tramo con la mejor primero`() =
+        runBlocking {
+            val t = tramo()
+            repositorio.crear(t, null, null, 5_000L, pasada(t, 120.0), OrigenPasada(4_000L))
+            repositorio.guardarPasada(pasada(t, 90.0), OrigenPasada(6_000L))
+
+            val todas = repositorio.pasadasParaSubtramos()
+
+            assertEquals(setOf("t1"), todas.keys)
+            val tiempos = todas.getValue("t1").map { it.totalMs }
+            assertEquals(2, tiempos.size)
+            assertTrue(tiempos[0] < tiempos[1])
+        }
+
+    @Test
+    fun `un subtramo guardado se observa por recorrido y por tramo de referencia`() =
+        runBlocking {
+            val t = tramo()
+            repositorio.crear(t, null, null, 5_000L, pasada(t, 100.0), OrigenPasada(4_000L))
+            val hecho = SubtramoHecho("t1", 100.0, 1_300.0, 1_200.0, 7_000L, 80_000L, 85_000L, t.traza[2], t.traza[15])
+
+            repositorio.guardarSubtramo(null, hecho, 9_000L)
+
+            val deTramo = repositorio.observarSubtramosDeTramo("t1").first()
+            val esperado = SubtramoGuardado("t1", 100.0, 1_300.0, 1_200.0, 9_000L, 80_000L, 85_000L)
+            assertEquals(listOf(esperado), deTramo)
+            assertTrue(repositorio.observarSubtramosDeRecorrido(99L).first().isEmpty())
         }
 
     /** Tramo de unos 1,9 km hacia el norte con cortes por defecto (3 sectores y 1 micro). */

@@ -20,6 +20,7 @@ import app.trombito.rallycopilot.domain.tramos.OrigenPasada
 import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
+import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
@@ -30,6 +31,7 @@ import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.geo.distanciaRecorrido
 import app.trombito.rallycopilot.motor.geo.longitudMetros
 import app.trombito.rallycopilot.motor.tramos.Pasada
+import app.trombito.rallycopilot.motor.tramos.SubtramoHecho
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -121,6 +123,30 @@ private fun conduccion(
     return (0..pasos).map { k -> Fijacion(puntoA(CALOBRA, -margenM + v * k), base + k * 1000L, v, null, 5.0) }
 }
 
+/**
+ * Conducción a [kmh] constante por el trozo de [desdeM] a [hastaM] de la carretera, una fijación por segundo. Con
+ * [salir] acaba apartándose 400 m de la carretera (cierra el subtramo en vivo, sin esperar al final de la conducción).
+ */
+private fun trozo(
+    kmh: Double,
+    desdeM: Double,
+    hastaM: Double,
+    base: Long = 9_000_000L,
+    salir: Boolean = false,
+): List<Fijacion> {
+    val v = kmh / 3.6
+    val pasos = ((hastaM - desdeM) / v).toInt()
+    val enCarretera = (0..pasos).map { k -> Fijacion(puntoA(CALOBRA, desdeM + v * k), base + k * 1000L, v, null, 5.0) }
+    if (!salir) return enCarretera
+    val norte = PuntoGeo(1.0, 0.0)
+    val fuera =
+        (1..5).map { k ->
+            val p = desplazar(puntoA(CALOBRA, hastaM), PuntoGeo(0.0, 0.0), norte, 400.0)
+            Fijacion(p, base + (pasos + k) * 1000L, v, null, 5.0)
+        }
+    return enCarretera + fuera
+}
+
 /** Fuente que da las fijaciones a 1 Hz de tiempo virtual (la primera tras 1 s: la sesión ya ha cargado los tramos). */
 private class FuenteDeRuta(
     private val fijaciones: List<Fijacion>,
@@ -190,11 +216,32 @@ private class TramosEnMemoria : RepositorioTramos {
     /** Cuántos guardados de pasada fallan aún (simula la base caída). */
     var fallosDeGuardado = 0
 
+    /** Subtramos guardados: recorrido, hecho y epoch de inicio. */
+    val subtramos = ArrayList<Triple<Long?, SubtramoHecho, Long>>()
+
     override fun observarResumenes(filtro: FiltroTramos): Flow<List<ResumenTramo>> = emptyFlow()
 
     override fun observarPerfil(): Flow<EstadisticasPerfil> = emptyFlow()
 
     override suspend fun tramo(tramoId: String): Tramo? = tramos[tramoId]?.aTramo()
+
+    override suspend fun pasadasParaSubtramos(): Map<String, List<Pasada>> =
+        pasadas
+            .sortedBy { it.totalMs }
+            .mapNotNull { fila -> tramos[fila.tramoId]?.aTramo()?.let { fila.aPasada(it.cortesExactosM()) } }
+            .groupBy { it.tramoId }
+
+    override suspend fun guardarSubtramo(
+        recorridoId: Long?,
+        hecho: SubtramoHecho,
+        inicioEpochMs: Long,
+    ) {
+        subtramos += Triple(recorridoId, hecho, inicioEpochMs)
+    }
+
+    override fun observarSubtramosDeRecorrido(recorridoId: Long): Flow<List<SubtramoGuardado>> = emptyFlow()
+
+    override fun observarSubtramosDeTramo(tramoId: String): Flow<List<SubtramoGuardado>> = emptyFlow()
 
     override suspend fun pasadasDetalladas(tramoId: String): List<PasadaDetallada> = emptyList()
 
@@ -780,5 +827,73 @@ class SesionCronoTest {
             crono.darSalida(14_000L)
             crono.alFijar(Fijacion(CALOBRA.first(), 7_000L, 12.0, null, 5.0))
             assertEquals(4_000L, checkNotNull(publicados.last()).transcurridoMs)
+        }
+
+    @Test
+    fun `un trozo de mas de un kilometro de un tramo guardado se guarda con su referencia y suena con su signo`() =
+        runTest {
+            conducir(conduccion(40.0))
+
+            val rapido = conducir(trozo(60.0, 1_000.0, 3_000.0, salir = true), ModoCopiloto.COMPLETO)
+
+            val (recorrido, hecho, _) = tramos.subtramos.single()
+            assertEquals(2L, recorrido)
+            assertEquals("tramo-1", hecho.tramoRefId)
+            assertTrue("longitud ${hecho.longitudM}", hecho.longitudM > 1_000.0)
+            val mejor = checkNotNull(hecho.mejorMs)
+            assertTrue(hecho.tiempoMs < mejor)
+            val frasesRapido = rapido.dichas.filter { it.startsWith("subtramo") }
+            assertEquals(1, frasesRapido.size)
+            assertTrue(frasesRapido.single(), frasesRapido.single().startsWith("subtramo, menos"))
+            assertEquals(mejor, checkNotNull(rapido.estados.last().ultimoSubtramo).mejorMs)
+            assertTrue(rapido.estados.any { it.subtramo?.deltaMs != null && it.tramo == null })
+
+            tramos.subtramos.clear()
+            val lento = conducir(trozo(30.0, 1_000.0, 3_000.0, base = 12_000_000L, salir = true), ModoCopiloto.COMPLETO)
+
+            val guardado = tramos.subtramos.first().second
+            assertTrue(guardado.tiempoMs > checkNotNull(guardado.mejorMs))
+            assertTrue(lento.dichas.single { it.startsWith("subtramo") }.startsWith("subtramo, más"))
+        }
+
+    @Test
+    fun `un trozo de menos de un kilometro no se cronometra`() =
+        runTest {
+            conducir(conduccion(40.0))
+            val largo = CALOBRA.longitudMetros()
+
+            val c = conducir(trozo(60.0, largo - 800.0, largo + 100.0), ModoCopiloto.COMPLETO)
+
+            assertTrue(tramos.subtramos.isEmpty())
+            assertTrue(c.dichas.none { it.startsWith("subtramo") })
+            assertTrue(c.estados.all { it.ultimoSubtramo == null })
+        }
+
+    @Test
+    fun `con un tramo completo vivo no se publica subtramo ni se guarda el tramo completo como subtramo`() =
+        runTest {
+            conducir(conduccion(40.0))
+
+            val c = conducir(conduccion(60.0, margenM = 100.0, base = 9_000_000L), ModoCopiloto.COMPLETO)
+
+            assertTrue(c.estados.filter { it.tramo != null && it.resultado == null }.all { it.subtramo == null })
+            assertTrue(tramos.subtramos.isEmpty())
+            assertTrue(c.dichas.none { it.startsWith("subtramo") })
+        }
+
+    @Test
+    fun `cerrar la conduccion guarda el subtramo que seguia abierto`() =
+        runTest {
+            conducir(conduccion(40.0))
+
+            val c = conducir(trozo(60.0, 1_000.0, 3_200.0), ModoCopiloto.COMPLETO)
+
+            val (recorrido, hecho, _) = tramos.subtramos.single()
+            assertEquals(2L, recorrido)
+            assertEquals("tramo-1", hecho.tramoRefId)
+            assertEquals(2_200.0, hecho.longitudM, 100.0)
+            assertNotNull(hecho.mejorMs)
+            // Cerrado al terminar: no hubo frase en vivo.
+            assertTrue(c.dichas.none { it.startsWith("subtramo") })
         }
 }

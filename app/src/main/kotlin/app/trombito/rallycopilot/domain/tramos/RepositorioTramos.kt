@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.domain.tramos
 
 import app.trombito.rallycopilot.motor.tramos.Pasada
+import app.trombito.rallycopilot.motor.tramos.SubtramoHecho
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.flow.Flow
 
@@ -75,6 +76,21 @@ data class EstadisticasPerfil(
 )
 
 /**
+ * Un subtramo cronometrado en una conducción: el trozo de [desdeM] a [hastaM] (metros desde la salida de
+ * [tramoRefId]) de [longitudM], recorrido a partir de [inicio] (epoch) en [tiempoMs]. [mejorMs] es el mejor tiempo
+ * previo en ese trozo (null si ninguno lo cubría).
+ */
+data class SubtramoGuardado(
+    val tramoRefId: String,
+    val desdeM: Double,
+    val hastaM: Double,
+    val longitudM: Double,
+    val inicio: Long,
+    val tiempoMs: Long,
+    val mejorMs: Long?,
+)
+
+/**
  * Tramos cronometrables y sus pasadas. El [Tramo.id] es estable y lo da quien lo crea; las pasadas se identifican por
  * un número que da el almacén. La mejor pasada de un tramo es la de menor tiempo total (a igualdad, la primera).
  */
@@ -96,6 +112,28 @@ interface RepositorioTramos {
     suspend fun cronometrables(): List<TramoCronometrable>
 
     suspend fun mejorPasada(tramoId: String): Pasada?
+
+    /**
+     * Todas las pasadas guardadas por tramo (la de menor tiempo primero), en una sola lectura, para comparar los
+     * subtramos. Una pasada dañada se ignora.
+     */
+    suspend fun pasadasParaSubtramos(): Map<String, List<Pasada>>
+
+    /**
+     * Guarda un subtramo cronometrado de la conducción [recorridoId] (null si no hay) que empezó en el instante epoch
+     * [inicioEpochMs].
+     */
+    suspend fun guardarSubtramo(
+        recorridoId: Long?,
+        hecho: SubtramoHecho,
+        inicioEpochMs: Long,
+    )
+
+    /** Los subtramos de un recorrido, por hora de inicio. */
+    fun observarSubtramosDeRecorrido(recorridoId: Long): Flow<List<SubtramoGuardado>>
+
+    /** Los subtramos cuyo tramo de referencia es [tramoId], el más reciente primero. */
+    fun observarSubtramosDeTramo(tramoId: String): Flow<List<SubtramoGuardado>>
 
     /** El tramo guardado, o null si no existe o está dañado. */
     suspend fun tramo(tramoId: String): Tramo?

@@ -8,6 +8,8 @@ import app.trombito.rallycopilot.domain.tramos.OrigenPasada
 import app.trombito.rallycopilot.domain.tramos.ParcialCrono
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResultadoCrono
+import app.trombito.rallycopilot.domain.tramos.SubtramoResultado
+import app.trombito.rallycopilot.domain.tramos.SubtramoVivo
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrado
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
@@ -15,14 +17,17 @@ import app.trombito.rallycopilot.motor.tramos.Cobertura
 import app.trombito.rallycopilot.motor.tramos.Cronometro
 import app.trombito.rallycopilot.motor.tramos.Delta
 import app.trombito.rallycopilot.motor.tramos.DetectorSalida
+import app.trombito.rallycopilot.motor.tramos.DetectorSubtramo
 import app.trombito.rallycopilot.motor.tramos.DetectorTramo
 import app.trombito.rallycopilot.motor.tramos.EventoCrono
 import app.trombito.rallycopilot.motor.tramos.EventoTramo
 import app.trombito.rallycopilot.motor.tramos.Pasada
+import app.trombito.rallycopilot.motor.tramos.SubtramoHecho
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.tramos.TramoDesdeRecorrido
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.voz.Frase
+import app.trombito.rallycopilot.motor.voz.TipoFrase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -48,6 +53,11 @@ import java.util.UUID
  * [cerrar] espera a esos guardados y, si el recorrido mide un kilómetro o más (regla de los recorridos), crea con él un
  * tramo nuevo y su primera pasada, salvo que ya coincida más de [UMBRAL_COINCIDENCIA] con un tramo completado durante
  * la conducción (su pasada ya queda guardada: no se duplica el tramo).
+ *
+ * Además cronometra cualquier trozo de un kilómetro o más de un tramo guardado, en su sentido ([DetectorSubtramo]):
+ * publica el subtramo en marcha ([CronoEnCurso.subtramo], solo si no hay un tramo completo vivo) y, al cerrarse cada
+ * trozo, lo guarda (en segundo plano, como las pasadas), publica [CronoEnCurso.ultimoSubtramo] y, si tiene referencia,
+ * dice una frase CRONO corta («subtramo, menos tres»). Al [cerrar] cierra el detector y guarda lo que quedaba abierto.
  */
 @Suppress("TooManyFunctions", "LongParameterList") // un estado por conducción; colaboradores de guardado y cierre
 class SesionCrono(
@@ -100,6 +110,14 @@ class SesionCrono(
     @Volatile private var manual = false
     private var ultimaFijacion: Fijacion? = null
     private var detector: DetectorTramo? = null
+
+    @Volatile private var detectorSubtramos: DetectorSubtramo? = null
+    private var subtramoVivo: SubtramoVivo? = null
+    private var ultimoSubtramo: SubtramoResultado? = null
+    private val guardadosSubtramo = ArrayList<Job>()
+
+    /** Epoch en que se recibió la última fijación: referencia para fechar los inicios de los subtramos. */
+    private var ultimoEpochMs = 0L
     private var catalogo: Map<String, Tramo> = emptyMap()
     private val mejores = HashMap<String, Pasada>()
     private val vivos = LinkedHashMap<String, Vivo>()
@@ -128,6 +146,7 @@ class SesionCrono(
                 catalogo = lista.associate { it.tramo.id to it.tramo }
                 lista.forEach { c -> c.mejor?.let { mejores[c.tramo.id] = it } }
                 detector = DetectorTramo(lista.map { it.tramo }, reloj = { ultimaFijacionMs })
+                detectorSubtramos = DetectorSubtramo(lista.map { it.tramo }, repositorio.pasadasParaSubtramos())
             } catch (e: SQLiteException) {
                 alFallar(e)
             } catch (e: IllegalArgumentException) {
@@ -141,14 +160,45 @@ class SesionCrono(
         synchronized(cerrojo) {
             ultimaFijacionMs = f.tiempoMs
             ultimaFijacion = f
+            ultimoEpochMs = ahoraMs()
             if (salidaEpochMs == null && !manual) {
                 salida.alFijar(f)?.let { salidaEpochMs = ahoraMs() - (f.tiempoMs - it) }
             }
             val frases = ArrayList<Frase>()
             detector?.alFijar(f)?.forEach { procesar(it, f, frases) }
+            detectorSubtramos?.alFijar(f)?.let { r ->
+                subtramoVivo = r.enCurso?.let { SubtramoVivo(it.recorridoM, it.deltaMs, it.transcurridoMs) }
+                r.hechos.forEach { cerrarSubtramo(it, frases) }
+            }
             publicar(estado(f))
             frases
         }
+
+    /** Un subtramo cerrado en vivo: se guarda sin bloquear, se anota para la tarjeta y, con referencia, se dice. */
+    private fun cerrarSubtramo(
+        hecho: SubtramoHecho,
+        frases: MutableList<Frase>,
+    ) {
+        ultimoSubtramo = SubtramoResultado(hecho.longitudM, hecho.tiempoMs, hecho.mejorMs, ultimoEpochMs)
+        hecho.mejorMs?.let { frases += fraseSubtramo(hecho, it) }
+        val alcance = alcance ?: return
+        val inicioMs = epochDeInicio(hecho)
+        // Fuera de la cancelación de la conducción: el cierre espera a este trabajo (join) y no se pierde.
+        guardadosSubtramo +=
+            alcance.launch(NonCancellable) { guardar { repositorio.guardarSubtramo(recorridoId, hecho, inicioMs) } }
+    }
+
+    private fun epochDeInicio(hecho: SubtramoHecho): Long = ultimoEpochMs - (ultimaFijacionMs - hecho.inicioFijacionMs)
+
+    private fun fraseSubtramo(
+        hecho: SubtramoHecho,
+        mejorMs: Long,
+    ): Frase {
+        val segundos = Math.round((hecho.tiempoMs - mejorMs) / MS_POR_SEGUNDO) * MS_POR_SEGUNDO.toLong()
+        val texto = Delta.texto(segundos).removeSuffix(" segundos")
+        val id = "crono:subtramo:${hecho.tramoRefId}:${hecho.inicioFijacionMs}:${hecho.desdeM.toLong()}"
+        return Frase(id, "subtramo, $texto", TipoFrase.CRONO, null)
+    }
 
     /**
      * Fija la salida en [epochMs] (por defecto ahora) si aún no la hay: el cronómetro de la conducción y el tramo
@@ -264,7 +314,7 @@ class SesionCrono(
         val resultado = actual.resultado.copy(tramoId = hecha.pasada.tramoId, pasadaId = id)
         val nuevo = Terminado(hecha, actual.tramo, resultado, actual.parciales)
         terminado = nuevo
-        if (vivos.isEmpty()) publicar(estadoTerminado(nuevo, ahoraMs()))
+        if (vivos.isEmpty()) publicar(estadoTerminado(nuevo, ahoraMs()).conSubtramos())
     }
 
     private fun esReciente(vivo: Vivo): Boolean = vivos.values.lastOrNull() === vivo
@@ -309,7 +359,13 @@ class SesionCrono(
         return pasada.tiempoEn(distanciaM.coerceIn(primera.distanciaM, ultima.distanciaM))
     }
 
-    private fun estado(f: Fijacion): CronoEnCurso? {
+    private fun estado(f: Fijacion): CronoEnCurso? = estadoBase(f).conSubtramos()
+
+    /** El subtramo en marcha solo se publica sin tramo completo vivo (manda el tramo); el último, siempre. */
+    private fun CronoEnCurso.conSubtramos() =
+        copy(subtramo = if (vivos.isEmpty()) subtramoVivo else null, ultimoSubtramo = this@SesionCrono.ultimoSubtramo)
+
+    private fun estadoBase(f: Fijacion): CronoEnCurso {
         val ahora = ahoraMs()
         val activo = vivos.values.lastOrNull()
         val cerrado = terminado
@@ -384,8 +440,12 @@ class SesionCrono(
         puntos: suspend () -> List<PuntoRecorrido>,
     ) {
         completadas.forEach { it.guardado?.join() }
+        val abiertos = synchronized(cerrojo) { detectorSubtramos?.cerrar().orEmpty() }
+        guardadosSubtramo.toList().forEach { it.join() }
         publicar(null)
         val recorridoId = recorrido?.id
+        // Los subtramos que seguían abiertos al terminar (antes de crear el tramo nuevo).
+        for (hecho in abiertos) guardar { repositorio.guardarSubtramo(recorridoId, hecho, epochDeInicio(hecho)) }
         // Las que no se pudieron guardar al cruzar la meta se reintentan; las ya guardadas no se repiten.
         for (c in completadas.filter { it.idGuardada == null }) {
             guardar { repositorio.guardarPasada(c.pasada, c.origen(recorridoId)) }
@@ -454,5 +514,6 @@ class SesionCrono(
     companion object {
         /** Fracción del recorrido sobre un tramo completado a partir de la cual no se crea otro tramo. */
         const val UMBRAL_COINCIDENCIA = 0.9
+        private const val MS_POR_SEGUNDO = 1000.0
     }
 }

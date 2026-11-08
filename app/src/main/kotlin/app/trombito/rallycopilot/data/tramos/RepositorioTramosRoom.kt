@@ -2,6 +2,8 @@ package app.trombito.rallycopilot.data.tramos
 
 import app.trombito.rallycopilot.data.db.FilaResumenTramo
 import app.trombito.rallycopilot.data.db.PasadaEntity
+import app.trombito.rallycopilot.data.db.SubtramoEntity
+import app.trombito.rallycopilot.data.db.SubtramosDao
 import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
@@ -13,8 +15,10 @@ import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
 import app.trombito.rallycopilot.domain.tramos.PuntoPasada
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
+import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
 import app.trombito.rallycopilot.motor.tramos.Pasada
+import app.trombito.rallycopilot.motor.tramos.SubtramoHecho
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +33,7 @@ class RepositorioTramosRoom
     @Inject
     constructor(
         private val dao: TramosDao,
+        private val subtramos: SubtramosDao,
         @DispatcherIo private val dispatcher: CoroutineDispatcher,
         /** Se avisa al crear un tramo para bajar el satélite de detalle de su corredor. */
         private val precarga: PrecargaDetalle = PrecargaDetalle.Ninguna,
@@ -70,6 +75,53 @@ class RepositorioTramosRoom
 
         override suspend fun mejorPasada(tramoId: String): Pasada? =
             withContext(dispatcher) { dao.mejorPasada(tramoId)?.let { leer(it) } }
+
+        override suspend fun pasadasParaSubtramos(): Map<String, List<Pasada>> =
+            withContext(dispatcher) {
+                dao
+                    .todasLasMarcasDePasadas()
+                    .mapNotNull { fila ->
+                        try {
+                            Pasada(fila.tramoId, CodecTramos.decodificarMarcas(fila.marcas), fila.totalMs)
+                        } catch (_: IllegalArgumentException) {
+                            null
+                        }
+                    }.groupBy { it.tramoId }
+            }
+
+        override suspend fun guardarSubtramo(
+            recorridoId: Long?,
+            hecho: SubtramoHecho,
+            inicioEpochMs: Long,
+        ) {
+            withContext(dispatcher) {
+                subtramos.insertar(
+                    SubtramoEntity(
+                        recorridoId = recorridoId,
+                        tramoRefId = hecho.tramoRefId,
+                        desdeM = hecho.desdeM,
+                        hastaM = hecho.hastaM,
+                        longitudM = hecho.longitudM,
+                        inicio = inicioEpochMs,
+                        tiempoMs = hecho.tiempoMs,
+                        mejorMs = hecho.mejorMs,
+                        latDesde = hecho.desde.lat,
+                        lonDesde = hecho.desde.lon,
+                        latHasta = hecho.hasta.lat,
+                        lonHasta = hecho.hasta.lon,
+                    ),
+                )
+            }
+        }
+
+        override fun observarSubtramosDeRecorrido(recorridoId: Long): Flow<List<SubtramoGuardado>> =
+            subtramos.observarDeRecorrido(recorridoId).map { filas -> filas.map { it.aGuardado() } }
+
+        override fun observarSubtramosDeTramo(tramoId: String): Flow<List<SubtramoGuardado>> =
+            subtramos.observarDeTramo(tramoId).map { filas -> filas.map { it.aGuardado() } }
+
+        private fun SubtramoEntity.aGuardado() =
+            SubtramoGuardado(tramoRefId, desdeM, hastaM, longitudM, inicio, tiempoMs, mejorMs)
 
         override suspend fun tramo(tramoId: String): Tramo? = withContext(dispatcher) { dao.tramo(tramoId)?.aTramo() }
 

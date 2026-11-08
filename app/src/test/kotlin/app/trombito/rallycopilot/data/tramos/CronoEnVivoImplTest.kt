@@ -21,10 +21,14 @@ class CronoEnVivoImplTest {
     private val enVivo = CronoEnVivoImpl()
     private var ahora = 10_000L
 
-    /** Sin tramos guardados: `cronometrables` es lo único que usa una sesión al arrancar; el resto es un error. */
+    /** Sin tramos guardados: al arrancar solo se leen los tramos y las pasadas para subtramos; el resto es un error. */
     private val repositorio: RepositorioTramos =
         Proxy.newProxyInstance(javaClass.classLoader, arrayOf(RepositorioTramos::class.java)) { _, metodo, _ ->
-            if (metodo.name == "cronometrables") emptyList<Any>() else error("repositorio inesperado: ${metodo.name}")
+            when (metodo.name) {
+                "cronometrables" -> emptyList<Any>()
+                "pasadasParaSubtramos" -> emptyMap<String, Any>()
+                else -> error("repositorio inesperado: ${metodo.name}")
+            }
         } as RepositorioTramos
 
     private fun crearSesion(): SesionCrono =

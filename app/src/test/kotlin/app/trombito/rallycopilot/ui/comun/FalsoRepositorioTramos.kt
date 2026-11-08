@@ -6,10 +6,12 @@ import app.trombito.rallycopilot.domain.tramos.OrigenPasada
 import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
+import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.MarcaTiempo
 import app.trombito.rallycopilot.motor.tramos.Pasada
+import app.trombito.rallycopilot.motor.tramos.SubtramoHecho
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -97,6 +99,19 @@ class FalsoRepositorioTramos(
     override suspend fun cronometrables(): List<TramoCronometrable> = emptyList()
 
     override suspend fun mejorPasada(tramoId: String): Pasada? = null
+
+    override suspend fun pasadasParaSubtramos(): Map<String, List<Pasada>> = emptyMap()
+
+    override suspend fun guardarSubtramo(
+        recorridoId: Long?,
+        hecho: SubtramoHecho,
+        inicioEpochMs: Long,
+    ) = Unit
+
+    override fun observarSubtramosDeRecorrido(recorridoId: Long): Flow<List<SubtramoGuardado>> =
+        MutableStateFlow(emptyList())
+
+    override fun observarSubtramosDeTramo(tramoId: String): Flow<List<SubtramoGuardado>> = MutableStateFlow(emptyList())
 
     override suspend fun tramo(tramoId: String): Tramo? = tramos[tramoId]
 

@@ -12,6 +12,7 @@ import app.trombito.rallycopilot.data.datosmapa.complementosElegidos
 import app.trombito.rallycopilot.data.db.AjustesMapasDao
 import app.trombito.rallycopilot.data.db.DatosMapaDao
 import app.trombito.rallycopilot.data.db.RallyDatabase
+import app.trombito.rallycopilot.data.db.SubtramosDao
 import app.trombito.rallycopilot.data.db.TODAS_LAS_MIGRACIONES
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
@@ -42,6 +43,9 @@ object DatosMapaModule {
 
     @Provides
     fun datosMapaDao(base: RallyDatabase): DatosMapaDao = base.datosMapaDao()
+
+    @Provides
+    fun subtramosDao(base: RallyDatabase): SubtramosDao = base.subtramosDao()
 
     @Provides
     fun ajustesMapasDao(base: RallyDatabase): AjustesMapasDao = base.ajustesMapasDao()
