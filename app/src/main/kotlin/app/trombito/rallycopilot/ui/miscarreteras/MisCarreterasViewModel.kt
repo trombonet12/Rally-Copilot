@@ -3,8 +3,8 @@ package app.trombito.rallycopilot.ui.miscarreteras
 import android.database.sqlite.SQLiteException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.trombito.rallycopilot.data.carreteras.CalculadorCarreteras
-import app.trombito.rallycopilot.data.carreteras.MisCarreteras
+import app.trombito.rallycopilot.domain.carreteras.CalculoCarreteras
+import app.trombito.rallycopilot.domain.carreteras.MisCarreteras
 import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,14 +16,14 @@ import java.io.IOException
 import javax.inject.Inject
 
 /**
- * «Mis carreteras»: empieza cargando y, cuando [CalculadorCarreteras] termina (en segundo plano), enseña el resumen. Si
+ * «Mis carreteras»: empieza cargando y, cuando [CalculoCarreteras] termina (en segundo plano), enseña el resumen. Si
  * la base de datos o los puntos fallan, pasa a estado de error en vez de cerrar la app.
  */
 @HiltViewModel
 class MisCarreterasViewModel
     @Inject
     constructor(
-        calculador: CalculadorCarreteras,
+        calculador: CalculoCarreteras,
     ) : ViewModel() {
         val uiState: StateFlow<MisCarreterasUiState> =
             calculador

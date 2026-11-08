@@ -3,6 +3,8 @@ package app.trombito.rallycopilot.ui.ajustes
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -30,10 +32,11 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import app.trombito.rallycopilot.R
-import app.trombito.rallycopilot.data.audio.PermisoBluetooth
+import app.trombito.rallycopilot.domain.audio.PermisoIntercom
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.mapa.abrirAjustesDeLaApp
 import app.trombito.rallycopilot.ui.theme.Ayuda
@@ -60,7 +63,7 @@ internal enum class EstadoIntercom {
  */
 @Composable
 internal fun ControlIntercom() {
-    if (!PermisoBluetooth.hayQuePedir()) return
+    if (!PermisoIntercom.hayQuePedir(Build.VERSION.SDK_INT)) return
     val contexto = LocalContext.current
     var revision by remember { mutableIntStateOf(0) }
     var bloqueado by remember { mutableStateOf(false) }
@@ -74,7 +77,7 @@ internal fun ControlIntercom() {
     // `revision` fuerza la relectura del sistema tras pedir o volver de los ajustes.
     val estado =
         when {
-            revision >= 0 && PermisoBluetooth.concedido(contexto) -> EstadoIntercom.CONCEDIDO
+            revision >= 0 && contexto.permisoConcedido() -> EstadoIntercom.CONCEDIDO
             bloqueado -> EstadoIntercom.BLOQUEADO
             else -> EstadoIntercom.SIN_PERMISO
         }
@@ -155,7 +158,10 @@ internal fun FilaIntercom(
     }
 }
 
-private const val PERMISO = PermisoBluetooth.PERMISO
+private const val PERMISO = PermisoIntercom.PERMISO
+
+private fun Context.permisoConcedido(): Boolean =
+    ContextCompat.checkSelfPermission(this, PERMISO) == PackageManager.PERMISSION_GRANTED
 
 private fun Context.buscarActividad(): Activity? {
     var actual: Context? = this

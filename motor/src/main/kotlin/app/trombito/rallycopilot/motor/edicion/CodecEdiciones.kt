@@ -43,8 +43,11 @@ object CodecEdiciones {
     fun nota(accion: AccionEdicion): String? =
         when (accion) {
             is AccionEdicion.Sustituir -> codificarNota(accion.nota)
+
             is AccionEdicion.Anadir -> codificarNota(accion.nota)
+
             is AccionEdicion.AnadirAviso -> accion.tipo.name
+
             AccionEdicion.Quitar,
             AccionEdicion.Cuidado,
             AccionEdicion.Fusionar,
@@ -59,18 +62,43 @@ object CodecEdiciones {
         nota: String?,
     ): AccionEdicion? =
         when (tipo) {
-            QUITAR -> AccionEdicion.Quitar
-            CUIDADO -> AccionEdicion.Cuidado
-            FUSIONAR -> AccionEdicion.Fusionar
-            DIVIDIR -> AccionEdicion.Dividir
-            QUITAR_AVISO -> AccionEdicion.QuitarAviso
-            ANADIR_AVISO ->
+            QUITAR -> {
+                AccionEdicion.Quitar
+            }
+
+            CUIDADO -> {
+                AccionEdicion.Cuidado
+            }
+
+            FUSIONAR -> {
+                AccionEdicion.Fusionar
+            }
+
+            DIVIDIR -> {
+                AccionEdicion.Dividir
+            }
+
+            QUITAR_AVISO -> {
+                AccionEdicion.QuitarAviso
+            }
+
+            ANADIR_AVISO -> {
                 TipoAviso.entries
                     .firstOrNull { it.name == nota }
                     ?.let { AccionEdicion.AnadirAviso(it) }
-            SUSTITUIR -> nota?.let(::decodificarNota)?.let { AccionEdicion.Sustituir(it) }
-            ANADIR -> nota?.let(::decodificarNota)?.let { AccionEdicion.Anadir(it) }
-            else -> null
+            }
+
+            SUSTITUIR -> {
+                nota?.let(::decodificarNota)?.let { AccionEdicion.Sustituir(it) }
+            }
+
+            ANADIR -> {
+                nota?.let(::decodificarNota)?.let { AccionEdicion.Anadir(it) }
+            }
+
+            else -> {
+                null
+            }
         }
 
     fun codificarNota(nota: Nota): String {

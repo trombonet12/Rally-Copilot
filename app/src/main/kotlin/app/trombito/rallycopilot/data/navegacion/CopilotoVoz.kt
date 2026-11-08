@@ -185,9 +185,9 @@ class CopilotoVoz(
         val visibles = visibles(notas, a, v)
         val maniobras = maniobras(ruta, posicionM, v, a)
         val pendientes = pendientesVigentes().filterNot { enPausa && it.tipo == TipoFrase.NOTA }
-        val activas = llamadasActivas(notas, visibles, a, idDe, enPausa, v) + maniobras + habladas + pendientes
-        val llamadasPrevistas =
-            llamadas(notas, visibles.map { it.copy(activa = true) }, a, idDe, conEspera = false, vMs = v)
+        val contexto = ContextoLlamadas(notas, a, idDe, v)
+        val activas = llamadasActivas(contexto, visibles, enPausa) + maniobras + habladas + pendientes
+        val llamadasPrevistas = llamadas(contexto, visibles.map { it.copy(activa = true) }, conEspera = false)
         val previstas = llamadasPrevistas.map { it.frase } + maniobras + inminentesPrevistos(ruta, posicionM, a)
         if (!locutor.hablando.value) decirSiguiente(activas, previstas, posicionM, vMs, a)
         preparar(previstas, posicionM, a)
@@ -195,14 +195,11 @@ class CopilotoVoz(
 
     /** Frases de las llamadas que ya se pueden cantar (ninguna en pausa); recuerda la entrada de cada una. */
     private fun llamadasActivas(
-        notas: NotasEnCurso?,
+        contexto: ContextoLlamadas,
         visibles: List<NotaVisible>,
-        a: AjustesConduccion,
-        idDe: (ElementoHoja) -> String,
         enPausa: Boolean,
-        vMs: Double,
     ): List<Frase> {
-        val llamadas = if (enPausa) emptyList() else llamadas(notas, visibles, a, idDe, conEspera = true, vMs = vMs)
+        val llamadas = if (enPausa) emptyList() else llamadas(contexto, visibles, conEspera = true)
         llamadas.forEach { entradas[it.frase.id] = it.entradaM }
         return llamadas.map { it.frase }
     }
@@ -306,13 +303,12 @@ class CopilotoVoz(
 
     /** Llamadas de notas de [visibles] (con la espera a la entrada de la ultima cantada si [conEspera]). */
     private fun llamadas(
-        notas: NotasEnCurso?,
+        contexto: ContextoLlamadas,
         visibles: List<NotaVisible>,
-        a: AjustesConduccion,
-        idDe: (ElementoHoja) -> String,
         conEspera: Boolean,
-        vMs: Double,
     ): List<LlamadaNota> {
+        val notas = contexto.notas
+        val a = contexto.ajustes
         if (notas == null || visibles.isEmpty()) return emptyList()
         val hoja = hojaFiltrada.de(notas.hoja, a.filtroIndicaciones)
         val estado =
@@ -320,10 +316,10 @@ class CopilotoVoz(
                 notas.posicionM,
                 a.notasSimplificadas,
                 if (conEspera) ultimaCantadaHastaM else null,
-                vMs,
+                contexto.vMs,
                 a.anticipacion,
             )
-        return LlamadasNotas.de(hoja, visibles, estado, idDe)
+        return LlamadasNotas.de(hoja, visibles, estado, contexto.idDe)
     }
 
     /** Pasa al locutor la voz, el volumen y la velocidad de habla de los ajustes cuando cambian. */
@@ -513,6 +509,14 @@ class CopilotoVoz(
         val FASES_MANIOBRA = listOf("preaviso", "inminente")
     }
 }
+
+/** Lo que necesita el cálculo de llamadas de notas en un ciclo: notas en curso, ajustes, ids de la hoja y velocidad. */
+private data class ContextoLlamadas(
+    val notas: NotasEnCurso?,
+    val ajustes: AjustesConduccion,
+    val idDe: (ElementoHoja) -> String,
+    val vMs: Double,
+)
 
 private class FrasePorDecir(
     val frase: Frase,

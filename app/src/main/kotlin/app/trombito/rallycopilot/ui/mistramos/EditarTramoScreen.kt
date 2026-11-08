@@ -251,7 +251,10 @@ private fun ContenidoEdicion(
                 centrado = centrado,
             )
         }
-    val avisos = datos.hoja.elementos.filterIsInstance<ElementoHoja.DeAviso>().map { it.aviso }
+    val avisos =
+        datos.hoja.elementos
+            .filterIsInstance<ElementoHoja.DeAviso>()
+            .map { it.aviso }
     val vista = VistaEdicion(notas, avisos, marcadores, escena)
     val gestos = gestosDelMapa(vista, seleccion, acciones)
     BoxWithConstraints(Modifier.fillMaxSize()) {

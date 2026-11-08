@@ -34,7 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import app.trombito.rallycopilot.R
-import app.trombito.rallycopilot.data.audio.PermisoBluetooth
+import app.trombito.rallycopilot.domain.audio.PermisoIntercom
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.mapa.abrirAjustesDeLaApp
@@ -83,7 +83,7 @@ enum class TipoPermiso(
     companion object {
         /** Los permisos que la bienvenida pide en esa versión de Android: el del intercom solo existe desde la 12. */
         fun aplicables(sdk: Int = Build.VERSION.SDK_INT): List<TipoPermiso> =
-            entries.filter { it != INTERCOM || PermisoBluetooth.hayQuePedir(sdk) }
+            entries.filter { it != INTERCOM || PermisoIntercom.hayQuePedir(sdk) }
     }
 }
 
@@ -150,7 +150,7 @@ private fun TipoPermiso.permisosDeAndroid(): Array<String> =
         }
 
         TipoPermiso.INTERCOM -> {
-            if (PermisoBluetooth.hayQuePedir()) arrayOf(PermisoBluetooth.PERMISO) else emptyArray()
+            if (PermisoIntercom.hayQuePedir(Build.VERSION.SDK_INT)) arrayOf(PermisoIntercom.PERMISO) else emptyArray()
         }
     }
 

@@ -4,9 +4,10 @@ import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.vias.DatosVias
 import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.di.DispatcherDefault
+import app.trombito.rallycopilot.domain.carreteras.CalculoCarreteras
+import app.trombito.rallycopilot.domain.carreteras.MisCarreteras
 import app.trombito.rallycopilot.motor.analisis.AgregadoCarreteras
 import app.trombito.rallycopilot.motor.analisis.AnalisisRecorrido
-import app.trombito.rallycopilot.motor.analisis.ResumenCarreteras
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -18,12 +19,6 @@ import kotlinx.coroutines.flow.mapLatest
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
-
-/** Lo que enseña «Mis carreteras»: el [resumen] y si había vías de OSM para asignar los recorridos ([hayVias]). */
-data class MisCarreteras(
-    val resumen: ResumenCarreteras,
-    val hayVias: Boolean,
-)
 
 /**
  * Estadísticas de «Mis carreteras»: lee los recorridos terminados y sus puntos, los asigna a las vías de OSM y suma
@@ -38,7 +33,7 @@ class CalculadorCarreteras
         private val recorridos: RepositorioRecorridos,
         private val vias: FuenteVias,
         @DispatcherDefault private val dispatcher: CoroutineDispatcher,
-    ) {
+    ) : CalculoCarreteras {
         private val cache = ConcurrentHashMap<Long, AnalisisRecorrido>()
 
         @Volatile
@@ -46,7 +41,7 @@ class CalculadorCarreteras
 
         /** Emite el resumen al empezar y cada vez que cambia la lista de recorridos terminados. */
         @OptIn(ExperimentalCoroutinesApi::class)
-        fun observar(): Flow<MisCarreteras> =
+        override fun observar(): Flow<MisCarreteras> =
             recorridos
                 .listar()
                 .mapLatest { lista -> calcular(lista.map { it.id }) }

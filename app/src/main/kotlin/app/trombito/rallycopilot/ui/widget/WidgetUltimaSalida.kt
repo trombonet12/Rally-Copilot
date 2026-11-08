@@ -12,14 +12,15 @@ import android.view.View
 import android.widget.RemoteViews
 import app.trombito.rallycopilot.MainActivity
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.ui.comun.FormatoEs
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
@@ -99,6 +100,9 @@ class WidgetUltimaSalida : AppWidgetProvider() {
     @InstallIn(SingletonComponent::class)
     interface Acceso {
         fun repositorioTramos(): RepositorioTramos
+
+        @DispatcherIo
+        fun dispatcherIo(): CoroutineDispatcher
     }
 
     override fun onUpdate(
@@ -106,10 +110,10 @@ class WidgetUltimaSalida : AppWidgetProvider() {
         appWidgetManager: AppWidgetManager,
         appWidgetIds: IntArray,
     ) {
-        val repositorio =
-            EntryPointAccessors.fromApplication(context.applicationContext, Acceso::class.java).repositorioTramos()
+        val acceso = EntryPointAccessors.fromApplication(context.applicationContext, Acceso::class.java)
+        val repositorio = acceso.repositorioTramos()
         val pendiente = goAsync()
-        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+        CoroutineScope(SupervisorJob() + acceso.dispatcherIo()).launch {
             try {
                 val vistas = construirVistas(context, contenidoWidget(repositorio))
                 appWidgetIds.forEach { appWidgetManager.updateAppWidget(it, vistas) }

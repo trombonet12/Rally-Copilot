@@ -209,9 +209,9 @@ class EditarTramoScreenTest {
         poner(estado(tramoEditable = conAvisos))
         assertTrue("AVISOS (1)" in banco.todosLosTextos())
         val fila = banco.conEtiqueta(ETIQUETA_EDITAR_AVISO + "500")
-        assertTrue("Cuidado badén" in banco.textos(fila))
+        assertTrue("Cuidado, badén" in banco.textos(fila))
         val quitar = banco.conEtiqueta(ETIQUETA_EDITAR_AVISO_QUITAR + "500")
-        val descripcion = "Quitar el aviso «Cuidado badén», ${formatearKmDesdeM(500.0)}"
+        val descripcion = "Quitar el aviso «Cuidado, badén», ${formatearKmDesdeM(500.0)}"
         assertTrue(banco.nodos().any { banco.descripcion(it) == descripcion })
 
         banco.pulsar(quitar)
