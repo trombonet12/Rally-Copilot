@@ -117,6 +117,12 @@ data class PreferenciasVistaMapa(
     val reservaPuntoPx: Int = 0,
     /** Bocadillo de lo que se acerca o se acaba de pasar, anclado a su marcador; null = ninguno. */
     val bocadillo: BocadilloMapa? = null,
+    /**
+     * Alto (px, desde abajo) de la zona de conducción de la pantalla (píldora y botones con lo que llevan encima) ya
+     * estable; el coche se coloca por encima. 0 = sin medir: altura de siempre. Lo rellena [VistaMapa] desde
+     * [LocalZonaInferior].
+     */
+    val zonaInferiorPx: Int = 0,
 )
 
 /**
@@ -192,7 +198,9 @@ fun VistaMapa(
     }
     LaunchedEffect(controlador, estiloJson) { controlador.cambiarEstilo(estiloJson) }
     // Posición y preferencias van juntas: una fijación nueva cancela la animación de zoom, que se pide después.
-    LaunchedEffect(controlador, posicion, preferencias) { controlador.actualizar(posicion, preferencias) }
+    val zonaInferiorPx = LocalZonaInferior.current?.establePx?.intValue
+    val efectivas = if (zonaInferiorPx == null) preferencias else preferencias.copy(zonaInferiorPx = zonaInferiorPx)
+    LaunchedEffect(controlador, posicion, efectivas) { controlador.actualizar(posicion, efectivas) }
 
     val descripcion = stringResource(R.string.mapa_vista_descripcion)
     AndroidView(factory = { vista }, modifier = modifier.semantics { contentDescription = descripcion })
@@ -365,7 +373,7 @@ private class ControladorMapa(
             vista.addOnLayoutChangeListener { _, izq, arr, der, aba, oIzq, oArr, oDer, oAba ->
                 val cambio = (der - izq) != (oDer - oIzq) || (aba - arr) != (oAba - oArr)
                 if (cambio && ubicacionActivada && preferencias.siguiendo) {
-                    m.locationComponent.rellenarSeguimiento(vista.width, vista.height, 0L)
+                    m.locationComponent.rellenarSeguimiento(relleno(), 0L)
                 }
             }
             estiloPedido?.let(::aplicarEstilo)
@@ -404,11 +412,27 @@ private class ControladorMapa(
             componente.applyStyle(opcionesUbicacion(vista.context, nuevas.icono))
         }
         val cambioCamara = nuevas.siguiendo != previas.siguiendo || nuevas.orientacion != previas.orientacion
-        if (componente != null && cambioCamara) fijarCamara(componente)
+        if (componente != null && cambioCamara) {
+            fijarCamara(componente)
+        } else if (componente != null) {
+            moverCocheConLaZona(componente, previas, nuevas)
+        }
         asegurarUbicacion()
         // Después de la posición: una fijación nueva cancela la animación de zoom en curso.
         if (ubicacionActivada && nuevas.siguiendo) {
             mapa?.locationComponent?.let { zoom.aplicar(it, nuevas.zoomObjetivo) }
+        }
+    }
+
+    /** La zona de abajo cambió con la cámara ya siguiendo: el coche sube o baja con el relleno animado. */
+    private fun moverCocheConLaZona(
+        componente: LocationComponent,
+        previas: PreferenciasVistaMapa,
+        nuevas: PreferenciasVistaMapa,
+    ) {
+        val cambio = nuevas.siguiendo && nuevas.zonaInferiorPx != previas.zonaInferiorPx
+        if (cambio && componente.cameraMode != CameraMode.NONE) {
+            componente.rellenarSeguimiento(relleno(), DURACION_RELLENO_ZONA_MS)
         }
     }
 
@@ -537,6 +561,13 @@ private class ControladorMapa(
         guardarCamara = true
     }
 
+    /** Relleno superior del seguimiento: el coche sobre la zona inferior de la pantalla (ver [fraccionMarcador]). */
+    private fun relleno(): Double {
+        val densidad = vista.resources.displayMetrics.density
+        val fraccion = fraccionMarcador(vista.width, vista.height, preferencias.zonaInferiorPx, densidad)
+        return rellenoSuperiorSeguimiento(vista.width, vista.height, fraccion).toDouble()
+    }
+
     private fun fijarCamara(componente: LocationComponent) {
         descarte.aplicando {
             if (preferencias.siguiendo) {
@@ -552,7 +583,7 @@ private class ControladorMapa(
                 // Se pasa antes por NONE: pedir TRACKING_GPS desde TRACKING (o al revés) no aplica la inclinación ni
                 // el rumbo de la transición y el mapa se quedaba plano; desde NONE (recentrar, primera fijación) sí.
                 // El descarte que avisa MapLibre al pasar por NONE lo provoca la app (ver [DescarteSeguimiento]).
-                val arriba = rellenoSuperiorSeguimiento(vista.width, vista.height).toDouble()
+                val arriba = relleno()
                 componente.cameraMode = CameraMode.NONE
                 mapa?.moveCamera(CameraUpdateFactory.paddingTo(0.0, arriba, 0.0, 0.0))
                 componente.setCameraMode(
@@ -563,7 +594,7 @@ private class ControladorMapa(
                     inclinacionSeguimiento(preferencias.orientacion),
                     null,
                 )
-                componente.rellenarSeguimiento(vista.width, vista.height, 0L)
+                componente.rellenarSeguimiento(arriba, 0L)
                 zoom.yaAplicado(destino)
             } else {
                 // Al dejar de seguir no se fuerza nada: el relleno y la inclinación se quedan como estaban.
@@ -579,11 +610,10 @@ private class ControladorMapa(
  * de seguimiento y el mapa dejaría de seguir.
  */
 private fun LocationComponent.rellenarSeguimiento(
-    ancho: Int,
-    alto: Int,
+    relleno: Double,
     duracionMs: Long,
 ) {
-    paddingWhileTracking(doubleArrayOf(0.0, rellenoSuperiorSeguimiento(ancho, alto).toDouble(), 0.0, 0.0), duracionMs)
+    paddingWhileTracking(doubleArrayOf(0.0, relleno, 0.0, 0.0), duracionMs)
 }
 
 /** Muestra u oculta el relieve y las curvas de nivel; las capas que el estilo no tenga se ignoran. */

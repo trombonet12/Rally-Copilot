@@ -43,10 +43,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -91,6 +94,7 @@ import app.trombito.rallycopilot.ui.navegacion.notas.CarreteNotas
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.TextoSobreCarbon
 import app.trombito.rallycopilot.ui.tramos.CronoSuperior
+import kotlin.math.roundToInt
 
 const val ETIQUETA_CARGANDO = "mapa-cargando"
 const val ETIQUETA_IR_A_CASA = "mapa-ir-a-casa"
@@ -189,7 +193,12 @@ fun MapaScreen(
         }
     val zona = ZonaMapaContenido(estado, vista, acciones, navegacion, menu, copiloto, alertas, crono, botones)
     val tactilesVisibles = !rapido || copiloto.estado.notasGrandes
-    CompositionLocalProvider(LocalSinSenalGps provides estado.sinSenalGps) {
+    // El mapa coloca el coche por encima de la zona inferior; la medida baja solo si se mantiene (ver [sinRebotes]).
+    val zonaInferior = remember { ZonaInferiorMedida() }
+    LaunchedEffect(zonaInferior) {
+        snapshotFlow { zonaInferior.medidaPx.intValue }.sinRebotes().collect { zonaInferior.establePx.intValue = it }
+    }
+    CompositionLocalProvider(LocalSinSenalGps provides estado.sinSenalGps, LocalZonaInferior provides zonaInferior) {
         BoxWithConstraints(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             val horizontal = maxWidth > maxHeight
             ZonaMapa(zona.orientada(horizontal, tactilesVisibles), mapa, Modifier.fillMaxSize())
@@ -408,10 +417,12 @@ private fun BoxScope.ZonaInferior(
             GrupoDerecho(contenido, Modifier.navigationBarsPadding().padding(end = Espacio.s, bottom = Espacio.s))
         }
     } else {
-        Column(Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(laterales)) {
+        val medida = medidorZonaInferior()
+        val columna = Modifier.align(Alignment.BottomCenter).fillMaxWidth().windowInsetsPadding(laterales)
+        Column(columna.then(medida.fondo)) {
             Column(Modifier.padding(horizontal = Espacio.s), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
                 avisos()
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                Row(Modifier.fillMaxWidth().then(medida.fila), verticalAlignment = Alignment.Bottom) {
                     Box(Modifier.weight(1f)) { pildora() }
                     GrupoDerecho(contenido, Modifier)
                 }
@@ -803,4 +814,40 @@ private fun TarjetaPermiso(
             }
         }
     }
+}
+
+/**
+ * Mide el alto de la zona inferior de conducción desde el borde inferior del mapa: la fila de la píldora (con la
+ * burbuja de escucha, la media y la flecha de exceso, que van dentro de ella) y los botones, más todo lo que tiene
+ * debajo. Los avisos de encima salen un momento y no cuentan: harían saltar la cámara. [fondo] va en la columna
+ * entera, pegada abajo, y [fila] en la fila.
+ */
+private class MedidorZonaInferior(
+    private val zona: ZonaInferiorMedida?,
+) {
+    private var fondoPx = 0f
+    private var arribaPx = 0f
+
+    val fondo: Modifier =
+        Modifier.onGloballyPositioned {
+            fondoPx = it.positionInRoot().y + it.size.height
+            publicar()
+        }
+
+    val fila: Modifier =
+        Modifier.onGloballyPositioned {
+            arribaPx = it.positionInRoot().y
+            publicar()
+        }
+
+    private fun publicar() {
+        val alto = (fondoPx - arribaPx).roundToInt()
+        if (fondoPx > 0f && arribaPx > 0f) zona?.medidaPx?.intValue = alto.coerceAtLeast(0)
+    }
+}
+
+@Composable
+private fun medidorZonaInferior(): MedidorZonaInferior {
+    val zona = LocalZonaInferior.current
+    return remember(zona) { MedidorZonaInferior(zona) }
 }
