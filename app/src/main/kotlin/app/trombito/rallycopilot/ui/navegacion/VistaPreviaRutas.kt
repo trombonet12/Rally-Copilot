@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
@@ -298,7 +299,9 @@ private fun TextoCurvas(curvasM: Double) {
         text = textoCurvas(curvasM),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
+        // En dos líneas si no cabe: en una se cortaba («10,9 km de…») en móviles de 412 dp con los tres chips.
+        maxLines = 2,
+        textAlign = TextAlign.Center,
     )
 }
 
