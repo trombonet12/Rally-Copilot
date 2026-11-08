@@ -23,6 +23,7 @@ fun MisTramosRoute(
     viewModel: MisTramosViewModel = hiltViewModel(),
     importacion: ImportarViewModel? = null,
     onDibujar: (() -> Unit)? = null,
+    onMisCarreteras: (() -> Unit)? = null,
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
     val estadoImportacion by (importacion?.estado ?: SIN_IMPORTACION).collectAsStateWithLifecycle()
@@ -50,6 +51,7 @@ fun MisTramosRoute(
                 onFalloVisto = viewModel::onFalloVisto,
                 onImportar = alImportar,
                 onDibujar = onDibujar,
+                onMisCarreteras = onMisCarreteras,
                 onImportacionVista = { importacion?.onVisto() },
                 onConfirmarImportacion = { importacion?.confirmar() },
                 onCancelarImportacion = { importacion?.cancelar() },

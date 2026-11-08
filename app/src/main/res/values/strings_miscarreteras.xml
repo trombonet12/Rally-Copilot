@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Mis carreteras -->
+    <string name="carreteras_titulo">Mis carreteras</string>
+    <string name="carreteras_acceso">Mis carreteras</string>
+    <string name="carreteras_calculando">Calculando tus carreteras…</string>
+    <string name="carreteras_vacio_titulo">Aún no has conducido ninguna carretera</string>
+    <string name="carreteras_vacio_texto">Cuando termines tu primer recorrido de más de 1 km, aquí verás el mapa de las carreteras que más conduces y tus curvas.</string>
+    <string name="carreteras_error_titulo">No se han podido leer tus recorridos</string>
+    <string name="carreteras_error_texto">Cierra la pantalla y vuelve a abrirla. Si sigue igual, reinicia la app.</string>
+    <string name="carreteras_mapa_descripcion">Mapa de tus carreteras: cuantas más veces has pasado por una, más roja se dibuja.</string>
+    <string name="carreteras_mapa_sin_vias">Faltan los datos de carreteras de Mallorca. Descárgalos con la actualización de datos para ver el mapa.</string>
+    <string name="carreteras_mapa_sin_coincidencias">Tus recorridos no coinciden con ninguna carretera conocida.</string>
+    <string name="carreteras_leyenda_titulo">Veces</string>
+    <string name="carreteras_leyenda_una">1</string>
+    <string name="carreteras_leyenda_pocas">2–4</string>
+    <string name="carreteras_leyenda_varias">5–9</string>
+    <string name="carreteras_leyenda_muchas">10 o más</string>
+    <string name="carreteras_distancia_titulo">Distancia total</string>
+    <string name="carreteras_recorridos_titulo">Recorridos</string>
+    <string name="carreteras_curvas_titulo">Curvas por grado</string>
+    <plurals name="carreteras_curvas_total">
+        <item quantity="one">%1$d curva en total</item>
+        <item quantity="other">%1$d curvas en total</item>
+    </plurals>
+    <string name="carreteras_grado">Grado %1$d</string>
+    <string name="carreteras_escuadra">Escuadra</string>
+    <string name="carreteras_horquilla">Horquilla</string>
+    <plurals name="carreteras_curvas_cuenta">
+        <item quantity="one">%1$d curva</item>
+        <item quantity="other">%1$d curvas</item>
+    </plurals>
+    <string name="carreteras_curvas_fila">%1$s: %2$s</string>
+    <string name="carreteras_mas_curvas_titulo">Carreteras con más curvas</string>
+    <string name="carreteras_mas_curvas_vacio">Todavía no hay curvas en tus recorridos.</string>
+    <plurals name="carreteras_pasadas">
+        <item quantity="one">%1$d vez</item>
+        <item quantity="other">%1$d veces</item>
+    </plurals>
+    <string name="carreteras_fila_medidas">%1$s · %2$s</string>
+</resources>

@@ -33,6 +33,7 @@ import app.trombito.rallycopilot.ui.inicio.InicioRoute
 import app.trombito.rallycopilot.ui.mapa.MapaRoute
 import app.trombito.rallycopilot.ui.mapasoffline.MapasOfflineRoute
 import app.trombito.rallycopilot.ui.mapasoffline.ZonaDetalleRoute
+import app.trombito.rallycopilot.ui.miscarreteras.MisCarreterasRoute
 import app.trombito.rallycopilot.ui.mistramos.DetalleTramoRoute
 import app.trombito.rallycopilot.ui.mistramos.DibujarRoute
 import app.trombito.rallycopilot.ui.mistramos.EditarTramoRoute
@@ -116,8 +117,10 @@ private fun NavGraphBuilder.destinos(
             onAbrirTramo = { nav.navigate(RutaTramo(it)) },
             importacion = importacion,
             onDibujar = { nav.navigate(RutaDibujar) },
+            onMisCarreteras = { nav.navigate(RutaMisCarreteras) },
         )
     }
+    composable<RutaMisCarreteras> { MisCarreterasRoute(onVolver = { nav.popBackStack() }) }
     composable<RutaDibujar> {
         DibujarRoute(
             onVolver = { nav.popBackStack() },

@@ -43,6 +43,10 @@ data object RutaAcercaDe
 @Serializable
 data object RutaMisTramos
 
+/** «Mis carreteras»: mapa de calor de las vías conducidas y estadísticas. */
+@Serializable
+data object RutaMisCarreteras
+
 /** Mapa en modo dibujo: tocar puntos y guardar la ruta como tramo. */
 @Serializable
 data object RutaDibujar

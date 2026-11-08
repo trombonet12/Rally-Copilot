@@ -51,6 +51,7 @@ const val ETIQUETA_TRAMOS_CARGANDO = "tramos-cargando"
 const val ETIQUETA_TRAMOS_VACIO = "tramos-vacio"
 const val ETIQUETA_TRAMOS_IMPORTAR = "tramos-importar"
 const val ETIQUETA_TRAMOS_DIBUJAR = "tramos-dibujar"
+const val ETIQUETA_TRAMOS_CARRETERAS = "tramos-carreteras"
 const val ETIQUETA_TRAMOS_IMPORTANDO = "tramos-importando"
 const val ETIQUETA_FILTRO_PREFIJO = "tramos-filtro-"
 
@@ -71,6 +72,8 @@ data class AccionesMisTramos(
     val onImportar: (() -> Unit)? = null,
     /** Abre el mapa en modo dibujo; null = sin botón. */
     val onDibujar: (() -> Unit)? = null,
+    /** Abre «Mis carreteras»; null = sin icono (p. ej. al elegir tramo a reconocer). */
+    val onMisCarreteras: (() -> Unit)? = null,
     val onImportacionVista: () -> Unit = {},
     /** El usuario confirma importar el archivo que llegó de otra app. */
     val onConfirmarImportacion: () -> Unit = {},
@@ -96,6 +99,7 @@ fun MisTramosScreen(
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
         Column(Modifier.fillMaxSize()) {
             BarraSuperior(titulo = stringResource(titulo), onVolver = acciones.onVolver) {
+                BotonMisCarreteras(acciones.onMisCarreteras)
                 BotonesCrear(acciones)
             }
             if (importacion == EstadoImportacion.Importando) {
@@ -113,6 +117,15 @@ fun MisTramosScreen(
     estado.renombrando?.let { DialogoRenombrarTramo(it, acciones.onRenombrar, acciones.onCancelarRenombrar) }
     if (importacion is EstadoImportacion.Pendiente) {
         DialogoConfirmarImportacion(importacion, acciones.onConfirmarImportacion, acciones.onCancelarImportacion)
+    }
+}
+
+/** Icono de la barra que abre «Mis carreteras» (solo si la pantalla lo ofrece). */
+@Composable
+private fun BotonMisCarreteras(onClick: (() -> Unit)?) {
+    if (onClick == null) return
+    IconButton(onClick = onClick, modifier = Modifier.size(48.dp).testTag(ETIQUETA_TRAMOS_CARRETERAS)) {
+        Icon(Iconos.Curvas, stringResource(R.string.carreteras_acceso), tint = MaterialTheme.colorScheme.onSurface)
     }
 }
 
