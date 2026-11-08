@@ -256,13 +256,19 @@ class ControlNavegacionImpl
         /** True solo la primera vez por proceso: los recorridos huérfanos solo pueden venir de un proceso anterior. */
         internal fun reclamarCierreDeHuerfanos(): Boolean = huerfanosReclamados.compareAndSet(false, true)
 
-        /** Publica solo si [id] sigue siendo la sesión vigente: tras [terminar] o una sesión nueva se ignora. */
+        /**
+         * Publica solo si [id] sigue siendo la sesión vigente: tras [terminar] o una sesión nueva se ignora. Publicar
+         * [EstadoNavegacion.Inactiva] (el servicio se destruye) cierra la sesión: su corrutina corre en otro hilo y aún
+         * puede publicar una posición que ya estaba en marcha al cancelarla, y ese Libre rezagado no debe pisar a
+         * Inactiva.
+         */
         internal fun publicar(
             id: Long,
             nuevo: EstadoNavegacion,
         ) {
             synchronized(cerrojo) {
                 if (id == vigente) {
+                    if (nuevo is EstadoNavegacion.Inactiva) vigente = SIN_SESION
                     // El trip lo lleva el control: la sesión publica el total y aquí se le resta el último reinicio.
                     _estado.value =
                         if (nuevo is EstadoNavegacion.Libre) {

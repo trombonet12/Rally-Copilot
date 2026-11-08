@@ -70,6 +70,18 @@ class ControlNavegacionImplTest {
     }
 
     @Test
+    fun `una sesion cerrada con Inactiva no puede volver a publicar un Libre rezagado`() {
+        control.empezarLibre()
+        val id = checkNotNull(control.tomarSolicitud()).id
+
+        // Lo que hace el servicio al destruirse; la sesión, en otro hilo, aún puede publicar su siguiente posición.
+        control.publicar(id, EstadoNavegacion.Inactiva)
+        control.publicar(id, EstadoNavegacion.Libre(0L, 10.0))
+
+        assertEquals(EstadoNavegacion.Inactiva, control.estado.value)
+    }
+
+    @Test
     fun `el inicio de la conduccion libre y del reconocimiento sale del reloj inyectado`() {
         var ahora = 1_234_567L
         val conReloj = ControlNavegacionImpl(app, fuente, guiadoPendiente, alcance, reloj = { ahora })
