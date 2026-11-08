@@ -263,7 +263,8 @@ class SesionNavegacion(
                         vigentes?.posicionM,
                         vigentes?.takeIf { it.origen == OrigenNotas.LIBRE }?.traza,
                     ).orEmpty()
-            copiloto?.alFijar(vigentes, guia?.rutaVoz, progresoM, fijacion.velocidadMs, frases)
+            val calidad = CalidadPosicion(fijacion.precisionM, guia?.progreso?.distanciaALaRutaM, fijacion.tiempoMs)
+            copiloto?.alFijar(vigentes, guia?.rutaVoz, progresoM, fijacion.velocidadMs, frases, calidad)
         }
 
         private fun vigilarSalida(

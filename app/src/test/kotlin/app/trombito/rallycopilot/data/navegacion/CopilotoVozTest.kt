@@ -872,3 +872,147 @@ class CopilotoVozIndicacionesTest {
         assertEquals(todo - avisoRotonda - maniobraRotonda, locutor.dichas.toSet())
     }
 }
+
+/** Llamadas encadenadas, espera, confianza de posición (pausa, re-sincronización, relectura) y simplificado. */
+class CopilotoVozLlamadasTest {
+    private fun nota(
+        posicionM: Double,
+        direccion: Direccion = Direccion.IZQUIERDA,
+        grado: Int = 3,
+        unida: Boolean = false,
+    ) = ElementoHoja.DeNota(Nota(posicionM, posicionM + 20.0, direccion, grado = grado, unidaConSiguiente = unida))
+
+    private fun enCurso(
+        elementos: List<ElementoHoja>,
+        posicionM: Double,
+    ) = NotasEnCurso(HojaNotas(elementos), posicionM, 20.0, OrigenNotas.GUIADO)
+
+    private fun copiloto(
+        locutor: LocutorFalso,
+        ajustes: AjustesConduccion = AjustesConduccion(modoCopiloto = ModoCopiloto.NOTAS, voz = VozCopiloto.DAVEFX),
+    ) = CopilotoVoz(locutor, flowOf(ajustes)).also { runBlocking { it.seguirAjustes() } }
+
+    private fun CopilotoVoz.fijar(
+        elementos: List<ElementoHoja>,
+        posicionM: Double,
+        vMs: Double = 20.0,
+        precisionM: Double? = null,
+    ) = alFijar(
+        enCurso(elementos, posicionM).copy(vMs = vMs),
+        null,
+        null,
+        vMs,
+        calidad = precisionM?.let { CalidadPosicion(it, null, ++tiempoMs * 1_000L) },
+    )
+
+    private var tiempoMs = 0L
+
+    @Test
+    fun `una cadena se canta en una sola frase y sus notas no se repiten`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor)
+        val hoja = listOf(nota(400.0, unida = true), nota(440.0, Direccion.DERECHA, grado = 4))
+
+        listOf(300.0, 301.0, 330.0, 360.0).forEach { copiloto.fijar(hoja, it) }
+
+        assertEquals(listOf("izquierda tres y derecha cuatro"), locutor.dichas)
+    }
+
+    @Test
+    fun `la siguiente llamada espera a entrar en la ultima nota de la anterior`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor)
+        val hoja = listOf(nota(400.0), nota(480.0, Direccion.DERECHA, grado = 4))
+
+        copiloto.fijar(hoja, 300.0)
+        assertEquals(listOf("izquierda tres"), locutor.dichas)
+
+        // La derecha ya está activa (a 85 m) pero aún no se ha entrado en la izquierda.
+        copiloto.fijar(hoja, 365.0)
+        copiloto.fijar(hoja, 395.0)
+        assertEquals(listOf("izquierda tres"), locutor.dichas)
+
+        copiloto.fijar(hoja, 405.0)
+        assertEquals(listOf("izquierda tres", "derecha cuatro"), locutor.dichas)
+    }
+
+    @Test
+    fun `con mala precision pausa las notas pero las maniobras siguen`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor)
+        val hoja = HojaNotas(listOf(nota(960.0, Direccion.DERECHA)))
+        val maniobra = Maniobra(TipoManiobra.IZQUIERDA, "izquierda", emptyList(), 0, 0, 100.0, 10.0, null)
+        val salida = Maniobra(TipoManiobra.SALIDA, "salida", emptyList(), 0, 0, 100.0, 10.0, null)
+        val ruta = RutaVoz(AvisosManiobra(listOf(salida, maniobra), listOf(0.0, 1000.0)), listOf(0.0, 1000.0))
+        val mala = CalidadPosicion(precisionM = 80.0, lateralM = null, tMs = 1_000L)
+
+        repeat(
+            3,
+        ) { copiloto.alFijar(NotasEnCurso(hoja, 920.0, 20.0, OrigenNotas.GUIADO), ruta, 920.0, 20.0, calidad = mala) }
+
+        assertEquals(listOf("cruce, izquierda"), locutor.dichas)
+        assertTrue(copiloto.notasEnPausa.value)
+    }
+
+    @Test
+    fun `al recuperar la posicion no canta las notas que quedaron atras y sigue con la siguiente`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor)
+        val hoja = listOf(nota(400.0), nota(700.0, Direccion.DERECHA, grado = 4))
+
+        copiloto.fijar(hoja, 100.0, precisionM = 80.0)
+        assertTrue(copiloto.notasEnPausa.value)
+        // Salta a 650 m (túnel, GPS perdido): tres buenas seguidas para volver.
+        copiloto.fijar(hoja, 650.0, precisionM = 5.0)
+        copiloto.fijar(hoja, 651.0, precisionM = 5.0)
+        assertEquals(emptyList<String>(), locutor.dichas)
+        copiloto.fijar(hoja, 652.0, precisionM = 5.0)
+        repeat(3) { copiloto.fijar(hoja, 653.0 + it, precisionM = 5.0) }
+
+        assertEquals(listOf("derecha cuatro"), locutor.dichas)
+        assertEquals(false, copiloto.notasEnPausa.value)
+    }
+
+    @Test
+    fun `releeria la siguiente nota que se descarto sin sonar, una sola vez`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor)
+        val hoja = listOf(nota(400.0))
+
+        // A 5 m y 20 m/s ya no cabe la frase (1 s): se descarta sin cantarla.
+        copiloto.fijar(hoja, 395.0)
+        assertEquals(emptyList<String>(), locutor.dichas)
+        copiloto.fijar(hoja, 396.0, vMs = 0.0, precisionM = 80.0)
+        repeat(4) { copiloto.fijar(hoja, 396.5, vMs = 0.0, precisionM = 5.0) }
+
+        assertEquals(listOf("izquierda tres"), locutor.dichas)
+    }
+
+    @Test
+    fun `no relee la nota que ya sono antes de la pausa`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor)
+        val hoja = listOf(nota(400.0))
+
+        copiloto.fijar(hoja, 300.0)
+        assertEquals(listOf("izquierda tres"), locutor.dichas)
+        copiloto.fijar(hoja, 330.0, precisionM = 80.0)
+        repeat(4) { copiloto.fijar(hoja, 340.0, precisionM = 5.0) }
+
+        assertEquals(listOf("izquierda tres"), locutor.dichas)
+    }
+
+    @Test
+    fun `el modo simplificado solo canta grados 1 a 3`() {
+        val locutor = LocutorFalso()
+        val suave = nota(400.0, grado = 5)
+        val cerrada = nota(450.0, Direccion.DERECHA, grado = 2)
+        val ajustes =
+            AjustesConduccion(modoCopiloto = ModoCopiloto.NOTAS, voz = VozCopiloto.DAVEFX, notasSimplificadas = true)
+        val copiloto = copiloto(locutor, ajustes)
+
+        listOf(340.0, 341.0, 380.0, 420.0).forEach { copiloto.fijar(listOf(suave, cerrada), it) }
+
+        assertEquals(listOf(cerrada.frase(true)), locutor.dichas)
+    }
+}

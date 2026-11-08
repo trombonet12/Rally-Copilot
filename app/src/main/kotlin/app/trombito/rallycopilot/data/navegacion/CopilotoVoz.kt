@@ -2,23 +2,32 @@ package app.trombito.rallycopilot.data.navegacion
 
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.notas.NotasEnCurso
+import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.alertas.AlertasRadar
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
+import app.trombito.rallycopilot.motor.notas.HojaNotas
 import app.trombito.rallycopilot.motor.notas.NotaVisible
 import app.trombito.rallycopilot.motor.notas.SelectorNotas
 import app.trombito.rallycopilot.motor.ruta.FrasesManiobra
 import app.trombito.rallycopilot.motor.velocidad.msAKmh
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import app.trombito.rallycopilot.motor.voz.CandidatasNotas
+import app.trombito.rallycopilot.motor.voz.ConfianzaPosicion
+import app.trombito.rallycopilot.motor.voz.EstadoLlamadas
 import app.trombito.rallycopilot.motor.voz.Frase
 import app.trombito.rallycopilot.motor.voz.HojaFiltrada
 import app.trombito.rallycopilot.motor.voz.IdsEstablesNotas
+import app.trombito.rallycopilot.motor.voz.LlamadaNota
+import app.trombito.rallycopilot.motor.voz.LlamadasNotas
 import app.trombito.rallycopilot.motor.voz.PlanificadorFrases
 import app.trombito.rallycopilot.motor.voz.TipoFrase
+import app.trombito.rallycopilot.motor.voz.pendientesTrasResincronizar
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -29,6 +38,16 @@ import kotlin.math.roundToInt
 class RutaVoz(
     val avisos: AvisosManiobra,
     val posicionesM: List<Double>,
+)
+
+/**
+ * Calidad de la posición de una fijación, para que el copiloto decida si se fía de ella: [precisionM] del GPS, [lateralM]
+ * distancia a la ruta guiada (null en libre o sin ruta) y [tMs] reloj de la fijación. Sin esto se da por buena.
+ */
+class CalidadPosicion(
+    val precisionM: Double?,
+    val lateralM: Double?,
+    val tMs: Long,
 )
 
 /**
@@ -69,6 +88,17 @@ class CopilotoVoz(
     private var recalculandoDesdeMs: Long? = null
     private var recalculoAnunciado = false
     private var recalculosAnunciados = 0
+    private val confianza = ConfianzaPosicion()
+    private val pausa = MutableStateFlow(false)
+    private var fijaciones = 0L
+    private var ultimaCantadaHastaM: Double? = null
+    private var hojaLibreAnterior: HojaNotas? = null
+    private var relecturas = 0
+    private val entradas = HashMap<String, Double>()
+    private val cantadas = HashSet<String>()
+
+    /** `true` mientras el copiloto no se fia de la posicion y no canta notas nuevas (maniobras y alertas siguen). */
+    val notasEnPausa: StateFlow<Boolean> = pausa
 
     /**
      * Una parada intermedia alcanzada ([numero]: cuántas van, desde 1): se dice [texto] en cuanto el altavoz esté libre
@@ -125,16 +155,23 @@ class CopilotoVoz(
      * `progresoM` o, en libre, que la posición de las notas (o 0 si no hay notas): se suman a las activas, no se
      * sintetizan por adelantado (su texto depende de la distancia) y los modos las filtran como al resto. Un fijo del
      * sentido contrario se muestra en el banner pero no se dice. El exceso y la media del tramo
-     * ([TipoFrase.AVISO_VELOCIDAD]) esperan a las notas y maniobras que queden a menos de ~8 s.
+     * ([TipoFrase.AVISO_VELOCIDAD]) esperan a las notas y maniobras que queden a menos de ~8 s. Las notas se cantan
+     * como llamadas (curvas encadenadas en una frase; la siguiente espera a la entrada de la anterior) y, con una
+     * [calidad] de posicion mala, se pausan ([notasEnPausa]) hasta recuperarla: entonces se re-sincroniza sin cantar
+     * las pasadas.
      */
+    @Suppress("LongParameterList") // la fijacion trae lo que ve cada frente (notas, guiado, alertas, calidad)
     fun alFijar(
         notas: NotasEnCurso?,
         ruta: RutaVoz?,
         progresoM: Double?,
         vMs: Double?,
         alertas: List<Frase> = emptyList(),
+        calidad: CalidadPosicion? = null,
     ) {
         val a = actuales
+        val idDe = idsDe(notas)
+        val enPausa = evaluarConfianza(notas, calidad, vMs ?: 0.0, a, idDe)
         val habladas = alertas.filterNot { AlertasRadar.esContrario(it.id) }.filter(a.filtroAvisos::permite)
         val progresoPrevio = ultimoProgresoM
         if (progresoM != null) ultimoProgresoM = progresoM
@@ -143,29 +180,142 @@ class CopilotoVoz(
         val voz = a.voz
         if (voz == null || posicionM == null) return
         sincronizarLocutor(a, voz)
-        if (ruta !== rutaAnterior) {
-            val anterior = rutaAnterior
-            val generacionAnterior = generacionRuta
-            rutaAnterior = ruta
-            generacionRuta++
-            heredarDichas(anterior, generacionAnterior, ruta, desplazamiento(progresoPrevio, progresoM))
-        }
+        if (ruta !== rutaAnterior) cambiarRuta(ruta, desplazamiento(progresoPrevio, progresoM))
         val v = vMs ?: 0.0
         val visibles = visibles(notas, a, v)
         val maniobras = maniobras(ruta, posicionM, v, a)
-        val idDe = idsDe(notas)
-        val pendientes = pendientesVigentes()
-        val activas = CandidatasNotas.de(visibles, a.notasSimplificadas, idDe) + maniobras + habladas + pendientes
+        val pendientes = pendientesVigentes().filterNot { enPausa && it.tipo == TipoFrase.NOTA }
+        val activas = llamadasActivas(notas, visibles, a, idDe, enPausa) + maniobras + habladas + pendientes
         val previstas =
-            CandidatasNotas.de(visibles.map { it.copy(activa = true) }, a.notasSimplificadas, idDe) +
+            llamadas(notas, visibles.map { it.copy(activa = true) }, a, idDe, conEspera = false).map { it.frase } +
                 maniobras + inminentesPrevistos(ruta, posicionM, a)
-        if (!locutor.hablando.value) {
-            planificador.siguiente(activas, posicionM, vMs, a.modoCopiloto, venideras = previstas)?.let {
-                porDecir.removeAll { p -> p.frase.id == it.id }
-                decir(it, posicionM, vMs)
-            }
-        }
+        if (!locutor.hablando.value) decirSiguiente(activas, previstas, posicionM, vMs, a)
         preparar(previstas, posicionM, a)
+    }
+
+    /** Frases de las llamadas que ya se pueden cantar (ninguna en pausa); recuerda la entrada de cada una. */
+    private fun llamadasActivas(
+        notas: NotasEnCurso?,
+        visibles: List<NotaVisible>,
+        a: AjustesConduccion,
+        idDe: (ElementoHoja) -> String,
+        enPausa: Boolean,
+    ): List<Frase> {
+        val llamadas = if (enPausa) emptyList() else llamadas(notas, visibles, a, idDe, conEspera = true)
+        llamadas.forEach { entradas[it.frase.id] = it.entradaM }
+        return llamadas.map { it.frase }
+    }
+
+    private fun decirSiguiente(
+        activas: List<Frase>,
+        previstas: List<Frase>,
+        posicionM: Double,
+        vMs: Double?,
+        a: AjustesConduccion,
+    ) {
+        planificador.siguiente(activas, posicionM, vMs, a.modoCopiloto, venideras = previstas)?.let {
+            porDecir.removeAll { p -> p.frase.id == it.id }
+            decir(it, posicionM, vMs)
+        }
+    }
+
+    /** La ruta guiada cambia ([ruta] nueva o null): otro eje de posiciones; hereda lo dicho de la anterior. */
+    private fun cambiarRuta(
+        ruta: RutaVoz?,
+        desplazamientoM: Double?,
+    ) {
+        val anterior = rutaAnterior
+        val generacionAnterior = generacionRuta
+        rutaAnterior = ruta
+        generacionRuta++
+        ultimaCantadaHastaM = null
+        heredarDichas(anterior, generacionAnterior, ruta, desplazamientoM)
+    }
+
+    /**
+     * Evalua la confianza en la posicion sobre la hoja y devuelve `true` si las notas estan en pausa. Al volver de una
+     * pausa re-sincroniza ([resincronizar]). Sin notas no hay nada que evaluar: se mantiene el ultimo estado.
+     */
+    private fun evaluarConfianza(
+        notas: NotasEnCurso?,
+        calidad: CalidadPosicion?,
+        vMs: Double,
+        a: AjustesConduccion,
+        idDe: (ElementoHoja) -> String,
+    ): Boolean {
+        if (notas == null) return pausa.value
+        val tMs = calidad?.tMs ?: (fijaciones * MS_POR_FIJACION)
+        fijaciones++
+        val evaluacion = confianza.evaluar(tMs, calidad?.precisionM, calidad?.lateralM, notas.posicionM)
+        val enPausa = evaluacion.estado == ConfianzaPosicion.Estado.PAUSA
+        pausa.value = enPausa
+        if (notas.origen == OrigenNotas.LIBRE && notas.hoja !== hojaLibreAnterior) {
+            hojaLibreAnterior = notas.hoja
+            ultimaCantadaHastaM = null // la hoja regenerada tiene otro origen
+        }
+        evaluacion.resincronizar?.let { resincronizar(notas, it, vMs, a, idDe) }
+        return enPausa
+    }
+
+    /**
+     * Tras una pausa: las notas que quedaron detras de [posicionM] se dan por dichas (no se cantan tarde) y, si la
+     * siguiente ya cae dentro de la anticipacion y se dio por resuelta sin llegar a sonar, se relee una vez.
+     */
+    private fun resincronizar(
+        notas: NotasEnCurso,
+        posicionM: Double,
+        vMs: Double,
+        a: AjustesConduccion,
+        idDe: (ElementoHoja) -> String,
+    ) {
+        val hoja = hojaFiltrada.de(notas.hoja, a.filtroIndicaciones)
+        hoja.elementos.filter { it.posicionM < posicionM }.forEach { planificador.marcarResuelta(idDe(it)) }
+        val siguiente = pendientesTrasResincronizar(hoja, posicionM, vMs, a.anticipacion)
+        val llamada = siguiente?.let { llamadaSuelta(hoja, it, posicionM, a, idDe) }
+        // Si no esta resuelta, el flujo normal la canta; solo se relee la que se descarto sin sonar.
+        if (llamada != null && llamada.frase.id !in cantadas && planificador.resuelta(llamada.frase.id)) {
+            relecturas++
+            val relectura = llamada.frase.copy(id = "relectura-$relecturas-${llamada.frase.id}")
+            entradas[relectura.id] = llamada.entradaM
+            porDecir += FrasePorDecir(relectura, VIGENCIA_PARADA_FIJACIONES)
+        }
+    }
+
+    /** La llamada que abre [elemento] como si estuviera activa; si no abre ninguna (2.a de cadena), solo su frase. */
+    private fun llamadaSuelta(
+        hoja: HojaNotas,
+        elemento: ElementoHoja,
+        posicionM: Double,
+        a: AjustesConduccion,
+        idDe: (ElementoHoja) -> String,
+    ): LlamadaNota? {
+        val visible = NotaVisible(elemento, elemento.posicionM - posicionM, activa = true)
+        return LlamadasNotas
+            .de(
+                hoja,
+                listOf(visible),
+                EstadoLlamadas(posicionM, a.notasSimplificadas),
+                idDe,
+            ).firstOrNull()
+            ?: CandidatasNotas
+                .de(listOf(visible), a.notasSimplificadas, idDe)
+                .firstOrNull()
+                ?.let { LlamadaNota(it, elemento.posicionM) }
+    }
+
+    /** Llamadas de notas de [visibles] (con la espera a la entrada de la ultima cantada si [conEspera]). */
+    private fun llamadas(
+        notas: NotasEnCurso?,
+        visibles: List<NotaVisible>,
+        a: AjustesConduccion,
+        idDe: (ElementoHoja) -> String,
+        conEspera: Boolean,
+    ): List<LlamadaNota> {
+        if (notas == null || visibles.isEmpty()) return emptyList()
+        val hoja = hojaFiltrada.de(notas.hoja, a.filtroIndicaciones)
+        val estado =
+            EstadoLlamadas(notas.posicionM, a.notasSimplificadas, if (conEspera) ultimaCantadaHastaM else null)
+        return LlamadasNotas.de(hoja, visibles, estado, idDe)
     }
 
     /** Pasa al locutor la voz, el volumen y la velocidad de habla de los ajustes cuando cambian. */
@@ -304,6 +454,11 @@ class CopilotoVoz(
         posicionM: Double,
         vMs: Double?,
     ) {
+        if (frase.tipo == TipoFrase.NOTA) {
+            entradas[frase.id]?.let { ultimaCantadaHastaM = it }
+            cantadas += frase.id
+            cantadas += frase.cubre
+        }
         locutor.decir(frase.texto)
         alDecir?.invoke(frase.texto)
         if (frase.tipo == TipoFrase.NOTA && frase.puntoM != null) alDecirNota?.invoke(frase)
@@ -337,6 +492,9 @@ class CopilotoVoz(
 
         /** Fijaciones (≈ s) que una parada alcanzada espera a que el altavoz esté libre antes de perderse. */
         const val VIGENCIA_PARADA_FIJACIONES = 15
+
+        /** Reloj de una fijacion sin [CalidadPosicion] (aprox. 1 Hz). */
+        const val MS_POR_FIJACION = 1_000L
 
         /** «Recalculando» solo se dice si la salida de ruta dura más de esto, y caduca pronto. */
         const val RECALCULO_MIN_MS = 5_000L
