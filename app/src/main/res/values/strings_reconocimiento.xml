@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reconocimiento guiado en dos pasadas: resumen al terminar cada pasada -->
+    <string name="reconocimiento_resumen_titulo">Resumen de la pasada %1$d</string>
+    <plurals name="reconocimiento_resumen_cuenta">
+        <item quantity="one">%1$d cambio</item>
+        <item quantity="other">%1$d cambios</item>
+    </plurals>
+    <string name="reconocimiento_resumen_vacio">No has cambiado ninguna nota en esta pasada.</string>
+    <string name="reconocimiento_cambio_cambiada">A %1$s: «%2$s» pasa a «%3$s»</string>
+    <string name="reconocimiento_cambio_anadida">A %1$s: nota añadida «%2$s»</string>
+    <string name="reconocimiento_cambio_quitada">A %1$s: nota quitada «%2$s»</string>
+    <string name="reconocimiento_segunda_pasada">Hacer 2.ª pasada</string>
+    <string name="reconocimiento_terminar">Terminar</string>
+</resources>

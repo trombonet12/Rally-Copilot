@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.GuiadoPendiente
 import app.trombito.rallycopilot.domain.navegacion.OrdenParadas
+import app.trombito.rallycopilot.domain.navegacion.PasadaReconocimiento
 import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
@@ -443,6 +444,54 @@ class ControlNavegacionImplTest {
         control.empezar(destinoPrueba, PerfilRuta.SINUOSA, rutaPrueba)
 
         assertTrue(control.ordenes.tryReceive().isFailure)
+    }
+
+    @Test
+    fun `el reconocimiento empieza en la pasada 1 y repetirlo no la reinicia`() {
+        control.empezarReconocimiento("t1")
+        assertEquals(PasadaReconocimiento("t1", 1), control.pasadaReconocimiento.value)
+        checkNotNull(control.tomarSolicitud())
+
+        control.empezarReconocimiento("t1")
+
+        assertNull(control.tomarSolicitud())
+        assertEquals(PasadaReconocimiento("t1", 1), control.pasadaReconocimiento.value)
+    }
+
+    @Test
+    fun `la segunda pasada reinicia la sesion del mismo tramo con las correcciones y la cuenta como 2`() {
+        control.empezarReconocimiento("t1")
+        val primera = checkNotNull(control.tomarSolicitud()).id
+
+        control.empezarSegundaPasada("t1")
+
+        val segunda = checkNotNull(control.tomarSolicitud())
+        assertNotEquals(primera, segunda.id)
+        assertEquals(SolicitudNavegacion.Reconocimiento("t1"), segunda.solicitud)
+        assertEquals(PasadaReconocimiento("t1", 2), control.pasadaReconocimiento.value)
+        assertEquals("t1", (control.estado.value as EstadoNavegacion.Libre).reconocimientoTramoId)
+    }
+
+    @Test
+    fun `la segunda pasada vale tambien tras terminar`() {
+        control.empezarReconocimiento("t1")
+        control.terminar()
+        assertNull(control.pasadaReconocimiento.value)
+
+        control.empezarSegundaPasada("t1")
+
+        assertEquals(PasadaReconocimiento("t1", 2), control.pasadaReconocimiento.value)
+    }
+
+    @Test
+    fun `terminar o cambiar de sesion borra la pasada`() {
+        control.empezarReconocimiento("t1")
+        control.empezarLibre()
+        assertNull(control.pasadaReconocimiento.value)
+
+        control.empezarReconocimiento("t1")
+        control.terminar()
+        assertNull(control.pasadaReconocimiento.value)
     }
 }
 

@@ -13,6 +13,7 @@ import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.OrdenParadas
+import app.trombito.rallycopilot.domain.navegacion.PasadaReconocimiento
 import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
@@ -82,6 +83,9 @@ class ControlNavegacionImpl
         private val _estado = MutableStateFlow<EstadoNavegacion>(EstadoNavegacion.Inactiva)
         override val estado: StateFlow<EstadoNavegacion> = _estado.asStateFlow()
 
+        private val _pasadaReconocimiento = MutableStateFlow<PasadaReconocimiento?>(null)
+        override val pasadaReconocimiento: StateFlow<PasadaReconocimiento?> = _pasadaReconocimiento.asStateFlow()
+
         private val cerrojo = Any()
         private val ultimoId = AtomicLong(0)
 
@@ -109,11 +113,22 @@ class ControlNavegacionImpl
             arrancar(SolicitudNavegacion.Libre, EstadoNavegacion.Libre(reloj(), 0.0))
         }
 
-        override fun empezarReconocimiento(tramoId: String) {
+        override fun empezarReconocimiento(tramoId: String) = reconocer(tramoId, numero = 1, forzar = false)
+
+        override fun empezarSegundaPasada(tramoId: String) =
+            reconocer(tramoId, PasadaReconocimiento.SEGUNDA, forzar = true)
+
+        private fun reconocer(
+            tramoId: String,
+            numero: Int,
+            forzar: Boolean,
+        ) {
             if (_estado.value is EstadoNavegacion.Guiando) borrarPendiente()
             arrancar(
                 SolicitudNavegacion.Reconocimiento(tramoId),
                 EstadoNavegacion.Libre(reloj(), 0.0, tramoId),
+                PasadaReconocimiento(tramoId, numero),
+                forzar,
             )
         }
 
@@ -168,6 +183,7 @@ class ControlNavegacionImpl
                 vigente = SIN_SESION
                 tripBaseM = 0.0
                 _estado.value = EstadoNavegacion.Inactiva
+                _pasadaReconocimiento.value = null
             }
             contexto.stopService(Intent(contexto, ServicioNavegacion::class.java))
         }
@@ -175,6 +191,8 @@ class ControlNavegacionImpl
         private fun arrancar(
             solicitud: SolicitudNavegacion,
             inicial: EstadoNavegacion,
+            pasada: PasadaReconocimiento? = null,
+            forzar: Boolean = false,
         ) {
             val actual = _estado.value
             // Una sesión activa solo se sustituye por otra de distinto tipo (Libre <-> Guiando): el servicio sigue
@@ -189,9 +207,12 @@ class ControlNavegacionImpl
                             actual.reconocimientoTramoId == solicitud.tramoId
                     ) ||
                     (actual is EstadoNavegacion.Guiando && solicitud is SolicitudNavegacion.Guiada)
-            if (misma) return
+            if (misma && !forzar) return
             if (!fuente.tienePermiso()) {
-                _estado.value = EstadoNavegacion.Error(contexto.getString(R.string.navegacion_error_permiso))
+                synchronized(cerrojo) {
+                    _estado.value = EstadoNavegacion.Error(contexto.getString(R.string.navegacion_error_permiso))
+                    _pasadaReconocimiento.value = null
+                }
                 return
             }
             val id = ultimoId.incrementAndGet()
@@ -201,6 +222,7 @@ class ControlNavegacionImpl
                 vigente = id
                 tripBaseM = 0.0
                 _estado.value = inicial
+                _pasadaReconocimiento.value = pasada
             }
             try {
                 ContextCompat.startForegroundService(contexto, Intent(contexto, ServicioNavegacion::class.java))
@@ -248,6 +270,7 @@ class ControlNavegacionImpl
                         } else {
                             nuevo
                         }
+                    if (nuevo !is EstadoNavegacion.Libre) _pasadaReconocimiento.value = null
                     if (nuevo is EstadoNavegacion.Llegada) borrarPendiente()
                     if (nuevo is EstadoNavegacion.Guiando) guardarParadasSiCambian(nuevo)
                 }

@@ -8,11 +8,14 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
@@ -23,6 +26,9 @@ import app.trombito.rallycopilot.ui.edicion.EdicionEnMapa
 import app.trombito.rallycopilot.ui.edicion.EdicionMapaUiState
 import app.trombito.rallycopilot.ui.edicion.EdicionMapaViewModel
 import app.trombito.rallycopilot.ui.navegacion.NavegacionViewModel
+import app.trombito.rallycopilot.ui.reconocimiento.AccionesResumenReconocimiento
+import app.trombito.rallycopilot.ui.reconocimiento.ReconocimientoViewModel
+import app.trombito.rallycopilot.ui.reconocimiento.ResumenReconocimiento
 import app.trombito.rallycopilot.ui.theme.CarbonOpaco
 import app.trombito.rallycopilot.ui.theme.Radios
 import app.trombito.rallycopilot.ui.theme.TextoSobreCarbon
@@ -50,7 +56,8 @@ internal class UiSuperposicion(
 
 /**
  * Lo que va encima de todo en el mapa: las luces de la cuenta atrás de la orden «salida», el aviso (snackbar) de «Casa
- * guardada», el editor de notas (parado) y el micrófono grande del reconocimiento.
+ * guardada», el editor de notas (parado), el micrófono grande del reconocimiento y el resumen de cada pasada del
+ * reconocimiento (al llegar parado a la meta o al terminarla).
  */
 @Composable
 internal fun BoxScope.SuperposicionDelMapa(
@@ -100,5 +107,12 @@ internal fun BoxScope.SuperposicionDelMapa(
         reconocimiento = ui.control is EstadoNavegacion.Libre && ui.control.reconocimientoTramoId != null,
         escuchando = ui.copiloto.escuchando,
         onEscuchar = copilotoViewModel::onEscuchar,
+    )
+    // La pasada vive en el control de navegación (singleton): esta instancia del ViewModel ve la misma que la del tramo.
+    val reconocimiento: ReconocimientoViewModel = hiltViewModel()
+    val resumen by reconocimiento.resumen.collectAsStateWithLifecycle()
+    ResumenReconocimiento(
+        resumen,
+        AccionesResumenReconocimiento(reconocimiento::onHacerSegundaPasada, reconocimiento::onTerminar),
     )
 }

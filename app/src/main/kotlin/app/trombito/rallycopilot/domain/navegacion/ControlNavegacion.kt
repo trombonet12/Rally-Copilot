@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.EstadoRuta
 import app.trombito.rallycopilot.motor.ruta.Ruta
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 data class Destino(
@@ -74,6 +75,18 @@ sealed interface EstadoNavegacion {
     ) : EstadoNavegacion
 }
 
+/** Pasada [numero] (1 o 2) del reconocimiento guiado del tramo [tramoId]. */
+data class PasadaReconocimiento(
+    val tramoId: String,
+    val numero: Int,
+) {
+    companion object {
+        const val SEGUNDA = 2
+    }
+}
+
+private val SIN_PASADA: StateFlow<PasadaReconocimiento?> = MutableStateFlow(null)
+
 /**
  * Arranca y para la conducción. Empezar lanza el servicio en primer plano de ubicación (solo desde la app visible: lo
  * pide la UI tras una acción del usuario). La ruta inicial ya viene calculada por la vista previa (con sus paradas, en
@@ -82,6 +95,7 @@ sealed interface EstadoNavegacion {
  * Con el mapa abierto siempre hay una sesión: el modo libre es la de reposo y un destino la sustituye (y al revés), sin
  * parar el servicio. Una sesión nueva cierra el recorrido de la anterior con la regla de siempre (< 1 km se descarta).
  */
+@Suppress("TooManyFunctions") // sesión libre, reconocimiento (2 pasadas), guiado y paradas
 interface ControlNavegacion {
     val estado: StateFlow<EstadoNavegacion>
 
@@ -93,6 +107,15 @@ interface ControlNavegacion {
      * se dicta se anota en él. Sustituye a cualquier otra sesión; no hace nada si ya se reconoce ese tramo.
      */
     fun empezarReconocimiento(tramoId: String)
+
+    /** La pasada del reconocimiento en curso; null si no se está reconociendo ningún tramo. */
+    val pasadaReconocimiento: StateFlow<PasadaReconocimiento?> get() = SIN_PASADA
+
+    /**
+     * Empieza la 2.ª pasada del reconocimiento de [tramoId]: el copiloto lee las notas ya con las correcciones de la
+     * 1.ª. Reinicia la sesión aunque ya se estuviera reconociendo ese tramo y también vale justo tras terminar.
+     */
+    fun empezarSegundaPasada(tramoId: String) = Unit
 
     /** Empieza el guiado; sustituye al modo libre y no hace nada si ya se está guiando. */
     fun empezar(
