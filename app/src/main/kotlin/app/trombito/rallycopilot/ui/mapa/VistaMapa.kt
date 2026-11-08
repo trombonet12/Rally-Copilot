@@ -297,6 +297,9 @@ private class ControladorMapa(
     private var estiloPedido: String? = null
     private var estiloAplicado: String? = null
     private var posicion: Fijacion? = null
+
+    /** Último rumbo mostrado: se conserva cuando una fijación llega sin rumbo. */
+    private var ultimoRumbo: Double? = null
     private var preferencias = PreferenciasVistaMapa()
     private var ubicacionActivada = false
     private var oyenteRegistrado = false
@@ -391,6 +394,7 @@ private class ControladorMapa(
         val previas = preferencias
         preferencias = nuevas
         posicion = nueva
+        nueva?.rumboGrados?.let { ultimoRumbo = it }
         val componente = mapa?.locationComponent?.takeIf { ubicacionActivada }
         if (nuevas.relieve != previas.relieve) estilo?.let { aplicarRelieve(it, nuevas.relieve) }
         aplicarRuta(previas.ruta, nuevas.ruta)
@@ -496,7 +500,7 @@ private class ControladorMapa(
         val primera = !ubicacionActivada
         if (primera) activarUbicacion(componente, cargado)
         if (!ubicacionActivada) return
-        componente.forceLocationUpdate(fijacion.aLocation())
+        componente.forceLocationUpdate(fijacion.aLocation(ultimoRumbo))
         // Con la primera fijación ya dentro: la transición de seguimiento necesita una posición a la que ir.
         if (primera) fijarCamara(componente)
     }
@@ -611,13 +615,17 @@ private fun opcionesUbicacion(
         .build()
 }
 
-private fun Fijacion.aLocation(): Location =
+/**
+ * La fijación como `Location` para el marcador. Sin rumbo (receptor sin él y sin movimiento estimado) se usa
+ * [ultimoRumbo], el último mostrado: una `Location` sin rumbo vale 0° y el mapa giraría al norte y de vuelta.
+ */
+internal fun Fijacion.aLocation(ultimoRumbo: Double? = null): Location =
     Location(PROVEEDOR).also { l ->
         l.latitude = punto.lat
         l.longitude = punto.lon
         l.time = tiempoMs
         l.elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos()
         velocidadMs?.let { l.speed = it.toFloat() }
-        rumboGrados?.let { l.bearing = it.toFloat() }
+        (rumboGrados ?: ultimoRumbo)?.let { l.bearing = it.toFloat() }
         precisionM?.let { l.accuracy = it.toFloat() }
     }

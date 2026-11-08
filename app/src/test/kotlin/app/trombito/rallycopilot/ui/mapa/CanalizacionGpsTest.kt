@@ -17,7 +17,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** REN-9b: una emisión por fijación y una segunda solo si cambia la vía. */
+/** REN-9b: una emisión por fijación; una segunda solo al hallar la primera vía (la velocidad sale antes). */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CanalizacionGpsTest {
     private val ubicacion = FalsaFuenteUbicacion()
@@ -73,7 +73,7 @@ class CanalizacionGpsTest {
         }
 
     @Test
-    fun `si la via cambia hay una segunda lectura con la via nueva`() =
+    fun `si la via cambia con la anterior conocida sigue habiendo una sola lectura por fijacion`() =
         runTest {
             vias.via = ViaActual("Carretera", "Ma-1110", 50)
             val lecturas = recoger()
@@ -83,7 +83,7 @@ class CanalizacionGpsTest {
             vias.via = ViaActual("Camí", null, null)
             emitir(fijacion(tiempoMs = 1_000, velocidadMs = 10.0))
 
-            assertEquals(antes + 2, lecturas.size)
+            assertEquals(antes + 1, lecturas.size)
             assertEquals("Camí", lecturas.last().via?.nombre)
         }
 }

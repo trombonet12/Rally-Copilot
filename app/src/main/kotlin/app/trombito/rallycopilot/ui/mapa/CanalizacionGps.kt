@@ -43,8 +43,9 @@ data class LecturaMapa(
  * y compone la estela del recorrido. Una instancia por ViewModel (tiene estado). [reloj] es el reloj monótono (ms),
  * el mismo de `Fijacion.tiempoMs`.
  *
- * Emite una [LecturaMapa] por fijación (la velocidad primero, sin esperar a la vía, que puede tardar si se carga
- * entonces el archivo) y una segunda solo si la vía cambió (REN-9). Solo recoge mientras alguien recoge [lecturas].
+ * Emite una [LecturaMapa] por fijación. Solo cuando aún no hay vía (arranque, o tras perderla) emite antes la
+ * velocidad sin esperar a la vía, que puede tardar si se carga entonces el archivo, y una segunda con la vía hallada
+ * (REN-9). Solo recoge mientras alguien recoge [lecturas].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CanalizacionGps internal constructor(
@@ -149,12 +150,19 @@ class CanalizacionGps internal constructor(
                 val ajustada = sobreCamino.ajustar(conVelocidad, via)
                 return LecturaMapa(fijacion, velocidad, via, ajustada, sinSenal, viaCoincide(ajustada.punto, via))
             }
-            // Primero la velocidad: la vía puede tardar (carga perezosa del archivo de vías).
-            ultima = lectura(viaPrevia)
-            enviar(ultima)
-            val via = vias.viaEn(fijacion)
-            if (via != viaPrevia) {
-                viaPrevia = via
+            // Con la vía ya conocida, una sola lectura por fijación (la búsqueda usa las vías en memoria y es rápida):
+            // dos movían el marcador dos veces al cambiar de vía. La primera vez (o tras perderla) la velocidad sale
+            // antes, sin esperar a la vía, que puede tardar si se carga entonces el archivo. A la búsqueda va el rumbo
+            // estimado (el del movimiento si el receptor no lo da), no el bruto: sin rumbo la vía se elegía solo por
+            // distancia y la calle que pasa por debajo de una autopista ganaba.
+            val sinViaPrevia = viaPrevia == null
+            if (sinViaPrevia) {
+                ultima = lectura(null)
+                enviar(ultima)
+            }
+            val via = vias.viaEn(conVelocidad)
+            viaPrevia = via
+            if (!sinViaPrevia || via != null) {
                 ultima = lectura(via)
                 enviar(ultima)
             }

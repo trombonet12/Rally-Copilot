@@ -84,14 +84,19 @@ class IndiceVias(
         radioMetros: Double = RADIO_POR_DEFECTO_M,
     ): Coincidencia? = buscar(punto, rumboGrados, radioMetros, null)?.coincidencia
 
-    /** Como [cercana] pero limitada a los segmentos de la vía [viaId]. */
+    /**
+     * Como [cercana] pero limitada a los segmentos de la vía [viaId]. Con [maxDesvioGrados] y [rumboGrados] se
+     * descartan (no solo se penalizan) los segmentos cuyo eje se desvía más de ese ángulo del rumbo, en cualquiera de
+     * los dos sentidos: una calle que cruza por debajo no puede ser la vía por la que se circula.
+     */
     internal fun buscar(
         punto: PuntoGeo,
         rumboGrados: Double?,
         radioMetros: Double,
         viaId: Long?,
+        maxDesvioGrados: Double? = null,
     ): Candidata? {
-        val consulta = Consulta(x(punto), y(punto), rumboGrados, radioMetros)
+        val consulta = Consulta(x(punto), y(punto), rumboGrados, radioMetros, maxDesvioGrados)
         val mejor = Mejor()
         for (cx in celda(consulta.px - radioMetros)..celda(consulta.px + radioMetros)) {
             for (cy in celda(consulta.py - radioMetros)..celda(consulta.py + radioMetros)) {
@@ -114,6 +119,7 @@ class IndiceVias(
         val py: Double,
         val rumboGrados: Double?,
         val radioMetros: Double,
+        val maxDesvioGrados: Double?,
     )
 
     private class Mejor {
@@ -152,7 +158,9 @@ class IndiceVias(
             val diferencia = Rumbo.diferencia(consulta.rumboGrados, Rumbo.deVector(dx, dy))
             adelante = diferencia <= ANGULO_RECTO
             // Mod 180: ir en un sentido o en el contrario del segmento puntúa igual.
-            penalizacion = diferenciaAxial(diferencia) * PENALIZACION_M_POR_GRADO
+            val axial = diferenciaAxial(diferencia)
+            if (consulta.maxDesvioGrados != null && axial > consulta.maxDesvioGrados) return
+            penalizacion = axial * PENALIZACION_M_POR_GRADO
         }
         val puntuacion = distancia + penalizacion
         if (puntuacion < mejor.puntuacion) {

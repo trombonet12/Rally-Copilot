@@ -49,12 +49,14 @@ internal class PosicionSobreCamino(
         val porRuta = ajustarARuta(fijacion)
         val porVia = if (porRuta?.enCamino == true) null else ajustarAVia(fijacion, viaActual)
         val elegida = listOfNotNull(porRuta, porVia).firstOrNull { it.enCamino } ?: porVia ?: porRuta
+        // Sin rumbo (receptor sin él y sin movimiento estimado) se conserva el último mostrado: un rumbo vacío llega al
+        // mapa como 0° y el marcador gira al norte y vuelve.
         if (elegida == null) {
             rumbo = fijacion.rumboGrados ?: rumbo
-            return fijacion
+            return fijacion.copy(rumboGrados = rumbo)
         }
         rumbo = elegida.rumboGrados ?: rumbo
-        return fijacion.copy(punto = elegida.punto, rumboGrados = elegida.rumboGrados)
+        return fijacion.copy(punto = elegida.punto, rumboGrados = rumbo)
     }
 
     private fun ajustarARuta(fijacion: Fijacion): PosicionAjustada? {
