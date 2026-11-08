@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
+import app.trombito.rallycopilot.domain.edicion.ListaNotasPorRevisar
 import app.trombito.rallycopilot.domain.tramos.ExportaTramo
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
@@ -24,6 +25,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -44,6 +46,7 @@ class DetalleTramoViewModel
         private val repositorio: RepositorioTramos,
         private val datosMapa: RepositorioDatosMapa,
         private val exportador: ExportaTramo,
+        private val notasPorRevisar: ListaNotasPorRevisar,
     ) : ViewModel() {
         private val tramoId = guardado.toRoute<RutaTramo>().tramoId
         private val renombrando = MutableStateFlow(false)
@@ -58,6 +61,7 @@ class DetalleTramoViewModel
             val traza: List<PuntoGeo>,
             val pasadas: List<FilaPasada>,
             val subtramos: List<FilaSubtramo> = emptyList(),
+            val porRevisar: List<FilaNotaPorRevisar> = emptyList(),
         )
 
         private val resumen: Flow<ResumenTramo?> =
@@ -79,8 +83,14 @@ class DetalleTramoViewModel
         private val subtramos: Flow<List<FilaSubtramo>> =
             repositorio.observarSubtramosDeTramo(tramoId).map(::filasDeSubtramos)
 
+        // Las marcas de nota mal se dejan conduciendo, no con el detalle abierto: se leen una vez por apertura.
+        private val porRevisar: Flow<List<FilaNotaPorRevisar>> =
+            flow { emit(notasPorRevisar.de(tramoId).map { FilaNotaPorRevisar(it.posicionM, it.texto) }) }
+
         private val datos: Flow<Carga> =
-            combine(carga, subtramos) { cargada, filas -> Carga(cargada.traza, cargada.pasadas, filas) }
+            combine(carga, subtramos, porRevisar) { cargada, filas, revisar ->
+                Carga(cargada.traza, cargada.pasadas, filas, revisar)
+            }
 
         val uiState: StateFlow<DetalleTramoUiState> =
             combine(
@@ -97,6 +107,7 @@ class DetalleTramoViewModel
                     estiloMapaJson = estilo,
                     pasadas = datos.pasadas,
                     subtramos = datos.subtramos,
+                    notasPorRevisar = datos.porRevisar,
                     renombrando = editando && tramo != null,
                     compartir = estadoCompartir,
                 )

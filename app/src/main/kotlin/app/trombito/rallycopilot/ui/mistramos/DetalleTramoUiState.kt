@@ -25,6 +25,15 @@ data class FilaSubtramo(
     val deltaMs: Long?,
 )
 
+/**
+ * Una nota marcada como mal cantada: a [posicionM] metros de la salida; [texto] es lo que decía la nota si se pudo
+ * reconstruir desde la hoja del tramo (null: solo se enseña el kilómetro).
+ */
+data class FilaNotaPorRevisar(
+    val posicionM: Double,
+    val texto: String?,
+)
+
 /** Cómo va la exportación del tramo para compartirlo: [PREPARANDO] mientras se escribe el archivo. */
 enum class EstadoCompartir { LIBRE, PREPARANDO, FALLO }
 
@@ -38,6 +47,8 @@ data class DetalleTramoUiState(
     val pasadas: List<FilaPasada> = emptyList(),
     /** Subtramos guardados de este tramo, el más reciente primero; vacío = no se enseña la sección. */
     val subtramos: List<FilaSubtramo> = emptyList(),
+    /** Notas marcadas como mal cantadas, por posición; vacío = no se enseña la sección. */
+    val notasPorRevisar: List<FilaNotaPorRevisar> = emptyList(),
     val renombrando: Boolean = false,
     val compartir: EstadoCompartir = EstadoCompartir.LIBRE,
 )

@@ -7,6 +7,7 @@ import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.data.db.EdicionesDao
 import app.trombito.rallycopilot.data.db.MarcasDao
 import app.trombito.rallycopilot.data.db.RallyDatabase
+import app.trombito.rallycopilot.data.escucha.AnotadorNotaMalImpl
 import app.trombito.rallycopilot.data.escucha.ConduccionPorVoz
 import app.trombito.rallycopilot.data.escucha.ContextoConduccionImpl
 import app.trombito.rallycopilot.data.escucha.ControlOrdenesImpl
@@ -27,6 +28,7 @@ import app.trombito.rallycopilot.data.escucha.ReproductorTic
 import app.trombito.rallycopilot.data.escucha.RespondedorPreguntas
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.busqueda.Buscador
+import app.trombito.rallycopilot.domain.escucha.AnotadorNotaMal
 import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
 import app.trombito.rallycopilot.domain.escucha.Escucha
 import app.trombito.rallycopilot.domain.escucha.ProveedorContextoConduccion
@@ -99,6 +101,15 @@ abstract class EscuchaModule {
                 dispatcher = dispatcher,
                 lugares = lugares::nombres,
             )
+
+        /** «Esta nota estaba mal» desde el banner de la nota: lo mismo que la orden de voz. */
+        @Provides
+        @Singleton
+        fun anotadorNotaMal(
+            memoria: MemoriaFrases,
+            marcas: RepositorioMarcas,
+            contexto: ProveedorContextoConduccion,
+        ): AnotadorNotaMal = AnotadorNotaMalImpl(memoria, marcas, contexto, System::currentTimeMillis)
 
         @Provides
         @Singleton

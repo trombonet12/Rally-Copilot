@@ -18,6 +18,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.data.alertas.FabricaAlertasSesion
 import app.trombito.rallycopilot.data.escucha.EscuchaContinua
 import app.trombito.rallycopilot.data.escucha.MemoriaFrases
+import app.trombito.rallycopilot.data.escucha.NotaDicha
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.tramos.FabricaCronoSesion
@@ -293,7 +294,18 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         publicar = { control.publicar(id, it) },
         motivoSinGps = getString(R.string.navegacion_error_gps),
         fabricaNotas = fabricaNotas,
-        copiloto = CopilotoVoz(locutor, ajustes.ajustes, registroDeTiempos(), memoriaFrases::recordar),
+        copiloto =
+            CopilotoVoz(
+                locutor,
+                ajustes.ajustes,
+                registroDeTiempos(),
+                memoriaFrases::recordar,
+                alDecirNota = { frase ->
+                    frase.puntoM?.let {
+                        memoriaFrases.recordarNota(NotaDicha(frase.texto, it, System.currentTimeMillis()))
+                    }
+                },
+            ),
         alertas = fabricaAlertas.crear(),
         ordenes = control.ordenes,
         crono = fabricaCrono.crear(),

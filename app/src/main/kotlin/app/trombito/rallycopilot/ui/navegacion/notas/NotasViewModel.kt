@@ -3,11 +3,14 @@ package app.trombito.rallycopilot.ui.navegacion.notas
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.escucha.AnotadorNotaMal
+import app.trombito.rallycopilot.domain.escucha.ResultadoNotaMal
 import app.trombito.rallycopilot.domain.notas.ProveedorNotas
 import app.trombito.rallycopilot.motor.notas.SelectorNotas
 import app.trombito.rallycopilot.motor.voz.HojaFiltrada
 import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -28,6 +31,7 @@ class NotasViewModel
     constructor(
         proveedor: ProveedorNotas,
         ajustes: RepositorioAjustesConduccion,
+        private val anotador: AnotadorNotaMal,
     ) : ViewModel() {
         private val selector = SelectorNotas()
         private val hojaFiltrada = HojaFiltrada()
@@ -50,4 +54,10 @@ class NotasViewModel
                     )
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), NotasUiState())
+
+        /**
+         * «Esta nota estaba mal» (pulsación larga del banner): marca la última nota dicha. Se hace en el ámbito del
+         * ViewModel, así que se guarda aunque la tarjeta que lo pidió salga de la pantalla.
+         */
+        suspend fun anotarNotaMal(): ResultadoNotaMal = viewModelScope.async { anotador.anotar() }.await()
     }

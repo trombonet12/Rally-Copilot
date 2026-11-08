@@ -279,6 +279,21 @@ class InterpreteOrdenesTest {
     }
 
     @Test
+    fun `esta nota estaba mal`() {
+        comprobarTodas(
+            Orden.NotaMal,
+            "nota mal",
+            "esa nota está mal",
+            "nota equivocada",
+            "esa estaba mal",
+            "copiloto, esa nota estaba mal",
+            "oye, nota equivocada por favor",
+        )
+        // Una nota dictada o «quita» con la palabra «mal» suelta no es esta orden.
+        comprobar("derecha tres mal", null)
+    }
+
+    @Test
     fun `si y no solo como respuesta suelta`() {
         comprobarTodas(Orden.Confirma(true), "sí", "si", "sí por favor", "confirmo", "copiloto sí")
         comprobarTodas(Orden.Confirma(false), "no", "cancela", "no gracias", "olvídalo")

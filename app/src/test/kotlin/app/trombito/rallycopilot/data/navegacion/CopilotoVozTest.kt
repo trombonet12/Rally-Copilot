@@ -122,6 +122,22 @@ class CopilotoVozTest {
     }
 
     @Test
+    fun `cada nota dicha se avisa con su posicion y las maniobras no`() {
+        val locutor = LocutorFalso()
+        val notasDichas = mutableListOf<Frase>()
+        val copiloto =
+            CopilotoVoz(locutor, flowOf(con(ModoCopiloto.NOTAS)), alDecirNota = { notasDichas += it })
+                .also { runBlocking { it.seguirAjustes() } }
+        val ruta = ruta()
+
+        repeat(4) { copiloto.fijar(ruta, 920.0) }
+
+        assertEquals(listOf("cruce, izquierda", "derecha tres"), locutor.dichas)
+        assertEquals(listOf("derecha tres"), notasDichas.map { it.texto })
+        assertEquals(listOf(960.0), notasDichas.map { it.puntoM })
+    }
+
+    @Test
     fun `en modo completo tambien dice notas y maniobras`() {
         val locutor = LocutorFalso()
         val copiloto = copiloto(locutor, con(ModoCopiloto.COMPLETO))

@@ -87,5 +87,9 @@
     <string name="detalle_subtramo_descripcion">Subtramo del kilómetro %1$s al %2$s, %3$s. Tiempo: %4$s. %5$s</string>
     <string name="detalle_subtramo_primera_vez">Primera vez</string>
     <string name="detalle_subtramo_primera_vez_descripcion">Primera vez en este trozo.</string>
+    <string name="detalle_notas_revisar_titulo">Notas por revisar</string>
+    <string name="detalle_nota_revisar_km">km %1$s</string>
+    <string name="detalle_nota_revisar_descripcion">Nota por revisar en el kilómetro %1$s.</string>
+    <string name="detalle_nota_revisar_descripcion_texto">Nota por revisar en el kilómetro %1$s: %2$s.</string>
     <string name="detalle_subtramo_delta_descripcion">Respecto al mejor de entonces: %1$s.</string>
 </resources>

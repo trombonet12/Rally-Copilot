@@ -4,8 +4,10 @@ import app.trombito.rallycopilot.data.notas.EdicionNotasEnVivoImpl
 import app.trombito.rallycopilot.data.notas.EditorTramoImpl
 import app.trombito.rallycopilot.data.notas.GeneradorHojaTramo
 import app.trombito.rallycopilot.data.notas.GeneradorHojaTramoImpl
+import app.trombito.rallycopilot.data.notas.ListaNotasPorRevisarImpl
 import app.trombito.rallycopilot.domain.edicion.EdicionNotasEnVivo
 import app.trombito.rallycopilot.domain.edicion.EditorTramo
+import app.trombito.rallycopilot.domain.edicion.ListaNotasPorRevisar
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.escucha.RepositorioMarcas
 import app.trombito.rallycopilot.domain.notas.ProveedorNotas
@@ -32,6 +34,12 @@ abstract class EdicionModule {
             marcas: RepositorioMarcas,
             generador: GeneradorHojaTramo,
         ): EditorTramo = EditorTramoImpl(tramos, ediciones, marcas, generador, System::currentTimeMillis)
+
+        @Provides
+        fun notasPorRevisar(
+            marcas: RepositorioMarcas,
+            editor: EditorTramo,
+        ): ListaNotasPorRevisar = ListaNotasPorRevisarImpl(marcas, editor)
 
         @Provides
         fun edicionNotasEnVivo(

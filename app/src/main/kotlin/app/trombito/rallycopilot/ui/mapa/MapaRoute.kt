@@ -38,6 +38,8 @@ import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
 import app.trombito.rallycopilot.ui.navegacion.NavegacionUiState
 import app.trombito.rallycopilot.ui.navegacion.NavegacionViewModel
 import app.trombito.rallycopilot.ui.navegacion.PanelGuiado
+import app.trombito.rallycopilot.ui.navegacion.notas.AccionNotaMal
+import app.trombito.rallycopilot.ui.navegacion.notas.LocalAccionNotaMal
 import app.trombito.rallycopilot.ui.navegacion.notas.NotasViewModel
 import app.trombito.rallycopilot.ui.navegacion.panelGuiadoMapa
 import app.trombito.rallycopilot.ui.theme.LocalTemaOscuro
@@ -54,7 +56,8 @@ import kotlin.math.floor
  * maniobras de los ajustes).
  */
 @Composable
-@Suppress("LongParameterList") // un ViewModel por bloque (mapa, navegación, notas, copiloto, alertas, crono)
+// Un ViewModel por bloque (mapa, navegación, notas, copiloto, alertas, crono).
+@Suppress("LongParameterList", "LongMethod")
 fun MapaRoute(
     onAbrirMapasOffline: () -> Unit,
     modifier: Modifier = Modifier,
@@ -99,7 +102,12 @@ fun MapaRoute(
         remember(copiloto, accionesCop, estado.datos) {
             CopilotoEnMapa(copiloto, accionesCop, EstadoVozDescarga.de(estado.datos))
         }
-    CompositionLocalProvider(LocalAbrirAnalisis provides onVerAnalisis, LocalAccionesSalidaCrono provides salida) {
+    val accionNotaMal = remember(notasViewModel) { AccionNotaMal(notasViewModel::anotarNotaMal) }
+    CompositionLocalProvider(
+        LocalAbrirAnalisis provides onVerAnalisis,
+        LocalAccionesSalidaCrono provides salida,
+        LocalAccionNotaMal provides accionNotaMal,
+    ) {
         MapaScreen(
             estado = estado,
             vista = EstadoVistaMapa(permiso = permiso.estado, siguiendo = estado.siguiendo),

@@ -86,6 +86,14 @@ interface RepositorioMarcas {
     suspend fun deTramo(tramoId: String): List<MarcaConPosicion>
 }
 
+/** Qué pasó al anotar la última nota dicha como mal cantada. */
+enum class ResultadoNotaMal { ANOTADA, SIN_NOTA, SIN_CONDUCCION }
+
+/** «Esta nota estaba mal»: marca la última nota dicha (la orden de voz y la pulsación larga del banner). */
+fun interface AnotadorNotaMal {
+    suspend fun anotar(): ResultadoNotaMal
+}
+
 /** Una [Marca] con la coordenada en que se dejó, si se conoce. */
 data class MarcaConPosicion(
     val marca: Marca,

@@ -58,6 +58,9 @@ sealed interface Orden {
     /** Dejar una [Marca] en la posición actual. */
     data object MarcaAqui : Orden
 
+    /** «Esta nota estaba mal»: dejar una [Marca] [Marca.ETIQUETA_NOTA_MAL] en la última nota dicha. */
+    data object NotaMal : Orden
+
     // --- Preguntas: el copiloto responde por voz (ver `RespuestasVoz`) ------------------------------------------
 
     /** Una pregunta sobre la ruta o la conducción. */
@@ -187,7 +190,8 @@ enum class Indicacion { CRUCES, PUENTES, ROTONDAS, SALIDAS }
 
 /**
  * Marca dejada con «marca aquí» o «avisa radar aquí»: [posicionM] sobre la traza del tramo (si hay), [tiempoMs] del
- * reloj del sistema. [etiqueta] dice qué es (`null` = marca sin más; [ETIQUETA_RADAR] = radar propio).
+ * reloj del sistema. [etiqueta] dice qué es (`null` = marca sin más; [ETIQUETA_RADAR] = radar propio;
+ * [ETIQUETA_NOTA_MAL] = nota que Joan marcó como mal cantada, con [posicionM] la de esa nota).
  */
 data class Marca(
     val posicionM: Double,
@@ -197,5 +201,6 @@ data class Marca(
 ) {
     companion object {
         const val ETIQUETA_RADAR = "radar"
+        const val ETIQUETA_NOTA_MAL = "nota-mal"
     }
 }

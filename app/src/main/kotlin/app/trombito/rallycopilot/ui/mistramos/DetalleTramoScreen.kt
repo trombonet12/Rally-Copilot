@@ -265,6 +265,7 @@ private fun ContenidoDetalle(
             TarjetaPasada(pasada) { acciones.onVerAnalisis(pasada.id) }
         }
         seccionSubtramos(estado.subtramos)
+        seccionNotasPorRevisar(estado.notasPorRevisar)
     }
 }
 

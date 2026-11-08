@@ -1,11 +1,13 @@
 package app.trombito.rallycopilot.data.escucha
 
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.escucha.AnotadorNotaMal
 import app.trombito.rallycopilot.domain.escucha.EdicionPendiente
 import app.trombito.rallycopilot.domain.escucha.ProveedorContextoConduccion
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.escucha.RepositorioMarcas
 import app.trombito.rallycopilot.domain.escucha.ResultadoEscucha
+import app.trombito.rallycopilot.domain.escucha.ResultadoNotaMal
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.motor.edicion.Marca
 import app.trombito.rallycopilot.motor.edicion.Orden
@@ -26,7 +28,59 @@ class MemoriaFrases
         fun recordar(frase: String) {
             ultima = frase
         }
+
+        /** La última nota dicha (con su posición y cuándo), para «esta nota estaba mal»; la escribe `CopilotoVoz`. */
+        @Volatile
+        var ultimaNota: NotaDicha? = null
+            private set
+
+        fun recordarNota(nota: NotaDicha) {
+            ultimaNota = nota
+        }
     }
+
+/** Una nota que el copiloto acaba de decir: su [texto], dónde está ([posicionM], en el eje de la hoja) y [tiempoMs]. */
+data class NotaDicha(
+    val texto: String,
+    val posicionM: Double,
+    val tiempoMs: Long,
+)
+
+/**
+ * Deja una [Marca] [Marca.ETIQUETA_NOTA_MAL] en la última nota dicha (su posición, el tramo activo y la coordenada si
+ * se conoce). Sin nota dicha en los últimos [VIGENCIA_MS] ms no marca nada. La usan la orden de voz y el banner.
+ */
+class AnotadorNotaMalImpl(
+    private val memoria: MemoriaFrases,
+    private val marcas: RepositorioMarcas,
+    private val contexto: ProveedorContextoConduccion,
+    private val ahoraMs: () -> Long,
+) : AnotadorNotaMal {
+    override suspend fun anotar(): ResultadoNotaMal {
+        val actual = contexto.actual()
+        val nota = memoria.ultimaNota
+        val ahora = ahoraMs()
+        return when {
+            actual == null -> {
+                ResultadoNotaMal.SIN_CONDUCCION
+            }
+
+            nota == null || ahora - nota.tiempoMs > VIGENCIA_MS -> {
+                ResultadoNotaMal.SIN_NOTA
+            }
+
+            else -> {
+                marcas.guardar(Marca(nota.posicionM, ahora, actual.tramoId, Marca.ETIQUETA_NOTA_MAL), actual.posicion)
+                ResultadoNotaMal.ANOTADA
+            }
+        }
+    }
+
+    companion object {
+        /** Cuánto tiempo (ms) después de decirla se puede anotar una nota como mal cantada. */
+        const val VIGENCIA_MS = 30_000L
+    }
+}
 
 /**
  * Lo que hace cada orden de voz con la conducción, y la confirmación corta que dice el copiloto: «hecho» cuando
@@ -35,6 +89,8 @@ class MemoriaFrases
  * - [Orden.Repite]: vuelve a decir la última frase del copiloto.
  * - [Orden.MarcaAqui] / [Orden.RadarAqui]: guardan una [Marca] (la de radar con la etiqueta `radar`) en la posición y
  *   el tramo activo.
+ * - [Orden.NotaMal]: guarda una marca `nota-mal` en la última nota dicha («anotado»; «no hay nota» si hace más de
+ *   30 s o no hubo ninguna).
  * - [Orden.Nota] / [Orden.Quitar] / [Orden.Cuidado]: publican una [EdicionPendiente] (ligadas al tramo activo o
  *   pendientes; la fusión con las notas es de `NotasSesion`).
  * - [Orden.Ajuste] (modo, volumen, anticipación, filtros, capa, orientación, zoom): [AjustesPorVoz].
@@ -60,6 +116,7 @@ class EjecutorOrdenes(
     private val navegacion: NavegacionPorVoz,
 ) {
     private val controles = AjustesPorVoz(ajustes)
+    private val notaMal = AnotadorNotaMalImpl(memoria, marcas, contexto, ahoraMs)
 
     /** `true` si el copiloto acaba de preguntar «¿sí o no?» y la siguiente escucha es la respuesta. */
     val esperaConfirmacion: Boolean get() = conduccion.esperaConfirmacion || navegacion.esperaConfirmacion
@@ -94,6 +151,7 @@ class EjecutorOrdenes(
         when (orden) {
             Orden.Repite -> repetir()
             Orden.MarcaAqui -> marcar(etiqueta = null)
+            Orden.NotaMal -> anotarNotaMal()
             Orden.RadarAqui -> marcar(Marca.ETIQUETA_RADAR).let { if (it == HECHO) "radar marcado" else it }
             is Orden.Nota, Orden.Quitar, Orden.Cuidado -> editar(orden)
             is Orden.Ajuste -> controles.aplicar(orden)
@@ -131,6 +189,13 @@ class EjecutorOrdenes(
         return HECHO
     }
 
+    private suspend fun anotarNotaMal(): String =
+        when (notaMal.anotar()) {
+            ResultadoNotaMal.ANOTADA -> ANOTADO
+            ResultadoNotaMal.SIN_NOTA -> SIN_NOTA
+            ResultadoNotaMal.SIN_CONDUCCION -> SIN_CONDUCCION
+        }
+
     private suspend fun editar(orden: Orden): String {
         val actual = contexto.actual() ?: return SIN_CONDUCCION
         ediciones.publicar(EdicionPendiente(orden, actual.posicionM, actual.tramoId, actual.posicion, ahoraMs()))
@@ -145,5 +210,7 @@ class EjecutorOrdenes(
         const val HECHO = AjustesPorVoz.HECHO
         const val NO_ENTENDIDO = RespuestasVoz.NO_ENTENDIDO
         const val SIN_CONDUCCION = "no hay conducción"
+        const val ANOTADO = "anotado"
+        const val SIN_NOTA = "no hay nota"
     }
 }

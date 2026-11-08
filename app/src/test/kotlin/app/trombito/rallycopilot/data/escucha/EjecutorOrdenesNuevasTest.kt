@@ -459,6 +459,64 @@ class EjecutorOrdenesNuevasTest {
         }
 
     @Test
+    fun `nota mal marca la ultima nota dicha con su posicion y el tramo activo`() =
+        runBlocking {
+            banco.memoria.recordarNota(NotaDicha("derecha cuatro larga", 1_200.0, tiempoMs = 770L))
+
+            banco.decir(Orden.NotaMal)
+
+            assertEquals(
+                listOf(Marca(1_200.0, 777L, "tramo-1", Marca.ETIQUETA_NOTA_MAL) to PuntoGeo(39.7, 2.9)),
+                banco.marcas.guardadas,
+            )
+            assertEquals(listOf("anotado"), banco.locutor.dichas.toList())
+        }
+
+    @Test
+    fun `nota mal sin ninguna nota dicha no guarda nada y dice que no hay nota`() =
+        runBlocking {
+            banco.decir(Orden.NotaMal)
+
+            assertEquals(emptyList<Marca>(), banco.marcas.guardadas.map { it.first })
+            assertEquals(listOf("no hay nota"), banco.locutor.dichas.toList())
+        }
+
+    @Test
+    fun `nota mal con la nota dicha hace mas de treinta segundos no guarda nada`() =
+        runBlocking {
+            banco.memoria.recordarNota(NotaDicha("izquierda tres", 900.0, tiempoMs = 0L))
+            banco.ahoraMs = AnotadorNotaMalImpl.VIGENCIA_MS + 1
+
+            banco.decir(Orden.NotaMal)
+
+            assertEquals(emptyList<Marca>(), banco.marcas.guardadas.map { it.first })
+            assertEquals(listOf("no hay nota"), banco.locutor.dichas.toList())
+        }
+
+    @Test
+    fun `nota mal justo a los treinta segundos todavia vale`() =
+        runBlocking {
+            banco.memoria.recordarNota(NotaDicha("izquierda tres", 900.0, tiempoMs = 0L))
+            banco.ahoraMs = AnotadorNotaMalImpl.VIGENCIA_MS
+
+            banco.decir(Orden.NotaMal)
+
+            assertEquals(1, banco.marcas.guardadas.size)
+        }
+
+    @Test
+    fun `nota mal sin conduccion no guarda nada`() =
+        runBlocking {
+            banco.memoria.recordarNota(NotaDicha("derecha tres", 500.0, tiempoMs = 770L))
+            banco.contexto = null
+
+            banco.decir(Orden.NotaMal)
+
+            assertEquals(emptyList<Marca>(), banco.marcas.guardadas.map { it.first })
+            assertEquals(listOf("no hay conducción"), banco.locutor.dichas.toList())
+        }
+
+    @Test
     fun `ayuda lee las cinco ordenes mas utiles`() =
         runBlocking {
             banco.decir(Orden.Ayuda)

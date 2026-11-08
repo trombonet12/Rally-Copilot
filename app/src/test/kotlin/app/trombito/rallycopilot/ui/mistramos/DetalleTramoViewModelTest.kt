@@ -2,6 +2,8 @@ package app.trombito.rallycopilot.ui.mistramos
 
 import androidx.lifecycle.SavedStateHandle
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
+import app.trombito.rallycopilot.domain.edicion.ListaNotasPorRevisar
+import app.trombito.rallycopilot.domain.edicion.NotaPorRevisar
 import app.trombito.rallycopilot.domain.tramos.ExportaTramo
 import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
 import app.trombito.rallycopilot.domain.tramos.TramoExportado
@@ -63,6 +65,9 @@ class DetalleTramoViewModelTest {
             exportado
         }
 
+    private val revisadas = mutableMapOf<String, List<NotaPorRevisar>>()
+    private val revisar = ListaNotasPorRevisar { revisadas[it].orEmpty() }
+
     @Before
     fun preparar() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -74,7 +79,14 @@ class DetalleTramoViewModelTest {
     }
 
     private fun TestScope.crear(id: String = "t1"): DetalleTramoViewModel {
-        val vm = DetalleTramoViewModel(SavedStateHandle(mapOf("tramoId" to id)), repositorio, datosMapa, exportador)
+        val vm =
+            DetalleTramoViewModel(
+                SavedStateHandle(mapOf("tramoId" to id)),
+                repositorio,
+                datosMapa,
+                exportador,
+                revisar,
+            )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -106,6 +118,18 @@ class DetalleTramoViewModelTest {
             val deNadie = crear("fantasma").uiState.value.subtramos
             assertEquals(1, deT2.size)
             assertEquals(0, deNadie.size)
+        }
+
+    @Test
+    fun `las notas por revisar del tramo salen con su kilometro y su texto si se conoce`() =
+        runTest {
+            revisadas["t1"] =
+                listOf(NotaPorRevisar(1_200.0, 5L, "derecha cuatro larga"), NotaPorRevisar(3_400.0, 6L, null))
+            val filas = crear().uiState.value.notasPorRevisar
+            val deT2 = crear("t2").uiState.value.notasPorRevisar
+            assertEquals(listOf(1_200.0, 3_400.0), filas.map { it.posicionM })
+            assertEquals(listOf("derecha cuatro larga", null), filas.map { it.texto })
+            assertEquals(0, deT2.size)
         }
 
     @Test

@@ -29,7 +29,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
@@ -56,6 +60,9 @@ import app.trombito.rallycopilot.ui.theme.Rotulo
 const val ETIQUETA_FRANJA_NOTAS = "notas-franja"
 const val ETIQUETA_NOTA_PREFIJO = "notas-fila-"
 const val ETIQUETA_NOTA_CUIDADO_PREFIJO = "notas-cuidado-"
+
+/** Confirmación breve que sustituye a la nota actual tras la pulsación larga («Nota anotada»). */
+const val ETIQUETA_NOTA_MAL_CONFIRMACION = "notas-mal-confirmacion"
 
 /** Distancia hasta la nota («120 m»); solo la lleva la nota actual: `notas-distancia-0`. */
 const val ETIQUETA_NOTA_DISTANCIA_PREFIJO = "notas-distancia-"
@@ -155,46 +162,79 @@ private fun TarjetaActual(
     val elemento = visible.elemento
     val cuidado = esCuidado(elemento)
     val color = colorNota(cuidado, visible.activa)
-    val descripcion = descripcionNota(recursos, visible, simplificadas)
     val ahora = stringResource(R.string.notas_ahora)
+    val notaMal = rememberNotaMal()
+    val mensaje = notaMal.mensaje?.let { stringResource(it) }
+    val descripcion = mensaje ?: descripcionNota(recursos, visible, simplificadas)
+    val etiquetaAccion = stringResource(R.string.notas_mal_accion)
     TarjetaWrc(
         modifier =
             modifier
                 .testTag(ETIQUETA_NOTA_PREFIJO + 0)
+                .anotarNotaMalConPulsacionLarga(notaMal)
                 .semantics(mergeDescendants = true) {
                     contentDescription = descripcion
                     if (visible.activa) stateDescription = ahora
+                    if (mensaje != null) liveRegion = LiveRegionMode.Polite
+                    if (notaMal.disponible) {
+                        customActions = listOf(CustomAccessibilityAction(etiquetaAccion) { notaMal.anotar() })
+                    }
                 },
         variante = VarianteTarjeta.MAPA,
         activa = visible.activa,
         relleno = medidas.relleno,
         opaca = true,
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconosDeLaNota(elemento, 0, simplificadas, color, medidas)
-            TextoRotulo(
-                texto = textoNota(recursos, elemento, simplificadas, color, medidas.abreviar),
-                color = color,
-                medidas = medidas,
-                modifier = Modifier.weight(1f),
-            )
+        if (mensaje != null) {
             Text(
-                text = stringResource(R.string.notas_distancia_nota, distanciaRedondeadaM(visible.distanciaM)),
+                text = mensaje,
                 color = color,
-                style = Rotulo.copy(fontSize = medidas.texto * FRACCION_DISTANCIA, lineHeight = TextUnit.Unspecified),
+                style = estiloRotulo(medidas.texto.value),
                 maxLines = 1,
-                softWrap = false,
-                modifier = Modifier.testTag(ETIQUETA_NOTA_DISTANCIA_PREFIJO + 0),
+                modifier = Modifier.fillMaxWidth().testTag(ETIQUETA_NOTA_MAL_CONFIRMACION),
+                textAlign = TextAlign.Center,
             )
-            if (cuidado) {
-                InsigniaCuidado(
-                    lado = if (compacta) LADO_INSIGNIA_COMPACTA else LADO_INSIGNIA,
-                    modifier = Modifier.testTag(ETIQUETA_NOTA_CUIDADO_PREFIJO + 0),
-                )
-            }
+        } else {
+            ContenidoActual(visible, simplificadas, medidas, compacta)
+        }
+    }
+}
+
+@Composable
+private fun ContenidoActual(
+    visible: NotaVisible,
+    simplificadas: Boolean,
+    medidas: Medidas,
+    compacta: Boolean,
+) {
+    val recursos = LocalContext.current.resources
+    val elemento = visible.elemento
+    val cuidado = esCuidado(elemento)
+    val color = colorNota(cuidado, visible.activa)
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconosDeLaNota(elemento, 0, simplificadas, color, medidas)
+        TextoRotulo(
+            texto = textoNota(recursos, elemento, simplificadas, color, medidas.abreviar),
+            color = color,
+            medidas = medidas,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = stringResource(R.string.notas_distancia_nota, distanciaRedondeadaM(visible.distanciaM)),
+            color = color,
+            style = Rotulo.copy(fontSize = medidas.texto * FRACCION_DISTANCIA, lineHeight = TextUnit.Unspecified),
+            maxLines = 1,
+            softWrap = false,
+            modifier = Modifier.testTag(ETIQUETA_NOTA_DISTANCIA_PREFIJO + 0),
+        )
+        if (cuidado) {
+            InsigniaCuidado(
+                lado = if (compacta) LADO_INSIGNIA_COMPACTA else LADO_INSIGNIA,
+                modifier = Modifier.testTag(ETIQUETA_NOTA_CUIDADO_PREFIJO + 0),
+            )
         }
     }
 }

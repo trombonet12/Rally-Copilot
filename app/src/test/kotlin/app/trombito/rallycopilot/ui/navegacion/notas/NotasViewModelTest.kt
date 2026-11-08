@@ -1,6 +1,8 @@
 package app.trombito.rallycopilot.ui.navegacion.notas
 
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.escucha.AnotadorNotaMal
+import app.trombito.rallycopilot.domain.escucha.ResultadoNotaMal
 import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.notas.ProveedorNotas
@@ -41,6 +43,13 @@ class NotasViewModelTest {
     // Cruces y puentes vienen apagados de base; estos tests parten de todo activo.
     private val todoActivo = AjustesConduccion(avisarCruces = true, avisarPuentes = true)
     private val ajustes = FalsoRepositorioAjustesConduccion(todoActivo)
+    private var resultadoNotaMal = ResultadoNotaMal.ANOTADA
+    private var anotadas = 0
+    private val anotador =
+        AnotadorNotaMal {
+            anotadas++
+            resultadoNotaMal
+        }
 
     private val hoja =
         HojaNotas(
@@ -63,7 +72,7 @@ class NotasViewModelTest {
     }
 
     private fun TestScope.crear(): NotasViewModel {
-        val vm = NotasViewModel(proveedor, ajustes)
+        val vm = NotasViewModel(proveedor, ajustes, anotador)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -243,5 +252,15 @@ class NotasViewModelTest {
             assertEquals(listOf(TipoAviso.PUENTE), tiposVisibles(vm))
             ajustes.mutable.value = todoActivo
             assertEquals(listOf(TipoAviso.CRUCE, TipoAviso.ROTONDA), tiposVisibles(vm))
+        }
+
+    @Test
+    fun `anotar nota mal pide la marca y devuelve el resultado`() =
+        runTest {
+            val vm = crear()
+            assertEquals(ResultadoNotaMal.ANOTADA, vm.anotarNotaMal())
+            resultadoNotaMal = ResultadoNotaMal.SIN_NOTA
+            assertEquals(ResultadoNotaMal.SIN_NOTA, vm.anotarNotaMal())
+            assertEquals(2, anotadas)
         }
 }

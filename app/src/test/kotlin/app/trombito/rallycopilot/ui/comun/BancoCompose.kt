@@ -55,6 +55,40 @@ class BancoCompose {
         reposo()
     }
 
+    /**
+     * Pulsación larga sobre [nodo]: baja el dedo en su centro, espera [ms] milisegundos y lo sube. La espera es de
+     * reloj real: los retardos de los gestos de Compose (`delay` en el despachador de la interfaz) no usan el reloj
+     * virtual de Robolectric.
+     */
+    fun mantener(
+        nodo: SemanticsNode,
+        ms: Long = PULSACION_LARGA_MS,
+    ) {
+        val vista = checkNotNull(buscarRaiz(controlador.get().window.decorView) as? View) { "No hay contenido Compose" }
+        val centro = nodo.boundsInRoot.center
+        listOf(MotionEvent.ACTION_DOWN to ms, MotionEvent.ACTION_UP to 0L).forEach { (accion, espera) ->
+            val ahora = SystemClock.uptimeMillis()
+            val evento = MotionEvent.obtain(ahora, ahora, accion, centro.x, centro.y, 0)
+            vista.dispatchTouchEvent(evento)
+            evento.recycle()
+            reposo() // que el gesto arranque su temporizador antes de esperar
+            esperarEnReal(espera)
+        }
+    }
+
+    /** Espera [ms] de reloj real (para lo que Compose retrasa fuera del reloj virtual) y recompone. */
+    fun esperarEnReal(ms: Long) {
+        var restante = ms
+        while (restante > 0) {
+            val paso = minOf(restante, PASO_REAL_MS)
+            Thread.sleep(paso)
+            avanzar(paso)
+            reposo()
+            restante -= paso
+        }
+        reposo()
+    }
+
     /** Deja pasar [ms] milisegundos del reloj virtual (cuentas atrás, retardos) y recompone. */
     fun esperar(ms: Long) {
         avanzar(ms)
@@ -176,6 +210,8 @@ class BancoCompose {
         }
 
     companion object {
+        private const val PULSACION_LARGA_MS = 800L
+        private const val PASO_REAL_MS = 50L
         private const val FOTOGRAMAS = 4
         private const val MS_FOTOGRAMA = 20L
         private const val MAX_TAREAS = 10_000

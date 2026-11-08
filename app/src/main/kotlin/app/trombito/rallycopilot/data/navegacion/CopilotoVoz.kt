@@ -37,7 +37,8 @@ class RutaVoz(
  * [PlanificadorFrases] por sesión: no repite lo dicho ni dice lo que llegaría tarde. Con el modo SILENCIO, o sin voz
  * elegida (`voz == null`), no habla (ni sintetiza). Las [ajustes] se siguen con [seguirAjustes]; [registro] recibe
  * una línea por frase dicha (id, metros que faltaban y velocidad: nunca coordenadas) para medir la anticipación y
- * [alDecir] el texto de cada frase dicha (la orden de voz «repite» vuelve a decir la última). Las familias de avisos
+ * [alDecir] el texto de cada frase dicha (la orden de voz «repite» vuelve a decir la última) y [alDecirNota] cada nota
+ * dicha con su posición (la orden «esta nota estaba mal» marca la última). Las familias de avisos
  * que los ajustes apagan (radares, incidencias, velocidad) no se dicen, pero las notas y maniobras no se tocan.
  *
  * El [locutor] es de la aplicación y sobrevive a la sesión: [cerrar] solo deja de pedirle trabajo. No es concurrente:
@@ -49,6 +50,7 @@ class CopilotoVoz(
     private val ajustes: Flow<AjustesConduccion>,
     private val registro: ((String) -> Unit)? = null,
     private val alDecir: ((String) -> Unit)? = null,
+    private val alDecirNota: ((Frase) -> Unit)? = null,
 ) {
     private val selector = SelectorNotas()
     private val hojaFiltrada = HojaFiltrada()
@@ -304,6 +306,7 @@ class CopilotoVoz(
     ) {
         locutor.decir(frase.texto)
         alDecir?.invoke(frase.texto)
+        if (frase.tipo == TipoFrase.NOTA && frase.puntoM != null) alDecirNota?.invoke(frase)
         registro?.invoke(
             "dice id=${frase.id} faltan=${frase.puntoM?.let { (it - posicionM).roundToInt().toString() } ?: "-"}m " +
                 "v=${vMs?.let { it.msAKmh().roundToInt().toString() } ?: "-"}km/h",
