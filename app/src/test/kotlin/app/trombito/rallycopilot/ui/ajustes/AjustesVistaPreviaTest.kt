@@ -301,11 +301,13 @@ class AjustesVistaPreviaTest {
         assertEquals("Muestra del tema Claro", descripcionDe(ETIQUETA_TEMA_MUESTRA))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_TEMA_PREFIJO + Tema.SISTEMA.name.lowercase()))
         assertEquals("Muestra del tema Automático", descripcionDe(ETIQUETA_TEMA_MUESTRA))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_TEMA_PREFIJO + Tema.SOL.name.lowercase()))
+        assertEquals("Muestra del tema Día y noche", descripcionDe(ETIQUETA_TEMA_MUESTRA))
         Tema.entries.forEach {
             assertTrue(banco.esPulsable(banco.conEtiqueta(ETIQUETA_TEMA_PREFIJO + it.name.lowercase())))
         }
         val visibles = banco.textos(banco.raiz())
-        listOf("Oscuro", "Claro", "Automático").forEach { assertTrue("Falta $it", it in visibles) }
+        listOf("Oscuro", "Claro", "Automático", "Día y noche").forEach { assertTrue("Falta $it", it in visibles) }
     }
 
     @Test

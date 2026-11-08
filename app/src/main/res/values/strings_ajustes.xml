@@ -114,7 +114,8 @@
     <string name="ajustes_tema_oscuro">Oscuro</string>
     <string name="ajustes_tema_claro">Claro</string>
     <string name="ajustes_tema_sistema">Automático</string>
-    <string name="ajustes_tema_detalle">Automático sigue el modo claro u oscuro del teléfono.</string>
+    <string name="ajustes_tema_sol">Día y noche</string>
+    <string name="ajustes_tema_detalle">Automático sigue el modo claro u oscuro del teléfono. Día y noche pinta claro con sol y oscuro al anochecer, según la hora del sol en Mallorca; un túnel no lo cambia.</string>
     <string name="ajustes_tema_muestra_descripcion">Muestra del tema %1$s</string>
     <string name="ajustes_tema_muestra_velocidad">87</string>
     <string name="ajustes_tema_muestra_delta">-0,4 s</string>

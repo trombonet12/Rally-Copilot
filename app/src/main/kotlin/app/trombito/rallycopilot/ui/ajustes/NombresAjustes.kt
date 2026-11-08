@@ -22,6 +22,7 @@ internal fun Tema.nombre(): Int =
         Tema.OSCURO -> R.string.ajustes_tema_oscuro
         Tema.CLARO -> R.string.ajustes_tema_claro
         Tema.SISTEMA -> R.string.ajustes_tema_sistema
+        Tema.SOL -> R.string.ajustes_tema_sol
     }
 
 @StringRes

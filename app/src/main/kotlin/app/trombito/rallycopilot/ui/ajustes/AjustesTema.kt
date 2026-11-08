@@ -2,7 +2,6 @@ package app.trombito.rallycopilot.ui.ajustes
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -35,6 +34,7 @@ import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 import app.trombito.rallycopilot.ui.theme.Medidas
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import app.trombito.rallycopilot.ui.theme.RojoRuta
+import app.trombito.rallycopilot.ui.theme.oscuroAhora
 
 const val ETIQUETA_TEMA_PREFIJO = "ajustes-tema-"
 const val ETIQUETA_TEMA_MUESTRA = "ajustes-tema-muestra"
@@ -45,9 +45,10 @@ private fun Tema.icono(): ImageVector =
         Tema.OSCURO -> Iconos.TemaOscuro
         Tema.CLARO -> Iconos.TemaClaro
         Tema.SISTEMA -> Iconos.TemaSistema
+        Tema.SOL -> Iconos.TemaSol
     }
 
-/** Tema: oscuro (por defecto), claro o el del móvil, con la etiqueta de cada uno bajo su icono. */
+/** Tema: oscuro (por defecto), claro, el del móvil o el del sol, con la etiqueta de cada uno bajo su icono. */
 @Composable
 internal fun ControlesTema(
     tema: Tema,
@@ -71,11 +72,11 @@ internal fun ControlesTema(
 
 /**
  * Dos miniaturas de pantalla de conducción, oscura y clara; se resalta la del tema elegido (con «Automático», la
- * que usa el móvil ahora).
+ * que usa el móvil ahora; con «Día y noche», la que toca según el sol).
  */
 @Composable
 internal fun PrevistaTema(tema: Tema) {
-    val oscuroElegido = tema.esOscuro(isSystemInDarkTheme())
+    val oscuroElegido = tema.oscuroAhora()
     val descripcion = stringResource(R.string.ajustes_tema_muestra_descripcion, stringResource(tema.nombre()))
     Row(
         modifier = Modifier.fillMaxSize().testTag(ETIQUETA_TEMA_MUESTRA).semantics { contentDescription = descripcion },
