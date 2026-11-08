@@ -2,7 +2,9 @@ package app.trombito.rallycopilot.domain.notas
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.HojaNotas
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 /** De dónde sale la hoja de notas en curso. */
 enum class OrigenNotas {
@@ -33,7 +35,12 @@ data class NotasEnCurso(
     val tramoReconocimiento: String? = null,
 )
 
+private val SIN_PAUSA: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
+
 /** Notas en vivo de la sesión de navegación; null si no hay conducción o aún no hay hoja que seguir. */
 interface ProveedorNotas {
     val notas: StateFlow<NotasEnCurso?>
+
+    /** `true` mientras el copiloto no se fía de la posición y no canta notas nuevas (la franja lo indica). */
+    val enPausa: StateFlow<Boolean> get() = SIN_PAUSA
 }

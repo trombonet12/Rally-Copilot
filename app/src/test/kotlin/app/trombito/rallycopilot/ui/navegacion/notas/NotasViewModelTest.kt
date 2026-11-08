@@ -34,6 +34,8 @@ class FalsoProveedorNotas(
 ) : ProveedorNotas {
     val mutable = MutableStateFlow(inicial)
     override val notas: StateFlow<NotasEnCurso?> = mutable
+    val pausa = MutableStateFlow(false)
+    override val enPausa: StateFlow<Boolean> = pausa
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -163,6 +165,30 @@ class NotasViewModelTest {
             assertFalse(vm.uiState.value.simplificadas)
             ajustes.mutable.value = todoActivo.copy(notasSimplificadas = true)
             assertTrue(vm.uiState.value.simplificadas)
+        }
+
+    @Test
+    fun `la pausa del copiloto llega a la franja y se quita sola al reanudar`() =
+        runTest {
+            val vm = crear()
+            proveedor.mutable.value = en(100.0)
+            assertFalse(vm.uiState.value.enPausa)
+            proveedor.pausa.value = true
+            assertTrue(vm.uiState.value.enPausa)
+            val visibles = vm.uiState.value.visibles
+            assertEquals(hoja.elementos.take(3), visibles.map { it.elemento })
+            proveedor.pausa.value = false
+            assertFalse(vm.uiState.value.enPausa)
+        }
+
+    @Test
+    fun `sin notas en curso la pausa no enciende nada`() =
+        runTest {
+            val vm = crear()
+            proveedor.pausa.value = true
+            val estado = vm.uiState.value
+            assertFalse(estado.enPausa)
+            assertTrue(estado.visibles.isEmpty())
         }
 
     @Test

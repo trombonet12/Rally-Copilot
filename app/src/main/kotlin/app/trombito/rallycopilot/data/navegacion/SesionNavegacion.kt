@@ -21,6 +21,7 @@ import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.domain.ubicacion.PosicionEstimada
 import app.trombito.rallycopilot.motor.geo.AcumuladorRecorrido
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.notas.FrasesNota
 import app.trombito.rallycopilot.motor.notas.RutaMedida
 import app.trombito.rallycopilot.motor.ruta.DetectorSalidaRuta
 import app.trombito.rallycopilot.motor.ruta.EstadoRuta
@@ -31,6 +32,8 @@ import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.velocidad.PrecisionGps
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
+import app.trombito.rallycopilot.motor.voz.Frase
+import app.trombito.rallycopilot.motor.voz.TipoFrase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -105,6 +108,7 @@ class SesionNavegacion(
     private val ediciones: RepositorioEdiciones? = null,
     private val tramos: RepositorioTramos? = null,
     private val cronometrar: suspend () -> Boolean = { true },
+    private val alPausarNotas: (Boolean) -> Unit = {},
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
     suspend fun cerrarHuerfanos() {
@@ -127,6 +131,7 @@ class SesionNavegacion(
             ejecucion.ejecutar()
         } finally {
             ejecucion.cerrarNotas()
+            alPausarNotas(false)
             copiloto?.cerrar()
             alertas?.cerrar()
             withContext(NonCancellable) {
@@ -162,6 +167,9 @@ class SesionNavegacion(
         private var ultimaFijacionMs = 0L
         private var ultimaPosicion: PuntoGeo? = null
 
+        /** Tramo recién entrado (id y reloj de la fijación) cuyo límite de vía aún no se ha anunciado. */
+        private var entradaEnTramo: Pair<String, Long>? = null
+
         suspend fun ejecutar() =
             coroutineScope {
                 tramoReconocido = reconocimiento?.let { tramos?.tramo(it.tramoId) }
@@ -175,6 +183,7 @@ class SesionNavegacion(
                 val vigiladas =
                     if (notas != null && ediciones != null) launch { vigilarEdiciones(notas, ediciones) } else null
                 val ajustesCopiloto = copiloto?.let { launch { it.seguirAjustes() } }
+                val pausaNotas = copiloto?.let { launch { it.notasEnPausa.collect { pausa -> alPausarNotas(pausa) } } }
                 val datosAlertas = alertas?.arrancar(this, guia?.ruta?.puntos)
                 val cargaTramos = cronometro?.arrancar(this, id)
                 val edicion =
@@ -189,6 +198,7 @@ class SesionNavegacion(
                 vigiladas?.cancel()
                 guia?.recalculo?.cancel()
                 ajustesCopiloto?.cancel()
+                pausaNotas?.cancel()
                 datosAlertas?.cancel()
                 cargaTramos?.cancel()
                 cerrarNotas()
@@ -223,6 +233,8 @@ class SesionNavegacion(
                 if (cronometro != null &&
                     it?.id != tramoActivo.value?.id
                 ) {
+                    // De «sin tramo» a uno: el copiloto dice el límite de la vía en la salida (ver `hablar`).
+                    if (it != null && tramoActivo.value == null) entradaEnTramo = it.id to fijacion.tiempoMs
                     tramoActivo.value = it
                 }
             }
@@ -263,8 +275,18 @@ class SesionNavegacion(
                         vigentes?.posicionM,
                         vigentes?.takeIf { it.origen == OrigenNotas.LIBRE }?.traza,
                     ).orEmpty()
+            anunciarLimiteDeSalida()
             val calidad = CalidadPosicion(fijacion.precisionM, guia?.progreso?.distanciaALaRutaM, fijacion.tiempoMs)
             copiloto?.alFijar(vigentes, guia?.rutaVoz, progresoM, fijacion.velocidadMs, frases, calidad)
+        }
+
+        /** Al entrar en un tramo, «límite noventa» con el límite de la vía de ahora; sin límite conocido, nada. */
+        private fun anunciarLimiteDeSalida() {
+            val (tramoId, tInicio) = entradaEnTramo ?: return
+            entradaEnTramo = null
+            val limite = alertas?.limiteViaKmh ?: return
+            val texto = "límite ${FrasesNota.enPalabras(limite)}"
+            copiloto?.anunciarCrono(Frase("crono:limite:$tramoId:$tInicio", texto, TipoFrase.CRONO, null))
         }
 
         private fun vigilarSalida(

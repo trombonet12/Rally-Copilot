@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.navegacion.notas
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -256,6 +257,42 @@ class CarreteNotasTest : CarreteNotasBase() {
         assertTrue(banco.hay(ETIQUETA_NOTA_AVISO_PREFIJO + "0-RASANTE"))
         assertTrue(banco.hay(ETIQUETA_NOTA_CUIDADO_PREFIJO + 0))
         assertEquals("120 m", distanciaFila(0))
+    }
+
+    @Test
+    fun `sin pausa no hay rotulo de notas en pausa`() {
+        poner(tres)
+        assertFalse(banco.hay(ETIQUETA_NOTAS_EN_PAUSA))
+    }
+
+    @Test
+    fun `con las notas en pausa sale un rotulo discreto, region viva educada, y la franja sigue`() {
+        poner(tres.copy(enPausa = true))
+        assertTrue(banco.hay(ETIQUETA_NOTAS_EN_PAUSA))
+        assertEquals(listOf("Notas en pausa"), banco.textos(banco.conEtiqueta(ETIQUETA_NOTAS_EN_PAUSA)))
+        assertEquals(
+            LiveRegionMode.Polite,
+            banco.conEtiqueta(ETIQUETA_NOTAS_EN_PAUSA).config.getOrNull(SemanticsProperties.LiveRegion),
+        )
+        assertTrue(textoFila(0).startsWith("DERECHA 4 LARGA"))
+        val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
+        val rotulo = banco.conEtiqueta(ETIQUETA_NOTAS_EN_PAUSA).boundsInRoot
+        assertTrue("el rótulo va bajo el carrete: $rotulo vs $franja", rotulo.top >= franja.bottom - 1f)
+        assertTrue("el rótulo es pequeño: ${rotulo.height}", rotulo.height < 28 * 3f)
+    }
+
+    @Test
+    fun `el rotulo de pausa aparece y desaparece solo al cambiar el estado`() {
+        var estado by mutableStateOf(tres)
+        banco.poner { RallyCopilotTheme { CarreteNotas(estado) } }
+        assertFalse(banco.hay(ETIQUETA_NOTAS_EN_PAUSA))
+        estado = tres.copy(enPausa = true)
+        banco.reposo()
+        assertTrue(banco.hay(ETIQUETA_NOTAS_EN_PAUSA))
+        estado = tres
+        banco.reposo()
+        assertFalse(banco.hay(ETIQUETA_NOTAS_EN_PAUSA))
+        assertTrue(textoFila(0).startsWith("DERECHA 4 LARGA"))
     }
 
     @Test

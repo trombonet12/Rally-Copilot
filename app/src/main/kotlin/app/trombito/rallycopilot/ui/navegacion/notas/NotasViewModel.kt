@@ -37,7 +37,7 @@ class NotasViewModel
         private val hojaFiltrada = HojaFiltrada()
 
         val uiState: StateFlow<NotasUiState> =
-            combine(proveedor.notas, ajustes.ajustes) { notas, preferencias ->
+            combine(proveedor.notas, ajustes.ajustes, proveedor.enPausa) { notas, preferencias, enPausa ->
                 if (notas == null) {
                     NotasUiState(simplificadas = preferencias.notasSimplificadas)
                 } else {
@@ -51,6 +51,7 @@ class NotasViewModel
                                 n = NOTAS_VISIBLES,
                             ),
                         simplificadas = preferencias.notasSimplificadas,
+                        enPausa = enPausa,
                     )
                 }
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), NotasUiState())

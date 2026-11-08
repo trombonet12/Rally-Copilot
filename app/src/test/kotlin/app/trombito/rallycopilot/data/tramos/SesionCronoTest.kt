@@ -1,5 +1,9 @@
 package app.trombito.rallycopilot.data.tramos
 
+import app.trombito.rallycopilot.data.alertas.IncidenciasFalso
+import app.trombito.rallycopilot.data.alertas.RadaresFalso
+import app.trombito.rallycopilot.data.alertas.SesionAlertas
+import app.trombito.rallycopilot.data.alertas.ViaFalsa
 import app.trombito.rallycopilot.data.db.PasadaEntity
 import app.trombito.rallycopilot.data.db.TramoEntity
 import app.trombito.rallycopilot.data.escucha.EdicionesFalsas
@@ -24,6 +28,7 @@ import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
+import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
@@ -361,6 +366,7 @@ class SesionCronoTest {
         cronometrar: Boolean = true,
         salidaManual: Flow<Boolean> = flowOf(false),
         darSalidaEnMs: Long? = null,
+        via: ViaActual? = null,
     ): Conducida {
         val publicados = mutableListOf<CronoEnCurso?>()
         val locutor = LocutorAnotador()
@@ -391,6 +397,8 @@ class SesionCronoTest {
             publicar = {},
             motivoSinGps = "sin GPS",
             copiloto = copiloto,
+            alertas =
+                via?.let { SesionAlertas(RadaresFalso(emptyList()), IncidenciasFalso(), ViaFalsa(it), {}, { 0L }) },
             crono = crono,
             tramos = tramos,
             cronometrar = { cronometrar },
@@ -642,6 +650,39 @@ class SesionCronoTest {
             assertEquals(emptyList<String>(), notas.dichas)
             assertEquals(1, tramos.tramos.size)
             assertEquals(3, tramos.pasadas.size)
+        }
+
+    @Test
+    fun `al entrar en un tramo el copiloto dice el limite de la via antes de los deltas`() =
+        runTest {
+            conducir(conduccion(40.0))
+
+            val c =
+                conducir(
+                    conduccion(60.0, margenM = 100.0, base = 9_000_000L),
+                    ModoCopiloto.COMPLETO,
+                    via = ViaActual("Ma-2141", "Ma-2141", 90),
+                )
+
+            assertEquals(5, c.dichas.size)
+            assertEquals("límite noventa", c.dichas.first())
+            assertEquals(1, c.dichas.count { it.startsWith("límite") })
+        }
+
+    @Test
+    fun `sin limite conocido en la salida del tramo no se dice nada del limite`() =
+        runTest {
+            conducir(conduccion(40.0))
+
+            val c =
+                conducir(
+                    conduccion(60.0, margenM = 100.0, base = 9_000_000L),
+                    ModoCopiloto.COMPLETO,
+                    via = ViaActual("Ma-2141", "Ma-2141", null),
+                )
+
+            assertEquals(4, c.dichas.size)
+            assertTrue(c.dichas.none { it.startsWith("límite") })
         }
 
     @Test

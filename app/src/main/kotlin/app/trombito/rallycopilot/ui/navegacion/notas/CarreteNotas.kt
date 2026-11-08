@@ -9,13 +9,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -48,13 +52,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.notas.NotaVisible
+import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.comun.VarianteTarjeta
 import app.trombito.rallycopilot.ui.theme.AmbarSobreCarbon
 import app.trombito.rallycopilot.ui.theme.CarbonOpaco
+import app.trombito.rallycopilot.ui.theme.CarbonTranslucido
 import app.trombito.rallycopilot.ui.theme.Movimiento
 import app.trombito.rallycopilot.ui.theme.Radios
 import app.trombito.rallycopilot.ui.theme.Rotulo
+import app.trombito.rallycopilot.ui.theme.TextoSecundarioSobreCarbon
 
 /** Contenedor del carrete (ocupa todo el ancho; no existe sin notas). */
 const val ETIQUETA_FRANJA_NOTAS = "notas-franja"
@@ -70,6 +77,10 @@ const val ETIQUETA_NOTA_DISTANCIA_PREFIJO = "notas-distancia-"
 /** Icono de un aviso unido (o del puente de la curva) de la nota: `notas-aviso-<fila>-<TIPO>`. */
 const val ETIQUETA_NOTA_AVISO_PREFIJO = "notas-aviso-"
 
+/** Rótulo «Notas en pausa» bajo el carrete (solo con las notas en pausa por posición poco fiable). */
+const val ETIQUETA_NOTAS_EN_PAUSA = "notas-en-pausa"
+
+private val SEPARACION_ETIQUETA = 4.dp
 private const val FRACCION_TEXTO_MINIMO = 0.55f
 private const val HOLGURA = 0.97f
 private const val FRACCION_DISTANCIA = 0.6f
@@ -104,18 +115,53 @@ fun CarreteNotas(
     compacta: Boolean = false,
 ) {
     if (estado.visibles.isEmpty()) return
-    AnimatedContent(
-        targetState = estado,
-        modifier = modifier.fillMaxWidth().clipToBounds().testTag(ETIQUETA_FRANJA_NOTAS),
-        // Solo desliza cuando cambia la nota actual; el resto de cambios (distancia, activa) actualizan sin animar.
-        contentKey = { it.visibles.firstOrNull()?.elemento },
-        transitionSpec = {
-            slideInHorizontally(tween(Movimiento.MEDIA)) { ancho -> ancho } togetherWith
-                slideOutHorizontally(tween(Movimiento.MEDIA)) { ancho -> -ancho }
-        },
-        label = "carrete-notas",
-    ) { visto ->
-        Carrete(visto, compacta)
+    Column(modifier.fillMaxWidth()) {
+        AnimatedContent(
+            targetState = estado,
+            modifier = Modifier.fillMaxWidth().clipToBounds().testTag(ETIQUETA_FRANJA_NOTAS),
+            // Solo desliza cuando cambia la nota actual; el resto de cambios (distancia, activa) actualizan sin animar.
+            contentKey = { it.visibles.firstOrNull()?.elemento },
+            transitionSpec = {
+                slideInHorizontally(tween(Movimiento.MEDIA)) { ancho -> ancho } togetherWith
+                    slideOutHorizontally(tween(Movimiento.MEDIA)) { ancho -> -ancho }
+            },
+            label = "carrete-notas",
+        ) { visto ->
+            Carrete(visto, compacta)
+        }
+        if (estado.enPausa) EtiquetaEnPausa()
+    }
+}
+
+/**
+ * Rótulo pequeño y atenuado bajo el carrete mientras el copiloto no canta notas nuevas por posición poco fiable
+ * (icono de pausa, sin rojo). Región viva educada: TalkBack lo anuncia al aparecer sin interrumpir.
+ */
+@Composable
+private fun EtiquetaEnPausa() {
+    Row(
+        modifier =
+            Modifier
+                .padding(top = SEPARACION_ETIQUETA)
+                .background(CarbonTranslucido, RoundedCornerShape(percent = 50))
+                .padding(horizontal = 8.dp, vertical = 2.dp)
+                .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite }
+                .testTag(ETIQUETA_NOTAS_EN_PAUSA),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = Iconos.Pausa,
+            contentDescription = null,
+            tint = TextoSecundarioSobreCarbon,
+            modifier = Modifier.size(12.dp),
+        )
+        Text(
+            text = stringResource(R.string.notas_en_pausa),
+            color = TextoSecundarioSobreCarbon,
+            style = Rotulo.copy(fontSize = 12.sp, lineHeight = TextUnit.Unspecified),
+            maxLines = 1,
+        )
     }
 }
 

@@ -20,6 +20,7 @@ import app.trombito.rallycopilot.data.escucha.EscuchaContinua
 import app.trombito.rallycopilot.data.escucha.MemoriaFrases
 import app.trombito.rallycopilot.data.escucha.NotaDicha
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
+import app.trombito.rallycopilot.data.notas.NotasEnVivoImpl
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.tramos.FabricaCronoSesion
 import app.trombito.rallycopilot.data.voz.LiberadorModelos
@@ -69,6 +70,8 @@ class ServicioNavegacion : Service() {
     @Inject lateinit var recorridos: RepositorioRecorridos
 
     @Inject lateinit var fabricaNotas: FabricaNotasSesion
+
+    @Inject lateinit var notasEnVivo: NotasEnVivoImpl
 
     @Inject lateinit var fabricaAlertas: FabricaAlertasSesion
 
@@ -312,6 +315,7 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         cronometrar = { ajustes.ajustes.first().cronometrar },
         ediciones = ediciones,
         tramos = tramos,
+        alPausarNotas = notasEnVivo::pausar,
     )
 
 /** Solo en un APK depurable: una línea por frase dicha para medir la anticipación (sin coordenadas). */

@@ -71,6 +71,10 @@ class SesionAlertas internal constructor(
     private val publicar: (AlertasEnCurso?) -> Unit,
     private val ahoraMs: () -> Long,
 ) {
+    /** Límite (km/h) de la vía de la última fijación procesada; null sin vía o sin límite conocido. */
+    var limiteViaKmh: Int? = null
+        private set
+
     private var ruta: List<PuntoGeo>? = null
     private var datosRadares: List<Radar>? = null
     private var radaresPorId: Map<String, Radar> = emptyMap()
@@ -142,6 +146,7 @@ class SesionAlertas internal constructor(
         val v = velocidadMs ?: 0.0
         val enPrediccion = enPrediccion(prediccion, notasM)
         val via = vias.viaEn(fijacion)
+        limiteViaKmh = via?.limiteKmh
         val guiado = ruta != null
         // En guiado sin progreso todavía no hay nada que decir de la ruta.
         val sobreRuta = if (guiado) progresoM else null

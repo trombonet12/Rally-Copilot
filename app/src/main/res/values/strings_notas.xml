@@ -9,6 +9,7 @@
     <string name="notas_distancia_siguiente">·&#160;%1$d&#160;m</string>
     <string name="notas_distancia_nota">%1$d&#160;m</string>
     <string name="notas_insignia_cuidado">!</string>
+    <string name="notas_en_pausa">Notas en pausa</string>
 
     <!-- Ajustes: anticipación de las notas y notas simplificadas -->
     <string name="ajustes_anticipacion_titulo">Anticipación de las notas</string>

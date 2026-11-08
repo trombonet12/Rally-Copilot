@@ -17,7 +17,16 @@ class NotasEnVivoImpl
 
         override val notas: StateFlow<NotasEnCurso?> = actuales.asStateFlow()
 
+        private val pausa = MutableStateFlow(false)
+
+        override val enPausa: StateFlow<Boolean> = pausa.asStateFlow()
+
         fun publicar(notas: NotasEnCurso?) {
             actuales.value = notas
+        }
+
+        /** El copiloto pausa (o reanuda) las notas por posición poco fiable. */
+        fun pausar(enPausa: Boolean) {
+            pausa.value = enPausa
         }
     }
