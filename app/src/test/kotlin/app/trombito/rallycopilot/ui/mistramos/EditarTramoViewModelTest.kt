@@ -12,6 +12,7 @@ import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.HojaNotas
 import app.trombito.rallycopilot.motor.notas.Nota
+import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
@@ -125,6 +126,46 @@ class EditarTramoViewModelTest {
         vm.onQuitar()
 
         assertEquals(listOf(900.0 to AccionEdicion.Anadir(nueva), 300.0 to AccionEdicion.Quitar), editor.editadas)
+    }
+
+    @Test
+    fun `fusionar y dividir van a la posicion de la nota abierta y cierran el editor`() {
+        val vm = viewModel()
+        val recogida = vm.uiState.collectAhora()
+        vm.onTocarNota(curva)
+        vm.onFusionar()
+        assertNull(recogida().editor)
+        vm.onTocarPunto(320.0)
+        vm.onDividir()
+
+        assertEquals(
+            listOf(300.0 to AccionEdicion.Fusionar, 320.0 to AccionEdicion.Dividir),
+            editor.editadas,
+        )
+    }
+
+    @Test
+    fun `anadir un aviso lo pone en el punto tocado y quitarlo no necesita editor abierto`() {
+        val vm = viewModel()
+        val recogida = vm.uiState.collectAhora()
+        vm.onTocarPunto(700.0)
+        vm.onAnadirAviso(TipoAviso.BADEN)
+        assertNull(recogida().editor)
+        vm.onQuitarAviso(700.0)
+
+        assertEquals(
+            listOf(700.0 to AccionEdicion.AnadirAviso(TipoAviso.BADEN), 700.0 to AccionEdicion.QuitarAviso),
+            editor.editadas,
+        )
+    }
+
+    @Test
+    fun `sin editor abierto fusionar, dividir y anadir aviso no hacen nada`() {
+        val vm = viewModel()
+        vm.onFusionar()
+        vm.onDividir()
+        vm.onAnadirAviso(TipoAviso.STOP)
+        assertTrue(editor.editadas.isEmpty())
     }
 
     @Test

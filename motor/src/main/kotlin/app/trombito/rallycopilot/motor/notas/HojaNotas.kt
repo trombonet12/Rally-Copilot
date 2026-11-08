@@ -23,7 +23,7 @@ sealed interface ElementoHoja {
 
         /** Frase de la nota con sus avisos; con [simplificada] el grado va en palabra simplificada. */
         fun frase(simplificada: Boolean): String {
-            val cuidado = nota.cuidado || avisosUnidos.any { it.tipo.esCuidado }
+            val cuidado = (nota.cuidado && nota.textoPropio == null) || avisosUnidos.any { it.tipo.esCuidado }
             val previos = avisosUnidos.map { it.tipo.palabra }.filter { it.isNotEmpty() }
             val partes = (if (cuidado) listOf("cuidado") else emptyList()) + previos + cuerpo(simplificada)
             return partes.joinToString(", ")

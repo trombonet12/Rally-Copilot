@@ -18,7 +18,7 @@
     <string name="edicion_dira">Dirá: «%1$s»</string>
     <string name="edicion_editar_notas">Editar notas</string>
     <string name="edicion_tramo_titulo">Notas y sectores</string>
-    <string name="edicion_ayuda">Toca una nota en el mapa o en la lista para elegirla; el lápiz de su fila (o tocarla otra vez en el mapa) la abre para corregirla. Toca un punto del trazo para añadir una nota. Arrastra los cortes de sector (C1, C2…) por el mapa para moverlos. Con dos dedos haces zoom.</string>
+    <string name="edicion_ayuda">Toca una nota en el mapa o en la lista para elegirla; el lápiz de su fila (o tocarla otra vez en el mapa) la abre para corregirla. Toca un punto del trazo para añadir una nota o un aviso, o para dividir por ahí una curva. En una nota, «Fusionar» la une con la siguiente. Si escribes un texto libre, el copiloto canta ese texto. Arrastra los cortes de sector (C1, C2…) por el mapa para moverlos. Con dos dedos haces zoom.</string>
     <string name="edicion_ayuda_titulo">Cómo editar</string>
     <string name="edicion_ayuda_boton">Ayuda para editar las notas y los sectores</string>
     <string name="edicion_ayuda_entendido">Entendido</string>
@@ -42,8 +42,21 @@
     <string name="edicion_leyenda_corte">Corte</string>
     <string name="edicion_leyenda_explicacion">Marca: punto que dictaste con «marca aquí». Radar: el que marcaste con «radar». Corte: separa los sectores; arrástralo por el mapa.</string>
     <string name="edicion_no_encontrado">Este tramo ya no existe.</string>
+    <string name="edicion_titulo_aviso">Añadir aviso</string>
+    <string name="edicion_modo_nota">Nota</string>
+    <string name="edicion_modo_aviso">Aviso</string>
+    <string name="edicion_aviso_ayuda">Elige el aviso que el copiloto cantará en este punto del tramo.</string>
+    <string name="edicion_aviso_descripcion">Añadir aviso: %1$s</string>
+    <string name="edicion_texto_libre">Texto libre (opcional)</string>
+    <string name="edicion_texto_libre_ayuda">Si lo escribes, el copiloto canta esto en vez de la frase de arriba. %1$d/%2$d</string>
+    <string name="edicion_fusionar">Fusionar con la siguiente</string>
+    <string name="edicion_dividir">Dividir en dos</string>
+    <string name="edicion_dividir_aqui">Dividir aquí</string>
+    <string name="edicion_avisos_titulo">Avisos (%1$d)</string>
+    <string name="edicion_avisos_vacio">Sin avisos. Toca un punto del trazo para añadir uno.</string>
+    <string name="edicion_quitar_aviso_descripcion">Quitar el aviso «%1$s», %2$s</string>
 
     <!-- Reconocimiento -->
     <string name="detalle_reconocer">Reconocer</string>
-    <string name="detalle_reconocer_ayuda">Reconocer: el copiloto lee las notas de este tramo y puedes dictar o corregir las que falten. Esta pasada no cuenta para tiempos.</string>
+    <string name="detalle_reconocer_ayuda">Reconocer: el copiloto lee las notas de este tramo en dos pasadas. En la 1.ª puedes dictar o corregir las que falten y al acabar verás qué ha cambiado; en la 2.ª repasas el tramo con tus correcciones. Ninguna cuenta para tiempos.</string>
 </resources>

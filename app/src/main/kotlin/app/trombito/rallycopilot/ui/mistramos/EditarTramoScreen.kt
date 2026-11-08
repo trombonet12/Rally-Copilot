@@ -56,8 +56,11 @@ import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.edicion.TramoEditable
 import app.trombito.rallycopilot.motor.geo.TrazaMetros
+import app.trombito.rallycopilot.motor.notas.Aviso
+import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.FrasesNota
 import app.trombito.rallycopilot.motor.notas.Nota
+import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.ui.analisis.formatearKmDesdeM
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
 import app.trombito.rallycopilot.ui.comun.Iconos
@@ -86,6 +89,8 @@ const val ETIQUETA_EDITAR_AYUDA_DIALOGO = "editar-tramo-ayuda-dialogo"
 const val ETIQUETA_EDITAR_NOTA = "editar-tramo-nota-"
 const val ETIQUETA_EDITAR_NOTA_EDITAR = "editar-tramo-nota-editar-"
 const val ETIQUETA_EDITAR_LEYENDA = "editar-tramo-leyenda-"
+const val ETIQUETA_EDITAR_AVISO = "editar-tramo-aviso-"
+const val ETIQUETA_EDITAR_AVISO_QUITAR = "editar-tramo-aviso-quitar-"
 
 private const val PESO_MAPA_VERTICAL = 0.46f
 private const val PESO_LISTA_VERTICAL = 0.54f
@@ -105,6 +110,10 @@ data class AccionesEditarTramo(
     val onRestaurar: () -> Unit = {},
     val onAplicar: (Nota) -> Unit = {},
     val onQuitar: () -> Unit = {},
+    val onFusionar: () -> Unit = {},
+    val onDividir: () -> Unit = {},
+    val onAnadirAviso: (TipoAviso) -> Unit = {},
+    val onQuitarAviso: (Double) -> Unit = {},
     val onCerrarEditor: () -> Unit = {},
 )
 
@@ -170,6 +179,7 @@ fun EditarTramoScreen(
                 onAplicar = acciones.onAplicar,
                 onQuitar = acciones.onQuitar.takeIf { abierto.nota != null },
                 onCerrar = acciones.onCerrarEditor,
+                extras = extrasDelEditor(abierto, datos?.hoja?.notas.orEmpty(), acciones),
             )
         }
         if (ayuda) DialogoAyuda { ayuda = false }
@@ -211,6 +221,7 @@ private fun DialogoAyuda(onCerrar: () -> Unit) {
 /** Lo derivado del tramo que necesitan el mapa y la lista; se recalcula solo si cambia el tramo o los cortes. */
 private class VistaEdicion(
     val notas: List<Nota>,
+    val avisos: List<Aviso>,
     val marcadores: List<MarcadorEdicion>,
     val escena: EscenaEdicion,
 )
@@ -240,7 +251,8 @@ private fun ContenidoEdicion(
                 centrado = centrado,
             )
         }
-    val vista = VistaEdicion(notas, marcadores, escena)
+    val avisos = datos.hoja.elementos.filterIsInstance<ElementoHoja.DeAviso>().map { it.aviso }
+    val vista = VistaEdicion(notas, avisos, marcadores, escena)
     val gestos = gestosDelMapa(vista, seleccion, acciones)
     BoxWithConstraints(Modifier.fillMaxSize()) {
         if (maxWidth > maxHeight) {
@@ -393,6 +405,26 @@ private fun ListaNotas(
         }
         itemsIndexed(vista.notas, key = { _, nota -> idMarcadorNota(nota) }) { indice, nota ->
             FilaNota(nota, nota == seleccion, estado.simplificadas, acciones, conPista = indice == 0)
+        }
+        item {
+            Text(
+                text = stringResource(R.string.edicion_avisos_titulo, vista.avisos.size).uppercase(),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = Espacio.s).semantics { heading() },
+            )
+        }
+        if (vista.avisos.isEmpty()) {
+            item {
+                Text(
+                    text = stringResource(R.string.edicion_avisos_vacio),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        itemsIndexed(vista.avisos, key = { indice, aviso -> "a-$indice-${aviso.posicionM}" }) { _, aviso ->
+            FilaAviso(aviso, acciones.onQuitarAviso)
         }
         item { SelectorMicrosectores(estado.microsectoresPorKm, acciones.onMicrosectores) }
         if ((estado.datos?.editadas ?: 0) > 0) {

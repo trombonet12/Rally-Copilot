@@ -17,7 +17,7 @@ object FrasesNota {
     /**
      * «derecha cuatro larga, cincuenta»; la distancia (si hay) va después. Con [simplificada], «derecha media». Una
      * escuadra se canta «derecha escuadra» (sin número, también simplificada). Si la nota pide precaución empieza por
-     * «cuidado,».
+     * «cuidado,». Si la nota lleva [Nota.textoLibre], ese texto sustituye a la frase generada (y al «cuidado»).
      */
     fun frase(
         nota: Nota,
@@ -58,7 +58,7 @@ object FrasesNota {
     private fun base(
         nota: Nota,
         simplificada: Boolean,
-    ): String = (if (nota.cuidado) "cuidado, " else "") + giro(nota, simplificada)
+    ): String = nota.textoPropio ?: ((if (nota.cuidado) "cuidado, " else "") + giro(nota, simplificada))
 
     private fun giro(
         nota: Nota,

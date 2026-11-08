@@ -93,7 +93,9 @@ private fun cifraEnVezDePalabra(
     simplificada: Boolean,
 ): String {
     val grado = nota.grado
-    if (simplificada || grado == null || Modificador.ESCUADRA in nota.modificadores) return frase
+    val conCifra = !simplificada && Modificador.ESCUADRA !in nota.modificadores
+    // El texto libre de Joan se muestra tal cual, sin cambiarle las palabras por cifras.
+    if (grado == null || nota.textoPropio != null || !conCifra) return frase
     val direccion = if (nota.direccion == Direccion.IZQUIERDA) "izquierda" else "derecha"
     return frase.replace("$direccion ${FrasesNota.enPalabras(grado)}", "$direccion $grado")
 }

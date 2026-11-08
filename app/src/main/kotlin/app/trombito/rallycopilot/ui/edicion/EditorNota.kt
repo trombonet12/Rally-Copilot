@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -26,8 +27,10 @@ import androidx.compose.ui.res.stringResource
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.FrasesNota
+import app.trombito.rallycopilot.motor.notas.LONGITUD_MAX_TEXTO_LIBRE
 import app.trombito.rallycopilot.motor.notas.Modificador
 import app.trombito.rallycopilot.motor.notas.Nota
+import app.trombito.rallycopilot.motor.notas.limpiarTextoLibre
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_EDITOR_NOTA = "editor-nota"
@@ -42,16 +45,23 @@ private val GRADOS = listOf(1, 2, 3, 4, 5, 6)
 private const val GRADO_ESCUADRA = 3
 
 /**
- * Lo que se está editando de una nota: [direccion], [grado] (`null` = horquilla), [modificadores] y [cuidado]. La nota
- * resultante ([aNota]) no lleva posición: la pone quien la guarda (el tramo conserva la de la automática).
+ * Lo que se está editando de una nota: [direccion], [grado] (`null` = horquilla), [modificadores], [cuidado] y el
+ * [texto] libre (vacío = se canta la frase generada). La nota resultante ([aNota]) no lleva posición: la pone quien la
+ * guarda (el tramo conserva la de la automática).
  */
 data class BorradorNota(
     val direccion: Direccion = Direccion.DERECHA,
     val grado: Int? = 4,
     val modificadores: Set<Modificador> = emptySet(),
     val cuidado: Boolean = false,
+    val texto: String = "",
 ) {
-    fun aNota(): Nota = Nota(0.0, 0.0, direccion, grado, modificadores, cuidado = cuidado)
+    fun aNota(): Nota =
+        Nota(0.0, 0.0, direccion, grado, modificadores, cuidado = cuidado, textoLibre = limpiarTextoLibre(texto))
+
+    /** Pone el [texto] que se está escribiendo: sin saltos de línea y con el largo máximo. */
+    fun conTexto(texto: String): BorradorNota =
+        copy(texto = texto.replace('\n', ' ').replace('\r', ' ').take(LONGITUD_MAX_TEXTO_LIBRE))
 
     /**
      * Pone o quita [modificador]; larga y muy larga se excluyen entre sí, y cierra y abre también. La escuadra es
@@ -79,14 +89,16 @@ data class BorradorNota(
 
     companion object {
         fun de(nota: Nota?): BorradorNota =
-            nota?.let { BorradorNota(it.direccion, it.grado, it.modificadores, it.cuidado) } ?: BorradorNota()
+            nota?.let { BorradorNota(it.direccion, it.grado, it.modificadores, it.cuidado, it.textoLibre.orEmpty()) }
+                ?: BorradorNota()
     }
 }
 
 /**
- * Hoja inferior para corregir o añadir una nota: dirección, grado (1 a 6 o horquilla), modificadores y cuidado, con la
- * frase que dirá el copiloto al instante. [inicial] es la nota que se corrige (null: nota nueva). [onQuitar] solo
- * se ofrece al corregir una existente.
+ * Hoja inferior para corregir o añadir una nota: dirección, grado (1 a 6 o horquilla), modificadores, cuidado y texto
+ * libre, con la frase que dirá el copiloto al instante. [inicial] es la nota que se corrige (null: nota nueva);
+ * [onQuitar] solo se ofrece al corregir una existente. [extras] suma fusionar, dividir y, en un punto nuevo, añadir un
+ * aviso en vez de una nota.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,8 +110,11 @@ fun EditorNota(
     onQuitar: (() -> Unit)?,
     onCerrar: () -> Unit,
     modifier: Modifier = Modifier,
+    extras: AccionesExtraEditor = AccionesExtraEditor(),
 ) {
     var borrador by remember(inicial) { mutableStateOf(BorradorNota.de(inicial)) }
+    var modoAviso by rememberSaveable { mutableStateOf(false) }
+    val ofreceAviso = inicial == null && extras.onAnadirAviso != null
     ModalBottomSheet(
         onDismissRequest = onCerrar,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -113,31 +128,57 @@ fun EditorNota(
                     ).padding(horizontal = Espacio.l, vertical = Espacio.s),
             verticalArrangement = Arrangement.spacedBy(Espacio.s),
         ) {
+            val conAviso = ofreceAviso && modoAviso
             Text(
-                text = stringResource(if (inicial == null) R.string.edicion_titulo_nueva else R.string.edicion_titulo),
+                text =
+                    stringResource(
+                        when {
+                            conAviso -> R.string.edicion_titulo_aviso
+                            inicial == null -> R.string.edicion_titulo_nueva
+                            else -> R.string.edicion_titulo
+                        },
+                    ),
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.primary,
             )
-            Text(
-                text = stringResource(R.string.edicion_dira, FrasesNota.frase(borrador.aNota(), simplificadas)),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            SelectorDireccion(borrador) { borrador = it }
-            SelectorGrado(borrador) { borrador = it }
-            SelectorModificadores(borrador) { borrador = it }
-            Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
-                if (onQuitar != null) {
-                    TextButton(onClick = onQuitar, modifier = Modifier.testTag(ETIQUETA_EDITOR_QUITAR)) {
-                        Text(stringResource(R.string.edicion_quitar))
+            if (ofreceAviso) SelectorModo(modoAviso) { modoAviso = it }
+            if (conAviso) {
+                SelectorAvisos(checkNotNull(extras.onAnadirAviso))
+            } else {
+                ContenidoNota(borrador, simplificadas, extras, inicial == null) { borrador = it }
+                Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+                    if (onQuitar != null) {
+                        TextButton(onClick = onQuitar, modifier = Modifier.testTag(ETIQUETA_EDITOR_QUITAR)) {
+                            Text(stringResource(R.string.edicion_quitar))
+                        }
                     }
+                    TextButton(
+                        onClick = { onAplicar(borrador.aNota()) },
+                        modifier = Modifier.testTag(ETIQUETA_EDITOR_GUARDAR),
+                    ) { Text(stringResource(R.string.edicion_guardar)) }
                 }
-                TextButton(
-                    onClick = { onAplicar(borrador.aNota()) },
-                    modifier = Modifier.testTag(ETIQUETA_EDITOR_GUARDAR),
-                ) { Text(stringResource(R.string.edicion_guardar)) }
             }
         }
     }
+}
+
+@Composable
+private fun ContenidoNota(
+    borrador: BorradorNota,
+    simplificadas: Boolean,
+    extras: AccionesExtraEditor,
+    nueva: Boolean,
+    alCambiar: (BorradorNota) -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.edicion_dira, FrasesNota.frase(borrador.aNota(), simplificadas)),
+        style = MaterialTheme.typography.titleMedium,
+    )
+    SelectorDireccion(borrador, alCambiar)
+    SelectorGrado(borrador, alCambiar)
+    SelectorModificadores(borrador, alCambiar)
+    CampoTexto(borrador, alCambiar)
+    if (extras.onFusionar != null || extras.onDividir != null) AccionesEstructura(extras, nueva)
 }
 
 @Composable

@@ -13,6 +13,7 @@ import app.trombito.rallycopilot.domain.edicion.EditorTramo
 import app.trombito.rallycopilot.domain.edicion.TramoEditable
 import app.trombito.rallycopilot.motor.edicion.AccionEdicion
 import app.trombito.rallycopilot.motor.notas.Nota
+import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.motor.tramos.CortesTramo
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.ui.RutaEditarTramo
@@ -158,6 +159,29 @@ class EditarTramoViewModel
         fun onQuitar() {
             val abierto = editando.value ?: return
             aplicar(abierto.posicionM, AccionEdicion.Quitar)
+        }
+
+        /** Une la nota abierta con la siguiente. */
+        fun onFusionar() {
+            val abierto = editando.value ?: return
+            aplicar(abierto.posicionM, AccionEdicion.Fusionar)
+        }
+
+        /** Parte en dos la nota abierta, o la curva bajo el punto tocado (por ese punto). */
+        fun onDividir() {
+            val abierto = editando.value ?: return
+            aplicar(abierto.posicionM, AccionEdicion.Dividir)
+        }
+
+        /** Añade un aviso de [tipo] en el punto tocado. */
+        fun onAnadirAviso(tipo: TipoAviso) {
+            val abierto = editando.value ?: return
+            aplicar(abierto.posicionM, AccionEdicion.AnadirAviso(tipo))
+        }
+
+        /** Quita el aviso suelto que está en [posicionM]. */
+        fun onQuitarAviso(posicionM: Double) {
+            viewModelScope.launch { editor.editar(tramoId, posicionM, AccionEdicion.QuitarAviso) }
         }
 
         fun onRestaurar() {

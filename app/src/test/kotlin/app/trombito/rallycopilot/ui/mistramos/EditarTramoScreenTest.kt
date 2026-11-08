@@ -7,15 +7,22 @@ import app.trombito.rallycopilot.domain.edicion.TramoEditable
 import app.trombito.rallycopilot.domain.escucha.MarcaConPosicion
 import app.trombito.rallycopilot.motor.edicion.Marca
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.notas.Aviso
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.HojaNotas
 import app.trombito.rallycopilot.motor.notas.Nota
+import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.motor.tramos.Tramo
+import app.trombito.rallycopilot.ui.analisis.formatearKmDesdeM
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.edicion.AccionesMapaEdicion
+import app.trombito.rallycopilot.ui.edicion.ETIQUETA_EDITOR_AVISO_PREFIJO
+import app.trombito.rallycopilot.ui.edicion.ETIQUETA_EDITOR_DIVIDIR
+import app.trombito.rallycopilot.ui.edicion.ETIQUETA_EDITOR_FUSIONAR
+import app.trombito.rallycopilot.ui.edicion.ETIQUETA_EDITOR_MODO_AVISO
 import app.trombito.rallycopilot.ui.edicion.EscenaEdicion
 import app.trombito.rallycopilot.ui.edicion.TipoMarcador
 import app.trombito.rallycopilot.ui.edicion.idMarcadorNota
@@ -68,16 +75,24 @@ class EditarTramoScreenTest {
             onMoverCorte = { i, m -> pedidas += "corte:$i:${m.toInt()}" },
             onSoltarCorte = { pedidas += "soltar" },
             onRestaurar = { pedidas += "restaurar" },
+            onFusionar = { pedidas += "fusionar" },
+            onDividir = { pedidas += "dividir" },
+            onAnadirAviso = { pedidas += "aviso:${it.name}" },
+            onQuitarAviso = { pedidas += "quitar-aviso:${it.toInt()}" },
         )
 
+    @Suppress("LongParameterList")
     private fun estado(
         estilo: String? = "{}",
         seleccionM: Double? = null,
         centrarVersion: Int = 0,
         centrar: Boolean = centrarVersion > 0,
+        editor: EditorDeTramo? = null,
+        tramoEditable: TramoEditable = datos,
     ) = EditarTramoUiState(
         cargando = false,
-        datos = datos,
+        datos = tramoEditable,
+        editor = editor,
         sectoresM = listOf(600.0, 1_200.0),
         microsectoresPorKm = 1,
         microsectoresM = listOf(1_000.0),
@@ -175,6 +190,74 @@ class EditarTramoScreenTest {
         gestos.onMoverCorte(1, 1_250.0)
         gestos.onSoltarCorte()
         assertEquals(listOf("punto:1100", "corte:1:1250", "soltar"), pedidas)
+    }
+
+    private val conAvisos =
+        datos.copy(
+            hoja =
+                HojaNotas(
+                    listOf(
+                        ElementoHoja.DeNota(primera),
+                        ElementoHoja.DeAviso(Aviso(500.0, TipoAviso.BADEN)),
+                        ElementoHoja.DeNota(segunda),
+                    ),
+                ),
+        )
+
+    @Test
+    fun `los avisos sueltos de la hoja se listan con su icono y se pueden quitar`() {
+        poner(estado(tramoEditable = conAvisos))
+        assertTrue("AVISOS (1)" in banco.todosLosTextos())
+        val fila = banco.conEtiqueta(ETIQUETA_EDITAR_AVISO + "500")
+        assertTrue("Cuidado badén" in banco.textos(fila))
+        val quitar = banco.conEtiqueta(ETIQUETA_EDITAR_AVISO_QUITAR + "500")
+        val descripcion = "Quitar el aviso «Cuidado badén», ${formatearKmDesdeM(500.0)}"
+        assertTrue(banco.nodos().any { banco.descripcion(it) == descripcion })
+
+        banco.pulsar(quitar)
+        assertEquals(listOf("quitar-aviso:500"), pedidas)
+    }
+
+    @Test
+    fun `sin avisos la lista lo dice`() {
+        poner(estado())
+        assertTrue("AVISOS (0)" in banco.todosLosTextos())
+        assertTrue(banco.todosLosTextos().any { it.startsWith("Sin avisos") })
+    }
+
+    @Test
+    fun `el editor de una nota ofrece fusionar salvo en la ultima, y dividir`() {
+        poner(estado(editor = EditorDeTramo(primera.posicionM, primera)))
+        assertTrue(banco.hay(ETIQUETA_EDITOR_FUSIONAR))
+        assertTrue(banco.hay(ETIQUETA_EDITOR_DIVIDIR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_EDITOR_FUSIONAR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_EDITOR_DIVIDIR))
+        assertEquals(listOf("fusionar", "dividir"), pedidas)
+    }
+
+    @Test
+    fun `la ultima nota no se puede fusionar`() {
+        poner(estado(editor = EditorDeTramo(tercera.posicionM, tercera)))
+        assertFalse(banco.hay(ETIQUETA_EDITOR_FUSIONAR))
+        assertTrue(banco.hay(ETIQUETA_EDITOR_DIVIDIR))
+    }
+
+    @Test
+    fun `un punto sobre una curva ofrece dividir ahi y un punto libre solo anadir`() {
+        poner(estado(editor = EditorDeTramo(320.0, null)))
+        assertTrue(banco.hay(ETIQUETA_EDITOR_DIVIDIR))
+        assertTrue(banco.hay(ETIQUETA_EDITOR_MODO_AVISO))
+        assertTrue("Dividir aquí" in banco.todosLosTextos())
+        assertFalse(banco.hay(ETIQUETA_EDITOR_FUSIONAR))
+    }
+
+    @Test
+    fun `un punto libre ofrece anadir un aviso con iconos`() {
+        poner(estado(editor = EditorDeTramo(600.0, null)))
+        assertFalse(banco.hay(ETIQUETA_EDITOR_DIVIDIR))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_EDITOR_MODO_AVISO))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_EDITOR_AVISO_PREFIJO + TipoAviso.PUENTE.name))
+        assertEquals(listOf("aviso:PUENTE"), pedidas)
     }
 
     @Test
