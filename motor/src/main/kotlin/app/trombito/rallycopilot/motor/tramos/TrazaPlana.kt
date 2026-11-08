@@ -89,9 +89,21 @@ internal class TrazaPlana(
         return Rumbo.deVector(x1 - x0, y1 - y0)
     }
 
+    /** Punto geográfico (sin altitud) a [progresoM] metros del tramo, acotado a la traza. */
+    fun puntoEn(progresoM: Double): PuntoGeo {
+        val (x, y) = xyEn(progresoM / factor)
+        return plano.aPunto(x, y)
+    }
+
+    /** Coordenadas planas a [planoM] metros acumulados; búsqueda binaria del segmento, acotada a la traza. */
     private fun xyEn(planoM: Double): Pair<Double, Double> {
-        var i = 0
-        while (i < acumulada.size - 2 && acumulada[i + 1] < planoM) i++
+        var bajo = 0
+        var alto = acumulada.size - 2
+        while (bajo < alto) {
+            val medio = (bajo + alto) ushr 1
+            if (acumulada[medio + 1] < planoM) bajo = medio + 1 else alto = medio
+        }
+        val i = bajo
         val largo = acumulada[i + 1] - acumulada[i]
         val t = if (largo > 0.0) ((planoM - acumulada[i]) / largo).coerceIn(0.0, 1.0) else 0.0
         return (xs[i] + t * (xs[i + 1] - xs[i])) to (ys[i] + t * (ys[i + 1] - ys[i]))
