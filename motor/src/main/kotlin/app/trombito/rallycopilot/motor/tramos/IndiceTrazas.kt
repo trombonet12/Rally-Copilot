@@ -133,12 +133,20 @@ internal class ComparadorSubtramos(
         desdeM: Double,
         hastaM: Double,
     ): Long? {
+        // Un trozo que acaba en el final de la traza pasa la meta (10 m antes) y la pasada no llega ahí: se acota a su
+        // última marca para no quedarse sin referencia por unos metros.
+        val fin = pasada.tiempos.lastOrNull()?.distanciaM
+        val pasaDeLaMeta = fin != null && hastaM > fin && hastaM - fin <= Tramo.META_ANTES_M + HOLGURA_FIN_M
+        val hasta = if (pasaDeLaMeta && fin != null) fin else hastaM
         val t0 = pasada.tiempoEn(desdeM)
-        val t1 = pasada.tiempoEn(hastaM)
-        return if (t0 != null && t1 != null) (t1 - t0).roundToLong() else null
+        val t1 = pasada.tiempoEn(hasta)
+        return if (t0 != null && t1 != null && t1 > t0) (t1 - t0).roundToLong() else null
     }
 
     private companion object {
+        /** Metros más allá de la meta que aún se acotan a la última marca de la pasada. */
+        const val HOLGURA_FIN_M = 5.0
+
         /** Diferencia máxima (fracción) entre la longitud del trozo en el tramo y la recorrida. */
         const val TOLERANCIA_LONGITUD = 0.15
     }

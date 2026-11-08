@@ -111,6 +111,18 @@ class DetectorSubtramoTest {
     }
 
     @Test
+    fun `salir por el final de la traza compara con una pasada que acaba en la meta`() {
+        val tramo = tramoDe("T", Conduccion.subtraza(carretera, 0.0, 3000.0))
+        // Las pasadas reales acaban en la meta, 10 m antes del final de la traza.
+        val totalMs = Math.round(tramo.metaM / 20.0 * 1000.0)
+        val pasada = Pasada("T", listOf(MarcaTiempo(0.0, 0L), MarcaTiempo(tramo.metaM, totalMs)), totalMs)
+        val d = DetectorSubtramo(listOf(tramo), mapOf("T" to listOf(pasada)))
+        val h = conducir(d, Conduccion.muestrear(carretera, 72.0, desdeM = 1000.0, hastaM = 4000.0)).single()
+        assertNotNull(h.mejorMs)
+        assertCerca(h.tiempoMs.toDouble(), h.mejorMs!!.toDouble(), 1_200.0)
+    }
+
+    @Test
     fun `dos tramos solapados dan un solo hecho con el mejor de ambos`() {
         val largo = tramoDe("largo", carretera)
         val corto = tramoDe("corto", Conduccion.subtraza(carretera, 1000.0, 5000.0))
