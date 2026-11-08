@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
+import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.LADO_TACTIL
 import app.trombito.rallycopilot.ui.maniobras.formatearDistanciaManiobra
@@ -40,7 +41,9 @@ import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_VISTA_PREVIA = "nav-vista-previa"
 const val ETIQUETA_RUTA_RAPIDA = "nav-ruta-rapida"
+const val ETIQUETA_RUTA_EQUILIBRADA = "nav-ruta-equilibrada"
 const val ETIQUETA_RUTA_SINUOSA = "nav-ruta-sinuosa"
+const val ETIQUETA_RUTA_IGUAL = "nav-ruta-igual"
 const val ETIQUETA_SIN_POSICION = "nav-sin-posicion"
 const val ETIQUETA_SIN_RUTA = "nav-sin-ruta"
 const val ETIQUETA_REINTENTAR_RUTA = "nav-reintentar-ruta"
@@ -48,13 +51,15 @@ const val ETIQUETA_REINTENTAR_RUTA = "nav-reintentar-ruta"
 private const val OPACIDAD_SOBRE_MAPA = 0.94f
 private const val OPACIDAD_NO_DISPONIBLE = 0.6f
 private const val OPACIDAD_ICONO_TENUE = 0.6f
+private const val MIN_CURVAS_M = 100.0
 private val ALTO_OPCION = 64.dp
 private val ANCHO_MAXIMO_PANEL = 520.dp
 private val GROSOR_SELECCION = 2.dp
 
 /**
- * Panel inferior de la vista previa: las dos rutas (rayo = rápida, carretera con curvas = sinuosa) con tiempo y
- * distancia, cancelar y empezar. En apaisado todo va en una sola fila para ocupar poca altura.
+ * Panel inferior de la vista previa: los tres chips de ruta (rayo = rápida, carretera suave = equilibrada, carretera
+ * con curvas = curvas) con tiempo, distancia y km de curvas, cancelar y empezar. En apaisado todo va en una sola
+ * fila para ocupar poca altura.
  */
 @Composable
 fun PanelVistaPrevia(
@@ -136,9 +141,13 @@ private fun Opciones(
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
         PerfilRuta.entries.forEach { perfil ->
             OpcionRutaTarjeta(
-                perfil = perfil,
-                opcion = vista.opciones[perfil] ?: OpcionRuta.Cargando,
-                seleccionada = vista.perfil == perfil,
+                chip =
+                    ChipRuta(
+                        perfil = perfil,
+                        opcion = vista.opciones[perfil] ?: OpcionRuta.Cargando,
+                        seleccionada = vista.perfil == perfil,
+                        igualA = vista.igualA(perfil),
+                    ),
                 onClick = { acciones.onPerfil(perfil) },
                 modifier = Modifier.weight(1f),
             )
@@ -174,18 +183,30 @@ private fun SinRutaPosible(
     }
 }
 
+/** Lo que pinta un chip: su perfil, el resultado, si es el elegido y, si repite la ruta de otro, de cuál. */
+private data class ChipRuta(
+    val perfil: PerfilRuta,
+    val opcion: OpcionRuta,
+    val seleccionada: Boolean,
+    val igualA: PerfilRuta?,
+)
+
 @Composable
 private fun OpcionRutaTarjeta(
-    perfil: PerfilRuta,
-    opcion: OpcionRuta,
-    seleccionada: Boolean,
+    chip: ChipRuta,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val perfil = chip.perfil
+    val opcion = chip.opcion
+    val seleccionada = chip.seleccionada
+    val igualA = chip.igualA
     val colores = MaterialTheme.colorScheme
-    val rapida = perfil == PerfilRuta.MAS_RAPIDA
-    val nombre = stringResource(if (rapida) R.string.navegacion_ui_ruta_rapida else R.string.navegacion_ui_ruta_sinuosa)
-    val descripcion = stringResource(R.string.navegacion_ui_ruta_descripcion, nombre, resumenOpcion(opcion))
+    val nombre = stringResource(nombreRuta(perfil))
+    val igual =
+        igualA?.let { stringResource(R.string.navegacion_ui_ruta_igual_descripcion, stringResource(tituloRuta(it))) }
+    val resumen = listOfNotNull(resumenOpcion(opcion), igual).joinToString(", ")
+    val descripcion = stringResource(R.string.navegacion_ui_ruta_descripcion, nombre, resumen)
     val estado = if (seleccionada) stringResource(R.string.navegacion_ui_ruta_seleccionada) else null
     val disponible = opcion is OpcionRuta.Lista || opcion is OpcionRuta.Cargando
     Surface(
@@ -196,7 +217,7 @@ private fun OpcionRutaTarjeta(
             modifier
                 .heightIn(min = ALTO_OPCION)
                 .alpha(if (disponible) 1f else OPACIDAD_NO_DISPONIBLE)
-                .testTag(if (rapida) ETIQUETA_RUTA_RAPIDA else ETIQUETA_RUTA_SINUOSA)
+                .testTag(etiquetaRuta(perfil))
                 .selectable(selected = seleccionada, enabled = opcion is OpcionRuta.Lista, role = Role.RadioButton) {
                     onClick()
                 }.semantics(mergeDescendants = true) {
@@ -209,21 +230,24 @@ private fun OpcionRutaTarjeta(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(Espacio.xs),
         ) {
-            val icono: ImageVector = if (rapida) Iconos.Rayo else Iconos.Curvas
-            Icon(icono, contentDescription = null, tint = if (seleccionada) colores.primary else colores.onSurface)
+            val colorIcono = if (seleccionada) colores.primary else colores.onSurface
+            Icon(iconoRuta(perfil), contentDescription = null, tint = colorIcono)
             Text(
-                text = stringResource(tituloRuta(rapida)),
+                text = stringResource(tituloRuta(perfil)),
                 style = MaterialTheme.typography.labelLarge,
                 color = if (seleccionada) colores.primary else colores.onSurface,
                 maxLines = 1,
             )
-            ContenidoOpcion(opcion)
+            ContenidoOpcion(opcion, igualA != null)
         }
     }
 }
 
 @Composable
-private fun ContenidoOpcion(opcion: OpcionRuta) {
+private fun ContenidoOpcion(
+    opcion: OpcionRuta,
+    mismaRuta: Boolean,
+) {
     when (opcion) {
         OpcionRuta.Cargando -> {
             CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
@@ -243,6 +267,17 @@ private fun ContenidoOpcion(opcion: OpcionRuta) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                 )
+                if (mismaRuta) {
+                    Text(
+                        text = stringResource(R.string.navegacion_ui_ruta_igual),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1,
+                        modifier = Modifier.testTag(ETIQUETA_RUTA_IGUAL),
+                    )
+                } else {
+                    opcion.curvasM?.let { TextoCurvas(it) }
+                }
             }
         }
 
@@ -255,6 +290,25 @@ private fun ContenidoOpcion(opcion: OpcionRuta) {
         }
     }
 }
+
+/** «6,2 km de curvas», o «Sin curvas» si la ruta no llega a 100 m de curvas. */
+@Composable
+private fun TextoCurvas(curvasM: Double) {
+    Text(
+        text = textoCurvas(curvasM),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+    )
+}
+
+@Composable
+private fun textoCurvas(curvasM: Double): String =
+    if (curvasM < MIN_CURVAS_M) {
+        stringResource(R.string.navegacion_ui_ruta_sin_curvas)
+    } else {
+        stringResource(R.string.navegacion_ui_ruta_curvas, FormatoEs.kilometrosDesdeMetros(curvasM))
+    }
 
 @Composable
 private fun TextoNoDisponible(
@@ -276,11 +330,13 @@ private fun resumenOpcion(opcion: OpcionRuta): String =
         }
 
         is OpcionRuta.Lista -> {
-            stringResource(
-                R.string.navegacion_ui_ruta_datos,
-                formatearDuracionRuta(opcion.tiempoS),
-                formatearDistanciaManiobra(opcion.distanciaM),
-            )
+            val base =
+                stringResource(
+                    R.string.navegacion_ui_ruta_datos,
+                    formatearDuracionRuta(opcion.tiempoS),
+                    formatearDistanciaManiobra(opcion.distanciaM),
+                )
+            opcion.curvasM?.let { "$base, ${textoCurvas(it)}" } ?: base
         }
 
         OpcionRuta.SinDatos -> {
@@ -291,8 +347,3 @@ private fun resumenOpcion(opcion: OpcionRuta): String =
             stringResource(R.string.navegacion_ui_ruta_error)
         }
     }
-
-/** El título corto bajo el icono de cada ruta. */
-@StringRes
-private fun tituloRuta(rapida: Boolean): Int =
-    if (rapida) R.string.navegacion_ui_ruta_rapida_titulo else R.string.navegacion_ui_ruta_sinuosa_titulo

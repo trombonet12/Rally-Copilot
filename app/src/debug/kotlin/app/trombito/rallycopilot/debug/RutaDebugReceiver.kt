@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import app.trombito.rallycopilot.data.ruta.EnrutadorValhalla
+import app.trombito.rallycopilot.data.ruta.VarianteRuta
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
@@ -50,9 +51,9 @@ class RutaDebugReceiver : BroadcastReceiver() {
             try {
                 val resultado =
                     if (sinTuneles) {
-                        enrutador.calcular(origen, destino, perfil, excluirTuneles = true)
+                        enrutador.calcular(origen, destino, VarianteRuta.de(perfil), excluirTuneles = true)
                     } else {
-                        enrutador.ruta(origen, destino, perfil)
+                        enrutador.rutaMedida(origen, emptyList(), destino, perfil)
                     }
                 escribir(perfil, sinTuneles, resultado)
             } finally {
@@ -82,7 +83,8 @@ class RutaDebugReceiver : BroadcastReceiver() {
                     "OK perfil=$perfil soloSinTuneles=$sinTuneles calculo=${resultado.calculoMs} ms " +
                         "longitud=${"%.1f".format(ruta.longitudM / METROS_POR_KM)} km " +
                         "duracion=${"%.1f".format(ruta.tiempoS / SEGUNDOS_POR_MIN)} min " +
-                        "puntos=${ruta.puntos.size} maniobras=${ruta.maniobras.size}",
+                        "puntos=${ruta.puntos.size} maniobras=${ruta.maniobras.size} " +
+                        "curvas=${resultado.curvasM?.let { "%.1f".format(it / METROS_POR_KM) }} km",
                 )
                 val vias = ruta.maniobras.flatMap { it.vias }.distinct()
                 Log.i(ETIQUETA, "Vias: ${vias.joinToString(" | ")}")

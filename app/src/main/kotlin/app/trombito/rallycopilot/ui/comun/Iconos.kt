@@ -125,6 +125,11 @@ object Iconos {
         icono("Curvas", "M5,22 C5,10 13,14 13,2 L19,2 C19,14 11,10 11,22Z")
     }
 
+    /** Carretera con una curva suave: la ruta equilibrada. */
+    val CurvasSuaves: ImageVector by lazy {
+        icono("CurvasSuaves", "M7,22 C7,14 11,10 11,2 L17,2 C17,10 13,14 13,22Z")
+    }
+
     /** Bandera a cuadros (cuadrícula 4x3 con huecos alternos): terminar el tramo. */
     val Bandera: ImageVector by lazy {
         icono(
@@ -244,6 +249,14 @@ object Iconos {
         icono(
             "TemaSistema",
             "M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z",
+        )
+    }
+
+    /** Disco con la mitad llena dentro de un aro: día y noche según el sol. */
+    val TemaSol: ImageVector by lazy {
+        icono(
+            "TemaSol",
+            "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 5a7 7 0 1 1 0 14a7 7 0 1 1 0-14zM12 7a5 5 0 0 1 0 10z",
         )
     }
 

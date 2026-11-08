@@ -82,6 +82,29 @@ class PeticionRutaTest {
     }
 
     @Test
+    fun `la equilibrada deja las autovias a medio gas, sin peajes ni limite de velocidad`() {
+        val auto = auto(json(PerfilRuta.EQUILIBRADA))
+        assertEquals(0.3, auto.getValue("use_highways").jsonPrimitive.double, 0.0)
+        assertEquals(0.0, auto.getValue("use_tolls").jsonPrimitive.double, 0.0)
+        assertFalse("top_speed" in auto)
+    }
+
+    @Test
+    fun `cada variante envia solo las opciones que tiene`() {
+        fun auto(variante: VarianteRuta) =
+            Json
+                .parseToJsonElement(PeticionRuta.json(palma, soller, variante))
+                .jsonObject["costing_options"]
+                ?.jsonObject
+                ?.getValue("auto")
+                ?.jsonObject
+        assertNull(auto(VarianteRuta.RAPIDA))
+        assertEquals(50.0, auto(VarianteRuta.MUY_SINUOSA)!!.getValue("top_speed").jsonPrimitive.double, 0.0)
+        assertEquals(setOf("use_highways", "use_tolls"), auto(VarianteRuta.POCAS_AUTOVIAS)!!.keys)
+        assertEquals(setOf("use_highways", "use_tolls", "top_speed"), auto(VarianteRuta.SINUOSA)!!.keys)
+    }
+
+    @Test
     fun `excluir túneles se añade solo si se pide`() {
         val sinuosa = auto(json(PerfilRuta.SINUOSA, excluirTuneles = true))
         assertTrue(

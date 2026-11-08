@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.CorrectorRotondas
 import app.trombito.rallycopilot.motor.ruta.LectorRutaValhalla
+import app.trombito.rallycopilot.motor.ruta.PuntuacionCurvas
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.RutaInvalida
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
@@ -19,6 +20,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.util.concurrent.atomic.AtomicLong
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -48,13 +50,9 @@ class EnrutadorValhalla internal constructor(
     private val cerrojo = Mutex()
     private var motor: MotorRutas? = null
     private var modificadoDelMotor = 0L
+    private val cerrojoCache = Any()
+    private var ultima: Pair<Solicitud, Candidatas>? = null
 
-    /**
-     * [PerfilRuta.SINUOSA] calcula primero con `exclude_tunnels` (sube por el Coll de Sóller, no por el túnel). Si esa
-     * ruta falla (p. ej. 442 «no path» por los túneles de la Ma-10) o mide más de [FACTOR_MAXIMO_RODEO] veces la
-     * sinuosa sin exclusión, se devuelve la de sin exclusión. Coste: con la exclusión correcta se calculan dos rutas
-     * (la normal solo para comparar longitudes) y `calculoMs` suma ambas.
-     */
     override suspend fun ruta(
         origen: PuntoGeo,
         destino: PuntoGeo,
@@ -67,23 +65,140 @@ class EnrutadorValhalla internal constructor(
         paradas: List<PuntoGeo>,
         destino: PuntoGeo,
         perfil: PerfilRuta,
+    ): ResultadoRuta = resolver(origen, paradas, destino, perfil, medirSiempre = false)
+
+    override suspend fun rutaMedida(
+        origen: PuntoGeo,
+        paradas: List<PuntoGeo>,
+        destino: PuntoGeo,
+        perfil: PerfilRuta,
+    ): ResultadoRuta = resolver(origen, paradas, destino, perfil, medirSiempre = true)
+
+    /**
+     * Valhalla no tiene coste de curvatura, así que [PerfilRuta.EQUILIBRADA] y [PerfilRuta.SINUOSA] salen de calcular
+     * varias [VarianteRuta] y elegir con [SelectorPerfiles] según los metros de curvas de cada una. Las candidatas de
+     * una misma petición se calculan una vez y se comparten entre los tres perfiles (la última petición queda en
+     * memoria): si dos perfiles eligen la misma ruta devuelven la misma, sin recalcular ni remedir. La rápida es un
+     * único cálculo, sin esperar a las demás. `calculoMs` es el de todos los cálculos hechos hasta ese momento.
+     * Sin la rápida (sin datos o sin camino) no hay referencia y se devuelve su resultado.
+     */
+    private suspend fun resolver(
+        origen: PuntoGeo,
+        paradas: List<PuntoGeo>,
+        destino: PuntoGeo,
+        perfil: PerfilRuta,
+        medirSiempre: Boolean,
     ): ResultadoRuta {
-        val excluida =
-            if (perfil == PerfilRuta.SINUOSA) {
-                calcular(origen, destino, perfil, excluirTuneles = true, paradas = paradas)
-            } else {
-                null
-            }
-        if (excluida !is ResultadoRuta.Ok) {
-            return calcular(
-                origen,
-                destino,
-                perfil,
-                excluirTuneles = false,
-                paradas = paradas,
-            )
+        val candidatas = candidatasDe(Solicitud(origen, paradas, destino, tar.lastModified()))
+        val rapida = candidatas.rapida()
+        return when {
+            rapida !is ResultadoRuta.Ok -> rapida
+            perfil != PerfilRuta.MAS_RAPIDA -> elegirVariante(perfil, candidatas, rapida)
+            medirSiempre -> rapida.copy(curvasM = candidatas.curvasDe(rapida.ruta))
+            else -> rapida
         }
-        val normal = calcular(origen, destino, perfil, excluirTuneles = false, paradas = paradas)
+    }
+
+    private suspend fun elegirVariante(
+        perfil: PerfilRuta,
+        candidatas: Candidatas,
+        rapida: ResultadoRuta.Ok,
+    ): ResultadoRuta {
+        val elegida =
+            SelectorPerfiles.elegir(
+                perfil,
+                Candidata(rapida.ruta, candidatas.curvasDe(rapida.ruta)),
+                candidatas.otras().map { Candidata(it, candidatas.curvasDe(it)) },
+            )
+        return ResultadoRuta.Ok(elegida.ruta, candidatas.calculoMs(), elegida.curvasM)
+    }
+
+    private fun candidatasDe(solicitud: Solicitud): Candidatas =
+        synchronized(cerrojoCache) {
+            ultima?.takeIf { it.first == solicitud }?.second
+                ?: Candidatas(solicitud).also { ultima = solicitud to it }
+        }
+
+    private data class Solicitud(
+        val origen: PuntoGeo,
+        val paradas: List<PuntoGeo>,
+        val destino: PuntoGeo,
+        val modificadoDelTar: Long,
+    )
+
+    /**
+     * Las rutas candidatas de una [Solicitud], calculadas bajo demanda y guardadas solo si salieron bien (un error se
+     * reintenta en la siguiente llamada). Cada cálculo y cada medida van bajo su propio cerrojo para que pedir la
+     * rápida no espere a las demás variantes.
+     */
+    private inner class Candidatas(
+        private val s: Solicitud,
+    ) {
+        private val cerrojoRapida = Mutex()
+        private val cerrojoOtras = Mutex()
+        private val cerrojoMedidas = Mutex()
+        private var rapidaOk: ResultadoRuta.Ok? = null
+        private var otrasRutas: List<Ruta>? = null
+        private val medidas = HashMap<Ruta, Double>()
+
+        private val totalMs = AtomicLong()
+
+        fun calculoMs(): Long = totalMs.get()
+
+        suspend fun rapida(): ResultadoRuta =
+            cerrojoRapida.withLock {
+                rapidaOk ?: calcular(s.origen, s.destino, VarianteRuta.RAPIDA, excluirTuneles = false, s.paradas).also {
+                    if (it is ResultadoRuta.Ok) {
+                        totalMs.addAndGet(it.calculoMs)
+                        rapidaOk = it
+                    }
+                }
+            }
+
+        /** Las variantes que han dado ruta, sin la rápida y sin repetir rutas iguales entre sí ni a la rápida. */
+        suspend fun otras(): List<Ruta> =
+            cerrojoOtras.withLock {
+                otrasRutas ?: calcularOtras().also { otrasRutas = it }
+            }
+
+        private suspend fun calcularOtras(): List<Ruta> {
+            val rutaRapida = rapidaOk?.ruta
+            val resultados =
+                listOf(
+                    calcular(s.origen, s.destino, VarianteRuta.POCAS_AUTOVIAS, excluirTuneles = false, s.paradas),
+                    calcularConTuneles(s.origen, s.destino, VarianteRuta.SINUOSA, s.paradas),
+                    calcular(s.origen, s.destino, VarianteRuta.MUY_SINUOSA, excluirTuneles = false, s.paradas),
+                ).filterIsInstance<ResultadoRuta.Ok>()
+            totalMs.addAndGet(resultados.sumOf { it.calculoMs })
+            return resultados.map { it.ruta }.filter { it != rutaRapida }.distinct()
+        }
+
+        /** Metros de curvas de [ruta]; una ruta ya medida (o igual a otra) no se mide otra vez. */
+        suspend fun curvasDe(ruta: Ruta): Double =
+            cerrojoMedidas.withLock {
+                medidas[ruta] ?: withContext(dispatcher) { PuntuacionCurvas.medir(ruta.puntos).curvasM }.also {
+                    medidas[ruta] = it
+                }
+            }
+    }
+
+    /**
+     * [calcular] con `exclude_tunnels` primero (sube por el Coll de Sóller, no por el túnel). Si esa ruta falla (p. ej.
+     * 442 «no path» por los túneles de la Ma-10) o mide más de [FACTOR_MAXIMO_RODEO] veces la de sin exclusión, se
+     * devuelve la de sin exclusión. Coste: con la exclusión correcta se calculan dos rutas (la normal solo para
+     * comparar longitudes) y `calculoMs` suma ambas.
+     */
+    internal suspend fun calcularConTuneles(
+        origen: PuntoGeo,
+        destino: PuntoGeo,
+        variante: VarianteRuta,
+        paradas: List<PuntoGeo> = emptyList(),
+    ): ResultadoRuta {
+        val excluida = calcular(origen, destino, variante, excluirTuneles = true, paradas = paradas)
+        if (excluida !is ResultadoRuta.Ok) {
+            return calcular(origen, destino, variante, excluirTuneles = false, paradas = paradas)
+        }
+        val normal = calcular(origen, destino, variante, excluirTuneles = false, paradas = paradas)
         val total = excluida.calculoMs + ((normal as? ResultadoRuta.Ok)?.calculoMs ?: 0L)
         return when {
             normal !is ResultadoRuta.Ok -> excluida
@@ -96,14 +211,14 @@ class EnrutadorValhalla internal constructor(
     internal suspend fun calcular(
         origen: PuntoGeo,
         destino: PuntoGeo,
-        perfil: PerfilRuta,
+        variante: VarianteRuta,
         excluirTuneles: Boolean,
         paradas: List<PuntoGeo> = emptyList(),
     ): ResultadoRuta =
         withContext(dispatcher) {
             siembra.esperar()
             if (!tar.isFile) return@withContext ResultadoRuta.SinDatos
-            val peticion = PeticionRuta.json(origen, destino, perfil, excluirTuneles, paradas)
+            val peticion = PeticionRuta.json(origen, destino, variante, excluirTuneles, paradas)
             cerrojo.withLock {
                 val inicio = reloj()
                 try {

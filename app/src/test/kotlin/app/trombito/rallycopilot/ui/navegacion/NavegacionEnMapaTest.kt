@@ -117,10 +117,18 @@ abstract class NavegacionEnMapaBase {
             control = EstadoNavegacion.Guiando(destino, PerfilRuta.MAS_RAPIDA, rutaDePrueba(), null, false),
         )
 
-    protected val dosRutas =
+    protected val tresRutas =
         arrayOf(
-            PerfilRuta.MAS_RAPIDA to OpcionRuta.Lista(rutaDePrueba(18_400.0, 1_380.0)),
-            PerfilRuta.SINUOSA to OpcionRuta.Lista(rutaDePrueba(24_000.0, 4_500.0)),
+            PerfilRuta.MAS_RAPIDA to OpcionRuta.Lista(rutaDePrueba(18_400.0, 1_380.0), curvasM = 2_000.0),
+            PerfilRuta.EQUILIBRADA to OpcionRuta.Lista(rutaDePrueba(20_100.0, 1_700.0), curvasM = 5_200.0),
+            PerfilRuta.SINUOSA to OpcionRuta.Lista(rutaDePrueba(24_000.0, 4_500.0), curvasM = 9_800.0),
+        )
+
+    protected val sinRutas =
+        arrayOf(
+            PerfilRuta.MAS_RAPIDA to OpcionRuta.SinDatos,
+            PerfilRuta.EQUILIBRADA to OpcionRuta.SinDatos,
+            PerfilRuta.SINUOSA to OpcionRuta.Error("x"),
         )
 }
 
@@ -163,7 +171,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
 
     @Test
     fun `sin ruta posible la vista previa lo dice y ofrece probar otra vez`() {
-        poner(vistaPrevia(PerfilRuta.MAS_RAPIDA to OpcionRuta.SinDatos, PerfilRuta.SINUOSA to OpcionRuta.Error("x")))
+        poner(vistaPrevia(*sinRutas))
         assertTrue(banco.hay(ETIQUETA_SIN_RUTA))
         assertEquals(
             listOf("Probar otra vez"),
@@ -234,20 +242,63 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     }
 
     @Test
-    fun `la vista previa muestra tiempo y distancia de las dos rutas`() {
-        poner(vistaPrevia(*dosRutas))
+    fun `la vista previa muestra tiempo, distancia y km de curvas de las tres rutas`() {
+        poner(vistaPrevia(*tresRutas))
         val rapida = banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA))
+        val equilibrada = banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA))
         val sinuosa = banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA))
-        assertEquals(listOf("Rápida", "23 min", "18,4 km"), rapida)
-        assertEquals(listOf("Con curvas", "1 h 15 min", "24,0 km"), sinuosa)
+        assertEquals(listOf("Rápida", "23 min", "18,4 km", "2,0 km de curvas"), rapida)
+        assertEquals(listOf("Equilibrada", "28 min", "20,1 km", "5,2 km de curvas"), equilibrada)
+        assertEquals(listOf("Curvas", "1 h 15 min", "24,0 km", "9,8 km de curvas"), sinuosa)
+    }
+
+    @Test
+    fun `una ruta sin curvas medidas no muestra la linea de curvas y una casi recta dice sin curvas`() {
+        poner(
+            vistaPrevia(
+                PerfilRuta.MAS_RAPIDA to OpcionRuta.Lista(rutaDePrueba(18_400.0, 1_380.0), curvasM = 40.0),
+                PerfilRuta.EQUILIBRADA to OpcionRuta.Lista(rutaDePrueba(20_100.0, 1_700.0)),
+            ),
+        )
+        assertEquals(
+            listOf("Rápida", "23 min", "18,4 km", "Sin curvas"),
+            banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA)),
+        )
+        assertEquals(
+            listOf("Equilibrada", "28 min", "20,1 km"),
+            banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA)),
+        )
+    }
+
+    @Test
+    fun `si dos perfiles tienen la misma ruta el chip lo indica en vez de repetir las curvas`() {
+        val misma = OpcionRuta.Lista(rutaDePrueba(18_400.0, 1_380.0), curvasM = 2_000.0)
+        poner(
+            vistaPrevia(
+                PerfilRuta.MAS_RAPIDA to misma,
+                PerfilRuta.EQUILIBRADA to misma,
+                PerfilRuta.SINUOSA to OpcionRuta.Lista(rutaDePrueba(24_000.0, 4_500.0), curvasM = 9_800.0),
+            ),
+        )
+        assertEquals(
+            listOf("Equilibrada", "23 min", "18,4 km", "Misma ruta"),
+            banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA)),
+        )
+        assertEquals(
+            "Ruta equilibrada: 23 min, 18,4 km, 2,0 km de curvas, misma ruta que Rápida",
+            banco.descripcion(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA)),
+        )
+        assertFalse("Misma ruta" in banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA)))
+        assertFalse("Misma ruta" in banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA)))
     }
 
     @Test
     fun `las opciones llevan icono sin rotulos y se describen para TalkBack`() {
-        poner(vistaPrevia(*dosRutas))
+        poner(vistaPrevia(*tresRutas))
         val rapida = banco.descripcion(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA))
-        assertEquals("Ruta más rápida: 23 min, 18,4 km", rapida)
-        assertTrue(banco.descripcion(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA))!!.startsWith("Ruta sinuosa"))
+        assertEquals("Ruta más rápida: 23 min, 18,4 km, 2,0 km de curvas", rapida)
+        assertTrue(banco.descripcion(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA))!!.startsWith("Ruta equilibrada"))
+        assertTrue(banco.descripcion(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA))!!.startsWith("Ruta con más curvas"))
         listOf(ETIQUETA_EMPEZAR, ETIQUETA_CANCELAR).forEach {
             val nodo = banco.conEtiqueta(it)
             assertTrue("$it sin texto", banco.textos(nodo).isEmpty())
@@ -258,7 +309,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
 
     @Test
     fun `elegir una ruta empezar y cancelar llaman a las acciones`() {
-        poner(vistaPrevia(*dosRutas))
+        poner(vistaPrevia(*tresRutas))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA))
         assertEquals(listOf(PerfilRuta.SINUOSA), perfiles)
         banco.pulsar(banco.conEtiqueta(ETIQUETA_EMPEZAR))
@@ -275,7 +326,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
 
     @Test
     fun `una ruta sin datos o con error lo dice y no se puede elegir`() {
-        poner(vistaPrevia(PerfilRuta.MAS_RAPIDA to OpcionRuta.SinDatos, PerfilRuta.SINUOSA to OpcionRuta.Error("x")))
+        poner(vistaPrevia(*sinRutas))
         assertTrue(banco.hay(ETIQUETA_SIN_RUTA))
         assertFalse(banco.hay(ETIQUETA_RUTA_RAPIDA))
         assertFalse(banco.estaHabilitado(banco.conEtiqueta(ETIQUETA_EMPEZAR)))
@@ -335,7 +386,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
 
     @Test
     fun `en modo libre se puede ver la vista previa de rutas y empezar`() {
-        poner(vistaPrevia(*dosRutas).copy(control = EstadoNavegacion.Libre(0L, 0.0)))
+        poner(vistaPrevia(*tresRutas).copy(control = EstadoNavegacion.Libre(0L, 0.0)))
         assertTrue(banco.hay(ETIQUETA_VISTA_PREVIA))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_EMPEZAR))
         assertEquals(1, empezadas)
@@ -430,7 +481,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         banco.esperar(20_000)
         assertTrue(banco.hay(ETIQUETA_BUSCADOR))
         assertTrue(banco.hay(ETIQUETA_RESULTADOS))
-        poner(vistaPrevia(*dosRutas).copy(control = EstadoNavegacion.Libre(0L, 0.0)), notas)
+        poner(vistaPrevia(*tresRutas).copy(control = EstadoNavegacion.Libre(0L, 0.0)), notas)
         banco.tocarEn(200f, 1000f)
         banco.esperar(20_000)
         assertTrue(banco.hay(ETIQUETA_BUSCADOR))
@@ -464,7 +515,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     fun `la franja se esconde con una busqueda o una vista previa abiertas y sin notas`() {
         poner(libre.copy(texto = "S", busqueda = BusquedaDestino.Resultados(emptyList())), notas)
         assertFalse(banco.hay(ETIQUETA_FRANJA_NOTAS))
-        poner(vistaPrevia(*dosRutas).copy(control = EstadoNavegacion.Libre(0L, 0.0)), notas)
+        poner(vistaPrevia(*tresRutas).copy(control = EstadoNavegacion.Libre(0L, 0.0)), notas)
         assertFalse(banco.hay(ETIQUETA_FRANJA_NOTAS))
         poner(libre)
         assertFalse(banco.hay(ETIQUETA_FRANJA_NOTAS))
@@ -527,7 +578,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
 class NavegacionEnMapaHorizontalTest : NavegacionEnMapaBase() {
     @Test
     fun `en horizontal la vista previa cabe en una fila y funciona`() {
-        poner(vistaPrevia(*dosRutas))
+        poner(vistaPrevia(*tresRutas))
         val panel = banco.conEtiqueta(ETIQUETA_VISTA_PREVIA).boundsInRoot
         val empezar = banco.conEtiqueta(ETIQUETA_EMPEZAR).boundsInRoot
         val cancelar = banco.conEtiqueta(ETIQUETA_CANCELAR).boundsInRoot

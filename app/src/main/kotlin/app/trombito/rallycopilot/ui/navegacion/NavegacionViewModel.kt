@@ -46,7 +46,7 @@ private const val LONGITUD_MINIMA_BUSQUEDA = 2
 
 /**
  * Presentación de la navegación sobre el mapa: búsqueda de destino (con espera de ~250 ms al teclear), vista previa
- * con las dos rutas calculadas en paralelo desde la última fijación, y el estado de la conducción que publica
+ * con las tres rutas calculadas en paralelo desde la última fijación, y el estado de la conducción que publica
  * [ControlNavegacion], más «Seguir a <destino>» tras la muerte del proceso. La posición se la da la pantalla del mapa
  * con [onPosicion] (ya recoge el GPS con el ciclo de vida y el permiso).
  */
@@ -423,7 +423,10 @@ class NavegacionViewModel
             vistaPrevia.value?.let { calcular(it.destino, it.paradas, it.perfil) }
         }
 
-        /** Calcula las dos rutas hacia [destino] pasando por [paradas] (en ese orden) desde la última fijación. */
+        /**
+         * Calcula las tres rutas (rápida, equilibrada y con curvas) hacia [destino] pasando por [paradas] (en ese
+         * orden) desde la última fijación.
+         */
         private fun calcular(
             destino: Destino,
             paradas: List<Destino> = emptyList(),
@@ -438,7 +441,7 @@ class NavegacionViewModel
                 viewModelScope.launch {
                     PerfilRuta.entries.forEach { p ->
                         launch {
-                            val opcion = enrutador.rutaConParadas(origen, puntos, destino.punto, p).aOpcion()
+                            val opcion = enrutador.rutaMedida(origen, puntos, destino.punto, p).aOpcion()
                             vistaPrevia.update {
                                 if (it?.destino == destino && it.paradas == paradas) it.conOpcion(p, opcion) else it
                             }
@@ -500,7 +503,7 @@ private fun coordenadas(punto: PuntoGeo): String = String.format(Locale.ROOT, "%
 
 private fun ResultadoRuta.aOpcion(): OpcionRuta =
     when (this) {
-        is ResultadoRuta.Ok -> OpcionRuta.Lista(ruta)
+        is ResultadoRuta.Ok -> OpcionRuta.Lista(ruta, curvasM)
         ResultadoRuta.SinDatos -> OpcionRuta.SinDatos
         is ResultadoRuta.Error -> OpcionRuta.Error(motivo)
     }

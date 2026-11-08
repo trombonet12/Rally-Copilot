@@ -44,6 +44,8 @@ sealed interface OpcionRuta {
 
     data class Lista(
         val ruta: Ruta,
+        /** Metros «de curvas» de la ruta; null si no se han medido (no se muestra «X km de curvas»). */
+        val curvasM: Double? = null,
     ) : OpcionRuta {
         val tiempoS: Double get() = ruta.tiempoS
         val distanciaM: Double get() = ruta.longitudM
@@ -79,8 +81,8 @@ data class MarcadorParada(
 )
 
 /**
- * Las dos rutas candidatas hacia [destino] pasando por las [paradas] intermedias, en orden; [perfil] es la elegida
- * (por defecto, la más rápida).
+ * Las tres rutas candidatas (rápida, equilibrada y con curvas) hacia [destino] pasando por las [paradas] intermedias,
+ * en orden; [perfil] es la elegida (por defecto, la más rápida).
  */
 data class VistaPrevia(
     val destino: Destino,
@@ -94,6 +96,17 @@ data class VistaPrevia(
     val rutaElegida: Ruta? get() = (opciones[perfil] as? OpcionRuta.Lista)?.ruta
 
     val puedeEmpezar: Boolean get() = rutaElegida != null
+
+    /**
+     * El perfil anterior (en el orden de los chips) cuya ruta es exactamente la de [perfil], o null si es distinta o
+     * aún no hay ruta: el chip dice «Misma ruta» en vez de repetir las cifras.
+     */
+    fun igualA(perfil: PerfilRuta): PerfilRuta? {
+        val propia = (opciones[perfil] as? OpcionRuta.Lista)?.ruta ?: return null
+        return PerfilRuta.entries
+            .takeWhile { it != perfil }
+            .firstOrNull { (opciones[it] as? OpcionRuta.Lista)?.ruta == propia }
+    }
 
     /**
      * Guarda el resultado de [de]. Si la ruta elegida no existe (sin datos o con error) y otra sí, se elige esa: el

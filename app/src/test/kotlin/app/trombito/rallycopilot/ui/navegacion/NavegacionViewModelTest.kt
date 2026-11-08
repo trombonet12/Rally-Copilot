@@ -58,6 +58,7 @@ class NavegacionViewModelTest {
 
     private fun rutasOk() {
         enrutador.respuestas[PerfilRuta.MAS_RAPIDA] = ResultadoRuta.Ok(rutaDePrueba(18_400.0, 1_380.0), 10)
+        enrutador.respuestas[PerfilRuta.EQUILIBRADA] = ResultadoRuta.Ok(rutaDePrueba(20_000.0, 1_600.0), 10)
         enrutador.respuestas[PerfilRuta.SINUOSA] = ResultadoRuta.Ok(rutaDePrueba(24_000.0, 2_100.0), 10)
     }
 
@@ -231,7 +232,7 @@ class NavegacionViewModelTest {
         }
 
     @Test
-    fun `elegir destino abre la vista previa y calcula las dos rutas desde la ultima fijacion`() =
+    fun `elegir destino abre la vista previa y calcula las tres rutas desde la ultima fijacion`() =
         runTest {
             rutasOk()
             val vm = crear()
@@ -241,7 +242,7 @@ class NavegacionViewModelTest {
             val previa = vm.uiState.value.vistaPrevia!!
             assertEquals(PerfilRuta.MAS_RAPIDA, previa.perfil)
             val pedidos = enrutador.peticiones.map { it.third }.toSet()
-            assertEquals(setOf(PerfilRuta.MAS_RAPIDA, PerfilRuta.SINUOSA), pedidos)
+            assertEquals(setOf(PerfilRuta.MAS_RAPIDA, PerfilRuta.EQUILIBRADA, PerfilRuta.SINUOSA), pedidos)
             assertTrue(enrutador.peticiones.all { it.first == PALMA && it.second == SOLLER })
             assertTrue(previa.opciones.values.all { it is OpcionRuta.Lista })
             assertTrue(previa.puedeEmpezar)
@@ -264,6 +265,39 @@ class NavegacionViewModelTest {
             sinuosa.complete(Unit)
             previa = vm.uiState.value.vistaPrevia!!
             assertTrue(previa.opciones[PerfilRuta.SINUOSA] is OpcionRuta.Lista)
+        }
+
+    @Test
+    fun `los km de curvas medidos por el enrutador llegan a cada opcion`() =
+        runTest {
+            enrutador.respuestas[PerfilRuta.MAS_RAPIDA] = ResultadoRuta.Ok(rutaDePrueba(18_400.0, 1_380.0), 10, 2_000.0)
+            enrutador.respuestas[PerfilRuta.EQUILIBRADA] =
+                ResultadoRuta.Ok(rutaDePrueba(20_000.0, 1_600.0), 10, 5_000.0)
+            enrutador.respuestas[PerfilRuta.SINUOSA] = ResultadoRuta.Ok(rutaDePrueba(24_000.0, 2_100.0), 10, 9_000.0)
+            val vm = crear()
+            recoger(vm)
+            vm.onPosicion(PALMA)
+            vm.elegirDestino(destino)
+            val previa = vm.uiState.value.vistaPrevia!!
+            val curvas = PerfilRuta.entries.map { (previa.opciones.getValue(it) as OpcionRuta.Lista).curvasM }
+            assertEquals(listOf(2_000.0, 5_000.0, 9_000.0), curvas)
+        }
+
+    @Test
+    fun `dos perfiles con la misma ruta se marcan como iguales al anterior`() =
+        runTest {
+            val misma = ResultadoRuta.Ok(rutaDePrueba(18_400.0, 1_380.0), 10)
+            enrutador.respuestas[PerfilRuta.MAS_RAPIDA] = misma
+            enrutador.respuestas[PerfilRuta.EQUILIBRADA] = misma
+            enrutador.respuestas[PerfilRuta.SINUOSA] = ResultadoRuta.Ok(rutaDePrueba(24_000.0, 2_100.0), 10)
+            val vm = crear()
+            recoger(vm)
+            vm.onPosicion(PALMA)
+            vm.elegirDestino(destino)
+            val previa = vm.uiState.value.vistaPrevia!!
+            assertEquals(null, previa.igualA(PerfilRuta.MAS_RAPIDA))
+            assertEquals(PerfilRuta.MAS_RAPIDA, previa.igualA(PerfilRuta.EQUILIBRADA))
+            assertEquals(null, previa.igualA(PerfilRuta.SINUOSA))
         }
 
     @Test
@@ -312,7 +346,7 @@ class NavegacionViewModelTest {
             val previa = vm.uiState.value.vistaPrevia!!
             assertFalse(previa.sinPosicion)
             assertTrue(previa.puedeEmpezar)
-            assertEquals(2, enrutador.peticiones.size)
+            assertEquals(3, enrutador.peticiones.size)
         }
 
     @Test
