@@ -1,14 +1,16 @@
 # Estado
 
-> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-07 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
+> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-08 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
 
 | Campo | Valor |
 |---|---|
-| Hito | H15 (auditoría y deuda técnica) cerrado · **v1.3.2** · siguiente: H16 tras la prueba en coche · H11 pendiente |
-| Estado | v1.3.2 publicada (GitHub Release) con todo en verde. Pendiente: probar en el móvil de Joan (GPS débil, batería con «Copiloto», relieve, Sharvard) |
+| Hito | H15b (lo que salió conduciendo) cerrado · **v1.4.0** · siguiente: H16 → H17 → H18 → H19 → H20 → H21, encadenados · H11 y H12 pospuestos |
+| Estado | v1.4.0 con todo en verde. Joan probará en coche al acabar los hitos |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
 ## Completado
+- 2026-11-08 · **H15b** (v1.4.0): tras la prueba en coche de la v1.3.4: ajuste al camino sin saltar a la calle de debajo ni girar sin rumbo, media del radar de tramo en modo libre, recentrar visible en marcha y vuelta al seguimiento a los 10 s, coche por encima de la píldora, cruces y puentes apagados de base (Room v19), y **subtramos** (cualquier trozo ≥ 1 km de un tramo guardado, con delta en vivo, voz, tarjeta y lista en el detalle). Capturas en [capturas/h15b/](capturas/h15b/).
+- 2026-11-07 · Prueba en el móvil de Joan (v1.3.2 → v1.3.4): copia exportada, migración a v18 sin pérdidas, «0,0 km» cortado y atrás sin confirmar arreglados. Secretos en el Environment `release` limitado a `main` (la v1.3.4 firmó desde ahí).
 - 2026-11-07 · **H15**: auditoría de 7 perfiles ([auditoria/2026-11.md](auditoria/2026-11.md)) y todos sus arreglos: aviso de GPS sin repeticiones, canal de voz con prioridad, alertas de velocidad detrás de las notas, posición única, Room v17–v18, APK sin x86_64 ni idiomas de espeak y con Sharvard y relieve bajo demanda, firma en paso aparte, exportar tramos en GPX, interfaz (✕ con segundo toque, botones de 64 dp, píldora que crece hacia arriba), relieve con solo curvas cada 100 m, geometría común en `:motor`, cobertura, lint estricto y humo del release. Capturas en [capturas/h15/](capturas/h15/).
 - 2026-11-07 · **H14** (v1.2.0): curvas por rumbo, rotondas, puentes, radares a 15 s, salida manual, copia exportable, rediseño WRC, voz ampliada, tutorial y Casa. Capturas en [capturas/h14/](capturas/h14/).
 - 2026-11-03 · **H13** (v1.1.0): notas por grados de giro.
@@ -42,6 +44,7 @@
 | Otros | Node ≥ 22, Python 3.12 (su almacén de certificados está caducado: usar `curl` para descargas), Chrome para `ficha-play.mjs`, actionlint vía WinGet |
 
 ## Tests
+- Gate (H15b, 2026-11-08): verde, ≈ 2 100 tests JVM de app; emulador con la Ma-15 (media del tramo, subtramos, recentrar).
 - Gate (H15, 2026-11-07): `ktlintCheck detekt lintDebug testDebugUnitTest :motor:test assembleDebug :app:minifyReleaseWithR8 :motor:koverVerify` + `humo-release.mjs` en verde; ≈ 2 000 tests JVM de app y ≈ 1 050 del motor; cobertura de líneas 99 % motor y 84 % app; hooks 88 OK; scripts 31 OK.
 - `assembleRelease` sin firma → falla con «Release sin firma: faltan las variables RALLY_*» (esperado).
 - Scripts: `check-claude-assets`, `gen-claude-index --check`, `check-docs`, `test-hooks` (88 OK), `node --test` de `play-promocionar` (11) y `gps-replay` (8) → verde. `actionlint` sin errores.
@@ -69,19 +72,19 @@
 - `adb shell input text` no teclea acentos (buscar «Soller»).
 - `Log.w` se conserva en release: no registrar nunca coordenadas ni URLs (solo el tipo de excepción).
 ## Decisiones recientes
-- Ver [DECISIONES.md](DECISIONES.md) § Decisiones del usuario, § Base técnica e § Investigaciones previas.
+- Ver [DECISIONES.md](DECISIONES.md) § H15b, § Auditoría y H15, § Decisiones del usuario.
+- Por comprobar en coche: en el emulador, una conducción que empieza con un salto de posición (teletransporte de `gps-replay`) no crea su propio tramo; con GPS real no debería pasar.
 
 ## Dudas abiertas
-- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las de la auditoría respondidas el 2026-11-07.
+- [QUESTIONS.md](../QUESTIONS.md): 0 abiertas; las de la prueba en coche y de H16–H21 respondidas el 2026-11-08.
 
 ## Pendiente del usuario
-- **Copia de seguridad de `~/.rallycopilot/`** (keystore): sin ella no se pueden publicar actualizaciones.
-- Mover los secretos de firma al Environment `release` de GitHub (`node scripts/subir-secretos-release.mjs --entorno release`, después borrar los de repositorio) y limitarlo a `main`. Mientras no se haga, todo sigue funcionando.
-- Dejar el móvil por USB para probar H15 con GPS real: señal débil, batería con y sin «Copiloto» (`scripts/medir-bateria.sh`), relieve, Sharvard y exportar tramos.
+- Confirmar el borrado de los secretos `ANDROID_*` de repositorio (ya están en el Environment `release`).
+- Prueba en coche al final de H21: ajuste al camino bajo puentes, media del radar de tramo, subtramos, antelación, fantasma, ruta divertida, intercom Cardo; batería con y sin «Copiloto» (`scripts/medir-bateria.sh`).
 - Pasarme un enlace corto real de Google Maps (`maps.app.goo.gl/…`) y material de voz en `voice-lab/data/raw/` (H11).
 
 ## Archivos importantes
 `CLAUDE.md` · `ROADMAP.md` · `QUESTIONS.md` · `docs/DECISIONES.md` · `docs/HERENCIA.md` · `docs/MEMORIA.md` · `docs/investigacion/` · `app/build.gradle.kts` · `.github/workflows/android.yml`
 
 ## Próxima acción exacta
-- **Agente:** H15 cerrado y publicado como v1.3.2 (2026-11-07). Siguiente: prueba en el móvil de Joan y, con lo que salga, H16 (calibración en coche).
+- **Agente:** H15b cerrado como v1.4.0 (2026-11-08). Siguiente: H16 (modo simplificado con grados 1–3 y peligros, confianza de posición con pausa y re-sincronización, relectura, «esta nota estaba mal»; la antelación por velocidad con niveles ya existe).

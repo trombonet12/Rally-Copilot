@@ -632,16 +632,18 @@ conducidas aunque el viaje vaya a otro sitio.
 - **L6 Subtramos:** cualquier trozo ≥ 1 km de un tramo guardado, en su sentido, se cronometra y se compara con todas las pasadas que lo cubren; delta en vivo, tarjeta y voz corta al salir, lista en el resumen.
 
 ### Criterios de aceptación
-- [ ] `gps-replay` por la Vía de Cintura sin saltos a las calles de debajo.
-- [ ] Media del tramo en modo libre en el emulador.
-- [ ] Un viaje que comparte 2 km con un tramo guardado muestra su subtramo con delta.
-- [ ] Gate, scripts y humo en verde; capturas en `docs/capturas/h15b/`.
+- [x] `gps-replay` por la Ma-15 (pasos inferiores y radar de tramo) sin saltos a las calles de debajo.
+- [x] Media del tramo en modo libre en el emulador.
+- [x] Un viaje que comparte 4 km con un tramo guardado muestra su subtramo con delta.
+- [x] Gate, scripts y humo en verde; capturas en `docs/capturas/h15b/`.
 
 ### Tests
 - Motor: ajuste al camino con cruces a distinto nivel y rumbo nulo; media en modo libre con los tramos reales; subtramos (entrar a mitad, salir antes, sentido contrario, solapes, < 1 km). Migración 18→19.
 
 ### Estado
-en curso (2026-11-08) · Depende de: H15 · Dudas: [QUESTIONS.md](QUESTIONS.md#respondidas-tras-la-prueba-en-coche-de-la-v134-2026-11-08-en-el-chat)
+completado (2026-11-08, v1.4.0) · Depende de: H15 · Dudas: [QUESTIONS.md](QUESTIONS.md#respondidas-tras-la-prueba-en-coche-de-la-v134-2026-11-08-en-el-chat)
+**Hecho:** los 6 lotes y la traza de prueba de la Ma-15 ([capturas/h15b/](docs/capturas/h15b/README.md)).
+**Pendiente:** prueba en coche de Joan (ajuste al camino real bajo puentes); comprobar con GPS real que una conducción crea su tramo aunque empiece con una fijación lejana.
 
 ## H16 — Calibración en coche
 
