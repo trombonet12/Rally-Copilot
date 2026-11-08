@@ -179,11 +179,11 @@ fun MapaScreen(
     val menu = MenuAbierto(abierto) { abierto = it }
     DialogoVozSiToca(copiloto)
     val modoAnterior = rememberModoAnterior(copiloto.estado.modo)
-    // Capas, notas grandes y recentrar se esconden por encima de 20 km/h y vuelven al parar (con histéresis).
+    // Capas y notas grandes se esconden por encima de 20 km/h y vuelven al parar (con histéresis).
     val rapido = rememberMarchaRapida(estado.velocidadKmh)
     val botones =
         if (estado.hayDatos || copiloto.estado.notasGrandes) {
-            botonesDeLaColumna(estado, vista, acciones, navegacion, copiloto, menu, modoAnterior, rapido)
+            botonesDeLaColumna(estado, vista, acciones, navegacion, copiloto, menu, modoAnterior)
         } else {
             BotonesMapa()
         }

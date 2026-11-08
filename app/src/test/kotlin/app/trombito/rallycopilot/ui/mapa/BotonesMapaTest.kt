@@ -195,7 +195,7 @@ class BotonesMapaTest {
     }
 
     @Test
-    fun `con el mapa movido y deprisa recentrar se esconde y al parar vuelve`() {
+    fun `con el mapa movido y deprisa recentrar se ve y capas se esconde`() {
         velocidad = 60
         banco.poner {
             RallyCopilotTheme {
@@ -214,10 +214,12 @@ class BotonesMapaTest {
                 )
             }
         }
-        assertFalse(banco.hay(ETIQUETA_RECENTRAR))
+        assertTrue(banco.hay(ETIQUETA_RECENTRAR))
+        assertFalse(banco.hay(ETIQUETA_CAPAS_BOTON))
         conVelocidad(0)
         banco.esperar(3_500)
         assertTrue(banco.hay(ETIQUETA_RECENTRAR))
+        assertTrue(banco.hay(ETIQUETA_CAPAS_BOTON))
     }
 
     @Test

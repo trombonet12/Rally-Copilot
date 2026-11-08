@@ -273,6 +273,21 @@ class MapaViewModelTest {
         }
 
     @Test
+    fun `los gestos solo cuentan con el mapa suelto y recentrar los borra`() =
+        runTest {
+            val vm = crear()
+            recoger(vm)
+            vm.onZoomManual(15.0, 0)
+            assertNull("siguiendo al coche no cuenta", vm.gestos.value)
+            vm.onSeguimientoPerdido()
+            vm.onZoomManual(15.0, 0)
+            vm.onZoomManual(15.0, 0)
+            assertEquals(2, vm.gestos.value)
+            vm.onRecentrar()
+            assertNull(vm.gestos.value)
+        }
+
+    @Test
     fun `datos instalados con estilo ilegible se marcan como danados`() =
         runTest {
             repositorio.estilosDisponibles = null

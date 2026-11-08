@@ -14,6 +14,7 @@ import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -21,6 +22,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -58,6 +60,13 @@ class MapaViewModel
 
         private val preferencias = ajustes.ajustes
         private val siguiendo = guardado.getStateFlow(CLAVE_SIGUIENDO, true)
+        private val gestosMutable = MutableStateFlow<Int?>(null)
+
+        /**
+         * Gestos del usuario sobre el mapa desde que dejó de seguir al coche (null = ninguno): cada gesto lo incrementa
+         * y recentrar lo borra. La UI reinicia con él la cuenta atrás del recentrado automático en marcha.
+         */
+        val gestos: StateFlow<Int?> = gestosMutable
 
         private val estilos =
             // Se recarga el estilo al cambiar lo instalado o al aparecer/desaparecer el detalle (no con cada tesela).
@@ -124,6 +133,7 @@ class MapaViewModel
 
         fun onRecentrar() {
             guardado[CLAVE_SIGUIENDO] = true
+            gestosMutable.value = null
         }
 
         fun onCapa(nueva: CapaMapa) = guardarAjustes { it.copy(capa = nueva) }
@@ -147,14 +157,17 @@ class MapaViewModel
         fun onOrientacion(nueva: Orientacion) = guardarAjustes { it.copy(orientacion = nueva) }
 
         /**
-         * El usuario ha pellizcado el mapa: se respeta su zoom [zoom] durante [PAUSA_ZOOM_MS] y luego el zoom
-         * automático vuelve a ritmo limitado. [ahoraMs] es el reloj monótono (el mismo de las fijaciones).
+         * El usuario ha hecho un gesto en el mapa (arrastre, pellizco o giro; se avisa al empezar y al terminar): se
+         * respeta su zoom [zoom] durante [PAUSA_ZOOM_MS] y luego el zoom automático vuelve a ritmo limitado. [ahoraMs]
+         * es el reloj monótono (el mismo de las fijaciones). Con la cámara ya suelta cuenta además como gesto para el
+         * recentrado automático ([gestos]).
          */
         fun onZoomManual(
             zoom: Double,
             ahoraMs: Long,
         ) {
             zoomAutomatico.pausar(zoom, ahoraMs)
+            if (!siguiendo.value) gestosMutable.update { (it ?: 0) + 1 }
         }
 
         private fun guardarAjustes(cambio: (AjustesConduccion) -> AjustesConduccion) {

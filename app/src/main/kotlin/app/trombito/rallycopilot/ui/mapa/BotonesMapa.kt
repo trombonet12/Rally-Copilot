@@ -45,7 +45,7 @@ internal class BotonesMapa(
 /**
  * Los botones de la columna derecha. De conducción, siempre a la vista y de 64 dp: micrófono, hoja del copiloto y
  * silenciar (alterna Silencio y el modo anterior); con ellos la brújula de 48 dp, que si el mapa se movió es el de «mi
- * ubicación» y entonces se esconde al ir deprisa ([rapido]). Secundarios, de 48 dp y escondidos al ir deprisa: capas y
+ * ubicación» (recentrar) y se ve siempre, también en marcha. Secundarios, de 48 dp y escondidos al ir deprisa: capas y
  * notas grandes. Sin mapa (modo de notas grandes) no hay capas ni brújula. [modoAnterior] es el último modo del
  * copiloto con voz.
  */
@@ -58,7 +58,6 @@ internal fun botonesDeLaColumna(
     copiloto: CopilotoEnMapa,
     menu: MenuAbierto,
     modoAnterior: ModoCopiloto,
-    rapido: Boolean = false,
 ): BotonesMapa {
     val control = navegacion.estado.control
     val grandes = copiloto.estado.notasGrandes
@@ -96,8 +95,8 @@ internal fun botonesDeLaColumna(
                     )
                 }
             },
-            // Recentrar solo se usa parado: al ir deprisa se esconde; la brújula (siguiendo al coche) se queda.
-            if (grandes || (!sigueAlCoche && rapido)) {
+            // Brújula (siguiendo al coche) o recentrar (mapa movido): siempre a la vista, también en marcha.
+            if (grandes) {
                 null
             } else {
                 {

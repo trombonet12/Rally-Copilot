@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +27,7 @@ import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.ajustes.EstadoVozDescarga
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.AlertasViewModel
+import app.trombito.rallycopilot.ui.comun.esperarPorFotogramas
 import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
 import app.trombito.rallycopilot.ui.copiloto.CopilotoViewModel
@@ -86,6 +88,33 @@ internal fun SeguimientoSegunVistaPrevia(
     }
 }
 
+/** Sin tocar el mapa durante este tiempo (ms), en marcha, la cámara vuelve a seguir al coche. */
+internal const val RECENTRAR_TRAS_MS = 10_000L
+
+/** Por encima de esta velocidad (km/h) se considera que el coche va en marcha (parado no se recentra solo). */
+internal const val VELOCIDAD_RECENTRAR_KMH = 5
+
+/**
+ * Recentrado automático: con la cámara suelta ([sigueAlCoche] falso), un gesto del usuario ([gestos], null si no hubo
+ * ninguno desde que se soltó) y el coche en marcha, [RECENTRAR_TRAS_MS] después del último gesto se llama a
+ * [onRecentrar]. Cada gesto reinicia la cuenta; si el coche para, se cancela y al reanudar la marcha empieza de nuevo.
+ */
+@Composable
+internal fun RecentrarSolo(
+    sigueAlCoche: Boolean,
+    enMarcha: Boolean,
+    gestos: Int?,
+    onRecentrar: () -> Unit,
+) {
+    val alRecentrar by rememberUpdatedState(onRecentrar)
+    LaunchedEffect(sigueAlCoche, enMarcha, gestos) {
+        if (!sigueAlCoche && enMarcha && gestos != null) {
+            esperarPorFotogramas(RECENTRAR_TRAS_MS)
+            alRecentrar()
+        }
+    }
+}
+
 /** Efectos de la pantalla del mapa: permiso, posición para la navegación, vista previa y punto elegido. */
 @Composable
 internal fun EfectosDelMapa(
@@ -101,4 +130,11 @@ internal fun EfectosDelMapa(
     // Con un punto elegido la cámara lo centra sobre su tarjeta: deja de seguir al coche (recentrar lo vuelve a pedir).
     val hayPunto = navegacion.puntoElegido != null
     LaunchedEffect(hayPunto) { if (hayPunto) viewModel.onSeguimientoPerdido() }
+    val gestos by viewModel.gestos.collectAsStateWithLifecycle()
+    RecentrarSolo(
+        sigueAlCoche = estado.siguiendo,
+        enMarcha = (estado.velocidadKmh ?: 0) > VELOCIDAD_RECENTRAR_KMH,
+        gestos = gestos,
+        onRecentrar = viewModel::onRecentrar,
+    )
 }
