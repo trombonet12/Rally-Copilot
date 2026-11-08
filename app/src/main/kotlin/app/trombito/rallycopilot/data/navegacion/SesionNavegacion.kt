@@ -124,22 +124,26 @@ class SesionNavegacion(
             (solicitud as? SolicitudNavegacion.Guiada)?.destino?.nombre
                 ?: NOMBRE_RECONOCIMIENTO.takeIf { solicitud is SolicitudNavegacion.Reconocimiento }
         val id = recorridos.empezar(destinoNombre)
-        // «Cronometrar trayectos» se lee una vez al empezar: sin él, esta conducción no crea ni detecta tramos.
-        val cronometra = crono != null && solicitud !is SolicitudNavegacion.Reconocimiento && cronometrar()
-        val ejecucion = Ejecucion(id, solicitud, crono.takeIf { cronometra })
+        // Todo lo que sigue va dentro del try: una cancelación al leer el ajuste (o al montar la ejecución)
+        // también cierra el recorrido ya abierto.
+        var cronometra = false
+        var ejecucion: Ejecucion? = null
         try {
+            // «Cronometrar trayectos» se lee una vez al empezar: sin él, esta conducción no crea ni detecta tramos.
+            cronometra = crono != null && solicitud !is SolicitudNavegacion.Reconocimiento && cronometrar()
+            ejecucion = Ejecucion(id, solicitud, crono.takeIf { cronometra })
             ejecucion.ejecutar()
         } finally {
-            ejecucion.cerrarNotas()
+            ejecucion?.cerrarNotas()
             alPausarNotas(false)
             copiloto?.cerrar()
             alertas?.cerrar()
             withContext(NonCancellable) {
-                ejecucion.volcar()
+                ejecucion?.volcar()
                 val recorrido = recorridos.terminar(id)
                 if (cronometra) {
                     crono?.cerrar(recorrido) { recorridos.puntos(id) }
-                } else if (crono != null && solicitud !is SolicitudNavegacion.Reconocimiento) {
+                } else if (ejecucion != null && crono != null && solicitud !is SolicitudNavegacion.Reconocimiento) {
                     // Sin cronometraje no hay tramo al que anclar lo dictado: se descarta.
                     ediciones?.anclarPendientes(null)
                 }

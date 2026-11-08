@@ -48,7 +48,7 @@ private fun Tema.icono(): ImageVector =
         Tema.SOL -> Iconos.TemaSol
     }
 
-/** Tema: oscuro (por defecto), claro, el del móvil o el del sol, con la etiqueta de cada uno bajo su icono. */
+/** Tema: oscuro, claro, el del móvil o el del sol (por defecto), con la etiqueta de cada uno bajo su icono. */
 @Composable
 internal fun ControlesTema(
     tema: Tema,

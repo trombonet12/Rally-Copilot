@@ -63,7 +63,7 @@ class AjustesPortadaTest {
         assertTrue("Salida automática" in tarjeta(SeccionAjustes.TRAMOS))
         assertTrue("Rumbo arriba · Mapa" in tarjeta(SeccionAjustes.MAPA))
         assertTrue("«Copiloto» activado" in tarjeta(SeccionAjustes.ESCUCHA))
-        assertTrue("Oscuro" in tarjeta(SeccionAjustes.TEMA))
+        assertTrue("Día y noche" in tarjeta(SeccionAjustes.TEMA))
     }
 
     @Test

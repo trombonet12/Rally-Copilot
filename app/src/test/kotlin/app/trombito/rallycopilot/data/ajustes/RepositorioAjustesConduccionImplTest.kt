@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -34,7 +35,8 @@ class RepositorioAjustesConduccionImplTest {
     fun preparar() {
         val contexto = ApplicationProvider.getApplicationContext<Context>()
         base = Room.inMemoryDatabaseBuilder(contexto, RallyDatabase::class.java).allowMainThreadQueries().build()
-        repositorio = RepositorioAjustesConduccionImpl(base.ajustesConduccionDao())
+        // Migración del tema ya hecha: el resto de pruebas lee lo que escribe.
+        repositorio = RepositorioAjustesConduccionImpl(base.ajustesConduccionDao(), MarcaFalsa(hecha = true))
     }
 
     @After
@@ -78,10 +80,10 @@ class RepositorioAjustesConduccionImplTest {
         }
 
     @Test
-    fun `volumen de la voz y tema tienen por defecto 100 por ciento y oscuro, y se guardan y se leen`() =
+    fun `volumen de la voz y tema tienen por defecto 100 por ciento y dia y noche, y se guardan y se leen`() =
         runBlocking {
             assertEquals(100, repositorio.ajustes.first().volumenVoz)
-            assertEquals(Tema.OSCURO, repositorio.ajustes.first().tema)
+            assertEquals(Tema.SOL, repositorio.ajustes.first().tema)
 
             val ajustes = repositorio.ajustes.first().copy(volumenVoz = 130, tema = Tema.SISTEMA)
             repositorio.guardar(ajustes)
@@ -116,6 +118,18 @@ class RepositorioAjustesConduccionImplTest {
             assertEquals(true, leido.filtroIndicaciones.avisarCruces)
             assertEquals(true, leido.filtroIndicaciones.avisarSalidasAutopista)
             assertEquals(false, leido.filtroIndicaciones.avisarRotondas)
+        }
+
+    @Test
+    fun `el audio por el casco es automatico y la escucha solo al pulsar por defecto, y ambos se guardan`() =
+        runBlocking {
+            val defecto = repositorio.ajustes.first()
+            assertEquals(true, defecto.audioCasco)
+            assertEquals(false, defecto.escuchaCascoSiempre)
+
+            val ajustes = defecto.copy(audioCasco = false, escuchaCascoSiempre = true)
+            repositorio.guardar(ajustes)
+            assertEquals(ajustes, repositorio.ajustes.first())
         }
 
     @Test
@@ -165,12 +179,68 @@ class RepositorioAjustesConduccionImplTest {
             dao.guardar(fila.copy(volumenVoz = 400, tema = "NEON"))
             val leido = repositorio.ajustes.first()
             assertEquals(AjustesConduccion.VOLUMEN_VOZ_MAX, leido.volumenVoz)
-            assertEquals(Tema.OSCURO, leido.tema)
+            assertEquals(Tema.PREDETERMINADO, leido.tema)
 
             dao.guardar(fila.copy(volumenVoz = 0, tema = "CLARO"))
             assertEquals(AjustesConduccion.VOLUMEN_VOZ_MIN, repositorio.ajustes.first().volumenVoz)
             assertEquals(Tema.CLARO, repositorio.ajustes.first().tema)
         }
+
+    private fun repositorioSinMigrar(marca: MarcaFalsa) =
+        RepositorioAjustesConduccionImpl(base.ajustesConduccionDao(), marca)
+
+    @Test
+    fun `migracion del tema una fila con Oscuro pasa a Dia y noche una sola vez`() =
+        runBlocking {
+            val dao = base.ajustesConduccionDao()
+            val marca = MarcaFalsa(hecha = false)
+            dao.guardar(AjustesConduccionEntity(1, 0, "FLECHA", "RUMBO", "VECTORIAL", false, tema = "OSCURO"))
+
+            val migrado = repositorioSinMigrar(marca)
+            assertEquals(Tema.SOL, migrado.ajustes.first().tema)
+            assertEquals("SOL", dao.observar().first()?.tema)
+            assertTrue(marca.hecha())
+
+            // Joan vuelve a elegir Oscuro: ya hay marca, no se toca.
+            migrado.guardar(migrado.ajustes.first().copy(tema = Tema.OSCURO))
+            assertEquals(Tema.OSCURO, repositorioSinMigrar(marca).ajustes.first().tema)
+        }
+
+    @Test
+    fun `migracion del tema no toca Claro ni Sistema y solo marca`() =
+        runBlocking {
+            val dao = base.ajustesConduccionDao()
+            val fila = AjustesConduccionEntity(1, 0, "FLECHA", "RUMBO", "VECTORIAL", false)
+            for (tema in listOf(Tema.CLARO, Tema.SISTEMA, Tema.SOL)) {
+                val marca = MarcaFalsa(hecha = false)
+                dao.guardar(fila.copy(tema = tema.name))
+                assertEquals(tema, repositorioSinMigrar(marca).ajustes.first().tema)
+                assertEquals(tema.name, dao.observar().first()?.tema)
+                assertTrue(marca.hecha())
+            }
+        }
+
+    @Test
+    fun `migracion del tema sin fila marca y un Oscuro elegido despues se respeta`() =
+        runBlocking {
+            val marca = MarcaFalsa(hecha = false)
+            val nuevo = repositorioSinMigrar(marca)
+            assertEquals(Tema.SOL, nuevo.ajustes.first().tema)
+            assertTrue(marca.hecha())
+
+            nuevo.guardar(nuevo.ajustes.first().copy(tema = Tema.OSCURO))
+            assertEquals(Tema.OSCURO, repositorioSinMigrar(marca).ajustes.first().tema)
+        }
+
+    private class MarcaFalsa(
+        private var hecha: Boolean,
+    ) : MarcaMigracionTema {
+        override fun hecha() = hecha
+
+        override fun marcar() {
+            hecha = true
+        }
+    }
 
     @Test
     fun `un nivel de zoom fuera de rango en disco se acota`() =
@@ -203,7 +273,14 @@ class RepositorioAjustesConduccionImplTest {
     fun `un enum desconocido en disco vuelve al valor por defecto`() =
         runBlocking {
             base.ajustesConduccionDao().guardar(
-                AjustesConduccionEntity(nivelZoom = 1, icono = "OVNI", orientacion = "???", capa = "", relieve = true),
+                AjustesConduccionEntity(
+                    nivelZoom = 1,
+                    icono = "OVNI",
+                    orientacion = "???",
+                    capa = "",
+                    relieve = true,
+                    tema = "???",
+                ),
             )
             val ajustes = repositorio.ajustes.first()
             assertEquals(AjustesConduccion(nivelZoom = 1, relieve = true), ajustes)

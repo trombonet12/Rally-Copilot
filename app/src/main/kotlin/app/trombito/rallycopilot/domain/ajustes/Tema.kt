@@ -1,10 +1,10 @@
 package app.trombito.rallycopilot.domain.ajustes
 
 /**
- * Tema de la interfaz. Oscuro por defecto (estética de retransmisión de rally); el claro es opcional, [SISTEMA]
- * sigue el modo del móvil y [SOL] pinta claro de día y oscuro de noche según la puesta y la salida del sol (se
- * calculan sin red; no usa el sensor de luz, así que un túnel no lo cambia). Se guarda por nombre: añadir valores
- * al final no necesita migración.
+ * Tema de la interfaz. Por defecto [SOL] («Día y noche»): pinta claro de día y oscuro de noche según la puesta y la
+ * salida del sol (se calculan sin red; no usa el sensor de luz, así que un túnel no lo cambia). [OSCURO] (estética de
+ * retransmisión de rally) y [CLARO] son fijos y [SISTEMA] sigue el modo del móvil. Se guarda por nombre: añadir
+ * valores al final no necesita migración.
  */
 enum class Tema {
     OSCURO,
@@ -26,6 +26,6 @@ enum class Tema {
         }
 
     companion object {
-        val PREDETERMINADO = OSCURO
+        val PREDETERMINADO = SOL
     }
 }

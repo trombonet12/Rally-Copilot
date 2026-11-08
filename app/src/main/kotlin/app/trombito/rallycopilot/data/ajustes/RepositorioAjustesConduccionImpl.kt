@@ -19,14 +19,33 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
-/** Ajustes de conducción en Room (una fila). Sin fila, o con valores desconocidos, valen los por defecto. */
+/**
+ * Ajustes de conducción en Room (una fila). Sin fila, o con valores desconocidos, valen los por defecto.
+ *
+ * Migración única del tema (2026-11-08): el predeterminado pasó de Oscuro a Día y noche. Como una fila con `OSCURO` no
+ * distingue «por defecto» de «elegido», la primera vez que se lee (hasta que [marca] dice que ya se hizo) esa fila pasa
+ * a `SOL`; después, cualquier elección de Joan (también Oscuro) se respeta. Sin fila o con otro tema, solo se marca.
+ */
 class RepositorioAjustesConduccionImpl
     @Inject
     constructor(
         private val dao: AjustesConduccionDao,
+        private val marca: MarcaMigracionTema,
     ) : RepositorioAjustesConduccion {
         override val ajustes: Flow<AjustesConduccion> =
-            dao.observar().map { it?.aDominio() ?: AjustesConduccion() }.distinctUntilChanged()
+            dao
+                .observar()
+                .map { migrarTema(it) }
+                .map { it?.aDominio() ?: AjustesConduccion() }
+                .distinctUntilChanged()
+
+        private suspend fun migrarTema(fila: AjustesConduccionEntity?): AjustesConduccionEntity? {
+            if (marca.hecha()) return fila
+            val migrada = fila?.takeIf { it.tema == Tema.OSCURO.name }?.copy(tema = Tema.SOL.name)
+            if (migrada != null) dao.guardar(migrada)
+            marca.marcar()
+            return migrada ?: fila
+        }
 
         override suspend fun guardar(ajustes: AjustesConduccion) {
             dao.guardar(ajustes.aEntidad())
@@ -61,6 +80,8 @@ internal fun AjustesConduccionEntity.aDominio(): AjustesConduccion {
         avisarVelocidad = avisarVelocidad,
         velocidadHabla = enumOrNull<VelocidadHabla>(velocidadHabla) ?: defecto.velocidadHabla,
         avisarPuentes = avisarPuentes,
+        audioCasco = audioCasco,
+        escuchaCascoSiempre = escuchaCascoSiempre,
     )
 }
 
@@ -102,6 +123,8 @@ internal fun AjustesConduccion.aEntidad() =
         avisarVelocidad = avisarVelocidad,
         velocidadHabla = velocidadHabla.name,
         avisarPuentes = avisarPuentes,
+        audioCasco = audioCasco,
+        escuchaCascoSiempre = escuchaCascoSiempre,
     )
 
 private inline fun <reified E : Enum<E>> enumOrNull(nombre: String): E? =

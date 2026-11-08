@@ -63,7 +63,7 @@ class TemaSolarTest {
         assertFalse(Tema.SOL.esOscuro(sistemaOscuro = true, solOscuro = false))
         assertTrue(Tema.OSCURO.esOscuro(sistemaOscuro = false, solOscuro = false))
         assertFalse(Tema.CLARO.esOscuro(sistemaOscuro = true, solOscuro = true))
-        assertEquals(Tema.OSCURO, Tema.PREDETERMINADO)
+        assertEquals(Tema.SOL, Tema.PREDETERMINADO)
     }
 
     @Test

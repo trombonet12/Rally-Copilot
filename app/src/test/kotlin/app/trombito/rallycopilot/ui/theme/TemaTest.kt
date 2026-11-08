@@ -26,8 +26,8 @@ class TemaTest {
     private val banco = BancoCompose()
 
     @Test
-    fun `el tema oscuro es el predeterminado y sistema sigue al movil`() {
-        assertEquals(Tema.OSCURO, Tema.PREDETERMINADO)
+    fun `dia y noche es el predeterminado y sistema sigue al movil`() {
+        assertEquals(Tema.SOL, Tema.PREDETERMINADO)
         assertTrue(Tema.OSCURO.esOscuro(sistemaOscuro = false))
         assertFalse(Tema.CLARO.esOscuro(sistemaOscuro = true))
         assertTrue(Tema.SISTEMA.esOscuro(sistemaOscuro = true))

@@ -197,6 +197,7 @@ fun VistaMapa(
             contexto.unregisterComponentCallbacks(memoria)
             ciclo.lifecycle.removeObserver(puente)
             puente.cerrar()
+            controlador.detenerAnimaciones()
         }
     }
     LaunchedEffect(controlador, estiloJson) { controlador.cambiarEstilo(estiloJson) }
@@ -327,6 +328,9 @@ private class ControladorMapa(
     fun activar(valor: Boolean) {
         activo = valor
     }
+
+    /** Al salir de la composición: corta el deslizamiento del fantasma antes de que se destruya la vista. */
+    fun detenerAnimaciones() = capaFantasma.detener()
 
     fun iniciar() {
         vista.getMapAsync { m ->
@@ -461,6 +465,7 @@ private class ControladorMapa(
         if (json == estiloAplicado) return
         estiloAplicado = json
         estilo = null
+        capaFantasma.detener()
         ubicacionActivada = false
         m.setStyle(Style.Builder().fromJson(json)) { cargado ->
             estilo = cargado

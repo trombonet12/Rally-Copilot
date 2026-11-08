@@ -1,10 +1,13 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.PosicionFantasma
 import app.trombito.rallycopilot.ui.comun.recurso
 import org.maplibre.android.maps.Style
@@ -39,6 +42,10 @@ private const val COLOR_FANTASMA = 0xFFE8EAED.toInt()
 internal class CapaFantasma {
     private var iconoDibujado: IconoPosicion? = null
 
+    /** Dónde está pintado ahora (a mitad de una animación, la posición intermedia). */
+    private var mostrada: PosicionFantasma? = null
+    private var animador: ValueAnimator? = null
+
     fun instalar(
         estilo: Style,
         contexto: Context,
@@ -46,6 +53,8 @@ internal class CapaFantasma {
         fantasma: PosicionFantasma?,
     ) {
         iconoDibujado = null
+        detener()
+        mostrada = fantasma
         estilo.addSource(GeoJsonSource(ID_FUENTE, fantasmaGeoJson(fantasma)))
         estilo.addLayer(
             SymbolLayer(ID_CAPA, ID_FUENTE).withProperties(
@@ -67,7 +76,41 @@ internal class CapaFantasma {
         fantasma: PosicionFantasma?,
     ) {
         dibujarIcono(estilo, contexto, icono)
-        estilo.getSourceAs<GeoJsonSource>(ID_FUENTE)?.setGeoJson(fantasmaGeoJson(fantasma))
+        val fuente = estilo.getSourceAs<GeoJsonSource>(ID_FUENTE) ?: return
+        val origen = mostrada
+        detener()
+        if (origen == null || fantasma == null || !debeAnimarFantasma(origen, fantasma)) {
+            // Primer punto, fin del fantasma o salto grande: se coloca de golpe.
+            mostrada = fantasma
+            fuente.setGeoJson(fantasmaGeoJson(fantasma))
+        } else if (origen != fantasma) {
+            animarHacia(fuente, origen, fantasma)
+        }
+    }
+
+    /** Corta la animación en marcha (al cambiar de estilo o cerrar el mapa) sin tocar la fuente. */
+    fun detener() {
+        animador?.cancel()
+        animador = null
+    }
+
+    /** Desliza el fantasma de [origen] a [destino] en [DURACION_ANIMACION_MS] cambiando solo su fuente GeoJSON. */
+    private fun animarHacia(
+        fuente: GeoJsonSource,
+        origen: PosicionFantasma,
+        destino: PosicionFantasma,
+    ) {
+        animador =
+            ValueAnimator.ofFloat(0f, 1f).apply {
+                duration = DURACION_ANIMACION_MS
+                interpolator = LinearInterpolator()
+                addUpdateListener { a ->
+                    val actual = interpolarFantasma(origen, destino, a.animatedFraction.toDouble())
+                    mostrada = actual
+                    fuente.setGeoJson(fantasmaGeoJson(actual))
+                }
+                start()
+            }
     }
 
     /** La silueta se vuelve a dibujar solo si cambia el icono de posición. */
@@ -80,6 +123,40 @@ internal class CapaFantasma {
         iconoDibujado = icono
         estilo.addImage(ID_IMAGEN, siluetaDe(contexto, icono))
     }
+}
+
+/** Lo que dura el deslizamiento entre dos posiciones: el intervalo del cronómetro (1 Hz), para que sea continuo. */
+internal const val DURACION_ANIMACION_MS = 1_000L
+
+/** Más allá de esta distancia entre dos posiciones (un salto, no un avance) el fantasma se coloca sin animar. */
+internal const val SALTO_MAXIMO_ANIMADO_M = 200.0
+
+/** Si [hasta] se alcanza deslizando desde [desde]: un avance normal, no un salto de más de [SALTO_MAXIMO_ANIMADO_M]. */
+internal fun debeAnimarFantasma(
+    desde: PosicionFantasma,
+    hasta: PosicionFantasma,
+): Boolean = desde.punto.distanciaA(hasta.punto) <= SALTO_MAXIMO_ANIMADO_M
+
+/**
+ * Posición a la [fraccion] (0 = [desde], 1 = [hasta]; se acota a 0..1) del deslizamiento: coordenadas y distancia en
+ * línea recta (el tramo es de metros) y rumbo por el camino corto del círculo (350° → 10° pasa por 0°, no por 180°).
+ */
+internal fun interpolarFantasma(
+    desde: PosicionFantasma,
+    hasta: PosicionFantasma,
+    fraccion: Double,
+): PosicionFantasma {
+    val f = fraccion.coerceIn(0.0, 1.0)
+    val giro = ((hasta.rumboGrados - desde.rumboGrados + 540.0) % 360.0) - 180.0
+    return PosicionFantasma(
+        punto =
+            PuntoGeo(
+                desde.punto.lat + (hasta.punto.lat - desde.punto.lat) * f,
+                desde.punto.lon + (hasta.punto.lon - desde.punto.lon) * f,
+            ),
+        rumboGrados = ((desde.rumboGrados + giro * f) % 360.0 + 360.0) % 360.0,
+        distanciaM = desde.distanciaM + (hasta.distanciaM - desde.distanciaM) * f,
+    )
 }
 
 /** El fantasma como un punto con su rumbo (grados desde el norte); sin fantasma, ninguno. */

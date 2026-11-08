@@ -179,7 +179,7 @@ class AjustesViewModelTest {
         runTest {
             repositorio.mutable.value = AjustesConduccion(nivelZoom = 2)
             val vm = crear()
-            assertEquals(Tema.OSCURO, vm.uiState.value.tema)
+            assertEquals(Tema.PREDETERMINADO, vm.uiState.value.tema)
             vm.onTema(Tema.CLARO)
             vm.onCapa(CapaMapa.SATELITE)
             vm.onRelieve(true)
@@ -203,6 +203,22 @@ class AjustesViewModelTest {
             assertFalse(guardado.cronometrar)
             assertTrue(guardado.notasGrandes)
             assertEquals(1, guardado.nivelZoom)
+        }
+
+    @Test
+    fun `audio por el casco y escucha con casco se guardan y conservan el resto`() =
+        runTest {
+            repositorio.mutable.value = AjustesConduccion(nivelZoom = 1)
+            val vm = crear()
+            vm.onAudioCasco(false)
+            vm.onEscuchaCascoSiempre(true)
+            assertFalse(repositorio.mutable.value.audioCasco)
+            assertTrue(repositorio.mutable.value.escuchaCascoSiempre)
+            assertEquals(1, repositorio.mutable.value.nivelZoom)
+            vm.onAudioCasco(true)
+            vm.onEscuchaCascoSiempre(false)
+            assertTrue(repositorio.mutable.value.audioCasco)
+            assertFalse(repositorio.mutable.value.escuchaCascoSiempre)
         }
 
     @Test

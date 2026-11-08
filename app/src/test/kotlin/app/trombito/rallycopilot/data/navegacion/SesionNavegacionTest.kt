@@ -7,6 +7,7 @@ import app.trombito.rallycopilot.data.alertas.ViaFalsa
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.Recorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
+import app.trombito.rallycopilot.data.tramos.SesionCrono
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.alertas.AlertasEnCurso
 import app.trombito.rallycopilot.domain.navegacion.Destino
@@ -28,6 +29,7 @@ import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -516,6 +518,32 @@ class SesionNavegacionTest {
             runCurrent()
             assertEquals(4, e.recorridos.lotes.size)
             assertEquals(listOf(RecorridosFalso.ID), e.recorridos.terminados)
+        }
+
+    @Test
+    fun `cancelar mientras se lee cronometrar trayectos no deja el recorrido abierto`() =
+        runTest {
+            val recorridos = RecorridosFalso()
+            val sesion =
+                SesionNavegacion(
+                    FuenteFalsa(listOf(p(0.0, 0.0))),
+                    EnrutadorFalso(mutableListOf(), reloj = { testScheduler.currentTime }),
+                    recorridos,
+                    reloj = { testScheduler.currentTime },
+                    publicar = {},
+                    motivoSinGps = "sin GPS",
+                    crono = SesionCrono(FalsoRepositorioTramos(), {}, { testScheduler.currentTime }),
+                    cronometrar = { awaitCancellation() },
+                )
+            val trabajo = launch { sesion.correr(SolicitudNavegacion.Libre) }
+            runCurrent()
+            assertTrue(recorridos.empezado)
+            assertTrue(recorridos.terminados.isEmpty())
+
+            trabajo.cancel()
+            runCurrent()
+            assertTrue(trabajo.isCompleted)
+            assertEquals(listOf(RecorridosFalso.ID), recorridos.terminados)
         }
 
     @Test

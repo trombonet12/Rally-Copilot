@@ -294,9 +294,12 @@ class AjustesVistaPreviaTest {
     @Test
     fun `las miniaturas del tema resaltan la elegida y la muestra cambia al tocar oscuro claro o automatico`() {
         banco.ponerAjustes(seccion = SeccionAjustes.TEMA)
-        assertEquals("Muestra del tema Oscuro", descripcionDe(ETIQUETA_TEMA_MUESTRA))
+        // Día y noche es el tema por defecto (decisión de Joan, 2026-11-08).
+        assertEquals("Muestra del tema Día y noche", descripcionDe(ETIQUETA_TEMA_MUESTRA))
         assertTrue(banco.hay(ETIQUETA_TEMA_MINIATURA_PREFIJO + "oscuro"))
         assertTrue(banco.hay(ETIQUETA_TEMA_MINIATURA_PREFIJO + "claro"))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_TEMA_PREFIJO + Tema.OSCURO.name.lowercase()))
+        assertEquals("Muestra del tema Oscuro", descripcionDe(ETIQUETA_TEMA_MUESTRA))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_TEMA_PREFIJO + Tema.CLARO.name.lowercase()))
         assertEquals("Muestra del tema Claro", descripcionDe(ETIQUETA_TEMA_MUESTRA))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_TEMA_PREFIJO + Tema.SISTEMA.name.lowercase()))

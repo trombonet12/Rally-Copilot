@@ -1,5 +1,7 @@
 package app.trombito.rallycopilot.di
 
+import app.trombito.rallycopilot.data.ajustes.MarcaMigracionTema
+import app.trombito.rallycopilot.data.ajustes.MarcaMigracionTemaPreferencias
 import app.trombito.rallycopilot.data.ajustes.RepositorioAjustesConduccionImpl
 import app.trombito.rallycopilot.data.db.AjustesConduccionDao
 import app.trombito.rallycopilot.data.db.GuiadoPendienteDao
@@ -25,6 +27,9 @@ abstract class AjustesModule {
     abstract fun repositorioAjustesConduccion(
         implementacion: RepositorioAjustesConduccionImpl,
     ): RepositorioAjustesConduccion
+
+    @Binds
+    abstract fun marcaMigracionTema(implementacion: MarcaMigracionTemaPreferencias): MarcaMigracionTema
 
     @Binds
     abstract fun repositorioGuiadoPendiente(implementacion: RepositorioGuiadoPendienteRoom): RepositorioGuiadoPendiente
