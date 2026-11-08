@@ -47,11 +47,13 @@ enum class ModoCopiloto(
 /**
  * Algo que el copiloto puede decir. [id] es estable entre recálculos (identifica la frase aunque cambie el [texto]);
  * [puntoM] es la posición en la traza (m) a la que se refiere, o `null` si no caduca por posición (p. ej. un exceso
- * de velocidad).
+ * de velocidad). [cubre] son las ids de todas las notas que la frase canta de una vez (una llamada de curvas
+ * encadenadas «izquierda tres y derecha cuatro»; incluye la propia [id]); vacío si es una frase de una sola cosa.
  */
 data class Frase(
     val id: String,
     val texto: String,
     val tipo: TipoFrase,
     val puntoM: Double?,
+    val cubre: List<String> = emptyList(),
 )

@@ -237,4 +237,13 @@ class PlanificadorFrasesTest {
         planificador.marcarResuelta("b")
         assertNull(siguiente(listOf(frase("b", puntoM = 100.0))))
     }
+
+    @Test
+    fun `una llamada con varias notas da por dichas las que cubre y no se repiten`() {
+        val llamada = Frase("a", "izquierda tres y derecha cuatro", TipoFrase.NOTA, 300.0, cubre = listOf("a", "b"))
+        val suelta = frase("b", puntoM = 340.0)
+        assertEquals("a", siguiente(listOf(llamada, suelta), posicionM = 100.0)?.id)
+        assertNull(siguiente(listOf(suelta), posicionM = 110.0))
+        assertEquals(true, planificador.resuelta("b"))
+    }
 }

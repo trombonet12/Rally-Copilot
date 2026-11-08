@@ -14,7 +14,7 @@ class PlanificadorFrases(
      * La frase que toca decir ahora, o `null`. Filtra por [modo] (lo que el modo calla no se descarta), tira la que
      * ya pasó (`posicionM >= puntoM`) o no acabaría antes de llegar (a más de 1 m/s, `(puntoM − posicionM) / vMs`
      * menor que la duración), y entre el resto elige la de más prioridad y, a igualdad, el [Frase.puntoM] más
-     * cercano (sin punto, la primera). La elegida queda marcada como dicha.
+     * cercano (sin punto, la primera). La elegida queda marcada como dicha, junto con las notas que [Frase.cubre].
      *
      * Los avisos de velocidad ([TipoFrase.AVISO_VELOCIDAD]) se difieren (sin descartarlos) mientras haya una nota o
      * maniobra pendiente a menos de [HORIZONTE_AVISO_S] segundos de camino, sea candidata o esté en [venideras] (las
@@ -41,7 +41,10 @@ class PlanificadorFrases(
             vigentes
                 .filter { cercanas.isEmpty() || it.tipo != TipoFrase.AVISO_VELOCIDAD }
                 .minWithOrNull(ORDEN_URGENCIA)
-        if (elegida != null) resueltas.add(elegida.id)
+        if (elegida != null) {
+            resueltas.add(elegida.id)
+            resueltas.addAll(elegida.cubre)
+        }
         return elegida
     }
 
