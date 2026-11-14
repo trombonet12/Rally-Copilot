@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.location.Location
 import android.location.LocationManager
+import android.location.LocationRequest
 import android.os.Looper
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
@@ -66,6 +67,20 @@ class FuenteUbicacionGpsTest {
         time = 1_700_000_000_000L + segundo * 1000
         elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() + segundo * 1_000_000_000L
         accuracy = 25f
+    }
+
+    private fun fusedAlta(
+        lat: Double,
+        lon: Double,
+        segundo: Long,
+    ) = Location(LocationManager.FUSED_PROVIDER).apply {
+        latitude = lat
+        longitude = lon
+        time = 1_700_000_000_000L + segundo * 1000
+        elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos() + segundo * 1_000_000_000L
+        accuracy = 6f
+        speed = 14f
+        bearing = 90f
     }
 
     private fun simular(location: Location) {
@@ -263,6 +278,34 @@ class FuenteUbicacionGpsTest {
 
             simular(aproximada(39.7, 2.95, segundo = 10))
             assertEquals(4, recibidas.size)
+            job.cancel()
+        }
+
+    @Test
+    fun `el fused se pide con alta precision a 1 Hz y sin agrupar`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val job = launch { fuente.fijaciones().toList() }
+
+            val peticion = shadowOf(manager).getLocationRequests(LocationManager.FUSED_PROVIDER).single()
+            assertEquals(LocationRequest.QUALITY_HIGH_ACCURACY, peticion.quality)
+            assertEquals(1_000L, peticion.intervalMillis)
+            assertEquals(1_000L, peticion.minUpdateIntervalMillis)
+            assertEquals(0L, peticion.maxUpdateDelayMillis)
+            assertFalse(shadowOf(manager).getLocationRequests(LocationManager.GPS_PROVIDER).isEmpty())
+            job.cancel()
+        }
+
+    @Test
+    fun `con el gps mudo el fused de alta precision llega a 1 Hz con velocidad y rumbo`() =
+        runTest(UnconfinedTestDispatcher()) {
+            val recibidas = mutableListOf<Fijacion>()
+            val job = launch { fuente.fijaciones().toList(recibidas) }
+
+            repeat(30) { simular(fusedAlta(39.6, 2.9 + it * 0.0001, segundo = 1L + it)) }
+
+            assertEquals(30, recibidas.size)
+            assertEquals(14.0, recibidas[10].velocidadMs!!, 1e-6)
+            assertEquals(90.0, recibidas[10].rumboGrados!!, 1e-6)
             job.cancel()
         }
 

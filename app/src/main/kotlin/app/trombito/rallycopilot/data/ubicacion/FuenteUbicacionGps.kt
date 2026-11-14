@@ -39,8 +39,15 @@ import javax.inject.Singleton
  *
  * Para ahorrar batería (REN-3) el proveedor rápido solo se mantiene mientras el GPS no entrega fijaciones útiles: se
  * quita tras 3 fijaciones seguidas del GPS de ≤ 20 m y se vuelve a poner si pasan más de 5 s sin GPS
- * ([ControlProveedorRapido]); el fused se pide con calidad equilibrada. Esta clase es el flujo frío del sistema: la app
- * lo consume a través de [PosicionEnVivo], que lo comparte entre todos los consumidores.
+ * ([ControlProveedorRapido]); el fused se pide con alta precisión (ver abajo). Esta clase es el flujo frío del
+ * sistema: la app lo consume a través de [PosicionEnVivo], que lo comparte entre todos los consumidores.
+ *
+ * Causa raíz del bug «el viaje de 11,5 min guardó 14 posiciones» (móvil con LineageOS y Google Play Services): el fused
+ * se pedía con `QUALITY_BALANCED_POWER_ACCURACY`, que en GMS es posicionamiento por red (una fijación cada 30–90 s) y
+ * no arranca el GNSS; el GPS crudo, en arranque en frío y sin asistencia, tardaba minutos en fijar, así que solo
+ * llegaban las del fused. Google Maps pide alta precisión, con la que GMS enciende el GNSS asistido y da 1 Hz. Ahora el
+ * fused va con `QUALITY_HIGH_ACCURACY`, 1 s, sin agrupar, y el [SelectorFijaciones] da por buenas sus fijaciones con
+ * velocidad y error ≤ 15 m aunque el GPS crudo no fije.
  *
  * Solo registra los listeners mientras alguien recoge el flujo. Sin permiso, sin ningún proveedor o ante un fallo del
  * sistema el flujo termina sin error; el fallo de un proveedor no tumba el otro. Nunca se escriben coordenadas en el
@@ -129,7 +136,9 @@ class FuenteUbicacionGps internal constructor(
                 val peticion =
                     LocationRequest
                         .Builder(INTERVALO_MS)
-                        .setQuality(LocationRequest.QUALITY_BALANCED_POWER_ACCURACY)
+                        .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
+                        .setMinUpdateIntervalMillis(INTERVALO_MS)
+                        .setMaxUpdateDelayMillis(0L)
                         .build()
                 manager.requestLocationUpdates(proveedor, peticion, contexto.mainExecutor, listener)
             } else {
