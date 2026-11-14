@@ -5,11 +5,11 @@
 | Campo | Valor |
 |---|---|
 | Hito | H22–H25 · **v1.6.0** (H22–H24 + arreglos de la auditoría H25 juntos, decisión de Joan) · siguiente: pendientes de la auditoría y prueba en coche · H11 y H12 pospuestos |
-| Estado | v1.6.0 publicada e instalada por cable en el móvil de Joan (ver «Próxima acción» si no llegó a hacerse antes del apagado programado) |
+| Estado | **v1.6.0 publicada** (release de GitHub, 2026-11-14 22:13 UTC). No instalada por cable: el móvil se desconectó antes. Joan puede actualizar con Obtainium o se instala en la próxima sesión |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
 ## Próxima acción
-1. Si la release 1.6.0 no llegó a publicarse o instalarse (apagado programado del PC la noche del 2026-11-14): `gh run list`, y si hace falta `gh workflow run android.yml -f publicar=true`. Luego instalar en el móvil con `gh release download` y `adb install -r`, abrir la app, sacar con `adb pull` `Android/data/app.trombito.rallycopilot/files/{copias,registros}` y comprobar que la migración v20→21 y los tramos de vía cuadran (10 viajes y 11 tramos-viaje intactos).
+1. La release 1.6.0 está publicada. Si Joan no la ha actualizado con Obtainium, instalarla en el móvil con `gh release download` y `adb install -r`, abrir la app, sacar con `adb pull` `Android/data/app.trombito.rallycopilot/files/{copias,registros}` y comprobar que la migración v20→21 y los tramos de vía cuadran (10 viajes y 11 tramos-viaje intactos).
 2. Pendientes de [auditoria/2026-11b.md](auditoria/2026-11b.md) (estado «pendiente»): sentido estable ante cambios de datos de OSM, subtramos no situables, dos pasadas por el mismo trozo, trozo perdido si `repetir` da null y espera al migrador.
 3. Pregunta para Joan: la nota muestra dos distancias pegadas («IZQUIERDA 6 · 50 m» y «40 m»).
 4. El AVD `trombito-36` tiene una base v21 antigua (sin `llegado`): borrar los datos de `app.trombito.rallycopilot.dev` antes de probar.
