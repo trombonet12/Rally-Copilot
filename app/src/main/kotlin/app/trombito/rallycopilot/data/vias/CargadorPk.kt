@@ -56,7 +56,8 @@ class CargadorPk internal constructor(
         posicion: PuntoGeo,
     ): PuntoKilometrico? = indice()?.buscar(ref, posicion)
 
-    private suspend fun indice(): IndicePuntosKm? {
+    /** El índice de hitos ya cargado (lo comparte con [puntoKilometrico]); null si no hay archivo o es ilegible. */
+    suspend fun indice(): IndicePuntosKm? {
         siembra.esperar()
         return mutex.withLock {
             withContext(dispatcher) {

@@ -4,6 +4,8 @@ import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.data.tramos.CronoEnVivoImpl
 import app.trombito.rallycopilot.data.tramos.ExportadorTramo
+import app.trombito.rallycopilot.data.tramos.FuenteIndicesVias
+import app.trombito.rallycopilot.data.tramos.FuenteIndicesViasOsm
 import app.trombito.rallycopilot.data.tramos.GuardadorTramoArchivo
 import app.trombito.rallycopilot.data.tramos.GuardadorTramos
 import app.trombito.rallycopilot.data.tramos.NombradorTramos
@@ -43,6 +45,9 @@ abstract class TramosModule {
 
     @Binds
     abstract fun nombraTraza(implementacion: NombradorTramos): NombraTraza
+
+    @Binds
+    abstract fun fuenteIndicesVias(implementacion: FuenteIndicesViasOsm): FuenteIndicesVias
 
     @Binds
     abstract fun repositorioTramos(implementacion: RepositorioTramosRoom): RepositorioTramos

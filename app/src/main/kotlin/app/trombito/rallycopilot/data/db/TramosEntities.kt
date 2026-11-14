@@ -141,6 +141,7 @@ data class FilaResumenTramo(
     val ultimoUso: Long,
     val pasadas: Int,
     val mejorMs: Long?,
+    val tipo: String,
 )
 
 /** Punto de un recorrido (consulta de recorte, sin el id del recorrido). */

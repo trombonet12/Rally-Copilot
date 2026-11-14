@@ -1,8 +1,12 @@
 package app.trombito.rallycopilot.data.tramos
 
 import app.trombito.rallycopilot.data.db.PasadaEntity
+import app.trombito.rallycopilot.data.db.TIPO_VIA
+import app.trombito.rallycopilot.data.db.TIPO_VIAJE
 import app.trombito.rallycopilot.data.db.TramoEntity
+import app.trombito.rallycopilot.domain.tramos.DatosVia
 import app.trombito.rallycopilot.domain.tramos.OrigenPasada
+import app.trombito.rallycopilot.domain.tramos.TipoTramo
 import app.trombito.rallycopilot.motor.ruta.Polyline6
 import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.Tramo
@@ -21,10 +25,15 @@ internal fun TramoEntity.aTramo(): Tramo? =
         null
     }
 
+/** El tipo del tramo guardado; una cadena desconocida se trata como viaje. */
+internal fun TramoEntity.aTipo(): TipoTramo = if (tipo == TIPO_VIA) TipoTramo.VIA else TipoTramo.VIAJE
+
+/** La entidad del tramo; con [via] es un tramo de vía (`VIA`) y sin ella un viaje entero (`VIAJE`). */
 internal fun Tramo.aEntidad(
     nombre: String?,
     creadoEnMs: Long,
     nombreAutomatico: String? = null,
+    via: DatosVia? = null,
 ) = TramoEntity(
     id = id,
     nombre = nombre,
@@ -34,6 +43,13 @@ internal fun Tramo.aEntidad(
     microsectores = CodecTramos.codificarCortes(microsectores),
     creadoEn = creadoEnMs,
     nombreAutomatico = nombreAutomatico,
+    tipo = if (via == null) TIPO_VIAJE else TIPO_VIA,
+    viaRef = via?.viaRef,
+    pkDesde = via?.pkDesde,
+    pkHasta = via?.pkHasta,
+    sentido = via?.sentido?.name,
+    destino = via?.destino,
+    recorridoOrigenId = via?.recorridoOrigenId,
 )
 
 /** La pasada guardada, o null si la fila no se puede leer. [cortesM]: ver [CodecTramos.decodificarMarcas]. */

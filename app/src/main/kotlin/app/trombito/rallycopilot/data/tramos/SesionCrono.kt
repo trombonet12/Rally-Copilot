@@ -11,6 +11,7 @@ import app.trombito.rallycopilot.domain.tramos.ResultadoCrono
 import app.trombito.rallycopilot.domain.tramos.SubtramoResultado
 import app.trombito.rallycopilot.domain.tramos.SubtramoVivo
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
+import app.trombito.rallycopilot.domain.tramos.TipoTramo
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrado
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.Cobertura
@@ -59,6 +60,11 @@ import java.util.UUID
  * publica el subtramo en marcha ([CronoEnCurso.subtramo], solo si no hay un tramo completo vivo) y, al cerrarse cada
  * trozo, lo guarda (en segundo plano, como las pasadas), publica [CronoEnCurso.ultimoSubtramo] y, si tiene referencia,
  * dice una frase CRONO corta («subtramo, menos tres»). Al [cerrar] cierra el detector y guarda lo que quedaba abierto.
+ *
+ * Los tramos de vía ([TipoTramo.VIA], trozos de carretera de otros viajes) se detectan y cronometran como los demás;
+ * si hay varios en marcha, el panel muestra el de vía cuya meta queda más cerca por delante y, sin ninguno, el último
+ * en que se entró (el tramo-viaje sigue cronometrando y guardando su pasada). Los subtramos solo se cronometran sobre
+ * tramos-viaje. Al [cerrar], tras crear el tramo del viaje, [trocear] lo trocea en tramos de vía.
  */
 @Suppress("TooManyFunctions", "LongParameterList") // un estado por conducción; colaboradores de guardado y cierre
 class SesionCrono(
@@ -70,6 +76,7 @@ class SesionCrono(
     private val nombrar: suspend (List<PuntoGeo>) -> String? = { null },
     private val anclarEdiciones: suspend (Tramo?) -> Unit = {},
     private val salidaManual: Flow<Boolean> = flowOf(false),
+    private val trocear: suspend (Long, List<PuntoRecorrido>) -> Unit = { _, _ -> },
 ) {
     /** Un tramo en que se ha entrado y aún no se ha completado ni abandonado. */
     private class Vivo(
@@ -126,6 +133,7 @@ class SesionCrono(
     /** Epoch en que se recibió la última fijación: referencia para fechar los inicios de los subtramos. */
     private var ultimoEpochMs = 0L
     private var catalogo: Map<String, Tramo> = emptyMap()
+    private var tipos: Map<String, TipoTramo> = emptyMap()
     private val mejores = HashMap<String, Pasada>()
     private val vivos = LinkedHashMap<String, Vivo>()
     private val completadas = ArrayList<Completada>()
@@ -151,9 +159,11 @@ class SesionCrono(
             try {
                 val lista = repositorio.cronometrables()
                 catalogo = lista.associate { it.tramo.id to it.tramo }
+                tipos = lista.associate { it.tramo.id to it.tipo }
                 lista.forEach { c -> c.mejor?.let { mejores[c.tramo.id] = it } }
                 detector = DetectorTramo(lista.map { it.tramo }, reloj = { ultimaFijacionMs })
-                detectorSubtramos = DetectorSubtramo(lista.map { it.tramo }, repositorio.pasadasParaSubtramos())
+                val viajes = lista.filter { it.tipo == TipoTramo.VIAJE }.map { it.tramo }
+                detectorSubtramos = DetectorSubtramo(viajes, repositorio.pasadasParaSubtramos())
             } catch (e: SQLiteException) {
                 alFallar(e)
             } catch (e: IllegalArgumentException) {
@@ -219,8 +229,26 @@ class SesionCrono(
         }
     }
 
-    /** El tramo en que se está ahora (entrado y sin completar ni abandonar); null si no hay ninguno. */
-    fun tramoActivo(): Tramo? = synchronized(cerrojo) { vivos.values.lastOrNull()?.tramo }
+    /**
+     * El tramo en que se está ahora (entrado y sin completar ni abandonar), el último que sea un viaje o, si solo hay
+     * tramos de vía, el último; null si no hay ninguno. A él se anclan las ediciones.
+     */
+    fun tramoActivo(): Tramo? =
+        synchronized(cerrojo) {
+            (vivos.values.lastOrNull { tipos[it.tramo.id] != TipoTramo.VIA } ?: vivos.values.lastOrNull())?.tramo
+        }
+
+    /**
+     * El tramo que muestra el panel: el de vía cuya meta queda más cerca por delante y, sin ninguno de vía, el último
+     * en que se entró.
+     */
+    private fun activo(): Vivo? {
+        val deVia = vivos.values.filter { tipos[it.tramo.id] == TipoTramo.VIA }
+        return if (deVia.isEmpty()) vivos.values.lastOrNull() else deVia.minByOrNull { restanteM(it) }
+    }
+
+    private fun restanteM(vivo: Vivo): Double =
+        vivo.tramo.metaM - (detector?.cronometro(vivo.tramo.id)?.progresoM ?: 0.0)
 
     private fun procesar(
         evento: EventoTramo,
@@ -324,7 +352,7 @@ class SesionCrono(
         if (vivos.isEmpty()) publicar(estadoTerminado(nuevo, ahoraMs()).conSubtramos())
     }
 
-    private fun esReciente(vivo: Vivo): Boolean = vivos.values.lastOrNull() === vivo
+    private fun esReciente(vivo: Vivo): Boolean = activo() === vivo
 
     @Suppress("LongParameterList") // los datos de un corte: tipo, número, dónde y cuándo
     private fun parcial(
@@ -374,7 +402,7 @@ class SesionCrono(
 
     private fun estadoBase(f: Fijacion): CronoEnCurso {
         val ahora = ahoraMs()
-        val activo = vivos.values.lastOrNull()
+        val activo = activo()
         val cerrado = terminado
         return when {
             activo != null -> {
@@ -459,7 +487,13 @@ class SesionCrono(
             guardar { repositorio.guardarPasada(c.pasada, c.origen(recorridoId)) }
         }
         var creado: Tramo? = null
-        if (recorrido != null) guardar { creado = crearTramoNuevo(recorrido.id, puntos()) }
+        if (recorrido != null) {
+            guardar {
+                val todos = puntos()
+                creado = crearTramoNuevo(recorrido.id, todos)
+                trocear(recorrido.id, todos)
+            }
+        }
         // Las ediciones dictadas sin tramo activo pasan al tramo recién creado; sin él se descartan.
         guardar { anclarEdiciones(creado) }
     }
@@ -487,7 +521,7 @@ class SesionCrono(
         val traza = puntos.map { PuntoGeo(it.lat, it.lon) }
         val repetido =
             completadas.any { c ->
-                val guardado = catalogo[c.pasada.tramoId]
+                val guardado = catalogo[c.pasada.tramoId]?.takeIf { tipos[it.id] != TipoTramo.VIA }
                 guardado != null && Cobertura.fraccion(traza, guardado.traza) > UMBRAL_COINCIDENCIA
             }
         val tramo = if (repetido || puntos.isEmpty()) null else TramoDesdeRecorrido.crear(nuevoId(), traza)
@@ -504,19 +538,12 @@ class SesionCrono(
         tramo: Tramo,
         puntos: List<PuntoRecorrido>,
     ): Completada? {
-        var ahora = 0L
-        val cronometro = Cronometro(tramo, reloj = { ahora })
-        var desdeMs = 0L
-        for (p in puntos) {
-            ahora = p.tiempoMs
-            val eventos = cronometro.alFijar(Fijacion(PuntoGeo(p.lat, p.lon), p.tiempoMs, p.velocidadMs, null, null))
-            eventos.filterIsInstance<EventoCrono.Salida>().forEach { desdeMs = it.tInicioMs }
-            if (cronometro.estado == Cronometro.Estado.TERMINADO) break
-        }
-        val ultimaMs = puntos.lastOrNull()?.tiempoMs ?: return null
         // Los puntos van en el reloj de la sesión (el de ahoraMs): la salida epoch es ahora menos lo que falta
         // hasta el último.
-        return cronometro.pasada()?.let { Completada(it, ahoraMs() - (ultimaMs - desdeMs), desdeMs) }
+        val ultimaMs = puntos.lastOrNull()?.tiempoMs ?: return null
+        return RepeticionPasada.repetir(tramo, puntos)?.let {
+            Completada(it.pasada, ahoraMs() - (ultimaMs - it.desdeMs), it.desdeMs)
+        }
     }
 
     companion object {

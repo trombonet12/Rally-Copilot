@@ -5,10 +5,11 @@ import app.trombito.rallycopilot.motor.tramos.SubtramoHecho
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.flow.Flow
 
-/** Un tramo listo para cronometrar y su mejor pasada hasta ahora (null si no tiene ninguna). */
+/** Un tramo listo para cronometrar, su [tipo] y su mejor pasada hasta ahora (null si no tiene ninguna). */
 data class TramoCronometrable(
     val tramo: Tramo,
     val mejor: Pasada?,
+    val tipo: TipoTramo = TipoTramo.VIAJE,
 )
 
 /**
@@ -29,7 +30,7 @@ enum class FiltroTramos { TODOS, REPETIDOS, FAVORITOS }
 /**
  * Fila de «Mis tramos». [nombre] es el efectivo (el del usuario o, si no lo hay, el automático) y [nombrePropio] el
  * que puso el usuario (null si no lo ha cambiado). [subtitulo] son las carreteras del nombre automático
- * ([NombreAutomatico]), si las hay. [ultimoUsoMs] es epoch.
+ * ([NombreAutomatico]), si las hay. [ultimoUsoMs] es epoch. [tipo]: viaje entero o tramo de vía.
  */
 data class ResumenTramo(
     val id: String,
@@ -41,6 +42,7 @@ data class ResumenTramo(
     val ultimoUsoMs: Long,
     val favorito: Boolean,
     val subtitulo: String? = null,
+    val tipo: TipoTramo = TipoTramo.VIAJE,
 )
 
 /** Punto grabado de una pasada; [tiempoMs] está en el reloj del recorrido (monótono, no epoch). */

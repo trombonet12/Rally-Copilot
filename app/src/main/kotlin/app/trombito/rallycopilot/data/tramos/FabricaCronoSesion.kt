@@ -19,6 +19,7 @@ class FabricaCronoSesion
         private val nombrador: NombradorTramos,
         private val ediciones: RepositorioEdiciones,
         private val ajustes: RepositorioAjustesConduccion,
+        private val tramosVia: GuardadorTramosVia,
     ) {
         fun crear(): SesionCrono =
             salida.enlazar { publicar ->
@@ -30,6 +31,7 @@ class FabricaCronoSesion
                     anclarEdiciones = ediciones::anclarPendientes,
                     alFallar = { Log.w("SesionCrono", "Fallo en el cronometraje: ${it.javaClass.simpleName}") },
                     salidaManual = ajustes.ajustes.map { it.salidaManual }.distinctUntilChanged(),
+                    trocear = { id, puntos -> tramosVia.trocearYMarcar(id, puntos) },
                 )
             }
     }

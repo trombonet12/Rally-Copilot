@@ -18,6 +18,23 @@ interface SubtramosDao {
     /** Los subtramos de un tramo de referencia, el más reciente primero. */
     @Query("SELECT * FROM subtramo WHERE tramoRefId = :tramoId ORDER BY inicio DESC, id DESC")
     fun observarDeTramo(tramoId: String): Flow<List<SubtramoEntity>>
+
+    /** Los subtramos aún sin situar en una carretera (los anteriores a la v21 y los recién guardados). */
+    @Query("SELECT * FROM subtramo WHERE viaRef IS NULL ORDER BY id")
+    suspend fun sinVia(): List<SubtramoEntity>
+
+    /** Sitúa el subtramo en su carretera; devuelve las filas tocadas. */
+    @Query(
+        "UPDATE subtramo SET viaRef = :viaRef, pkDesde = :pkDesde, pkHasta = :pkHasta, sentido = :sentido " +
+            "WHERE id = :id",
+    )
+    suspend fun situarEnVia(
+        id: Long,
+        viaRef: String,
+        pkDesde: Double?,
+        pkHasta: Double?,
+        sentido: String,
+    ): Int
 }
 
 @Suppress("TooManyFunctions") // un DAO por agregado: tramos, pasadas, mejores y la transacción de crear
@@ -63,7 +80,7 @@ abstract class TramosDao {
 
     @Query(
         "SELECT t.id, t.nombre, t.nombreAutomatico, t.longitudM, t.favorito, t.ultimoUso, " +
-            "COUNT(p.id) AS pasadas, MIN(p.totalMs) AS mejorMs " +
+            "t.tipo, COUNT(p.id) AS pasadas, MIN(p.totalMs) AS mejorMs " +
             "FROM tramo t LEFT JOIN pasada p ON p.tramoId = t.id " +
             "GROUP BY t.id ORDER BY t.ultimoUso DESC, t.creadoEn DESC, t.id",
     )

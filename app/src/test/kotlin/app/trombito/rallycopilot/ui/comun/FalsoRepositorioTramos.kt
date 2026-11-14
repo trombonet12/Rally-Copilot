@@ -67,6 +67,7 @@ class FalsoRepositorioTramos(
     trazas: Map<String, Tramo> = emptyMap(),
     perfil: EstadisticasPerfil = EstadisticasPerfil(0, 0.0, null, null, 0, 0),
     subtramos: List<SubtramoGuardado> = emptyList(),
+    private val cronometrablesIniciales: List<TramoCronometrable> = emptyList(),
 ) : RepositorioTramos {
     val subtramosMutable = MutableStateFlow(subtramos)
     val resumenesMutable = MutableStateFlow(resumenes)
@@ -98,7 +99,7 @@ class FalsoRepositorioTramos(
 
     override fun observarMejorPasada(tramoId: String): Flow<Pasada?> = MutableStateFlow(null)
 
-    override suspend fun cronometrables(): List<TramoCronometrable> = emptyList()
+    override suspend fun cronometrables(): List<TramoCronometrable> = cronometrablesIniciales
 
     override suspend fun mejorPasada(tramoId: String): Pasada? = null
 

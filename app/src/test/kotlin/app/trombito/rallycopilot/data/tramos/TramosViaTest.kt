@@ -1,0 +1,353 @@
+package app.trombito.rallycopilot.data.tramos
+
+import android.content.Context
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import app.trombito.rallycopilot.data.db.RallyDatabase
+import app.trombito.rallycopilot.data.db.RecorridoEntity
+import app.trombito.rallycopilot.data.db.RecorridoPuntoEntity
+import app.trombito.rallycopilot.data.db.SubtramoEntity
+import app.trombito.rallycopilot.data.db.TIPO_VIA
+import app.trombito.rallycopilot.data.db.TIPO_VIAJE
+import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
+import app.trombito.rallycopilot.domain.busqueda.Buscador
+import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
+import app.trombito.rallycopilot.domain.tramos.OrigenPasada
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.tramos.MarcaTiempo
+import app.trombito.rallycopilot.motor.tramos.Pasada
+import app.trombito.rallycopilot.motor.tramos.Tramo
+import app.trombito.rallycopilot.motor.vias.HitoKm
+import app.trombito.rallycopilot.motor.vias.IndicePuntosKm
+import app.trombito.rallycopilot.motor.vias.IndiceVias
+import app.trombito.rallycopilot.motor.vias.SentidoUnico
+import app.trombito.rallycopilot.motor.vias.Via
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+
+/** Mundo de prueba: carreteras rectas hacia el este desde [BASE]; el viaje las recorre de 0 a 10 km. */
+private val BASE = PuntoGeo(39.70, 2.70)
+
+private fun alEste(metros: Double): PuntoGeo {
+    val grados = Math.toDegrees(metros / (PuntoGeo.RADIO_TIERRA_M * Math.cos(Math.toRadians(BASE.lat))))
+    return PuntoGeo(BASE.lat, BASE.lon + grados)
+}
+
+private fun via(
+    id: Long,
+    ref: String,
+    desdeM: Double,
+    hastaM: Double,
+) = Via(
+    id,
+    "secondary",
+    null,
+    null,
+    null,
+    SentidoUnico.NO,
+    ref,
+    null,
+    (0..10).map { alEste(desdeM + (hastaM - desdeM) * it / 10) },
+)
+
+private fun vias() =
+    IndiceVias(
+        listOf(
+            via(1, "Ma-30", 0.0, 3_000.0),
+            via(2, "Ma-15", 3_000.0, 7_000.0),
+            via(3, "Ma-3220", 7_000.0, 10_000.0),
+        ),
+    )
+
+private fun hitosMa15() =
+    (3_000..7_000 step 500).map { HitoKm("Ma-15", 20.0 + (it - 3_000) / 1000.0, alEste(it.toDouble())) }
+
+/** Un viaje hacia el este a [metrosPorSegundo] con un punto por segundo, de [desdeM] a [hastaM], desde [inicioMs]. */
+private fun viaje(
+    inicioMs: Long,
+    metrosPorSegundo: Double = 20.0,
+    desdeM: Double = 0.0,
+    hastaM: Double = 10_000.0,
+): List<PuntoRecorrido> {
+    val pasos = ((hastaM - desdeM) / metrosPorSegundo).toInt()
+    return (0..pasos).map {
+        val p = alEste(desdeM + it * metrosPorSegundo)
+        PuntoRecorrido(p.lat, p.lon, inicioMs + it * 1_000L, metrosPorSegundo)
+    }
+}
+
+private class BuscadorFalso(
+    private val lugar: String?,
+) : Buscador {
+    override suspend fun buscar(
+        texto: String,
+        cerca: PuntoGeo?,
+        limite: Int,
+    ): List<ResultadoBusqueda> = emptyList()
+
+    override suspend fun lugarMasCercano(
+        punto: PuntoGeo,
+        radioM: Double,
+    ): ResultadoBusqueda? = lugar?.let { ResultadoBusqueda(it, "pueblo", null, punto) }
+}
+
+@RunWith(RobolectricTestRunner::class)
+class TramosViaTest {
+    private lateinit var base: RallyDatabase
+    private var conIndices = true
+    private var ids = 0
+
+    private val fuente =
+        FuenteIndicesVias { if (conIndices) IndicesDeVias(vias(), IndicePuntosKm(hitosMa15())) else null }
+
+    private fun guardador() =
+        GuardadorTramosVia(
+            base.tramosDao(),
+            base.recorridosDao(),
+            fuente,
+            BuscadorFalso("Manacor"),
+            Dispatchers.Unconfined,
+            { "via-${++ids}" },
+            { 1_000L },
+        )
+
+    private fun migrador(guardador: GuardadorTramosVia = guardador()) =
+        MigradorTramosVia(
+            base.recorridosDao(),
+            base.tramosDao(),
+            base.subtramosDao(),
+            guardador,
+            fuente,
+            Dispatchers.Unconfined,
+        )
+
+    @Before
+    fun preparar() {
+        val contexto = ApplicationProvider.getApplicationContext<Context>()
+        base = Room.inMemoryDatabaseBuilder(contexto, RallyDatabase::class.java).allowMainThreadQueries().build()
+    }
+
+    @After
+    fun cerrar() = base.close()
+
+    private suspend fun recorridoConPuntos(
+        puntos: List<PuntoRecorrido>,
+        terminado: Boolean = true,
+    ): Long {
+        val dao = base.recorridosDao()
+        val id =
+            dao.insertar(
+                RecorridoEntity(
+                    inicioMs = puntos.first().tiempoMs,
+                    finMs = if (terminado) puntos.last().tiempoMs else null,
+                    distanciaM = 10_000.0,
+                    destinoNombre = null,
+                ),
+            )
+        dao.insertarPuntos(
+            puntos.mapIndexed { i, p -> RecorridoPuntoEntity(id, i, p.lat, p.lon, p.tiempoMs, p.velocidadMs) },
+        )
+        return id
+    }
+
+    private suspend fun tramosVia() = base.tramosDao().tramosPorTipo(TIPO_VIA)
+
+    @Test
+    fun `un viaje por tres carreteras se guarda como tres tramos de via con su pasada`() =
+        runBlocking {
+            val puntos = viaje(1_000_000L)
+            val id = recorridoConPuntos(puntos)
+
+            val resultado = guardador().trocearYMarcar(id, puntos)
+
+            assertEquals(ResultadoTroceado.HECHO, resultado)
+            val tramos = tramosVia()
+            assertEquals(3, tramos.size)
+            assertEquals(listOf("MA30", "MA15", "MA3220"), tramos.map { it.viaRef })
+            assertTrue(tramos.all { it.sentido == "CRECIENTE" && it.recorridoOrigenId == id && it.nombre == null })
+            for (t in tramos) {
+                val pasadas = base.tramosDao().pasadas(t.id)
+                assertEquals(1, pasadas.size)
+                assertEquals(id, pasadas.single().recorridoId)
+                assertTrue(pasadas.single().totalMs > 0)
+            }
+            assertTrue(base.recorridosDao().recorridosSinTrocear().isEmpty())
+        }
+
+    @Test
+    fun `el nombre automatico lleva carretera kilometros y destino`() =
+        runBlocking {
+            val puntos = viaje(1_000_000L)
+            guardador().trocear(recorridoConPuntos(puntos), puntos)
+
+            val ma15 = tramosVia().single { it.viaRef == "MA15" }
+
+            val nombre = checkNotNull(ma15.nombreAutomatico)
+            assertTrue(nombre, nombre.startsWith("Ma-15 · km 20,"))
+            assertTrue(nombre, nombre.endsWith(" · hacia Manacor"))
+            assertEquals("Manacor", ma15.destino)
+            assertNotNull(ma15.pkDesde)
+            assertNotNull(ma15.pkHasta)
+            // Las carreteras sin hitos llevan su longitud.
+            val ma30 = tramosVia().single { it.viaRef == "MA30" }
+            val nombre30 = checkNotNull(ma30.nombreAutomatico)
+            assertTrue(nombre30, nombre30.startsWith("Ma-30 · 3,"))
+        }
+
+    @Test
+    fun `una segunda pasada se anade al mismo tramo de via`() =
+        runBlocking {
+            val g = guardador()
+            val primero = viaje(1_000_000L, 20.0)
+            val segundo = viaje(90_000_000L, 25.0)
+            g.trocearYMarcar(recorridoConPuntos(primero), primero)
+            val id2 = recorridoConPuntos(segundo)
+
+            g.trocearYMarcar(id2, segundo)
+
+            val tramos = tramosVia()
+            assertEquals(3, tramos.size)
+            for (t in tramos) {
+                val pasadas = base.tramosDao().pasadas(t.id)
+                assertEquals(2, pasadas.size)
+                val nueva = pasadas.first { it.recorridoId == id2 }
+                assertTrue(nueva.totalMs < pasadas.first { it.recorridoId != id2 }.totalMs)
+            }
+        }
+
+    @Test
+    fun `trocear dos veces el mismo recorrido no duplica pasadas`() =
+        runBlocking {
+            val g = guardador()
+            val puntos = viaje(1_000_000L)
+            val id = recorridoConPuntos(puntos)
+
+            g.trocear(id, puntos)
+            g.trocear(id, puntos)
+
+            assertEquals(3, tramosVia().size)
+            assertTrue(tramosVia().all { base.tramosDao().pasadas(it.id).size == 1 })
+        }
+
+    @Test
+    fun `sin vias instaladas no se trocea ni se marca`() =
+        runBlocking {
+            conIndices = false
+            val puntos = viaje(1_000_000L)
+            val id = recorridoConPuntos(puntos)
+
+            val resultado = guardador().trocearYMarcar(id, puntos)
+
+            assertEquals(ResultadoTroceado.SIN_DATOS, resultado)
+            assertTrue(tramosVia().isEmpty())
+            assertEquals(listOf(id), base.recorridosDao().recorridosSinTrocear().map { it.id })
+        }
+
+    /** Un tramo-viaje con su pasada y sus subtramos, como lo dejaba la v20. */
+    private suspend fun sembrarVieja(recorridoId: Long) {
+        val tramo = Tramo("viaje-viejo", listOf(alEste(0.0), alEste(10_000.0)), 10_000.0)
+        val marcas = Pasada("viaje-viejo", listOf(MarcaTiempo(0.0, 0L), MarcaTiempo(tramo.metaM, 500_000L)), 500_000L)
+        base
+            .tramosDao()
+            .crear(
+                tramo.aEntidad("Mi viaje", 500L, "Ma-30 / Ma-15"),
+                marcas.aEntidad(OrigenPasada(1_000_000L, recorridoId), tramo.cortesExactosM()),
+            )
+        for ((desde, hasta) in listOf(3_500.0 to 6_500.0, 1_000.0 to 5_000.0)) {
+            base.subtramosDao().insertar(
+                SubtramoEntity(
+                    recorridoId = recorridoId,
+                    tramoRefId = "viaje-viejo",
+                    desdeM = desde,
+                    hastaM = hasta,
+                    longitudM = hasta - desde,
+                    inicio = 1_000_000L,
+                    tiempoMs = 100_000L,
+                    mejorMs = null,
+                    latDesde = BASE.lat,
+                    lonDesde = BASE.lon,
+                    latHasta = BASE.lat,
+                    lonHasta = BASE.lon,
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun `la migracion trocea lo guardado, es idempotente y no toca los tramos-viaje`() =
+        runBlocking {
+            val a = viaje(1_000_000L, 20.0)
+            val b = viaje(90_000_000L, 25.0)
+            val ida = recorridoConPuntos(a)
+            val idb = recorridoConPuntos(b)
+            recorridoConPuntos(viaje(200_000_000L), terminado = false)
+            sembrarVieja(ida)
+            val viajesAntes = base.tramosDao().tramosPorTipo(TIPO_VIAJE)
+            val pasadasViajeAntes = base.tramosDao().pasadas("viaje-viejo")
+
+            val primera = migrador().migrar()
+            val vias1 = tramosVia().map { it.id to base.tramosDao().pasadas(it.id).size }
+            val segunda = migrador().migrar()
+            val vias2 = tramosVia().map { it.id to base.tramosDao().pasadas(it.id).size }
+
+            assertEquals(2, primera.recorridos)
+            assertEquals(false, primera.pendiente)
+            assertEquals(0, segunda.recorridos)
+            assertEquals(vias1, vias2)
+            assertEquals(3, vias2.size)
+            assertTrue(vias2.all { it.second == 2 })
+            // Los tramos-viaje y sus pasadas siguen intactos.
+            assertEquals(viajesAntes, base.tramosDao().tramosPorTipo(TIPO_VIAJE))
+            assertEquals(pasadasViajeAntes, base.tramosDao().pasadas("viaje-viejo"))
+            // El recorrido sin terminar no se trocea.
+            assertTrue(base.recorridosDao().recorridosSinTrocear().isEmpty())
+            val origenes = tramosVia().flatMap { base.tramosDao().pasadas(it.id) }.mapNotNull { it.recorridoId }
+            assertEquals(setOf(ida, idb), origenes.toSet())
+        }
+
+    @Test
+    fun `la migracion situa los subtramos que caen en una sola carretera`() =
+        runBlocking {
+            val a = viaje(1_000_000L)
+            sembrarVieja(recorridoConPuntos(a))
+
+            val resumen = migrador().migrar()
+
+            val porTramo = base.subtramosDao().observarDeTramo("viaje-viejo").first()
+            val enMa15 = porTramo.single { it.desdeM == 3_500.0 }
+            assertEquals("MA15", enMa15.viaRef)
+            assertEquals("CRECIENTE", enMa15.sentido)
+            assertNotNull(enMa15.pkDesde)
+            // El que cruza dos carreteras se queda sin situar.
+            assertNull(porTramo.single { it.desdeM == 1_000.0 }.viaRef)
+            assertEquals(1, resumen.subtramos)
+            // Repetirlo no cambia nada: el ya situado no se toca y el otro sigue sin carretera.
+            assertEquals(0, migrador().migrar().subtramos)
+            val despues = base.subtramosDao().observarDeTramo("viaje-viejo").first()
+            assertEquals("MA15", despues.single { it.desdeM == 3_500.0 }.viaRef)
+        }
+
+    @Test
+    fun `sin vias la migracion queda pendiente y no marca nada`() =
+        runBlocking {
+            conIndices = false
+            val id = recorridoConPuntos(viaje(1_000_000L))
+
+            val resumen = migrador().migrar()
+
+            assertTrue(resumen.pendiente)
+            assertEquals(0, resumen.recorridos)
+            assertEquals(listOf(id), base.recorridosDao().recorridosSinTrocear().map { it.id })
+            assertTrue(tramosVia().isEmpty())
+        }
+}

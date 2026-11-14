@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.data.diagnostico.ManejadorCrashes
 import app.trombito.rallycopilot.data.diagnostico.ObservadorDiagnostico
 import app.trombito.rallycopilot.data.escucha.FabricaReconocedor
+import app.trombito.rallycopilot.data.tramos.MigradorTramosVia
 import app.trombito.rallycopilot.data.voz.LiberadorModelos
 import app.trombito.rallycopilot.di.ApplicationScope
 import app.trombito.rallycopilot.di.DispatcherIo
@@ -34,6 +35,8 @@ class RallyCopilotApplication :
     @Inject lateinit var siembra: EsperaDatosSembrados
 
     @Inject lateinit var copiaAutomatica: CopiaAutomaticaDatos
+
+    @Inject lateinit var migradorTramosVia: MigradorTramosVia
 
     @Inject lateinit var registro: RegistroDiagnostico
 
@@ -64,6 +67,11 @@ class RallyCopilotApplication :
         segundoPlano.launch(dispatcherIo) {
             siembra.listo.first { it }
             copiaAutomatica.copiarSiToca(System.currentTimeMillis())
+        }
+        // Tramos de vía (H23): sembrados los datos, trocea los viajes ya guardados (una vez, reanudable e idempotente).
+        segundoPlano.launch(dispatcherIo) {
+            siembra.listo.first { it }
+            migradorTramosVia.migrar()
         }
         // La biblioteca nativa del mapa se carga ya, fuera del hilo principal (el primer mapa no la espera).
         segundoPlano.launch(dispatcherIo) { precargarBibliotecaMapa() }

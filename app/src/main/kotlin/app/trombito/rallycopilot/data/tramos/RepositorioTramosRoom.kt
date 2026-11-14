@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.data.db.FilaResumenTramo
 import app.trombito.rallycopilot.data.db.PasadaEntity
 import app.trombito.rallycopilot.data.db.SubtramoEntity
 import app.trombito.rallycopilot.data.db.SubtramosDao
+import app.trombito.rallycopilot.data.db.TIPO_VIA
 import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
@@ -16,6 +17,7 @@ import app.trombito.rallycopilot.domain.tramos.PuntoPasada
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
+import app.trombito.rallycopilot.domain.tramos.TipoTramo
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
 import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.SubtramoHecho
@@ -69,7 +71,9 @@ class RepositorioTramosRoom
             withContext(dispatcher) {
                 val mejores = dao.mejoresPasadas().associateBy { it.tramoId }
                 dao.tramos().mapNotNull { fila ->
-                    fila.aTramo()?.let { t -> TramoCronometrable(t, mejores[fila.id]?.aPasada(t.cortesExactosM())) }
+                    fila.aTramo()?.let { t ->
+                        TramoCronometrable(t, mejores[fila.id]?.aPasada(t.cortesExactosM()), fila.aTipo())
+                    }
                 }
             }
 
@@ -252,6 +256,7 @@ class RepositorioTramosRoom
                 ultimoUsoMs = ultimoUso,
                 favorito = favorito,
                 subtitulo = automatico?.let(NombreAutomatico::subtitulo),
+                tipo = if (tipo == TIPO_VIA) TipoTramo.VIA else TipoTramo.VIAJE,
             )
         }
 
