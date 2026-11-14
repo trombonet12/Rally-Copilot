@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="analisis_titulo">Análisis</string>
+    <string name="analisis_cargando">Cargando el análisis…</string>
 
     <!-- Resumen y comparación -->
     <string name="analisis_resumen_descripcion">Tiempo total %1$s.</string>

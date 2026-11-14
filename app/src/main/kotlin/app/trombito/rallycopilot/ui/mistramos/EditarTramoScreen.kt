@@ -25,7 +25,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +62,7 @@ import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.ui.analisis.formatearKmDesdeM
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
+import app.trombito.rallycopilot.ui.comun.CargandoWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.edicion.AccionesMapaEdicion
 import app.trombito.rallycopilot.ui.edicion.CentradoMapa
@@ -189,17 +189,7 @@ fun EditarTramoScreen(
 @Composable
 private fun Cargando() {
     Box(Modifier.fillMaxSize().testTag(ETIQUETA_EDITAR_CARGANDO), contentAlignment = Alignment.Center) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Espacio.m),
-        ) {
-            CircularProgressIndicator()
-            Text(
-                text = stringResource(R.string.edicion_cargando),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        CargandoWrc(stringResource(R.string.edicion_cargando))
     }
 }
 

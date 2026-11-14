@@ -173,7 +173,7 @@ private fun ContenidoHud(
     val rotulo =
         when {
             segmento.tipo == TipoSegmento.SUBTRAMO -> stringResource(R.string.subtramo_hud_titulo, distancia)
-            else -> segmento.nombre
+            else -> segmento.nombre?.let { rotuloCompacto(it, compacto) }
         }
     Column(
         modifier =
@@ -190,7 +190,7 @@ private fun ContenidoHud(
                 text = rotulo,
                 style = estiloCifras(medidas.rotulo),
                 color = ColoresGuiado.Laton,
-                maxLines = 1,
+                maxLines = if (compacto) 1 else LINEAS_ROTULO_HUD,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.testTag(ETIQUETA_CRONO_ROTULO),
             )
