@@ -2,8 +2,10 @@ package app.trombito.rallycopilot.data.diagnostico
 
 import app.trombito.rallycopilot.domain.diagnostico.NivelRegistro
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -11,6 +13,8 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.Executors
 
 class RegistroDiagnosticoArchivoTest {
     @get:Rule val temporal = TemporaryFolder()
@@ -60,6 +64,30 @@ class RegistroDiagnosticoArchivoTest {
     }
 
     @Test
+    fun `registrar no consulta el interruptor en el hilo que registra`() {
+        val ejecutor = Executors.newSingleThreadExecutor()
+        try {
+            val hilos = CopyOnWriteArrayList<Thread>()
+            val r =
+                RegistroDiagnosticoArchivo(
+                    carpeta = { temporal.root },
+                    activo = { hilos.add(Thread.currentThread()) },
+                    dispatcher = ejecutor.asCoroutineDispatcher(),
+                    ahora = { instante },
+                    zona = ZoneOffset.UTC,
+                )
+            r.info("Test", "arranque")
+            val limite = System.currentTimeMillis() + 5_000
+            while (!log().exists() && System.currentTimeMillis() < limite) Thread.sleep(10)
+            assertTrue(log().readText().contains("INFO Test arranque"))
+            assertEquals(1, hilos.size)
+            assertNotSame(Thread.currentThread(), hilos.single())
+        } finally {
+            ejecutor.shutdownNow()
+        }
+    }
+
+    @Test
     fun `rota rally log a rally 1 log al pasar del maximo y solo conserva dos archivos`() {
         val r = registro(maxBytes = 200)
         repeat(40) { r.registrarSincrono(NivelRegistro.INFO, "T", "linea numero $it") }
@@ -80,6 +108,61 @@ class RegistroDiagnosticoArchivoTest {
         r.registrarSincrono(NivelRegistro.INFO, "T", "lat=39.57 velocidad=50")
         r.registrarSincrono(NivelRegistro.INFO, "T", "ubicacion -3,5712, 40,1234")
         assertFalse(log().exists())
+    }
+
+    @Test
+    fun `no escribe coordenadas separadas por espacio ni lat con espacio ni pares entre parentesis`() {
+        val r = registro()
+        r.registrarSincrono(NivelRegistro.INFO, "T", "posicion 39.5696 2.6502")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "posicion -3,5712 40,1234 fin")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "lat 39.57 velocidad=50")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "Latitud 39,57")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "lat = 39.57")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "lon : 2.65")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "lng: -2.65")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "en (39.5696, 2.6502) parado")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "en (39.5696 -2.6502) parado")
+        assertFalse(log().exists())
+    }
+
+    @Test
+    fun `el filtro ampliado no rechaza lineas normales`() {
+        val r = registro()
+        r.registrarSincrono(NivelRegistro.INFO, "T", "latencia 50 ms km=12.30 15.75 via=Ma-13")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "tramo completado tiempo_ms=61234 delta_ms=-120 2.5 m")
+        assertEquals(2, log().readLines().size)
+    }
+
+    @Test
+    fun `resuelve la carpeta una vez y la revalida solo al rotar o al fallar`() {
+        var llamadas = 0
+        val r =
+            registro(carpeta = {
+                llamadas++
+                temporal.root
+            }, maxBytes = 200)
+        r.registrarSincrono(NivelRegistro.INFO, "T", "a")
+        repeat(5) { r.registrarSincrono(NivelRegistro.INFO, "T", "b$it") }
+        assertEquals("sin rotar, una sola resolucion", 1, llamadas)
+        repeat(10) { r.registrarSincrono(NivelRegistro.INFO, "T", "linea de relleno numero $it") }
+        assertTrue("al rotar se revalida", llamadas > 1)
+        assertTrue("pero no por linea", llamadas < 8)
+    }
+
+    @Test
+    fun `si la carpeta desaparece el registro se recupera en la siguiente linea`() {
+        var llamadas = 0
+        val r =
+            registro(carpeta = {
+                llamadas++
+                temporal.root
+            })
+        r.registrarSincrono(NivelRegistro.INFO, "T", "antes")
+        File(temporal.root, "registros").deleteRecursively()
+        r.registrarSincrono(NivelRegistro.INFO, "T", "perdida")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "despues")
+        assertTrue(log().readText().contains("despues"))
+        assertEquals(2, llamadas)
     }
 
     @Test

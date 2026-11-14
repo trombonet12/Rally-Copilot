@@ -79,7 +79,7 @@ class ObservadorDiagnostico(
             }
 
             is EstadoNavegacion.Llegada -> {
-                registro.info(ETIQUETA, "navegacion llegada destino=${ahora.destino.nombre}")
+                registro.info(ETIQUETA, "navegacion llegada")
             }
 
             is EstadoNavegacion.Error -> {

@@ -88,7 +88,7 @@ class FuenteUbicacionGps internal constructor(
             val oyenteGps =
                 OyenteGps { fijacion ->
                     emitir(fijacion, OrigenFijacion.GPS)
-                    if (control.alGps(fijacion.precisionM, reloj())) rapido?.quitar()
+                    rapido?.aplicar(control.alGps(fijacion.precisionM, reloj()))
                 }.takeIf { GPS in disponibles && registrar(manager, GPS, it) }
             val rapidoPuesto = rapido?.poner() == true
             if (oyenteGps == null && !rapidoPuesto) {
@@ -213,6 +213,15 @@ private class RegistroRapido(
     fun poner(): Boolean {
         if (!activo) activo = registrar(manager, proveedor, oyente)
         return activo
+    }
+
+    /** Cumple la orden del [ControlProveedorRapido]. */
+    fun aplicar(orden: ControlProveedorRapido.Orden) {
+        when (orden) {
+            ControlProveedorRapido.Orden.QUITAR -> quitar()
+            ControlProveedorRapido.Orden.PONER -> poner()
+            ControlProveedorRapido.Orden.NADA -> Unit
+        }
     }
 
     @Synchronized

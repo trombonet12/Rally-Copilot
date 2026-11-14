@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.data.datosmapa.EsperaDatosSembrados
 import app.trombito.rallycopilot.data.diagnostico.ManejadorCrashes
 import app.trombito.rallycopilot.data.diagnostico.ObservadorDiagnostico
 import app.trombito.rallycopilot.data.escucha.FabricaReconocedor
+import app.trombito.rallycopilot.data.navegacion.AjusteCopilotoEnArranque
 import app.trombito.rallycopilot.data.tramos.MigradorTramosVia
 import app.trombito.rallycopilot.data.voz.LiberadorModelos
 import app.trombito.rallycopilot.di.ApplicationScope
@@ -42,6 +43,8 @@ class RallyCopilotApplication :
 
     @Inject lateinit var observadorDiagnostico: ObservadorDiagnostico
 
+    @Inject lateinit var copilotoEnArranque: AjusteCopilotoEnArranque
+
     @Inject @ApplicationScope
     lateinit var segundoPlano: CoroutineScope
 
@@ -57,6 +60,8 @@ class RallyCopilotApplication :
         ManejadorCrashes.instalar(registro)
         registro.info("App", "arranque version=${versionApp()}")
         observadorDiagnostico.iniciar()
+        // «Copiloto» al día sin bloquear: el servicio de navegación lo lee en `onStartCommand` (hilo principal).
+        copilotoEnArranque.seguir(segundoPlano)
         // Vosk se copia a disco en segundo plano en cuanto acaba la siembra de los datos (sin iniciarla: la inicia
         // quien abre el mapa); así la primera activación de «Copiloto» no espera a copiar 57 MiB.
         segundoPlano.launch(dispatcherIo) {

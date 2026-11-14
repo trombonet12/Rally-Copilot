@@ -26,7 +26,6 @@ import app.trombito.rallycopilot.data.tramos.FabricaCronoSesion
 import app.trombito.rallycopilot.data.voz.LiberadorModelos
 import app.trombito.rallycopilot.di.ApplicationScope
 import app.trombito.rallycopilot.di.DispatcherDefault
-import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
@@ -52,8 +51,6 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -101,8 +98,7 @@ class ServicioNavegacion : Service() {
     @Inject @DispatcherDefault
     lateinit var dispatcherDefault: CoroutineDispatcher
 
-    @Inject @DispatcherIo
-    lateinit var dispatcherIo: CoroutineDispatcher
+    @Inject lateinit var copilotoEnArranque: AjusteCopilotoEnArranque
 
     private lateinit var notificacion: NotificacionNavegacion
     private lateinit var scope: CoroutineScope
@@ -181,7 +177,7 @@ class ServicioNavegacion : Service() {
      * [vigilarAjusteCopiloto] vuelve a declarar el primer plano con el tipo nuevo.
      */
     private fun entrarEnPrimerPlano(): Boolean {
-        val deseados = tiposDeseados(copilotoActivoAhora())
+        val deseados = tiposDeseados(copilotoEnArranque.activo)
         val tipos =
             listOf(deseados, ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION).distinct().firstOrNull {
                 declararPrimerPlano(notificacion.construir(control.estado.value), it)
@@ -292,9 +288,6 @@ class ServicioNavegacion : Service() {
 
 private const val ETIQUETA = "ServicioNavegacion"
 
-/** Tiempo máximo para leer «Copiloto» al entrar en primer plano (hilo principal; en Room son unos ms). */
-private const val PLAZO_AJUSTE_MS = 500L
-
 private fun ServicioNavegacion.crearSesion(id: Long) =
     SesionNavegacion(
         fuente,
@@ -371,18 +364,4 @@ private fun ServicioNavegacion.tiposDeseados(copiloto: Boolean): Int =
         ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION or ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
     } else {
         ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-    }
-
-/**
- * Lectura breve del ajuste en el arranque; si no llega a tiempo, empieza sin micrófono y el vigilante lo corrige.
- *
- * Es el único `runBlocking` de producción y se queda: se llama desde `onStartCommand` (hilo principal), que debe
- * declarar el primer plano con sus tipos antes de volver al sistema. El tipo `microphone` solo se concede si se pide
- * al entrar en primer plano mientras la app es visible; declararlo luego desde el vigilante (tras volver de
- * `onStartCommand`) puede rechazarse y cambiaría el comportamiento. El bloqueo está acotado a [PLAZO_AJUSTE_MS] y va
- * fuera del hilo principal (dispatcher de E/S inyectado).
- */
-private fun ServicioNavegacion.copilotoActivoAhora(): Boolean =
-    runBlocking(dispatcherIo) {
-        withTimeoutOrNull(PLAZO_AJUSTE_MS) { ajustes.ajustes.first().activarConCopiloto } ?: false
     }

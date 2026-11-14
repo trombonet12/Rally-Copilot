@@ -60,6 +60,7 @@ class ObservadorDiagnosticoTest {
         assertTrue(texto, "recalculo iniciado" in texto)
         assertTrue(texto, "ruta recalculada km=9.00" in texto)
         assertTrue(texto, "navegacion llegada" in texto)
+        assertTrue("el nombre del destino no se registra: $texto", "Sóller" !in texto)
         assertTrue(texto, "navegacion fin modo=llegada" in texto)
         assertTrue(registro.lineas.none { FiltroRegistro.sospechosa(it) })
         alcance.cancel()

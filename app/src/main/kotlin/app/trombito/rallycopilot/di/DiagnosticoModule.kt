@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import app.trombito.rallycopilot.data.diagnostico.ObservadorDiagnostico
 import app.trombito.rallycopilot.data.diagnostico.RegistroDiagnosticoArchivo
+import app.trombito.rallycopilot.data.diagnostico.carpetaExternaPrivada
 import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
 import app.trombito.rallycopilot.domain.diagnostico.RegistroDiagnostico
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
@@ -36,7 +37,7 @@ object DiagnosticoModule {
         @DispatcherIo dispatcher: CoroutineDispatcher,
     ): RegistroDiagnostico =
         RegistroDiagnosticoArchivo(
-            carpeta = { contexto.getExternalFilesDir(null) },
+            carpeta = { carpetaExternaPrivada(contexto) },
             activo = { copia.get().activa.value },
             dispatcher = dispatcher,
         )

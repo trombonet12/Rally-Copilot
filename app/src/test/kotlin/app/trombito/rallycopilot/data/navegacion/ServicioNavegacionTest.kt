@@ -131,9 +131,23 @@ class ServicioNavegacionTest {
         val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
         val servicio = controlador.get()
         runBlocking { servicio.ajustes.elegirActivarConCopiloto(copiloto) }
+        esperarAjusteCopiloto(servicio, copiloto)
         servicio.control.empezarLibre()
         controlador.withIntent(shadowOf(app).nextStartedService).startCommand(0, 1)
         return controlador to servicio
+    }
+
+    /**
+     * El servicio lee «Copiloto» de [AjusteCopilotoEnArranque] (sin bloquear el hilo principal); la aplicación lo
+     * mantiene al día en segundo plano, así que tras guardar el ajuste hay que esperar a que llegue.
+     */
+    private fun esperarAjusteCopiloto(
+        servicio: ServicioNavegacion,
+        esperado: Boolean,
+    ) {
+        val limite = System.currentTimeMillis() + PLAZO_ESPERA_MS
+        while (servicio.copilotoEnArranque.activo != esperado && System.currentTimeMillis() < limite) Thread.sleep(10)
+        assertEquals(esperado, servicio.copilotoEnArranque.activo)
     }
 
     // Service.getForegroundServiceType (API 29): lo que Robolectric guarda de la última llamada a startForeground.
@@ -175,6 +189,7 @@ class ServicioNavegacionTest {
         val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
         val servicio = controlador.get()
         runBlocking { servicio.ajustes.elegirActivarConCopiloto(true) }
+        esperarAjusteCopiloto(servicio, true)
         servicio.control.empezarLibre()
         controlador.withIntent(shadowOf(app).nextStartedService).startCommand(0, 1)
 

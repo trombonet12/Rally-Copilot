@@ -14,6 +14,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
@@ -78,6 +79,43 @@ class CopiaAutomaticaTest {
             assertEquals(listOf("rally-2026-11-03-1005.zip"), fechadas())
             assertEquals(setOf("rally-ultima.zip", "rally-2026-11-03-1005.zip"), carpeta.list().orEmpty().toSet())
             assertEquals(1, File(carpeta, CopiaAutomatica.NOMBRE_ULTIMA).readBytes().size)
+        }
+
+    @Test
+    @Config(sdk = [29])
+    fun `por debajo de la API 30 no escribe nada en la carpeta externa`() =
+        runBlocking {
+            val copia = crear()
+            assertFalse(copia.copiarSiToca(ms(3)))
+            assertFalse(copia.copiarAlTerminar())
+            assertFalse(copia.copiarAhora())
+            assertEquals(0, falsa.llamadas)
+            assertFalse(carpeta.exists())
+        }
+
+    @Test
+    @Config(sdk = [30])
+    fun `desde la API 30 si copia`() =
+        runBlocking {
+            assertTrue(crear().copiarAhora())
+            assertTrue(File(carpeta, CopiaAutomatica.NOMBRE_ULTIMA).exists())
+        }
+
+    @Test
+    fun `copiarAlTerminar con una fechada de hoy solo refresca la ultima`() =
+        runBlocking {
+            var reloj = ms(3, 10, 5)
+            val copia = CopiaAutomatica(contexto, falsa, Dispatchers.Unconfined, ahora = { reloj }, zona = zona)
+            assertTrue(copia.copiarAlTerminar())
+            assertEquals(listOf("rally-2026-11-03-1005.zip"), fechadas())
+            reloj = ms(3, 18, 40)
+            assertTrue(copia.copiarAlTerminar())
+            assertEquals("sin otra fechada el mismo dia", listOf("rally-2026-11-03-1005.zip"), fechadas())
+            assertEquals(2, File(carpeta, CopiaAutomatica.NOMBRE_ULTIMA).readBytes()[0].toInt())
+            assertEquals(setOf("rally-ultima.zip", "rally-2026-11-03-1005.zip"), carpeta.list().orEmpty().toSet())
+            reloj = ms(4, 9, 0)
+            assertTrue(copia.copiarAlTerminar())
+            assertEquals(listOf("rally-2026-11-03-1005.zip", "rally-2026-11-04-0900.zip"), fechadas())
         }
 
     @Test
