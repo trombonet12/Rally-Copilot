@@ -28,6 +28,9 @@ class IndicePuntosKm(
 
     val tamano: Int = hitos.size
 
+    /** Los hitos de la carretera [ref] (la primera si trae varias; igual que [buscar]); vacía si no hay. */
+    fun hitosDe(ref: String): List<HitoKm> = porRef[normalizar(ref.substringBefore(';').trim())].orEmpty()
+
     fun buscar(
         ref: String?,
         posicion: PuntoGeo,

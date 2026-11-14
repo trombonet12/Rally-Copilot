@@ -32,7 +32,7 @@ internal data class Candidata(
  * (latitud de referencia 39,6, centro de Mallorca) donde se guardan los segmentos de cada vía.
  */
 class IndiceVias(
-    private val vias: List<Via>,
+    val vias: List<Via>,
     private val celdaMetros: Double = 100.0,
 ) {
     private val ax: DoubleArray

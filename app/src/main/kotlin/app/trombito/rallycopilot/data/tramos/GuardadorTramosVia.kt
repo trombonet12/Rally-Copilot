@@ -15,7 +15,6 @@ import app.trombito.rallycopilot.motor.tramos.Cobertura
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.tramos.TramoDesdeRecorrido
 import app.trombito.rallycopilot.motor.vias.TramoVia
-import app.trombito.rallycopilot.motor.vias.TroceadorVias
 import app.trombito.rallycopilot.motor.vias.nombreTramoVia
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
@@ -35,7 +34,7 @@ enum class ResultadoTroceado {
 }
 
 /**
- * Trocea un viaje en tramos de vía ([TroceadorVias]) y los guarda: cada trozo de al menos un kilómetro de una
+ * Trocea un viaje en tramos de vía (`TroceadorVias`) y los guarda: cada trozo de al menos un kilómetro de una
  * carretera y sentido. Si ya hay un tramo `VIA` de esa carretera y sentido que cubre más de [UMBRAL_COBERTURA] del
  * trozo y por el que el cronómetro de la repetición llega a meta, el trozo se añade como pasada suya; si no, es un
  * tramo `VIA` nuevo con su primera pasada y el nombre automático [nombreTramoVia]. El tiempo de cada pasada es relativo
@@ -85,7 +84,7 @@ class GuardadorTramosVia
                 withContext(dispatcher) {
                     val datos = indices.indices() ?: return@withContext ResultadoTroceado.SIN_DATOS
                     val traza = RecorteTraza.conDistancias(puntos.map { PuntoGeo(it.lat, it.lon) })
-                    for (tramo in TroceadorVias(datos.vias, datos.pk).trocear(traza)) {
+                    for (tramo in datos.troceador().trocear(traza)) {
                         val trozo = puntos.filterIndexed { i, _ -> traza[i].distanciaM in tramo.desdeM..tramo.hastaM }
                         guardarTramo(recorridoId, tramo, trozo)
                     }

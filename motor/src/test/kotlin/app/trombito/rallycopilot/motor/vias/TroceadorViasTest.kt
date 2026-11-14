@@ -10,21 +10,26 @@ class TroceadorViasTest {
     private val base = PuntoGeo(39.70, 2.70)
 
     /** Punto [metros] al este de [base]. */
-    private fun alEste(metros: Double): PuntoGeo {
+    private fun alEste(
+        metros: Double,
+        norteM: Double = 0.0,
+    ): PuntoGeo {
         val grados = Math.toDegrees(metros / (PuntoGeo.RADIO_TIERRA_M * Math.cos(Math.toRadians(base.lat))))
-        return PuntoGeo(base.lat, base.lon + grados)
+        return PuntoGeo(base.lat + Math.toDegrees(norteM / PuntoGeo.RADIO_TIERRA_M), base.lon + grados)
     }
 
     /** Vía recta entre [desdeM] y [hastaM] (al este de la base); con `desdeM > hastaM` se dibuja hacia el oeste. */
+    @Suppress("LongParameterList") // un parámetro por etiqueta de OSM que importa en cada prueba
     private fun via(
         id: Long,
         ref: String?,
         desdeM: Double,
         hastaM: Double,
         nombre: String? = null,
+        norteM: Double = 0.0,
     ): Via {
         val pasos = 10
-        val puntos = (0..pasos).map { alEste(desdeM + (hastaM - desdeM) * it / pasos) }
+        val puntos = (0..pasos).map { alEste(desdeM + (hastaM - desdeM) * it / pasos, norteM) }
         return Via(id, "secondary", null, null, null, SentidoUnico.NO, ref, nombre, puntos)
     }
 
@@ -37,6 +42,17 @@ class TroceadorViasTest {
         (0..(largoM / pasoM).toInt()).map {
             val d = it * pasoM
             PuntoTraza(alEste(if (alReves) largoM - d else d), d)
+        }
+
+    /** Traza hacia el oeste (de [largoM] a 0) por una calzada [norteM] al norte de la base. */
+    private fun trazaPorCalzadaNorte(
+        largoM: Double,
+        norteM: Double,
+        pasoM: Double = 100.0,
+    ): List<PuntoTraza> =
+        (0..(largoM / pasoM).toInt()).map {
+            val d = it * pasoM
+            PuntoTraza(alEste(largoM - d, norteM), d)
         }
 
     /** Hitos cada 500 m en [desdeM]..[hastaM]; el km vale `km0 + sentido * metros / 1000`. */
@@ -140,8 +156,79 @@ class TroceadorViasTest {
     }
 
     @Test
-    fun `sin PK el sentido sale del orden de dibujo y el pk es nulo`() {
-        val vias = listOf(via(1, "Ma-15", 0.0, 5_000.0))
+    fun `sin hitos el PK se estima desde Palma y el sentido sale del eje, no del dibujo`() {
+        // La via se dibuja hacia el este y Palma queda al oeste: el origen es el extremo oeste.
+        val troceador = TroceadorVias(IndiceVias(listOf(via(1, "Ma-15", 0.0, 5_000.0))), IndicePuntosKm(emptyList()))
+        val ida = troceador.trocear(traza(5_000.0)).single()
+        val vuelta = troceador.trocear(traza(5_000.0, alReves = true)).single()
+
+        assertEquals(0.0, ida.pkDesde!!, 0.05)
+        assertEquals(5.0, ida.pkHasta!!, 0.05)
+        assertTrue(ida.pkEstimado)
+        assertEquals(SentidoVia.CRECIENTE, ida.sentido)
+        assertEquals(5.0, vuelta.pkDesde!!, 0.05)
+        assertEquals(0.0, vuelta.pkHasta!!, 0.05)
+        assertEquals(SentidoVia.DECRECIENTE, vuelta.sentido)
+    }
+
+    @Test
+    fun `el PK de hitos no es estimado`() {
+        val pk = IndicePuntosKm(hitos("Ma-15", 20.0, 0, 5_000))
+        val tramo =
+            TroceadorVias(
+                IndiceVias(listOf(via(1, "Ma-15", 0.0, 5_000.0))),
+                pk,
+            ).trocear(traza(5_000.0)).single()
+
+        assertTrue(!tramo.pkEstimado)
+    }
+
+    @Test
+    fun `una autovia con un way por calzada da ida creciente y vuelta decreciente`() {
+        val vias =
+            listOf(
+                via(1, "Ma-15", 0.0, 10_000.0).copy(sentidoUnico = SentidoUnico.ADELANTE),
+                via(2, "Ma-15", 10_000.0, 0.0, norteM = 25.0).copy(sentidoUnico = SentidoUnico.ADELANTE),
+            )
+        val troceador = TroceadorVias(IndiceVias(vias))
+        val ida = troceador.trocear(traza(10_000.0)).single()
+        // Vuelta por la otra calzada, que se dibuja hacia el oeste (a favor de su orden de dibujo).
+        val vuelta = troceador.trocear(trazaPorCalzadaNorte(10_000.0, 25.0)).single()
+
+        assertEquals(SentidoVia.CRECIENTE, ida.sentido)
+        assertEquals(SentidoVia.DECRECIENTE, vuelta.sentido)
+        assertEquals(0.0, ida.pkDesde!!, 0.1)
+        assertEquals(10.0, ida.pkHasta!!, 0.1)
+        assertEquals(10.0, vuelta.pkDesde!!, 0.1)
+        assertEquals(0.0, vuelta.pkHasta!!, 0.1)
+        assertTrue(!mismoTramoVia(ida, vuelta))
+    }
+
+    @Test
+    fun `el nombre lleva el PK del eje con hitos y el destino`() {
+        val vias = listOf(via(1, "Ma-15", 0.0, 10_000.0))
+        val pk = IndicePuntosKm(hitos("Ma-15", 20.1, 0, 10_000))
+        val tramo =
+            TroceadorVias(IndiceVias(vias), pk, destino = { "Algaida" }).trocear(traza(9_700.0)).single()
+
+        assertEquals("Ma-15 · km 20,1→29,8 · hacia Algaida", nombreTramoVia(tramo))
+        assertEquals(SentidoVia.CRECIENTE, tramo.sentido)
+    }
+
+    @Test
+    fun `una calle con nombre y sin ref no forma tramo`() {
+        val vias =
+            listOf(
+                via(1, null, 0.0, 2_000.0, nombre = "Carrer de Palma"),
+                via(2, null, 2_000.0, 4_000.0, nombre = "Carrer de Palma"),
+            )
+
+        assertTrue(TroceadorVias(IndiceVias(vias)).trocear(traza(4_000.0)).isEmpty())
+    }
+
+    @Test
+    fun `sin eje por ser un enlace el sentido sale del orden de dibujo`() {
+        val vias = listOf(via(1, "Ma-15", 0.0, 5_000.0).copy(clase = "motorway_link"))
         val troceador = TroceadorVias(IndiceVias(vias), IndicePuntosKm(emptyList()))
 
         val ida = troceador.trocear(traza(5_000.0)).single()
@@ -151,20 +238,6 @@ class TroceadorViasTest {
         assertNull(ida.pkHasta)
         assertEquals(SentidoVia.CRECIENTE, ida.sentido)
         assertEquals(SentidoVia.DECRECIENTE, vuelta.sentido)
-    }
-
-    @Test
-    fun `sin ref agrupa por el nombre de la via`() {
-        val vias =
-            listOf(
-                via(1, null, 0.0, 2_000.0, nombre = "Carrer Major"),
-                via(2, null, 2_000.0, 4_000.0, nombre = "Carrer Major"),
-            )
-        val tramo = TroceadorVias(IndiceVias(vias)).trocear(traza(4_000.0)).single()
-
-        assertNull(tramo.ref)
-        assertEquals("Carrer Major", tramo.nombreVia)
-        assertEquals("Carrer Major · 4,0 km", nombreTramoVia(tramo))
     }
 
     @Test
@@ -188,7 +261,7 @@ class TroceadorViasTest {
 
         assertEquals("Manacor", tramo.destino)
         assertNull(vistos.single().destino)
-        assertEquals("Ma-15 · 5,0 km · hacia Manacor", nombreTramoVia(tramo))
+        assertEquals("Ma-15 · km 0,0→5,0 · hacia Manacor", nombreTramoVia(tramo))
     }
 
     @Test

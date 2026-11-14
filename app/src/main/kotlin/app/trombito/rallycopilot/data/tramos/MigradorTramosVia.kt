@@ -9,7 +9,6 @@ import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.tramos.RecorteTraza
-import app.trombito.rallycopilot.motor.vias.TroceadorVias
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -95,7 +94,7 @@ class MigradorTramosVia
             val trozo =
                 referencia?.let { RecorteTraza.subpolilinea(it.traza, subtramo.desdeM, subtramo.hastaM) }.orEmpty()
             val minimoM = (trozo.lastOrNull()?.distanciaM ?: 0.0) * FRACCION_EN_UNA_VIA
-            val troceador = TroceadorVias(datos.vias, datos.pk, minLongitudM = minimoM)
+            val troceador = datos.troceador(minimoM)
             val unico = if (trozo.size < 2) null else troceador.trocear(trozo).singleOrNull()
             val idVia = unico?.idVia
             if (unico != null && idVia != null) {

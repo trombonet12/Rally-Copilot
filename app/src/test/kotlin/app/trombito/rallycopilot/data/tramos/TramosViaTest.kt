@@ -198,10 +198,11 @@ class TramosViaTest {
             assertEquals("Manacor", ma15.destino)
             assertNotNull(ma15.pkDesde)
             assertNotNull(ma15.pkHasta)
-            // Las carreteras sin hitos llevan su longitud.
+            // Las carreteras sin hitos llevan un PK estimado desde el extremo más cercano a Palma.
             val ma30 = tramosVia().single { it.viaRef == "MA30" }
             val nombre30 = checkNotNull(ma30.nombreAutomatico)
-            assertTrue(nombre30, nombre30.startsWith("Ma-30 · 3,"))
+            assertTrue(nombre30, nombre30.startsWith("Ma-30 · km 0,"))
+            assertTrue(nombre30, nombre30.contains("→3,"))
         }
 
     @Test

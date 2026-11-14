@@ -11,12 +11,14 @@ typealias ResolutorDestino = (TramoVia) -> String?
  * Trocea un viaje en tramos de vía: trozos de al menos [minLongitudM] de una misma carretera y sentido.
  *
  * - Cada punto de la traza se empareja con una vía mediante [SeguidorVia] (histéresis, rumbo entre puntos vecinos). Se
- *   agrupa por la primera `ref` de la vía y, sin ella, por su nombre; las vías sin ninguno (calles sin nombre) y las
- *   rotondas cuentan como «sin vía» y nunca forman tramo.
+ *   agrupa por la primera `ref` de la vía; las vías sin `ref` (calles con nombre) y las rotondas cuentan como «sin
+ *   vía» y nunca forman tramo.
  * - Un cambio de vía de menos de [toleranciaCambioM] entre dos trozos de la misma carretera (cruce, rotonda) no corta.
- * - El PK sale de [indicePk] en los extremos del tramo (o el primer y último punto con hito); si crece, el sentido es
- *   `CRECIENTE`, y si baja, `DECRECIENTE`. Sin PK (o con una diferencia menor de [MIN_DELTA_PK_KM]) manda el orden de
- *   dibujo de las vías: `CRECIENTE` si se circula a favor de `via.puntos` la mayor parte del tramo.
+ * - El PK sale del [EjeCarretera] de la `ref` ([ejes]): la proyección del primer y último punto del trozo sobre el eje
+ *   (con hitos de OSM calibrado; sin ellos, estimado desde el extremo más cercano a Palma, y [TramoVia.pkEstimado]).
+ *   El sentido es `CRECIENTE` si el PK sube y `DECRECIENTE` si baja, sin depender del orden de dibujo de las vías (en
+ *   las autovías hay un `way` por calzada y ese orden siempre coincide con la marcha). Solo si no hay eje se usa
+ *   [indicePk] y, sin PK (o con menos de [MIN_DELTA_PK_KM] de diferencia), el orden de dibujo.
  * - [destino]: las vías de OSM del motor no traen `destination` ni extremos con nombre, así que por defecto es null; la
  *   app puede inyectar un [ResolutorDestino] (p. ej. la localidad más cercana al final del tramo).
  */
@@ -26,7 +28,10 @@ class TroceadorVias(
     private val minLongitudM: Double = 1_000.0,
     private val toleranciaCambioM: Double = 150.0,
     private val destino: ResolutorDestino = { null },
+    private val ejes: EjesCarreteras = EjesCarreteras(indiceVias.vias, indicePk),
 ) {
+    private val resolutorPk = ResolutorPk(ejes, indicePk)
+
     private class Muestra(
         val punto: PuntoTraza,
         val id: String?,
@@ -54,7 +59,7 @@ class TroceadorVias(
         return traza.mapIndexed { i, p ->
             val coincidencia = seguidor.actualizar(p.punto, rumboEn(traza, i))
             val via = coincidencia?.via
-            Muestra(p, via?.takeUnless { it.esRotonda }?.let { idDeVia(it.ref, it.nombre) }, coincidencia)
+            Muestra(p, via?.takeUnless { it.esRotonda }?.let { idDeVia(it.ref, null) }, coincidencia)
         }
     }
 
@@ -107,45 +112,35 @@ class TroceadorVias(
         muestras: List<Muestra>,
     ): TramoVia {
         val propias = muestras.subList(racha.desde, racha.hasta + 1)
-        val vias = propias.mapNotNull { m -> m.coincidencia?.via?.takeIf { idDeVia(it.ref, it.nombre) == racha.id } }
+        val vias = propias.mapNotNull { m -> m.coincidencia?.via?.takeIf { idDeVia(it.ref, null) == racha.id } }
         val ref = vias.mapNotNull { primeraRef(it.ref) }.masFrecuente()
         val nombre = vias.mapNotNull { it.nombre?.trim()?.takeIf(String::isNotEmpty) }.masFrecuente()
         val puntos = propias.map { it.punto.punto }
-        val (pkDesde, pkHasta) = pkExtremos(ref, puntos)
+        val pk = resolutorPk.de(ref, puntos)
         val sinDestino =
             TramoVia(
                 ref = ref,
                 nombreVia = nombre,
                 desdeM = propias.first().punto.distanciaM,
                 hastaM = propias.last().punto.distanciaM,
-                pkDesde = pkDesde,
-                pkHasta = pkHasta,
-                sentido = sentido(pkDesde, pkHasta, propias, racha.id),
+                pkDesde = pk.desde,
+                pkHasta = pk.hasta,
+                sentido = sentido(pk, propias, racha.id),
                 destino = null,
                 trazado = puntos,
+                pkEstimado = pk.estimado,
             )
         return sinDestino.copy(destino = destino(sinDestino))
     }
 
-    private fun pkExtremos(
-        ref: String?,
-        puntos: List<PuntoGeo>,
-    ): Pair<Double?, Double?> {
-        if (indicePk == null || ref == null) return null to null
-        val primero = puntos.firstNotNullOfOrNull { indicePk.buscar(ref, it) }
-        val ultimo = puntos.asReversed().firstNotNullOfOrNull { indicePk.buscar(ref, it) }
-        return primero?.km to ultimo?.km
-    }
-
     private fun sentido(
-        pkDesde: Double?,
-        pkHasta: Double?,
+        pk: PkTramo,
         propias: List<Muestra>,
         id: String?,
     ): SentidoVia {
-        val delta = if (pkDesde != null && pkHasta != null) pkHasta - pkDesde else 0.0
+        val delta = if (pk.desde != null && pk.hasta != null) pk.hasta - pk.desde else 0.0
         return when {
-            abs(delta) < MIN_DELTA_PK_KM -> sentidoPorDibujo(propias, id)
+            abs(delta) < pk.minDeltaKm -> sentidoPorDibujo(propias, id)
             delta > 0.0 -> SentidoVia.CRECIENTE
             else -> SentidoVia.DECRECIENTE
         }
@@ -159,7 +154,7 @@ class TroceadorVias(
         var adelante = 0.0
         var atras = 0.0
         for (i in 0 until propias.lastIndex) {
-            val c = propias[i].coincidencia?.takeIf { idDeVia(it.via.ref, it.via.nombre) == id } ?: continue
+            val c = propias[i].coincidencia?.takeIf { idDeVia(it.via.ref, null) == id } ?: continue
             val largoM = propias[i + 1].punto.distanciaM - propias[i].punto.distanciaM
             if (c.adelante) adelante += largoM else atras += largoM
         }

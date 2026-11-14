@@ -20,7 +20,8 @@ data class PuntoTraza(
  * [ref] es la primera referencia de la vía como la escribe OSM («Ma-15»); sin ella el tramo se agrupó por [nombreVia].
  * [pkDesde] y [pkHasta] son los kilómetros de la carretera al empezar y acabar (null si no hay hitos). [destino] es el
  * nombre del extremo hacia el que se va; null si ningún dato lo da. [trazado] son los puntos de la traza del viaje
- * dentro del tramo, para compararlo con otros por geometría cuando no hay PK.
+ * dentro del tramo, para compararlo con otros por geometría cuando no hay PK. [pkEstimado]: el PK sale de la
+ * distancia a lo largo del eje de la carretera desde su origen y no de hitos de OSM.
  */
 data class TramoVia(
     val ref: String?,
@@ -32,6 +33,7 @@ data class TramoVia(
     val sentido: SentidoVia,
     val destino: String?,
     val trazado: List<PuntoGeo> = emptyList(),
+    val pkEstimado: Boolean = false,
 ) {
     val longitudM: Double get() = hastaM - desdeM
 
