@@ -134,4 +134,30 @@ class SesionCronoViaTest {
             assertEquals(listOf(7L to 5), troceados)
             assertNull(publicados.last()) // el cierre publica null
         }
+
+    @Test
+    fun `un fallo del motor al trocear no impide acabar el cierre`() =
+        runTest {
+            val repo = FalsoRepositorioTramos()
+            val fallos = mutableListOf<Throwable>()
+            var ancladas = 0
+            val crono =
+                SesionCrono(
+                    repo,
+                    { publicados += it },
+                    { testScheduler.currentTime },
+                    alFallar = { fallos += it },
+                    anclarEdiciones = { ancladas++ },
+                    trocear = { _, _ -> throw IllegalArgumentException("require del motor") },
+                )
+            crono.arrancar(this)
+            runCurrent()
+            val puntos = (0..4).map { PuntoRecorrido(ORIGEN.lat, ORIGEN.lon, 1_000L + it, null) }
+
+            crono.cerrar(Recorrido(7L, 1_000L, 1_004L, 1_500.0, null)) { puntos }
+
+            assertEquals(1, ancladas)
+            assertEquals(1, fallos.size)
+            assertNull(publicados.last())
+        }
 }

@@ -30,6 +30,7 @@ import app.trombito.rallycopilot.motor.tramos.TramoDesdeRecorrido
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.motor.voz.Frase
 import app.trombito.rallycopilot.motor.voz.TipoFrase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -491,11 +492,29 @@ class SesionCrono(
             guardar {
                 val todos = puntos()
                 creado = crearTramoNuevo(recorrido.id, todos)
-                trocear(recorrido.id, todos)
+                trocearSinPropagar(recorrido.id, todos)
             }
         }
         // Las ediciones dictadas sin tramo activo pasan al tramo recién creado; sin él se descartan.
         guardar { anclarEdiciones(creado) }
+    }
+
+    /**
+     * Trocea el viaje en tramos de vía sin que un fallo (también del motor: `require`, índices) impida el resto del
+     * cierre. El recorrido queda sin marcar y [MigradorTramosVia] lo marcará en el próximo arranque.
+     */
+    @Suppress("TooGenericExceptionCaught") // el troceado es accesorio: no puede romper el cierre de la conducción
+    private suspend fun trocearSinPropagar(
+        recorridoId: Long,
+        todos: List<PuntoRecorrido>,
+    ) {
+        try {
+            trocear(recorridoId, todos)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: RuntimeException) {
+            alFallar(e)
+        }
     }
 
     private suspend fun guardar(accion: suspend () -> Unit) {

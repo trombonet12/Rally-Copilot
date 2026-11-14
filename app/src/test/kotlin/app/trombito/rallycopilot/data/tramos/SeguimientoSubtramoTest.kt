@@ -134,4 +134,33 @@ class SeguimientoSubtramoTest {
         assertTrue(vivo.sectoresM.isEmpty())
         assertNotNull(vivo.deltaMs)
     }
+
+    @Test
+    fun `si cambia el inicio del trozo de la referencia se reinicia el subtramo`() {
+        val s = seguimiento()
+        s.actualizar(en(320.0, 8_000L))
+        s.actualizar(en(520.0, 13_000L))
+        // Cambia el inicio del trozo (1500 m): los cortes pasan a 500 y 1500 m y el tiempo parte de cero otra vez.
+        val vivo = checkNotNull(s.actualizar(en(560.0, 20_000L, desdeM = 1_500.0)))
+        // Reiniciado, el tiempo en los 500 m se interpola solo con las muestras nuevas: 500/560 de 20 s.
+        assertEquals(17_857L, vivo.parciales.first { it.tipo == TipoCorte.SECTOR }.tiempoMs)
+    }
+
+    @Test
+    fun `si cambia el tramo de la referencia se reinicia el subtramo`() {
+        val otro = tramo.copy(id = "otro")
+        val s = seguimiento { mapOf("ref" to tramo, "otro" to otro)[it] }
+        s.actualizar(en(320.0, 8_000L))
+        s.actualizar(en(520.0, 13_000L))
+        val deOtro =
+            SubtramoEnCurso(
+                "otro",
+                560.0,
+                20_000L,
+                0L,
+                ReferenciaSubtramo("otro", pasada.copy(tramoId = "otro"), 500.0, 1_060.0, 100_000L),
+            )
+        val vivo = checkNotNull(s.actualizar(deOtro))
+        assertEquals(17_857L, vivo.parciales.first { it.tipo == TipoCorte.SECTOR }.tiempoMs)
+    }
 }

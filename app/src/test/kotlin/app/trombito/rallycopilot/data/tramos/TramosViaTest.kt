@@ -107,8 +107,16 @@ class TramosViaTest {
     private var conIndices = true
     private var ids = 0
 
+    private var fallosDelMotor = 0
+
     private val fuente =
-        FuenteIndicesVias { if (conIndices) IndicesDeVias(vias(), IndicePuntosKm(hitosMa15())) else null }
+        FuenteIndicesVias {
+            if (fallosDelMotor > 0) {
+                fallosDelMotor--
+                throw IllegalArgumentException("require del motor")
+            }
+            if (conIndices) IndicesDeVias(vias(), IndicePuntosKm(hitosMa15())) else null
+        }
 
     private fun guardador() =
         GuardadorTramosVia(
@@ -161,6 +169,21 @@ class TramosViaTest {
     }
 
     private suspend fun tramosVia() = base.tramosDao().tramosPorTipo(TIPO_VIA)
+
+    /** Deja un tramo-viaje con una pasada del recorrido: lo que queda de haberlo cronometrado. */
+    private suspend fun sembrarCronometrado(
+        recorridoId: Long,
+        inicioMs: Long,
+    ) {
+        val tramo = Tramo("viaje-$recorridoId", listOf(alEste(0.0), alEste(10_000.0)), 10_000.0)
+        val marcas = Pasada(tramo.id, listOf(MarcaTiempo(0.0, 0L), MarcaTiempo(tramo.metaM, 500_000L)), 500_000L)
+        base
+            .tramosDao()
+            .crear(
+                tramo.aEntidad(null, 500L, null),
+                marcas.aEntidad(OrigenPasada(inicioMs, recorridoId), tramo.cortesExactosM()),
+            )
+    }
 
     @Test
     fun `un viaje por tres carreteras se guarda como tres tramos de via con su pasada`() =
@@ -293,6 +316,7 @@ class TramosViaTest {
             val idb = recorridoConPuntos(b)
             recorridoConPuntos(viaje(200_000_000L), terminado = false)
             sembrarVieja(ida)
+            sembrarCronometrado(idb, 90_000_000L)
             val viajesAntes = base.tramosDao().tramosPorTipo(TIPO_VIAJE)
             val pasadasViajeAntes = base.tramosDao().pasadas("viaje-viejo")
 
@@ -343,6 +367,7 @@ class TramosViaTest {
         runBlocking {
             conIndices = false
             val id = recorridoConPuntos(viaje(1_000_000L))
+            sembrarCronometrado(id, 1_000_000L)
 
             val resumen = migrador().migrar()
 
@@ -350,5 +375,95 @@ class TramosViaTest {
             assertEquals(0, resumen.recorridos)
             assertEquals(listOf(id), base.recorridosDao().recorridosSinTrocear().map { it.id })
             assertTrue(tramosVia().isEmpty())
+        }
+
+    @Test
+    fun `un fallo del motor en un recorrido no se propaga, lo marca y no impide trocear los demas`() =
+        runBlocking {
+            val a = viaje(1_000_000L)
+            val b = viaje(90_000_000L)
+            val ida = recorridoConPuntos(a)
+            val idb = recorridoConPuntos(b)
+            sembrarCronometrado(ida, 1_000_000L)
+            sembrarCronometrado(idb, 90_000_000L)
+            fallosDelMotor = 1
+
+            val resumen = migrador().migrar()
+
+            // El primero (ida) falla con una IllegalArgumentException del motor: se marca y no se reintenta.
+            assertTrue(base.recorridosDao().recorridosSinTrocear().isEmpty())
+            assertEquals(1, resumen.recorridos)
+            assertTrue(tramosVia().isNotEmpty())
+            val origenes = tramosVia().flatMap { base.tramosDao().pasadas(it.id) }.mapNotNull { it.recorridoId }
+            assertEquals(setOf(idb), origenes.toSet())
+        }
+
+    @Test
+    fun `la migracion no trocea los recorridos que no se cronometraron y los marca`() =
+        runBlocking {
+            val cronometrado = recorridoConPuntos(viaje(1_000_000L))
+            val sinCrono = recorridoConPuntos(viaje(90_000_000L))
+            sembrarCronometrado(cronometrado, 1_000_000L)
+
+            val resumen = migrador().migrar()
+
+            assertEquals(1, resumen.recorridos)
+            assertTrue(base.recorridosDao().recorridosSinTrocear().isEmpty())
+            val origenes = tramosVia().flatMap { base.tramosDao().pasadas(it.id) }.mapNotNull { it.recorridoId }
+            assertEquals(setOf(cronometrado), origenes.toSet())
+            assertTrue(sinCrono !in origenes)
+        }
+
+    @Test
+    fun `una segunda pasada mas larga no duplica el tramo y suma pasada al existente`() =
+        runBlocking {
+            val g = guardador()
+            val corto = viaje(1_000_000L, 20.0, 0.0, 6_000.0)
+            val largo = viaje(90_000_000L, 25.0)
+            g.trocearYMarcar(recorridoConPuntos(corto), corto)
+            val id2 = recorridoConPuntos(largo)
+
+            g.trocearYMarcar(id2, largo)
+
+            val tramos = tramosVia()
+            assertEquals(listOf("MA30", "MA15", "MA3220"), tramos.map { it.viaRef })
+            val ma15 = tramos.single { it.viaRef == "MA15" }
+            assertEquals(2, base.tramosDao().pasadas(ma15.id).size)
+            assertEquals(2, base.tramosDao().pasadas(tramos.single { it.viaRef == "MA30" }.id).size)
+        }
+
+    @Test
+    fun `un trozo que solo cubre medio tramo no crea otro ni se anade`() =
+        runBlocking {
+            val g = guardador()
+            val completo = viaje(1_000_000L)
+            g.trocearYMarcar(recorridoConPuntos(completo), completo)
+            val medio = viaje(90_000_000L, 20.0, 4_000.0, 6_000.0)
+
+            g.trocearYMarcar(recorridoConPuntos(medio), medio)
+
+            val tramos = tramosVia()
+            assertEquals(3, tramos.size)
+            assertTrue(tramos.all { base.tramosDao().pasadas(it.id).size == 1 })
+        }
+
+    @Test
+    fun `la pasada llega a todos los tramos de via solapados que se cubren entero`() =
+        runBlocking {
+            val g = guardador()
+            val primero = viaje(1_000_000L)
+            g.trocearYMarcar(recorridoConPuntos(primero), primero)
+            // Un duplicado heredado: otro tramo de vía de la misma carretera y sentido, con su pasada.
+            val ma15 = tramosVia().single { it.viaRef == "MA15" }
+            val pasada = base.tramosDao().pasadas(ma15.id).single()
+            base.tramosDao().crear(ma15.copy(id = "duplicado"), pasada.copy(id = 0, tramoId = "duplicado"))
+            val segundo = viaje(90_000_000L, 25.0)
+            val id2 = recorridoConPuntos(segundo)
+
+            g.trocearYMarcar(id2, segundo)
+
+            for (id in listOf(ma15.id, "duplicado")) {
+                assertTrue(id, base.tramosDao().pasadas(id).any { it.recorridoId == id2 })
+            }
         }
 }

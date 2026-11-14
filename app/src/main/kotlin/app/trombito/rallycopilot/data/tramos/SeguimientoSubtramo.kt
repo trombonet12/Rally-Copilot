@@ -13,8 +13,8 @@ import app.trombito.rallycopilot.motor.tramos.Tramo
  * Lo que el HUD necesita de un subtramo en marcha además de lo que da el detector: el fantasma de la pasada de
  * referencia (su cronómetro marca 0 al pasar por el inicio del trozo) y los parciales de los sectores y microsectores
  * del tramo de la referencia que caen dentro del trozo. [tramo] da un tramo guardado por id. Un subtramo nuevo se
- * reconoce porque el recorrido o el tiempo retroceden (o porque no hubo subtramo en la fijación anterior). No es
- * concurrente: se usa desde la corrutina de la sesión.
+ * reconoce porque el recorrido o el tiempo retroceden, porque cambia el tramo o el inicio del trozo de la referencia
+ * (o porque no hubo subtramo en la fijación anterior). No es concurrente: se usa desde la corrutina de la sesión.
  */
 internal class SeguimientoSubtramo(
     private val tramo: (String) -> Tramo?,
@@ -49,6 +49,9 @@ internal class SeguimientoSubtramo(
     private var base: Base? = null
     private val parciales = ArrayList<ParcialCrono>()
 
+    /** La última referencia vista en este subtramo (otro tramo o inicio de trozo distinto es otro subtramo). */
+    private var ultimaReferencia: ReferenciaSubtramo? = null
+
     /** Actualiza el seguimiento con el subtramo [en] de esta fijación (null si no hay) y da lo que se publica. */
     fun actualizar(en: SubtramoEnCurso?): SubtramoVivo? {
         if (en == null) {
@@ -56,10 +59,12 @@ internal class SeguimientoSubtramo(
             return null
         }
         val ultima = muestras.lastOrNull()
-        if (ultima != null && (en.recorridoM < ultima.recorridoM || en.transcurridoMs < ultima.tiempoMs)) reiniciar()
+        val referencia = en.referencia
+        val retrocede = ultima != null && (en.recorridoM < ultima.recorridoM || en.transcurridoMs < ultima.tiempoMs)
+        if (retrocede || cambiaLaReferencia(ultimaReferencia, referencia)) reiniciar()
+        if (referencia != null) ultimaReferencia = referencia
         if (muestras.isEmpty()) muestras += Muestra(0.0, 0L)
         muestras += Muestra(en.recorridoM, en.transcurridoMs)
-        val referencia = en.referencia
         val actual = referencia?.let { elegirBase(it) }
         if (actual == null) {
             base = null
@@ -96,6 +101,7 @@ internal class SeguimientoSubtramo(
         }
 
     private fun reiniciar() {
+        ultimaReferencia = null
         muestras.clear()
         parciales.clear()
         base = null
@@ -198,3 +204,9 @@ private fun tiempoEnPasada(
     val ultima = pasada.tiempos.last()
     return pasada.tiempoEn(distanciaM.coerceIn(primera.distanciaM, ultima.distanciaM))
 }
+
+/** Otro tramo o otro inicio del trozo respecto a la referencia anterior: es otro subtramo. */
+private fun cambiaLaReferencia(
+    previa: ReferenciaSubtramo?,
+    nueva: ReferenciaSubtramo?,
+): Boolean = previa != null && nueva != null && (previa.tramoId != nueva.tramoId || previa.desdeM != nueva.desdeM)

@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.tramos
 
 import android.database.sqlite.SQLiteException
 import android.util.Log
+import app.trombito.rallycopilot.data.db.RecorridoEntity
 import app.trombito.rallycopilot.data.db.RecorridosDao
 import app.trombito.rallycopilot.data.db.SubtramoEntity
 import app.trombito.rallycopilot.data.db.SubtramosDao
@@ -9,7 +10,9 @@ import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.tramos.RecorteTraza
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,7 +26,8 @@ data class ResumenMigracionVias(
 
 /**
  * Migra los datos guardados antes de los tramos de vía (H23), sin tocar nada de lo que ya existe: trocea cada
- * recorrido terminado que aún no lo está ([GuardadorTramosVia.trocearYMarcar]) y sitúa en su carretera los subtramos
+ * recorrido terminado y cronometrado que aún no lo está ([GuardadorTramosVia.trocearYMarcar]; los no cronometrados
+ * solo se marcan, y un fallo del motor en un recorrido lo marca sin propagarse) y sitúa en su carretera los subtramos
  * que caen en un solo tramo de vía. Los tramos-viaje, sus pasadas y los subtramos no se borran ni se modifican (los
  * subtramos solo ganan carretera, kilómetros y sentido).
  *
@@ -44,28 +48,94 @@ class MigradorTramosVia
         @DispatcherIo private val dispatcher: CoroutineDispatcher,
     ) {
         /** Una pasada de la migración; devuelve lo hecho (también si la base falla: lo ya hecho queda guardado). */
+        @Suppress("TooGenericExceptionCaught") // ver el último catch: el arranque no puede caerse
         suspend fun migrar(): ResumenMigracionVias {
             var hechos = 0
             var situados = 0
             var pendiente = false
             try {
+                val cronometrados = CronometradosPorRecorrido()
                 for (r in withContext(dispatcher) { recorridos.recorridosSinTrocear() }) {
-                    if (trocearUno(r.id) != ResultadoTroceado.HECHO) {
-                        // Sin vías instaladas ninguno saldrá: se deja todo pendiente para el próximo arranque.
-                        pendiente = true
-                        break
-                    }
-                    hechos++
+                    val resultado = migrarRecorrido(r, cronometrados)
+                    // Sin vías instaladas ninguno saldrá: se deja todo pendiente para el próximo arranque.
+                    pendiente = resultado == ResultadoTroceado.SIN_DATOS
+                    if (pendiente) break
+                    if (resultado == ResultadoTroceado.HECHO) hechos++
                 }
                 if (!pendiente) situados = situarSubtramos()
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: SQLiteException) {
                 Log.w(ETIQUETA, "Migración de tramos de vía interrumpida: ${e.javaClass.simpleName}")
                 pendiente = true
             } catch (e: IllegalStateException) {
                 Log.w(ETIQUETA, "Migración de tramos de vía interrumpida: ${e.javaClass.simpleName}")
                 pendiente = true
+            } catch (e: RuntimeException) {
+                // Nunca debe tumbar el arranque: lo que falle fuera de un recorrido (p. ej. situar subtramos).
+                Log.w(ETIQUETA, "Migración de tramos de vía interrumpida: ${e.javaClass.simpleName}")
+                pendiente = true
             }
             return ResumenMigracionVias(hechos, situados, pendiente)
+        }
+
+        /** Trocea un recorrido cronometrado; los demás solo se marcan. Null si no se troceó (marcado, sin tramos). */
+        private suspend fun migrarRecorrido(
+            recorrido: RecorridoEntity,
+            cronometrados: CronometradosPorRecorrido,
+        ): ResultadoTroceado? {
+            if (cronometrados.incluye(recorrido)) return trocearSinPropagar(recorrido.id)
+            // Sin cronometrar (opción desactivada o reconocimiento): no se trocea, pero se marca.
+            withContext(dispatcher) { recorridos.marcarTroceado(recorrido.id) }
+            return null
+        }
+
+        /**
+         * Trocea un recorrido. Un fallo del motor (`require`, índice fuera de rango) no debe tumbar la app ni repetirse
+         * en cada arranque: se registra y se marca el recorrido como troceado (devuelve null). Un fallo de la base o
+         * la cancelación sí se propagan.
+         */
+        @Suppress("TooGenericExceptionCaught") // un recorrido raro no puede impedir arrancar ni migrar los demás
+        private suspend fun trocearSinPropagar(id: Long): ResultadoTroceado? =
+            try {
+                trocearUno(id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: SQLiteException) {
+                throw e
+            } catch (e: RuntimeException) {
+                Log.w(ETIQUETA, "Recorrido sin trocear por un fallo del motor: ${e.javaClass.simpleName}")
+                withContext(dispatcher) { recorridos.marcarTroceado(id) }
+                null
+            }
+
+        /**
+         * Qué recorridos se cronometraron: los que tienen una pasada guardada (por su id o, en las pasadas antiguas sin
+         * id de recorrido, por caer su salida dentro del recorrido) o algún subtramo. Se carga una vez, al pedirlo.
+         */
+        private inner class CronometradosPorRecorrido {
+            private val idsConPasada = HashSet<Long>()
+            private val iniciosDePasada = ArrayList<Long>()
+            private var cargado = false
+
+            suspend fun incluye(recorrido: RecorridoEntity): Boolean =
+                withContext(dispatcher) {
+                    if (!cargado) cargar()
+                    val fin = recorrido.finMs ?: Long.MAX_VALUE
+                    recorrido.id in idsConPasada ||
+                        iniciosDePasada.any { it in recorrido.inicioMs..fin } ||
+                        subtramos.observarDeRecorrido(recorrido.id).first().isNotEmpty()
+                }
+
+            private suspend fun cargar() {
+                for (t in tramos.tramos()) {
+                    for (p in tramos.pasadas(t.id)) {
+                        p.recorridoId?.let { idsConPasada += it }
+                        iniciosDePasada += p.inicio
+                    }
+                }
+                cargado = true
+            }
         }
 
         /** Trocea y marca un recorrido; sin puntos que trocear solo se marca, para no reintentarlo cada arranque. */

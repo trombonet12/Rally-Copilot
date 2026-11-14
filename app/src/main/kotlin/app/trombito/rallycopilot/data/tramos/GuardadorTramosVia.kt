@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.data.tramos
 import android.database.sqlite.SQLiteException
 import android.util.Log
 import app.trombito.rallycopilot.data.db.RecorridosDao
+import app.trombito.rallycopilot.data.db.TramoEntity
 import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.di.DispatcherIo
@@ -11,11 +12,12 @@ import app.trombito.rallycopilot.domain.tramos.DatosVia
 import app.trombito.rallycopilot.domain.tramos.OrigenPasada
 import app.trombito.rallycopilot.domain.tramos.RecorteTraza
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import app.trombito.rallycopilot.motor.tramos.Cobertura
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.tramos.TramoDesdeRecorrido
+import app.trombito.rallycopilot.motor.vias.SentidoVia
 import app.trombito.rallycopilot.motor.vias.TramoVia
 import app.trombito.rallycopilot.motor.vias.nombreTramoVia
+import app.trombito.rallycopilot.motor.vias.solapeTramosVia
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -35,10 +37,10 @@ enum class ResultadoTroceado {
 
 /**
  * Trocea un viaje en tramos de vía (`TroceadorVias`) y los guarda: cada trozo de al menos un kilómetro de una
- * carretera y sentido. Si ya hay un tramo `VIA` de esa carretera y sentido que cubre más de [UMBRAL_COBERTURA] del
- * trozo y por el que el cronómetro de la repetición llega a meta, el trozo se añade como pasada suya; si no, es un
- * tramo `VIA` nuevo con su primera pasada y el nombre automático [nombreTramoVia]. El tiempo de cada pasada es relativo
- * al inicio del trozo.
+ * carretera y sentido. Si ya hay tramos `VIA` de esa carretera y sentido que solapan al menos [UMBRAL_SOLAPE] con el
+ * trozo, no se crea otro: el trozo se añade como pasada de cada uno por el que el cronómetro de la repetición llega a
+ * meta; si no hay ninguno, es un tramo `VIA` nuevo con su primera pasada y el nombre automático [nombreTramoVia]. El
+ * tiempo de cada pasada es relativo al inicio del trozo.
  *
  * Es idempotente: un tramo que ya tiene una pasada del mismo recorrido (p. ej. la detectó la conducción en vivo) no
  * recibe otra. Se serializa con un candado para que dos recorridos no creen a la vez el mismo tramo. Nunca registra
@@ -133,25 +135,43 @@ class GuardadorTramosVia
             }
         }
 
-        /** Añade el trozo como pasada de un tramo `VIA` existente; falso si ninguno lo cubre o no se puede repetir. */
+        /**
+         * Si ya hay tramos `VIA` de esta carretera y sentido que solapan al menos [UMBRAL_SOLAPE] con el trozo, no se
+         * crea otro: el trozo se añade como pasada de cada uno que cruce entero (el cronómetro de la repetición recorta
+         * la pasada a su salida y meta). Devuelve verdadero si había alguno que solapara, se añadiera pasada o no.
+         */
         private suspend fun anadirAExistente(
             recorridoId: Long,
             idVia: String,
             tramo: TramoVia,
             trozo: List<PuntoRecorrido>,
         ): Boolean {
-            val geometria = trozo.map { PuntoGeo(it.lat, it.lon) }
-            val candidatos =
+            val solapados =
                 tramos.tramosViaDe(idVia, tramo.sentido.name).mapNotNull { fila ->
                     val guardado = fila.aTramo()
-                    if (guardado != null && Cobertura.fraccion(geometria, guardado.traza) > UMBRAL_COBERTURA) {
+                    if (guardado != null && solapeTramosVia(tramo, fila.comoTramoVia(guardado)) >= UMBRAL_SOLAPE) {
                         fila.id to guardado
                     } else {
                         null
                     }
                 }
-            return candidatos.any { (id, guardado) -> anadirSiCabe(recorridoId, id, guardado, trozo) }
+            for ((id, guardado) in solapados) anadirSiCabe(recorridoId, id, guardado, trozo)
+            return solapados.isNotEmpty()
         }
+
+        /** El tramo `VIA` guardado como [TramoVia], con lo justo para medir el solape con otro. */
+        private fun TramoEntity.comoTramoVia(guardado: Tramo) =
+            TramoVia(
+                ref = viaRef,
+                nombreVia = null,
+                desdeM = 0.0,
+                hastaM = guardado.longitudM,
+                pkDesde = pkDesde,
+                pkHasta = pkHasta,
+                sentido = SentidoVia.entries.firstOrNull { it.name == sentido } ?: SentidoVia.DESCONOCIDO,
+                destino = null,
+                trazado = guardado.traza,
+            )
 
         /** Verdadero si el tramo ya tenía la pasada de este recorrido o se le ha añadido; falso si no se repite. */
         private suspend fun anadirSiCabe(
@@ -187,8 +207,8 @@ class GuardadorTramosVia
         }
 
         companion object {
-            /** Fracción del trozo sobre un tramo `VIA` guardado a partir de la cual se considera el mismo tramo. */
-            const val UMBRAL_COBERTURA = 0.9
+            /** Solape (respecto al más corto) con un tramo `VIA` guardado a partir del cual es el mismo tramo. */
+            const val UMBRAL_SOLAPE = 0.5
             private const val RADIO_DESTINO_M = 5_000.0
             private const val ETIQUETA = "GuardadorTramosVia"
         }
