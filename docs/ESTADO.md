@@ -1,14 +1,32 @@
 # Estado
 
-> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-08 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
+> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-14 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
 
 | Campo | Valor |
 |---|---|
-| Hito | H15b–H21 cerrados · **v1.5.0** · siguiente: prueba en coche de Joan · H11 y H12 pospuestos |
-| Estado | v1.5.0 (H15b–H21 juntos; la v1.4.0 no llegó a publicarse por un test intermitente en CI, ya arreglado). Joan prueba en coche |
+| Hito | H22–H25 · **v1.6.0** (H22–H24 + arreglos de la auditoría H25 juntos, decisión de Joan) · siguiente: pendientes de la auditoría y prueba en coche · H11 y H12 pospuestos |
+| Estado | v1.6.0 publicada e instalada por cable en el móvil de Joan (ver «Próxima acción» si no llegó a hacerse antes del apagado programado) |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
+## Próxima acción
+1. Si la release 1.6.0 no llegó a publicarse o instalarse (apagado programado del PC la noche del 2026-11-14): `gh run list`, y si hace falta `gh workflow run android.yml -f publicar=true`. Luego instalar en el móvil con `gh release download` y `adb install -r`, abrir la app, sacar con `adb pull` `Android/data/app.trombito.rallycopilot/files/{copias,registros}` y comprobar que la migración v20→21 y los tramos de vía cuadran (10 viajes y 11 tramos-viaje intactos).
+2. Pendientes de [auditoria/2026-11b.md](auditoria/2026-11b.md) (estado «pendiente»): sentido estable ante cambios de datos de OSM, subtramos no situables, dos pasadas por el mismo trozo, trozo perdido si `repetir` da null y espera al migrador.
+3. Pregunta para Joan: la nota muestra dos distancias pegadas («IZQUIERDA 6 · 50 m» y «40 m»).
+4. El AVD `trombito-36` tiene una base v21 antigua (sin `llegado`): borrar los datos de `app.trombito.rallycopilot.dev` antes de probar.
+
 ## Completado
+- 2026-11-14 · **H22–H25** (v1.6.0), tras la prueba en coche de la v1.5.0:
+  - Interfaz: banner de maniobra un 33 % más pequeño; velocidad compacta con el coche justo encima; botones fijos de 56 dp; sin barra de búsqueda en marcha.
+  - Búsqueda: direcciones y coordenadas copiadas de Google, Plus Codes y nombres en castellano y catalán.
+  - GPS: fused en alta precisión (el GPS no fijaba).
+  - Datos: copia automática y registro de diagnóstico en la carpeta de la app.
+  - Tramos: panel único con fantasma también en los subtramos; tramos de vía por carretera, con el km estimado («~») y el sentido, y migración de los viajes ya guardados (Room v21).
+  - Llegada: aprendida del ritmo real y corregida en vivo, también en los atascos.
+  - Mapa: capa de calor por uso o velocidad media.
+  - Rutas: preferencia por las carreteras conocidas.
+  - Mis tramos: pestañas Viajes y Carreteras.
+  - Auditoría con Fable en 4 áreas, en [auditoria/2026-11b.md](auditoria/2026-11b.md), con los HIGH y casi todos los MEDIUM arreglados.
+  - Sin límite fijo de subagentes.
 - 2026-11-08 · **H16–H21** (v1.5.0): simplificado y confianza de posición con pausa y relectura, «nota mal», fantasma suavizado y óptimo teórico, «límite» al entrar en un tramo, llamadas encadenadas con espera según la velocidad (revisión opus aplicada), editor completo y recce en dos pasadas, ruta Rápida/Equilibrada/Curvas, intercom del casco con permiso y ajustes, tema «Día y noche» por defecto, atajos y widget, Mis carreteras, trip y «dónde estoy» con punto kilométrico (`datos-2026.11.08-17`). Presupuesto de subagentes a 2 puntos. Secretos de firma solo en el Environment `release`. Capturas en [capturas/h16-h21/](capturas/h16-h21/).
 - 2026-11-08 · **H15b** (v1.4.0): tras la prueba en coche de la v1.3.4: ajuste al camino sin saltar a la calle de debajo ni girar sin rumbo, media del radar de tramo en modo libre, recentrar visible en marcha y vuelta al seguimiento a los 10 s, coche por encima de la píldora, cruces y puentes apagados de base (Room v19), y **subtramos** (cualquier trozo ≥ 1 km de un tramo guardado, con delta en vivo, voz, tarjeta y lista en el detalle). Capturas en [capturas/h15b/](capturas/h15b/).
 - 2026-11-07 · Prueba en el móvil de Joan (v1.3.2 → v1.3.4): copia exportada, migración a v18 sin pérdidas, «0,0 km» cortado y atrás sin confirmar arreglados. Secretos en el Environment `release` limitado a `main` (la v1.3.4 firmó desde ahí).

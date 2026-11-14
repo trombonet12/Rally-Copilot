@@ -781,12 +781,12 @@ Lo que molestó conduciendo la v1.5.0: ver la carretera por delante y encontrar 
 - Búsqueda de direcciones de Google, abreviaturas, números y nombres ES↔CA; coordenadas con coma decimal, Plus Codes y URLs sin esquema.
 - (v1.5.1, antes) copia automática de los datos para sacarlos por adb/USB.
 ### Criterios de aceptación
-- [ ] «Carrer de Ramon Berenguer III, 5, Bajos, Norte, 07002 Palma, Balearic Islands» y «39,5789682, 2,6515765» llevan al sitio.
-- [ ] En el emulador, en marcha: coche sobre la velocidad, botones sin saltos, sin barra de búsqueda.
+- [x] «Carrer de Ramon Berenguer III, 5, Bajos, Norte, 07002 Palma, Balearic Islands» y «39,5789682, 2,6515765» llevan al sitio.
+- [x] En el emulador, en marcha: coche sobre la velocidad, botones sin saltos, sin barra de búsqueda.
 ### Tests
 - Motor: `LectorDireccion`, abreviaturas y equivalencias, coordenadas (coma decimal, Plus Codes, sin esquema). App: cámara sobre la velocidad, botones fijos, barra en marcha, copia automática.
 ### Estado
-en curso (2026-11-14) · Depende de: H21
+completado (2026-11-14, v1.6.0, H22–H25 juntos) · ver docs/ESTADO.md
 
 ## H23 — Tramos unificados y llegada real
 ### Objetivo
@@ -799,11 +799,11 @@ Un mismo panel y fantasma para cualquier trozo conocido, y una hora de llegada q
 ### Criterios de aceptación
 - [ ] Un subtramo enseña fantasma y el mismo HUD que un tramo; el delta en vivo acaba igual que el final.
 - [ ] Con los viajes de Joan, el error medio de la llegada baja frente a Valhalla solo.
-- [ ] Con la copia real de Joan, todos sus tramos y subtramos quedan con vía/km/sentido cuando hay PK, sin perder ninguna pasada.
+- [x] Con la copia real de Joan, todos sus tramos y subtramos quedan con vía/km/sentido cuando hay PK, sin perder ninguna pasada.
 ### Tests
 - Motor: `Fantasma` con desfase, `EstimadorLlegada`, nombre por PK y sentido. App: migración 20→21 con la copia real.
 ### Estado
-pendiente · Depende de: H22
+completado (2026-11-14, v1.6.0, H22–H25 juntos) · ver docs/ESTADO.md
 
 ## H24 — Mis carreteras en el mapa y rutas conocidas
 ### Objetivo
@@ -816,7 +816,7 @@ Ver en el mapa por dónde te mueves y a qué ritmo, y que las rutas tiren por lo
 ### Tests
 - Motor: media por vía sin paradas; selector con bonificación de lo conocido.
 ### Estado
-pendiente · Depende de: H23
+completado (2026-11-14, v1.6.0, H22–H25 juntos) · ver docs/ESTADO.md
 
 ## H25 — Auditoría con Fable
 ### Objetivo
@@ -828,7 +828,7 @@ Una pasada completa con ojos nuevos antes de la siguiente prueba en coche.
 ### Tests
 - Los que pida cada arreglo.
 ### Estado
-pendiente · Depende de: H24
+completado (2026-11-14, v1.6.0, H22–H25 juntos) · ver docs/ESTADO.md
 
 ## Más adelante
 - Pendientes de hitos anteriores: prueba en coche (H14), topónimos que Vosk no reconoce, condiciones del NAP de la DGT y del CNIG, «Abrir con» desde gestores de archivos reales, H11 (voz de Moya) y H12 (Play).
