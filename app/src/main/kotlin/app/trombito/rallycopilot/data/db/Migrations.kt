@@ -314,9 +314,9 @@ val MIGRATION_19_20: Migration =
 /**
  * v20 -> v21: tramos de vía y llegada aprendida. `tramo` gana `tipo` (`VIAJE` para todos los existentes), los datos de
  * vía (`viaRef`, `pkDesde`, `pkHasta`, `sentido`), `destino` y `recorridoOrigenId`, con sus índices; `subtramo` gana
- * la situación en la vía; `recorrido` gana `tiempoPrevistoS` (nulo: desconocido) y `viasTroceadas` (0: pendiente de
- * trocear en tramos de vía). Solo `ADD COLUMN` e índices: no se toca ni se copia ninguna fila. El SQL es el
- * `createSql` de `schemas/.../21.json`.
+ * la situación en la vía; `recorrido` gana `tiempoPrevistoS` (nulo: desconocido), `viasTroceadas` (0: pendiente de
+ * trocear en tramos de vía) y `llegado` (0: no consta que llegara al destino pedido). Solo `ADD COLUMN` e índices:
+ * no se toca ni se copia ninguna fila. El SQL es el `createSql` de `schemas/.../21.json`.
  */
 val MIGRATION_20_21: Migration =
     object : Migration(20, 21) {
@@ -336,6 +336,7 @@ val MIGRATION_20_21: Migration =
             db.execSQL("ALTER TABLE `subtramo` ADD COLUMN `sentido` TEXT")
             db.execSQL("ALTER TABLE `recorrido` ADD COLUMN `tiempoPrevistoS` REAL")
             db.execSQL("ALTER TABLE `recorrido` ADD COLUMN `viasTroceadas` INTEGER NOT NULL DEFAULT 0")
+            db.execSQL("ALTER TABLE `recorrido` ADD COLUMN `llegado` INTEGER NOT NULL DEFAULT 0")
         }
     }
 

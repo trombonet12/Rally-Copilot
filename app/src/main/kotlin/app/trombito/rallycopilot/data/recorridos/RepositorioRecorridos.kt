@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.first
 /**
  * Recorrido grabado y terminado (>= [RepositorioRecorridos.DISTANCIA_MINIMA_M]). [tiempoPrevistoS] es el tiempo de
  * Valhalla de la ruta con que se empezó a guiar (null: modo libre, reconocimiento o recorrido anterior a guardarlo).
+ * [llegado]: guiado que llegó al destino sin cambiar de destino ni de paradas (solo esos enseñan el factor personal).
  */
 data class Recorrido(
     val id: Long,
@@ -14,6 +15,7 @@ data class Recorrido(
     val distanciaM: Double,
     val destinoNombre: String?,
     val tiempoPrevistoS: Double? = null,
+    val llegado: Boolean = false,
 )
 
 /** Muestra de posición de un recorrido; [tiempoMs] en milisegundos epoch, [velocidadMs] en m/s si el GPS la da. */
@@ -46,6 +48,12 @@ interface RepositorioRecorridos {
         id: Long,
         segundos: Double?,
     ) = Unit
+
+    /**
+     * Marca el recorrido en curso [id] como llegado al destino que se pidió al empezar (sin cambios de destino ni de
+     * paradas por el camino). Por defecto no hace nada.
+     */
+    suspend fun marcarLlegado(id: Long) = Unit
 
     /** Ids de los recorridos aún abiertos (en curso, o huérfanos si la app se cerró a mitad). */
     suspend fun idsEnCurso(): List<Long>

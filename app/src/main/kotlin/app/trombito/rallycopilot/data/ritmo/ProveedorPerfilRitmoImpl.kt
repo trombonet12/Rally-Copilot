@@ -18,10 +18,11 @@ import javax.inject.Singleton
 
 /**
  * [PerfilRitmo] de Joan: la velocidad media real por carretera sale de [CalculoCarreteras] (que ya cachea el análisis
- * de cada recorrido) y el factor personal de los recorridos con tiempo previsto (real = fin − inicio). El cálculo se
- * lanza en [alcance] (el de la app), así que si quien lo pide se cansa de esperar no se pierde: la próxima petición
- * lo encuentra hecho. Se cachea mientras la lista de recorridos terminados sea la misma, y se recalcula al cerrar uno
- * nuevo (o borrar uno). Si el cálculo falla devuelve el perfil de partida y no se cachea, para reintentarlo luego.
+ * de cada recorrido) y el factor personal de los recorridos guiados que llegaron al destino pedido, sin cambiar de
+ * destino ni de paradas por el camino, con su tiempo previsto (real = fin − inicio). El cálculo se lanza en [alcance]
+ * (el de la app), así que si quien lo pide se cansa de esperar no se pierde: la próxima petición lo encuentra hecho.
+ * Se cachea mientras la lista de recorridos terminados sea la misma, y se recalcula al cerrar uno nuevo (o borrar uno).
+ * Si el cálculo falla devuelve el perfil de partida y no se cachea, para reintentarlo luego.
  */
 @Singleton
 class ProveedorPerfilRitmoImpl
@@ -58,7 +59,13 @@ class ProveedorPerfilRitmoImpl
             val resultado =
                 runCatching {
                     val velocidades = carreteras.observar().first().velocidades
-                    val viajes = lista.map { ViajeHistorico((it.finMs - it.inicioMs) / MS_POR_S, it.tiempoPrevistoS) }
+                    val viajes =
+                        lista.filter { it.llegado }.map {
+                            ViajeHistorico(
+                                (it.finMs - it.inicioMs) / MS_POR_S,
+                                it.tiempoPrevistoS,
+                            )
+                        }
                     ConstructorPerfilRitmo.construir(velocidades, viajes)
                 }
             resultado.exceptionOrNull()?.let { if (it is CancellationException) throw it }

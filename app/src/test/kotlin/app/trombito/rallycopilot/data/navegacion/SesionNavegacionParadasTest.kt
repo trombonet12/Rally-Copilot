@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -101,7 +102,13 @@ private class EnrutadorConParadas(
 }
 
 private class RecorridosMudo : RepositorioRecorridos {
+    val llegados = mutableListOf<Long>()
+
     override suspend fun empezar(destinoNombre: String?) = 1L
+
+    override suspend fun marcarLlegado(id: Long) {
+        llegados += id
+    }
 
     override suspend fun anadirPuntos(
         id: Long,
@@ -195,6 +202,7 @@ class SesionNavegacionParadasTest {
         val locutor: LocutorGrabador,
         val ordenes: Channel<OrdenParadas>,
         val sesion: SesionNavegacion,
+        val recorridos: RecorridosMudo,
     ) {
         val guiando get() = estados.filterIsInstance<EstadoNavegacion.Guiando>().last()
     }
@@ -207,11 +215,12 @@ class SesionNavegacionParadasTest {
         val enrutador = EnrutadorConParadas(respuestas.toMutableList())
         val locutor = LocutorGrabador()
         val ordenes = Channel<OrdenParadas>(Channel.UNLIMITED)
+        val recorridos = RecorridosMudo()
         val sesion =
             SesionNavegacion(
                 FuenteReplay(puntos),
                 enrutador,
-                RecorridosMudo(),
+                recorridos,
                 reloj = { 0L },
                 publicar = { estados += it },
                 motivoSinGps = "sin GPS",
@@ -222,7 +231,7 @@ class SesionNavegacionParadasTest {
                     ),
                 ordenes = ordenes,
             )
-        return Escenario(estados, enrutador, locutor, ordenes, sesion)
+        return Escenario(estados, enrutador, locutor, ordenes, sesion, recorridos)
     }
 
     private fun CoroutineScope.lanzar(
@@ -270,6 +279,52 @@ class SesionNavegacionParadasTest {
             advanceTimeBy(10_000)
             assertEquals(EstadoNavegacion.Llegada(final), e.estados.last())
             trabajo.cancel()
+        }
+
+    @Test
+    fun `llegar al destino sin cambiar nada marca el recorrido como llegado`() =
+        runTest {
+            val e = escenario((0..40).map { enRuta(it * 50.0) })
+            lanzar(e)
+
+            advanceUntilIdle()
+
+            assertEquals(listOf(1L), e.recorridos.llegados)
+        }
+
+    @Test
+    fun `un guiado cancelado antes de llegar no se marca como llegado`() =
+        runTest {
+            val e = escenario((0..40).map { enRuta(it * 50.0) })
+            val trabajo = lanzar(e)
+
+            advanceTimeBy(20_500)
+            trabajo.cancel()
+            advanceUntilIdle()
+
+            assertTrue(e.recorridos.llegados.isEmpty())
+        }
+
+    @Test
+    fun `llegar tras quitar una parada por el camino no se marca como llegado`() =
+        runTest {
+            val soloDos = rutaDesde(enRuta(300.0), listOf(parada2))
+            val ida = (1..14).map { p(300.0 + it * 50.0, it * 500.0 / 14) }
+            val vuelta = (1..10).map { p(1000.0, 500.0 + it * 50.0) }
+            val e =
+                escenario(
+                    List(3) { enRuta(300.0) } + ida + vuelta,
+                    listOf(ResultadoRuta.Ok(soloDos, 50)),
+                )
+            lanzar(e)
+
+            advanceTimeBy(1_500)
+            e.ordenes.trySend(OrdenParadas.Quitar(0))
+            advanceUntilIdle()
+
+            assertEquals(1, e.enrutador.peticiones.size)
+            assertEquals(EstadoNavegacion.Llegada(final), e.estados.last())
+            assertTrue(e.recorridos.llegados.isEmpty())
         }
 
     @Test

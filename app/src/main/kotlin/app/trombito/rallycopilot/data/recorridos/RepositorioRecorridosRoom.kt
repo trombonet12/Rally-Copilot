@@ -98,6 +98,10 @@ class RepositorioRecorridosRoom(
         withContext(dispatcher) { dao.guardarTiempoPrevisto(id, segundos) }
     }
 
+    override suspend fun marcarLlegado(id: Long) {
+        withContext(dispatcher) { dao.marcarLlegado(id) }
+    }
+
     override suspend fun idsEnCurso(): List<Long> = withContext(dispatcher) { dao.idsEnCurso() }
 
     override fun listar(): Flow<List<Recorrido>> =
@@ -155,4 +159,4 @@ private fun PuntoRecorrido.aEntidad(recorridoId: Long) =
     )
 
 private fun RecorridoEntity.aDominio(): Recorrido? =
-    finMs?.let { Recorrido(id, inicioMs, it, distanciaM, destinoNombre, tiempoPrevistoS) }
+    finMs?.let { Recorrido(id, inicioMs, it, distanciaM, destinoNombre, tiempoPrevistoS, llegado) }

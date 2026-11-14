@@ -82,7 +82,8 @@ class ProveedorPerfilRitmoImplTest {
         id: Long,
         realS: Double,
         previstoS: Double?,
-    ) = Recorrido(id, 0L, (realS * 1_000).toLong(), 10_000.0, null, previstoS)
+        llegado: Boolean = true,
+    ) = Recorrido(id, 0L, (realS * 1_000).toLong(), 10_000.0, null, previstoS, llegado)
 
     @Test
     fun `construye el perfil con las velocidades por via y el factor de los recorridos`() =
@@ -96,6 +97,24 @@ class ProveedorPerfilRitmoImplTest {
 
             assertEquals(30.0, perfil.vias.getValue(IdVia("Ma-13")).velocidadMediaKmh, 0.1)
             assertEquals(1.25, perfil.factorPersonal, 1e-9)
+        }
+
+    @Test
+    fun `el factor personal solo aprende de los guiados que llegaron`() =
+        runTest {
+            val viajes =
+                listOf(
+                    viaje(1, 1_200.0, 1_000.0),
+                    viaje(2, 1_200.0, 1_000.0),
+                    viaje(3, 1_200.0, 1_000.0),
+                    // Cancelados o con destino cambiado: tardan el doble sin que sea el ritmo de Joan.
+                    viaje(4, 2_000.0, 1_000.0, llegado = false),
+                    viaje(5, 2_000.0, 1_000.0, llegado = false),
+                )
+            val proveedor =
+                ProveedorPerfilRitmoImpl(CarreterasFalso(listOf(lenta)), RecorridosLista(viajes), backgroundScope)
+
+            assertEquals(1.2, proveedor.perfil().factorPersonal, 1e-9)
         }
 
     @Test

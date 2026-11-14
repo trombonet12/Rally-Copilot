@@ -276,6 +276,27 @@ class SesionNavegacionTest {
         }
 
     @Test
+    fun `una fijacion sin velocidad lleva la estimada a las notas y al copiloto`() =
+        runTest {
+            // Fused/red tras un túnel: el GPS no da velocidad, pero la fuente la estima (10 m/s al avanzar 10 m por s).
+            val sinVelocidad =
+                List(12) { Fijacion(p(0.0, it * 10.0), MONOTONO_BASE_MS + it * 1000L, null, null, 5.0) }
+            val e = escenario(FuenteDeFijaciones(sinVelocidad))
+            val trabajo = lanzar(e, SolicitudNavegacion.Libre)
+            advanceTimeBy(11_500)
+            runCurrent()
+            trabajo.cancel()
+            runCurrent()
+
+            // La fijación que siguen notas y copiloto es la misma que se graba: su velocidad es la estimada.
+            val ultima =
+                e.recorridos.lotes
+                    .last()
+                    .velocidadMs
+            assertEquals(10.0, checkNotNull(ultima), 1.0)
+        }
+
+    @Test
     fun `las fijaciones imprecisas de mas de 30 m no se graban ni suman distancia`() =
         runTest {
             // Interior: 5 posiciones aproximadas (80 m) que saltan 50 m; luego 5 buenas (5 m) separadas 10 m.

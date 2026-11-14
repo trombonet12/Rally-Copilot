@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -122,6 +123,28 @@ class RepositorioRecorridosRoomTest {
             assertEquals(1_234.5, recorrido.tiempoPrevistoS ?: 0.0, 0.0)
             val listado = repositorio.listar().first()
             assertEquals(1_234.5, listado.single().tiempoPrevistoS ?: 0.0, 0.0)
+        }
+
+    @Test
+    fun `un recorrido marcado como llegado sale llegado y por defecto no`() =
+        runBlocking {
+            val sin = repositorio.empezar("Sóller")
+            repositorio.anadirPuntos(sin, ruta(11))
+            assertFalse(checkNotNull(repositorio.terminar(sin)).llegado)
+
+            val con = repositorio.empezar("Sóller")
+            repositorio.anadirPuntos(con, ruta(11))
+            repositorio.marcarLlegado(con)
+
+            assertTrue(checkNotNull(repositorio.terminar(con)).llegado)
+            assertEquals(
+                listOf(false, true),
+                repositorio
+                    .listar()
+                    .first()
+                    .sortedBy { it.id }
+                    .map { it.llegado },
+            )
         }
 
     @Test
@@ -329,6 +352,8 @@ private class DaoContador(
     override suspend fun recorridosSinTrocear() = real.recorridosSinTrocear()
 
     override suspend fun marcarTroceado(id: Long) = real.marcarTroceado(id)
+
+    override suspend fun marcarLlegado(id: Long) = real.marcarLlegado(id)
 
     override suspend fun guardarTiempoPrevisto(
         id: Long,

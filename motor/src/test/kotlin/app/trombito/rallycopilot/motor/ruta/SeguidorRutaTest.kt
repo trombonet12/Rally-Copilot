@@ -176,6 +176,39 @@ class SeguidorRutaTest {
     }
 
     @Test
+    fun `tras un hueco largo una primera fijacion de 40 m de error acepta el salto si es claramente mejor`() {
+        val tramo =
+            Ruta(
+                puntos = listOf(p(0.0, 0.0), p(3000.0, 0.0)),
+                maniobras = listOf(m(TipoManiobra.DESTINO, 1, 1, 0.0, 0.0)),
+                longitudM = 3000.0,
+                tiempoS = 300.0,
+            )
+        val seguidor = SeguidorRuta(tramo)
+        seguidor.actualizar(p(100.0, 0.0), 0)
+        // Túnel de 1,6 km: la primera fijación al salir (fused, 40 m de error) cae muy lejos de la ventana de 500 m.
+        val e = seguidor.actualizar(p(1700.0, 40.0), 120_000)
+        assertEquals(1300.0, e.distanciaRestanteM, 1.0)
+        assertEquals(40.0, e.distanciaALaRutaM, 0.5)
+    }
+
+    @Test
+    fun `una fijacion fuera de ruta que tambien queda lejos de la ruta global no salta`() {
+        val tramo =
+            Ruta(
+                puntos = listOf(p(0.0, 0.0), p(3000.0, 0.0)),
+                maniobras = listOf(m(TipoManiobra.DESTINO, 1, 1, 0.0, 0.0)),
+                longitudM = 3000.0,
+                tiempoS = 300.0,
+            )
+        val seguidor = SeguidorRuta(tramo)
+        seguidor.actualizar(p(100.0, 0.0), 0)
+        // A 200 m de la ruta en cualquier punto: no es una reincorporación, se queda con la ventana.
+        val e = seguidor.actualizar(p(1700.0, 200.0), 120_000)
+        assertEquals(3000.0 - 600.0, e.distanciaRestanteM, 1.0)
+    }
+
+    @Test
     fun `la primera posicion busca en toda la ruta`() {
         val e = SeguidorRuta(horquilla).actualizar(p(300.0, 20.0), 0)
         assertEquals(2020.0 - 1720.0, e.distanciaRestanteM, 1.0)

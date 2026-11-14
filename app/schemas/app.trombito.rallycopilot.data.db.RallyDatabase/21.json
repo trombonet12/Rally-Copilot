@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 21,
-    "identityHash": "0d1b19bd3f3df62101d1e22d98f26cd7",
+    "identityHash": "807eb10a5d9b961b0549399e3545755f",
     "entities": [
       {
         "tableName": "archivo_instalado",
@@ -314,7 +314,7 @@
       },
       {
         "tableName": "recorrido",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `inicioMs` INTEGER NOT NULL, `finMs` INTEGER, `distanciaM` REAL NOT NULL, `destinoNombre` TEXT, `tiempoPrevistoS` REAL, `viasTroceadas` INTEGER NOT NULL DEFAULT 0)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `inicioMs` INTEGER NOT NULL, `finMs` INTEGER, `distanciaM` REAL NOT NULL, `destinoNombre` TEXT, `tiempoPrevistoS` REAL, `viasTroceadas` INTEGER NOT NULL DEFAULT 0, `llegado` INTEGER NOT NULL DEFAULT 0)",
         "fields": [
           {
             "fieldPath": "id",
@@ -352,6 +352,13 @@
           {
             "fieldPath": "viasTroceadas",
             "columnName": "viasTroceadas",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "llegado",
+            "columnName": "llegado",
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
@@ -1050,7 +1057,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0d1b19bd3f3df62101d1e22d98f26cd7')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '807eb10a5d9b961b0549399e3545755f')"
     ]
   }
 }

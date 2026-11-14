@@ -84,6 +84,10 @@ abstract class RecorridosDao {
         segundos: Double?,
     ): Int
 
+    /** Marca el recorrido como llegado al destino pedido al empezar; devuelve las filas tocadas. */
+    @Query("UPDATE recorrido SET llegado = 1 WHERE id = :id")
+    abstract suspend fun marcarLlegado(id: Long): Int
+
     @Query("DELETE FROM recorrido WHERE id = :id")
     abstract suspend fun borrar(id: Long)
 

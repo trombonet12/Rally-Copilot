@@ -60,16 +60,28 @@ class MigracionRoomV21Test {
             .also { base = it }
 
     @Test
-    fun `los recorridos se conservan y quedan pendientes de trocear sin tiempo previsto`() =
+    fun `los recorridos se conservan y quedan pendientes de trocear, sin tiempo previsto y sin llegada`() =
         runBlocking {
             sembrarV20()
             val recorridos = migrar().recorridosDao()
 
             assertEquals(
-                RecorridoEntity(1, 1000, 9000, 12345.5, "Sóller", tiempoPrevistoS = null, viasTroceadas = false),
+                RecorridoEntity(
+                    1,
+                    1000,
+                    9000,
+                    12345.5,
+                    "Sóller",
+                    tiempoPrevistoS = null,
+                    viasTroceadas = false,
+                    llegado = false,
+                ),
                 recorridos.recorrido(1),
             )
             assertEquals(null, recorridos.recorrido(2)?.finMs)
+            // La columna nueva se puede escribir y leer en la base migrada.
+            assertEquals(1, recorridos.marcarLlegado(1))
+            assertEquals(true, recorridos.recorrido(1)?.llegado)
             // Solo los terminados entran en la cola de trocear.
             assertEquals(listOf(1L), recorridos.recorridosSinTrocear().map { it.id })
         }

@@ -106,6 +106,8 @@ sealed interface SolicitudNavegacion {
  * vivo con el ritmo del viaje ([RitmoViaje]): real / estimado de lo ya conducido, sin repetir el factor personal. El
  * ritmo no se reinicia al recalcular la ruta (es de Joan y del día, no de la ruta) y vive lo que la sesión. Al
  * empezar a guiar se guarda en el recorrido el tiempo de Valhalla puro de la ruta inicial, para aprender el factor.
+ * Si el guiado llega al destino sin que se cambiaran el destino ni las paradas, el recorrido se marca como llegado:
+ * solo esos viajes enseñan el factor personal.
  */
 @Suppress("LongParameterList") // colaboradores de la sesión: fuente, enrutador, grabación, reloj, salidas y notas
 class SesionNavegacion(
@@ -159,6 +161,8 @@ class SesionNavegacion(
             alertas?.cerrar()
             withContext(NonCancellable) {
                 ejecucion?.volcar()
+                // Llegó al destino pedido sin cambiar de destino ni de paradas: este viaje enseña el factor personal.
+                if (ejecucion?.llegoSinCambios() == true) recorridos.marcarLlegado(id)
                 val recorrido = recorridos.terminar(id)
                 if (cronometra) {
                     crono?.cerrar(recorrido) { recorridos.puntos(id) }
@@ -189,6 +193,9 @@ class SesionNavegacion(
         private val tramoActivo = MutableStateFlow<Tramo?>(null)
         private var tramoReconocido: Tramo? = null
         private var llegado = false
+
+        /** Se cambió el destino o las paradas durante la conducción (aunque el recálculo no llegara a salir). */
+        private var editada = false
         private var ultimaFijacionMs = 0L
         private var ultimaPosicion: PuntoGeo? = null
 
@@ -236,6 +243,9 @@ class SesionNavegacion(
                 }
             }
 
+        /** Guiado que llegó al destino y en el que nadie tocó el destino ni las paradas desde el inicio. */
+        fun llegoSinCambios() = llegado && guia != null && !editada
+
         /** Las notas de la conducción: la hoja de la ruta, la del tramo reconocido o la de la carretera prevista. */
         private fun iniciarNotas() {
             val reconocido = tramoReconocido
@@ -268,9 +278,11 @@ class SesionNavegacion(
             // Posición aproximada (fused/red bajo techo): sirve para pintar, no para grabar, sumar ni seguir la ruta.
             if (!posicion.precisa) return true
             // Velocidad y rumbo ya estimados por la fuente compartida; sin rumbo fiable, el del movimiento (lo usan
-            // la predicción en libre y el sentido contrario).
+            // la predicción en libre y el sentido contrario). La velocidad estimada también va a la fijación: sin ella
+            // (fused/red tras un túnel) notas y copiloto verían 0 y anticiparían lo mínimo.
             val velocidadEstimada = posicion.velocidadMs
-            val fijacion = cruda.copy(rumboGrados = posicion.rumboGrados)
+            val fijacion =
+                cruda.copy(rumboGrados = posicion.rumboGrados, velocidadMs = velocidadEstimada ?: cruda.velocidadMs)
             val ahora = reloj()
             ultimaFijacionMs = fijacion.tiempoMs
             ultimaPosicion = fijacion.punto
@@ -396,7 +408,10 @@ class SesionNavegacion(
                     val nuevas = orden.aplicar(guia.paradas)
                     (nuevas != guia.paradas).also { if (it) guia.paradas = nuevas }
                 }
-            if (cambio) relanzarRecalculo(guia, alcance)
+            if (cambio) {
+                editada = true
+                relanzarRecalculo(guia, alcance)
+            }
         }
 
         private fun relanzarRecalculo(

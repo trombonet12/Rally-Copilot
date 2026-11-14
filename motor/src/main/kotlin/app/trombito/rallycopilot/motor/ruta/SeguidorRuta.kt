@@ -122,8 +122,15 @@ class SeguidorRuta(
             ventana
         } else {
             val global = linea.masCercana(x, y)
+            // Salto: la ruta vuelve a quedar a 30 m o menos en otro punto o, tras un hueco de fijaciones (túnel), con
+            // una primera fijación de hasta 60 m de error, si es claramente mejor (menos de la mitad) que la ventana.
             val esSalto =
-                global.distanciaM <= SOBRE_RUTA_M && (ventana == null || global.distanciaM < ventana.distanciaM)
+                when {
+                    ventana == null -> global.distanciaM <= SOBRE_RUTA_M
+                    global.distanciaM >= ventana.distanciaM -> false
+                    global.distanciaM <= SOBRE_RUTA_M -> true
+                    else -> global.distanciaM <= LEJOS_M && global.distanciaM < ventana.distanciaM / 2
+                }
             if (previo == null || esSalto) global else ventana ?: global
         }
     }
