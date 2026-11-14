@@ -101,6 +101,42 @@ class RitmoViajeTest {
     }
 
     @Test
+    fun `un atasco que avanza a 0,3 m por s durante 6 minutos retrasa la llegada`() {
+        val r = RitmoViaje()
+        r.registrar(1000.0, 80.0, 80.0) // 12,5 m/s previstos
+        repeat(360) { r.registrar(0.3, 1.0, 0.3 / 12.5) }
+        assertEquals(1.6, r.ritmo, 1e-9) // 440 s reales frente a ~89 previstos: sube hasta el tope
+        assertEquals(1.108, r.kmHechos, 0.01) // la última racha corta aún no se resolvió
+    }
+
+    @Test
+    fun `el atasco a tirones con fijaciones espaciadas tambien cuenta`() {
+        val r = RitmoViaje()
+        r.registrar(1000.0, 80.0, 80.0)
+        repeat(12) { r.registrar(9.0, 30.0, 0.72) } // 9 m cada 30 s durante 6 minutos
+        assertEquals(1.6, r.ritmo, 1e-9) // 440 s reales frente a ~89 previstos: sube hasta el tope
+    }
+
+    @Test
+    fun `quieto 5 minutos en una gasolinera no cuenta`() {
+        val r = RitmoViaje()
+        r.registrar(1000.0, 80.0, 80.0)
+        repeat(10) { r.registrar(0.0, 30.0, 0.0) }
+        r.registrar(1000.0, 80.0, 80.0)
+        assertEquals(1.0, r.ritmo, 1e-9)
+        assertEquals(2.0, r.kmHechos, 1e-9)
+    }
+
+    @Test
+    fun `el ruido del GPS parado no lo convierte en marcha`() {
+        val r = RitmoViaje()
+        r.registrar(1000.0, 80.0, 80.0)
+        repeat(5) { r.registrar(1.0, 60.0, 0.0) } // 1 m de bailoteo por minuto, 5 min
+        r.registrar(1000.0, 80.0, 80.0)
+        assertEquals(1.0, r.ritmo, 1e-9)
+    }
+
+    @Test
     fun `un intervalo sin tiempo se ignora`() {
         val r = RitmoViaje()
         r.registrar(1000.0, 0.0, 60.0)

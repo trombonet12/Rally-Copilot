@@ -2,14 +2,20 @@ package app.trombito.rallycopilot.motor.ruta
 
 /**
  * Ritmo real del viaje en curso frente al previsto, para corregir en vivo lo que queda. Se alimenta con muestras
- * ([registrar]): distancia y tiempo de un intervalo y el tiempo previsto para esa distancia. Las paradas de más de
- * [PARADA_LARGA_S] seguidos no cuentan; las cortas (semáforos, retenciones) sí.
+ * ([registrar]): distancia y tiempo de un intervalo y el tiempo previsto para esa distancia. Solo es parada estar
+ * quieto (menos de [VELOCIDAD_QUIETO_MS] de media, con [RUIDO_GPS_M] de tolerancia al ruido del GPS): si dura más de
+ * [PARADA_LARGA_S] seguidos no cuenta (gasolinera, descanso); las cortas (semáforos) sí. Un atasco que avanza, aunque
+ * sea poco, cuenta siempre: retrasa la llegada.
  */
 class RitmoViaje {
     private var realS = 0.0
     private var previstoS = 0.0
     private var distanciaM = 0.0
+
+    // Racha de quietud en curso: no se sabe si cuenta hasta que el coche vuelve a moverse.
     private var paradaS = 0.0
+    private var paradaM = 0.0
+    private var paradaPrevistoS = 0.0
 
     /** Kilómetros recorridos en marcha. */
     val kmHechos: Double get() = distanciaM / METROS_POR_KM
@@ -21,12 +27,23 @@ class RitmoViaje {
         previstoS: Double,
     ) {
         if (tiempoS <= 0.0) return
-        if (distanciaM / tiempoS < VELOCIDAD_PARADO_MS) {
-            paradaS += tiempoS
+        val racha = paradaS + tiempoS
+        val rachaM = paradaM + distanciaM
+        if (rachaM < RUIDO_GPS_M || rachaM / racha < VELOCIDAD_QUIETO_MS) {
+            paradaS = racha
+            // Pasado el ruido sin moverse de verdad (deriva lenta), se vuelve a medir desde cero.
+            paradaM = if (rachaM < RUIDO_GPS_M) rachaM else 0.0
+            paradaPrevistoS += previstoS
             return
         }
-        if (paradaS <= PARADA_LARGA_S) realS += paradaS
+        if (paradaS <= PARADA_LARGA_S) {
+            realS += paradaS
+            this.previstoS += paradaPrevistoS
+            this.distanciaM += paradaM
+        }
         paradaS = 0.0
+        paradaM = 0.0
+        paradaPrevistoS = 0.0
         realS += tiempoS
         this.previstoS += previstoS
         this.distanciaM += distanciaM
@@ -43,7 +60,12 @@ class RitmoViaje {
         const val PARADA_LARGA_S = 120.0
         const val RITMO_MIN = 0.7
         const val RITMO_MAX = 1.6
-        private const val VELOCIDAD_PARADO_MS = 0.5
+
+        /** Por debajo de esta velocidad media (m/s) se está quieto. */
+        const val VELOCIDAD_QUIETO_MS = 0.1
+
+        /** Desplazamiento (m) que se tolera como ruido del GPS estando quieto. */
+        const val RUIDO_GPS_M = 3.0
         private const val METROS_POR_KM = 1000.0
         private const val KM_PESO_MEDIO = 5.0
         private const val KM_PESO_ALTO = 20.0
