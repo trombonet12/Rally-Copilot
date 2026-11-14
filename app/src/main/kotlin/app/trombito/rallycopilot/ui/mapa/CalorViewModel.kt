@@ -7,6 +7,8 @@ import app.trombito.rallycopilot.domain.carreteras.CalculoCarreteras
 import app.trombito.rallycopilot.domain.carreteras.MisCarreteras
 import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,6 +17,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -28,11 +31,16 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class CalorViewModel
-    @Inject
-    constructor(
+    internal constructor(
         calculo: CalculoCarreteras,
         private val almacen: AlmacenCalor,
+        despachadorGeoJson: CoroutineDispatcher,
+        construirGeoJson: (List<TramoCalor>, ModoCalor) -> String,
     ) : ViewModel() {
+        @Inject
+        constructor(calculo: CalculoCarreteras, almacen: AlmacenCalor) :
+            this(calculo, almacen, Dispatchers.Default, ::calorGeoJsonTexto)
+
         private val activo = MutableStateFlow(almacen.activo())
         private val modo = MutableStateFlow(almacen.modo())
         private val ficha = MutableStateFlow<FichaCalor?>(null)
@@ -53,6 +61,17 @@ class CalorViewModel
                         throw fallo
                     }
                 }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), emptyList())
+
+        /**
+         * El FeatureCollection de las vías para el modo elegido, ya serializado: se construye en [despachadorGeoJson]
+         * (pesado: no se hace en el hilo principal) y la capa solo lo aplica. Se recalcula si cambian los tramos o
+         * el modo.
+         */
+        val geoJson: StateFlow<String> =
+            combine(tramos, modo) { t, m -> t to m }
+                .map { (t, m) -> construirGeoJson(t, m) }
+                .flowOn(despachadorGeoJson)
+                .stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), CALOR_GEOJSON_VACIO)
 
         fun onActivo(encendida: Boolean) {
             almacen.guardarActivo(encendida)

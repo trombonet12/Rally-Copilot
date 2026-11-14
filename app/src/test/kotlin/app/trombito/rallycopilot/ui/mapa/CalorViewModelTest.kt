@@ -13,13 +13,17 @@ import app.trombito.rallycopilot.motor.vias.Via
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,6 +34,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import java.util.concurrent.Executors
 
 private class CarreterasFalsas(
     inicial: MisCarreteras,
@@ -166,6 +171,45 @@ class CalorViewModelTest {
         modelo.onFicha(ficha)
         modelo.onCerrarFicha()
         assertNull(modelo.estado.value.ficha)
+    }
+
+    @Test
+    fun `el geojson se construye fuera del hilo principal y llega serializado`() {
+        val hilos = mutableListOf<String>()
+        val ejecutor = Executors.newSingleThreadExecutor { Thread(it, "calor-json") }
+        try {
+            val modelo =
+                CalorViewModel(CarreterasFalsas(conMedia), almacen(), ejecutor.asCoroutineDispatcher()) { t, m ->
+                    hilos += Thread.currentThread().name
+                    calorGeoJsonTexto(t, m)
+                }
+            val json = runBlocking { withTimeout(5_000) { modelo.geoJson.first { it != CALOR_GEOJSON_VACIO } } }
+            assertTrue(json.contains("\"FeatureCollection\""))
+            assertTrue(json.contains("Ma-10"))
+            assertTrue(hilos.isNotEmpty())
+            assertTrue("se construyó en $hilos", hilos.all { it.startsWith("calor-json") })
+        } finally {
+            ejecutor.shutdownNow()
+        }
+    }
+
+    @Test
+    fun `cambiar de modo recalcula el geojson y sin cambios no se repite`() {
+        var llamadas = 0
+        val modelo =
+            CalorViewModel(CarreterasFalsas(conMedia), almacen(), Dispatchers.Main) { t, m ->
+                llamadas++
+                calorGeoJsonTexto(t, m)
+            }
+        val recoleccion = CoroutineScope(Dispatchers.Main).launch { modelo.geoJson.collect { } }
+        val enUso = modelo.geoJson.value
+        val antes = llamadas
+        modelo.onModo(ModoCalor.VELOCIDAD)
+        assertEquals(antes + 1, llamadas)
+        assertTrue(modelo.geoJson.value != enUso)
+        modelo.onModo(ModoCalor.VELOCIDAD)
+        assertEquals(antes + 1, llamadas)
+        recoleccion.cancel()
     }
 
     /** Suscribe a los tramos (que solo se calculan con alguien mirando) y devuelve cómo dejar de mirar. */

@@ -100,11 +100,15 @@ internal class CapaFantasma {
         origen: PosicionFantasma,
         destino: PosicionFantasma,
     ) {
+        val limitador = LimitadorFotogramas(INTERVALO_MIN_FOTOGRAMA_MS)
         animador =
             ValueAnimator.ofFloat(0f, 1f).apply {
                 duration = DURACION_ANIMACION_MS
                 interpolator = LinearInterpolator()
                 addUpdateListener { a ->
+                    // setGeoJson serializa y re-tesela: solo se envía a ~15 fps (y siempre el último fotograma).
+                    val ultimo = a.animatedFraction >= 1f
+                    if (!limitador.admite(a.currentPlayTime, ultimo)) return@addUpdateListener
                     val actual = interpolarFantasma(origen, destino, a.animatedFraction.toDouble())
                     mostrada = actual
                     fuente.setGeoJson(fantasmaGeoJson(actual))
@@ -122,6 +126,29 @@ internal class CapaFantasma {
         if (icono == iconoDibujado) return
         iconoDibujado = icono
         estilo.addImage(ID_IMAGEN, siluetaDe(contexto, icono))
+    }
+}
+
+/** Separación mínima entre dos envíos a la fuente durante el deslizamiento: ~15 fps (66 ms). */
+internal const val INTERVALO_MIN_FOTOGRAMA_MS = 66L
+
+/**
+ * Deja pasar un fotograma como mucho cada [intervaloMs] (por el reloj de la animación, no por el de pared). El primero
+ * y el [ultimo] pasan siempre, para empezar y terminar exactos.
+ */
+internal class LimitadorFotogramas(
+    private val intervaloMs: Long,
+) {
+    private var anteriorMs: Long? = null
+
+    fun admite(
+        ahoraMs: Long,
+        ultimo: Boolean = false,
+    ): Boolean {
+        val anterior = anteriorMs
+        if (!ultimo && anterior != null && ahoraMs - anterior < intervaloMs) return false
+        anteriorMs = ahoraMs
+        return true
     }
 }
 

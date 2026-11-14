@@ -94,6 +94,27 @@ class CapaFantasmaTest {
     }
 
     @Test
+    fun `el limitador deja pasar un fotograma cada 66 ms y siempre el primero y el ultimo`() {
+        val limitador = LimitadorFotogramas(INTERVALO_MIN_FOTOGRAMA_MS)
+        assertTrue(limitador.admite(0))
+        assertFalse(limitador.admite(16))
+        assertFalse(limitador.admite(65))
+        assertTrue(limitador.admite(66))
+        assertFalse(limitador.admite(100))
+        assertTrue(limitador.admite(132))
+        // El último pasa aunque esté pegado al anterior.
+        assertTrue(limitador.admite(140, ultimo = true))
+        assertFalse(limitador.admite(150))
+    }
+
+    @Test
+    fun `a 60 fps en un segundo se envian como mucho 16 actualizaciones`() {
+        val limitador = LimitadorFotogramas(INTERVALO_MIN_FOTOGRAMA_MS)
+        val enviados = (0..60).count { limitador.admite(it * 1_000L / 60, ultimo = it == 60) }
+        assertTrue("enviados: $enviados", enviados in 2..16)
+    }
+
+    @Test
     fun `la capa es translucida`() {
         assertEquals(0.45f, OPACIDAD_FANTASMA, 0f)
     }

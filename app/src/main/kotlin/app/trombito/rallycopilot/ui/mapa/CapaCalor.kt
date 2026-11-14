@@ -91,11 +91,13 @@ data class FichaCalor(
     val velMediaKmh: Double?,
 )
 
-/** Lo que el mapa pinta cuando la capa es visible; null en [PreferenciasVistaMapa.calor] = oculta. */
+/**
+ * Lo que el mapa pinta cuando la capa es visible; null en [PreferenciasVistaMapa.calor] = oculta. [geoJson] es el
+ * FeatureCollection ya serializado (lo construye [CalorViewModel] fuera del hilo principal; ver [calorGeoJsonTexto]).
+ */
 @Immutable
 data class DatosCalor(
-    val tramos: List<TramoCalor>,
-    val modo: ModoCalor,
+    val geoJson: String,
 )
 
 /** Estado de la capa de calor que ve la pantalla: interruptor (por defecto encendida), modo y ficha abierta. */
@@ -156,6 +158,15 @@ internal fun calorGeoJson(
             },
     )
 
+/** [calorGeoJson] ya serializado: `GeoJsonSource.setGeoJson(String)` lo consume sin trabajo extra en el main. */
+internal fun calorGeoJsonTexto(
+    tramos: List<TramoCalor>,
+    modo: ModoCalor,
+): String = calorGeoJson(tramos, modo).toJson()
+
+/** GeoJSON de una capa sin vías. */
+internal const val CALOR_GEOJSON_VACIO = """{"type":"FeatureCollection","features":[]}"""
+
 /** Color `#RRGGBB` y ancho de una vía según el [modo]. */
 private fun estiloDe(
     tramo: TramoCalor,
@@ -203,7 +214,7 @@ internal class CapaCalor {
         datos: DatosCalor?,
     ) {
         enviado = datos
-        estilo.addSource(GeoJsonSource(ID_FUENTE, calorGeoJson(datos?.tramos.orEmpty(), datos?.modo ?: ModoCalor.USO)))
+        estilo.addSource(GeoJsonSource(ID_FUENTE, datos?.geoJson ?: CALOR_GEOJSON_VACIO))
         val etiquetas = estilo.layers.firstOrNull { it is SymbolLayer }?.id
         val visibilidad = PropertyFactory.visibility(if (datos != null) Property.VISIBLE else Property.NONE)
         listOf(
@@ -218,9 +229,9 @@ internal class CapaCalor {
         estilo: Style,
         datos: DatosCalor?,
     ) {
-        if (datos != null && datos != enviado) {
+        if (datos != null && datos.geoJson != enviado?.geoJson) {
             enviado = datos
-            estilo.getSourceAs<GeoJsonSource>(ID_FUENTE)?.setGeoJson(calorGeoJson(datos.tramos, datos.modo))
+            estilo.getSourceAs<GeoJsonSource>(ID_FUENTE)?.setGeoJson(datos.geoJson)
         }
         val visibilidad = PropertyFactory.visibility(if (datos != null) Property.VISIBLE else Property.NONE)
         listOf(ID_BORDE, ID_LINEA).forEach { estilo.getLayer(it)?.setProperties(visibilidad) }
@@ -289,7 +300,7 @@ internal fun rememberDatosCalor(
     velocidadKmh: Int?,
 ): DatosCalor? {
     val visible = calorVisible(calor.activo, control, rememberMarchaRapida(velocidadKmh))
-    val tramos by viewModel.tramos.collectAsStateWithLifecycle()
+    val geoJson by viewModel.geoJson.collectAsStateWithLifecycle()
     LaunchedEffect(visible) { if (!visible) viewModel.onCerrarFicha() }
-    return remember(visible, tramos, calor.modo) { if (visible) DatosCalor(tramos, calor.modo) else null }
+    return remember(visible, geoJson) { if (visible) DatosCalor(geoJson) else null }
 }

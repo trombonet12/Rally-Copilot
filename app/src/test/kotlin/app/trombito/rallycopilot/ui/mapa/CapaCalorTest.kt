@@ -14,6 +14,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.maplibre.geojson.Feature
+import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.LineString
 import org.maplibre.geojson.Point
 import java.util.Locale
@@ -124,6 +125,14 @@ class CapaCalorTest {
         val linea = feature.geometry() as LineString
         assertEquals(2.9, linea.coordinates().first().longitude(), 0.0)
         assertEquals(39.7, linea.coordinates().first().latitude(), 0.0)
+    }
+
+    @Test
+    fun `el texto es el mismo geojson serializado`() {
+        val tramos = listOf(tramo(1, 3, kmh = 30.0))
+        assertEquals(calorGeoJson(tramos, ModoCalor.USO).toJson(), calorGeoJsonTexto(tramos, ModoCalor.USO))
+        assertTrue(calorGeoJsonTexto(emptyList(), ModoCalor.USO).contains("\"features\":[]"))
+        assertEquals(FeatureCollection.fromFeatures(emptyList<Feature>()).toJson(), CALOR_GEOJSON_VACIO)
     }
 
     @Test
