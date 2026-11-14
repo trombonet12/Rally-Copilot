@@ -26,6 +26,11 @@ import java.io.File
  * palabras casadas enteras, calles primero si se pide una calle, importancia y, con `cerca`, cercanía. Una consulta que
  * es solo una categoría («hospital») da los más cercanos de esa categoría y se completa con la búsqueda por palabras.
  *
+ * Antes de buscar se limpia el texto ([ConsultaBusqueda.intentos]): se leen las direcciones pegadas («calle, 5, 07002
+ * Palma, Balearic Islands»), se quitan portal y código postal finales, se expanden abreviaturas («c/», «avda») y se
+ * aplican equivalencias castellano/catalán de nombres («Jaime»/«Jaume»). Si con todas las palabras no hay nada y la
+ * consulta tiene 3 o más, se reintenta quitando una (la menos selectiva primero).
+ *
  * Sin `palabras` (índice viejo): primero el prefijo del nombre (usa el índice `nombre_norm`) y después las demás
  * palabras que empiecen así; en cada paso, por importancia y, con `cerca`, por cercanía.
  */
@@ -46,14 +51,14 @@ class BuscadorSqlite(
     ): List<ResultadoBusqueda> {
         val consulta = NormalizadorNombre.normalizar(texto)
         if (consulta.length < LETRAS_MINIMAS || limite <= 0) return emptyList()
-        val interpretada = ConsultaBusqueda.de(texto)
+        val interpretadas = ConsultaBusqueda.intentos(texto)
         siembra.esperar()
         return withContext(dispatcher) {
             cerrojo.withLock {
                 val db = abierta() ?: return@withLock emptyList()
                 try {
                     if (conPalabras) {
-                        ConsultasPalabras.buscar(db, interpretada, cerca, limite)
+                        ConsultasPalabras.buscarIntentos(db, interpretadas, cerca, limite)
                     } else {
                         consultar(db, consulta, cerca, limite)
                     }

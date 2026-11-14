@@ -52,6 +52,48 @@ internal object ConsultasPalabras {
             "(l.lon - CAST(? AS REAL)) * (l.lon - CAST(? AS REAL)) * CAST(? AS REAL))"
     private const val RANGO_PALABRA = "SELECT lugar FROM palabras WHERE palabra >= ? AND palabra < ?"
 
+    /** Palabras mínimas para relajar: con menos, quitar una deja una sola palabra y el resultado sería ruido. */
+    private const val MIN_PALABRAS_RELAJAR = 3
+
+    /**
+     * Prueba los [intentos] (de más a menos exigente) con todas las palabras; si ninguno da resultados, repite
+     * exigiendo todas las palabras menos una (ver [relajada]).
+     */
+    fun buscarIntentos(
+        db: SQLiteDatabase,
+        intentos: List<ConsultaBusqueda>,
+        cerca: PuntoGeo?,
+        limite: Int,
+    ): List<ResultadoBusqueda> =
+        intentos.firstNotNullOfOrNull { buscar(db, it, cerca, limite).ifEmpty { null } }
+            ?: intentos.firstNotNullOfOrNull { relajada(db, it, cerca, limite).ifEmpty { null } }
+            ?: emptyList()
+
+    /** Quita una palabra (primero la menos selectiva, la que casa con más lugares) hasta que haya resultados. */
+    private fun relajada(
+        db: SQLiteDatabase,
+        consulta: ConsultaBusqueda,
+        cerca: PuntoGeo?,
+        limite: Int,
+    ): List<ResultadoBusqueda> {
+        val palabras = consulta.palabras.take(MAX_PALABRAS)
+        if (palabras.size < MIN_PALABRAS_RELAJAR) return emptyList()
+        val porSelectividad = palabras.indices.sortedByDescending { contar(db, palabras[it]) }
+        return porSelectividad
+            .firstNotNullOfOrNull { porPalabras(db, consulta.sinPalabra(it), cerca, limite).ifEmpty { null } }
+            .orEmpty()
+    }
+
+    /** Lugares con alguna palabra que empieza como la palabra o sus alternativas. */
+    private fun contar(
+        db: SQLiteDatabase,
+        palabra: PalabraConsulta,
+    ): Long {
+        val sql = "SELECT COUNT(*) FROM (" + palabra.alternativas.joinToString(" UNION ") { RANGO_PALABRA } + ")"
+        val argumentos = palabra.alternativas.flatMap { listOf(it, it.siguientePrefijo()) }.toTypedArray()
+        return db.rawQuery(sql, argumentos).use { if (it.moveToFirst()) it.getLong(0) else 0L }
+    }
+
     fun buscar(
         db: SQLiteDatabase,
         consulta: ConsultaBusqueda,

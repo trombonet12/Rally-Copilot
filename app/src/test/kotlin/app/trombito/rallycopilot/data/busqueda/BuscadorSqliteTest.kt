@@ -405,6 +405,48 @@ class BuscadorSqliteTest {
     }
 
     @Test
+    fun `una direccion pegada de google encuentra la calle en su municipio`() {
+        indiceNuevo()
+
+        val r = buscar("Carrer de Colom, 5, Bajos, Norte, 07001 Palma, Balearic Islands")
+
+        assertEquals("Carrer de Colom", r.first().nombre)
+        assertEquals("Palma", r.first().municipio)
+        assertEquals("Inca", buscar("c/ Colom 12, 07300 Inca, Illes Balears").first().municipio)
+    }
+
+    @Test
+    fun `si el municipio de la direccion no tiene la calle cae a solo la calle`() {
+        indiceNuevo()
+
+        val r = buscar("Carrer de Colom, 5, 07500 Manacor, Illes Balears")
+
+        val municipios = r.filter { it.nombre == "Carrer de Colom" }.mapNotNull { it.municipio }
+        assertEquals(setOf("Palma", "Inca"), municipios.toSet())
+    }
+
+    @Test
+    fun `el numero de portal, la abreviatura y el nombre castellano no estorban`() {
+        indiceNuevo()
+
+        assertEquals("Carrer de Colom", buscar("c/ Colom 12 Palma").first().nombre)
+        assertEquals("Carrer de Colom", buscar("calle Colón 12").first().nombre)
+        assertEquals("Plaça Major", buscar("pza Major 3").first().nombre)
+    }
+
+    @Test
+    fun `con tres palabras o mas relaja quitando la menos selectiva`() {
+        indiceNuevo()
+
+        // «norte» no existe: se quita ella y quedan calle, colom y palma.
+        assertEquals("Carrer de Colom", buscar("calle colom palma norte").first().nombre)
+        // Con dos palabras no se relaja: el municipio sigue filtrando.
+        assertTrue(buscar("colom manacor").isEmpty())
+        // Si ni quitando una palabra hay resultados, vacío.
+        assertTrue(buscar("zzz yyy xxx www").isEmpty())
+    }
+
+    @Test
     fun `un indice viejo sin palabras sigue funcionando`() {
         crearIndice(archivo, lugares = lugaresPalabras)
 

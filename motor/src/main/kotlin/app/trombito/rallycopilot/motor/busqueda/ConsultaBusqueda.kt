@@ -25,17 +25,35 @@ data class ConsultaBusqueda(
     /** Sin ninguna palabra útil (vacía o solo palabras vacías). */
     val vacia: Boolean get() = palabras.isEmpty()
 
+    /** La misma consulta sin la palabra [indice] (relajación: exigir todas menos una). */
+    fun sinPalabra(indice: Int): ConsultaBusqueda =
+        deEscritas(palabras.filterIndexed { i, _ -> i != indice }.map { it.escrita })
+
     companion object {
         /** Palabras que `busqueda.py` no indexa; ya normalizadas. */
         val PALABRAS_VACIAS: Set<String> =
             setOf("de", "del", "la", "el", "les", "los", "las", "d", "l", "s", "sa", "es", "en", "i", "y", "a", "al")
 
-        fun de(texto: String): ConsultaBusqueda {
-            val escritas =
-                NormalizadorNombre
-                    .normalizar(texto)
-                    .split(' ')
-                    .filter { it.isNotEmpty() && it !in PALABRAS_VACIAS }
+        /** La consulta principal de [texto]: la primera de [intentos]. */
+        fun de(texto: String): ConsultaBusqueda = intentos(texto).first()
+
+        /**
+         * Consultas a probar, de más a menos exigente. Sin comas, una sola (limpia de portal, CP y abreviaturas). Con
+         * dirección pegada ([LectorDireccion]): calle + municipio y, si no da nada, solo la calle.
+         */
+        fun intentos(texto: String): List<ConsultaBusqueda> {
+            val direccion = LectorDireccion.leer(texto)
+            val sola = deTexto(direccion.calle.ifEmpty { texto })
+            val conMunicipio = direccion.municipio?.let { deTexto("${direccion.calle} $it") }
+            return listOfNotNull(conMunicipio, sola).filter { !it.vacia }.ifEmpty { listOf(sola) }
+        }
+
+        private fun deTexto(texto: String): ConsultaBusqueda {
+            val limpias = LimpiezaConsulta.sinDatosDePortal(LimpiezaConsulta.palabras(texto))
+            return deEscritas(limpias.filter { it !in PALABRAS_VACIAS })
+        }
+
+        private fun deEscritas(escritas: List<String>): ConsultaBusqueda {
             val palabras = escritas.map { PalabraConsulta(it, alternativasDe(it)) }
             val categoria = escritas.singleOrNull()?.let { CATEGORIAS[it] }
             val pideCalle = palabras.any { p -> p.alternativas.any { it in PALABRAS_DE_CALLE } }
@@ -46,6 +64,35 @@ data class ConsultaBusqueda(
             val grupo = SINONIMOS[palabra] ?: return listOf(palabra)
             return listOf(palabra) + grupo.filter { it != palabra }
         }
+
+        /**
+         * Nombres propios que cambian entre castellano y catalán en los nombres de calle («Jaume»/«Jaime»,
+         * «Colom»/«Colón»); ya normalizados. «Ramón», «Gabriel» o «Tomás» no están: normalizados son iguales.
+         */
+        private val NOMBRES_PROPIOS: List<List<String>> =
+            listOf(
+                listOf("sant", "san", "santa"),
+                listOf("jaume", "jaime"),
+                listOf("colom", "colon"),
+                listOf("joan", "juan"),
+                listOf("miquel", "miguel"),
+                listOf("pere", "pedro"),
+                listOf("antoni", "antonio"),
+                listOf("josep", "jose"),
+                listOf("francesc", "francisco"),
+                listOf("rei", "rey"),
+                listOf("bartomeu", "bartolome"),
+                listOf("jordi", "jorge"),
+                listOf("llorenc", "lorenzo"),
+                listOf("mateu", "mateo"),
+                listOf("andreu", "andres"),
+                listOf("nicolau", "nicolas"),
+                listOf("sebastia", "sebastian"),
+                listOf("pau", "pablo"),
+                listOf("esteve", "esteban"),
+                listOf("maria", "mariano"),
+                listOf("catalina", "caterina"),
+            )
 
         /** Grupos de sinónimos ya normalizados (plaça -> placa, col·legi -> collegi, estación -> estacion). */
         private val GRUPOS: List<List<String>> =
@@ -75,12 +122,12 @@ data class ConsultaBusqueda(
                 listOf("fuente", "font"),
                 listOf("isla", "illa"),
                 listOf("gasolinera", "benzinera"),
-            )
+            ) + NOMBRES_PROPIOS
 
         private val SINONIMOS: Map<String, List<String>> =
             buildMap { for (grupo in GRUPOS) for (p in grupo) put(p, grupo) }
 
-        private val PALABRAS_DE_CALLE: Set<String> =
+        internal val PALABRAS_DE_CALLE: Set<String> =
             setOf(
                 "calle",
                 "carrer",
