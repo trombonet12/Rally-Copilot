@@ -10,6 +10,7 @@ import android.os.Looper
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.R
+import app.trombito.rallycopilot.RallyCopilotApplication
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.RecorridoEntity
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
@@ -18,12 +19,14 @@ import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -43,6 +46,12 @@ class ServicioNavegacionTest {
     @Before
     fun preparar() {
         shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+
+    /** El scope de proceso del grafo Hilt no se cancela solo: sus colectores no deben sobrevivir al test. */
+    @After
+    fun cancelarAlcanceDeProceso() {
+        (app as RallyCopilotApplication).segundoPlano.cancel()
     }
 
     @Test

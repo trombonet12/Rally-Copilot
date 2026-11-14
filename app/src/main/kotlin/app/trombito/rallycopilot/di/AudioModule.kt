@@ -47,7 +47,7 @@ object AudioModule {
             RutaAudioCasco(
                 sistema = sistema,
                 sdk = Build.VERSION.SDK_INT,
-                permiso = { PermisoBluetooth.concedido(contexto) },
+                permiso = { permisoBluetooth(contexto) },
                 ambito = ambito,
                 reloj = { SystemClock.elapsedRealtime() },
                 activado = { automatico.get() },
@@ -61,4 +61,12 @@ object AudioModule {
             }.launchIn(ambito)
         return ruta
     }
+
+    /**
+     * `BLUETOOTH_CONNECT` concedido. Se consulta desde el colector de ajustes, que vive en el scope de proceso y puede
+     * despertar con el sistema ya desmontado (p. ej. Robolectric entre pruebas): un fallo aquí no puede escapar a
+     * `Dispatchers.Default` ni tumbar el flujo, y cuenta como no concedido (todo por el móvil).
+     */
+    internal fun permisoBluetooth(contexto: Context): Boolean =
+        runCatching { PermisoBluetooth.concedido(contexto) }.getOrDefault(false)
 }
