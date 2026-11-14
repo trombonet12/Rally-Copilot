@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.voz
 
 import android.os.SystemClock
 import android.util.Log
+import app.trombito.rallycopilot.domain.diagnostico.RegistroDiagnostico
 import app.trombito.rallycopilot.domain.voz.Locutor
 import app.trombito.rallycopilot.domain.voz.PrioridadVoz
 import app.trombito.rallycopilot.domain.voz.VelocidadHabla
@@ -54,6 +55,8 @@ class LocutorImpl(
      * cuanto acaba la descarga se empieza a usar. La caché de frases es de la voz efectiva: no se mezclan.
      */
     private val vozDisponible: (VozCopiloto) -> VozCopiloto = { it },
+    /** Registro de diagnóstico (errores de voz, sin el texto de las frases). */
+    private val registro: RegistroDiagnostico = RegistroDiagnostico.Nulo,
 ) : Locutor {
     private class Peticion(
         val voz: VozCopiloto,
@@ -233,6 +236,7 @@ class LocutorImpl(
                     }
                 } catch (e: ErrorSintesis) {
                     Log.w(TAG, "No se pudo sintetizar una frase de ${p.texto.length} caracteres", e)
+                    registro.error(TAG, "voz error sintesis chars=${p.texto.length} tipo=${e.javaClass.simpleName}")
                     null
                 }
             }
@@ -258,6 +262,7 @@ class LocutorImpl(
             }
         } catch (e: ErrorSintesis) {
             Log.w(TAG, "No se pudo reproducir la frase", e)
+            registro.error(TAG, "voz error reproduccion tipo=${e.javaClass.simpleName}")
         } finally {
             foco.soltar()
             estaHablando.value = false

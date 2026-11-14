@@ -11,6 +11,7 @@ import app.trombito.rallycopilot.data.voz.ReproductorAudioTrack
 import app.trombito.rallycopilot.data.voz.ReproductorPcm
 import app.trombito.rallycopilot.data.voz.SintetizadorTts
 import app.trombito.rallycopilot.data.voz.VocesInstaladas
+import app.trombito.rallycopilot.domain.diagnostico.RegistroDiagnostico
 import app.trombito.rallycopilot.domain.voz.Locutor
 import dagger.Binds
 import dagger.Module
@@ -49,6 +50,7 @@ abstract class VozModule {
             foco: FocoAudio,
             voces: VocesInstaladas,
             @ApplicationScope ambito: CoroutineScope,
+            registro: RegistroDiagnostico,
         ): Locutor =
             LocutorImpl(
                 cache = CacheFrases(File(contexto.cacheDir, "voz")),
@@ -56,6 +58,7 @@ abstract class VozModule {
                 reproductor = reproductor,
                 foco = foco,
                 vozDisponible = voces::efectiva,
+                registro = registro,
                 ambito = ambito,
                 dispatcherSintesis =
                     Executors

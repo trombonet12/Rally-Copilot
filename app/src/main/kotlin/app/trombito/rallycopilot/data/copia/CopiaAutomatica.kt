@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
 import app.trombito.rallycopilot.domain.copia.CopiaDatos
+import app.trombito.rallycopilot.domain.diagnostico.RegistroDiagnostico
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,7 @@ class CopiaAutomatica(
     private val dispatcher: CoroutineDispatcher,
     private val ahora: () -> Long = System::currentTimeMillis,
     private val zona: ZoneId = ZoneId.systemDefault(),
+    private val registro: RegistroDiagnostico = RegistroDiagnostico.Nulo,
 ) : CopiaAutomaticaDatos {
     private val preferencias: SharedPreferences =
         contexto.getSharedPreferences(ARCHIVO, Context.MODE_PRIVATE)
@@ -78,11 +80,13 @@ class CopiaAutomatica(
                 mover(temporalFechada, fechada)
                 fechada.setLastModified(ahoraMs)
                 fechadas(destino).drop(MAX_FECHADAS).forEach { it.delete() }
+                registro.info(ETIQUETA, "copia automatica hecha bytes=${ultima.length()}")
                 true
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Log.w(ETIQUETA, "No se pudo guardar la copia automática: ${e.javaClass.simpleName}")
+                registro.error(ETIQUETA, "copia automatica fallida tipo=${e.javaClass.simpleName}")
                 false
             } finally {
                 temporal.delete()

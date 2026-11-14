@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
 import app.trombito.rallycopilot.domain.copia.CopiaDatos
 import app.trombito.rallycopilot.domain.copia.ReiniciadorApp
+import app.trombito.rallycopilot.domain.diagnostico.RegistroDiagnostico
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -43,7 +44,8 @@ object CopiaModule {
         @ApplicationContext contexto: Context,
         copia: CopiaDatos,
         @DispatcherIo dispatcher: CoroutineDispatcher,
-    ): CopiaAutomaticaDatos = CopiaAutomatica(contexto, copia, dispatcher)
+        registro: RegistroDiagnostico,
+    ): CopiaAutomaticaDatos = CopiaAutomatica(contexto, copia, dispatcher, registro = registro)
 
     @Provides
     @Singleton
