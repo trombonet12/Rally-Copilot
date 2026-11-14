@@ -261,7 +261,7 @@ class TroceadorViasTest {
 
         assertEquals("Manacor", tramo.destino)
         assertNull(vistos.single().destino)
-        assertEquals("Ma-15 · km 0,0→5,0 · hacia Manacor", nombreTramoVia(tramo))
+        assertEquals("Ma-15 · km ~0,0→~5,0 · hacia Manacor", nombreTramoVia(tramo))
     }
 
     @Test
@@ -271,6 +271,16 @@ class TroceadorViasTest {
         assertEquals("Ma-15 · km 20,1→32,4 · hacia Manacor", nombreTramoVia(tramo))
         assertEquals("Ma-15 · km 20,1→32,4", nombreTramoVia(tramo.copy(destino = null)))
         assertEquals("Ma-15 · km 32,4→20,1", nombreTramoVia(tramo.copy(pkDesde = 32.4, pkHasta = 20.1, destino = " ")))
+    }
+
+    @Test
+    fun `el PK estimado lleva tilde en el nombre y el de mojones reales no`() {
+        val tramo = tramo(pkDesde = 20.1, pkHasta = 32.4, destino = "Manacor")
+
+        assertEquals("Ma-15 · km 20,1→32,4 · hacia Manacor", nombreTramoVia(tramo.copy(pkEstimado = false)))
+        assertEquals("Ma-15 · km ~20,1→~32,4 · hacia Manacor", nombreTramoVia(tramo.copy(pkEstimado = true)))
+        val inverso = tramo.copy(pkDesde = 32.4, pkHasta = 20.1, destino = null, pkEstimado = true)
+        assertEquals("Ma-15 · km ~32,4→~20,1", nombreTramoVia(inverso))
     }
 
     @Test

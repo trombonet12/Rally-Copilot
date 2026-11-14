@@ -78,13 +78,15 @@ private fun decimal(valor: Double): String = String.format(LOCALE_ES, "%.1f", va
 
 /**
  * Nombre legible del tramo de vía: «Ma-15 · km 20,1→32,4 · hacia Manacor». Sin PK «Ma-15 · 12,3 km»; sin destino se
- * omite «hacia …». Decimales con coma. Sin ref se usa el nombre de la vía.
+ * omite «hacia …». Con PK estimado ([TramoVia.pkEstimado]) los kilómetros llevan «~»:
+ * «km ~20,1→~32,4». Decimales con coma. Sin ref se usa el nombre de la vía.
  */
 fun nombreTramoVia(tramo: TramoVia): String {
     val principal = primeraRef(tramo.ref) ?: tramo.nombreVia?.trim()?.takeIf { it.isNotEmpty() } ?: SIN_NOMBRE
     val recorrido =
         if (tramo.pkDesde != null && tramo.pkHasta != null) {
-            "km ${decimal(tramo.pkDesde)}$FLECHA${decimal(tramo.pkHasta)}"
+            val aprox = if (tramo.pkEstimado) "~" else ""
+            "km $aprox${decimal(tramo.pkDesde)}$FLECHA$aprox${decimal(tramo.pkHasta)}"
         } else {
             "${decimal(tramo.longitudM / METROS_POR_KM)} km"
         }
