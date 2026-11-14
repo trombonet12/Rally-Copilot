@@ -60,7 +60,7 @@ class NavegacionPorVozTest {
         runBlocking {
             decir(Orden.IrA("soller"))
 
-            assertEquals(listOf("llevándote a Sóller, veinticinco minutos"), dichas())
+            assertEquals(listOf("llevándote a Sóller, veintiocho minutos"), dichas())
             assertEquals(
                 Destino("Sóller", SOLLER),
                 banco.control.empezadas
@@ -111,7 +111,7 @@ class NavegacionPorVozTest {
 
             assertEquals(listOf(OrdenParadas.CambiarDestino(Destino("Sóller", SOLLER))), banco.control.ordenes)
             assertTrue(banco.control.empezadas.isEmpty())
-            assertEquals(listOf("llevándote a Sóller, veinticinco minutos"), dichas())
+            assertEquals(listOf("llevándote a Sóller, veintiocho minutos"), dichas())
         }
 
     // --- Otro -----------------------------------------------------------------------------------------------------
@@ -124,7 +124,7 @@ class NavegacionPorVozTest {
 
             decir(Orden.Otro)
 
-            assertEquals("llevándote a Port de Sóller, veinticinco minutos", dichas().last())
+            assertEquals("llevándote a Port de Sóller, veintiocho minutos", dichas().last())
             assertEquals(
                 OrdenParadas.CambiarDestino(Destino("Port de Sóller", portSoller.punto)),
                 banco.control.ordenes.last(),
@@ -145,10 +145,10 @@ class NavegacionPorVozTest {
             assertEquals(
                 listOf(
                     RespuestasVoz.SIN_OTRA_OPCION,
-                    "llevándote a Sóller, veinticinco minutos",
+                    "llevándote a Sóller, veintiocho minutos",
                     RespuestasVoz.SIN_OTRA_OPCION,
-                    "llevándote a Sóller, veinticinco minutos",
-                    "llevándote a Port de Sóller, veinticinco minutos",
+                    "llevándote a Sóller, veintiocho minutos",
+                    "llevándote a Port de Sóller, veintiocho minutos",
                     RespuestasVoz.SIN_OTRA_OPCION,
                 ),
                 dichas(),
@@ -173,7 +173,7 @@ class NavegacionPorVozTest {
 
             decir(Orden.VolverACasa)
 
-            assertEquals(listOf("llevándote a casa, veinticinco minutos"), dichas())
+            assertEquals(listOf("llevándote a casa, veintiocho minutos"), dichas())
             assertEquals(
                 Destino("casa", inca),
                 banco.control.empezadas
@@ -252,7 +252,7 @@ class NavegacionPorVozTest {
             assertTrue(banco.control.empezadas.isEmpty())
 
             decir(Orden.Confirma(true))
-            assertEquals("llevándote a Repsol, veinticinco minutos", dichas().last())
+            assertEquals("llevándote a Repsol, veintiocho minutos", dichas().last())
             assertEquals(
                 Destino("Repsol", SOLLER),
                 banco.control.empezadas

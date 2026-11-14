@@ -1,9 +1,11 @@
 package app.trombito.rallycopilot.domain.navegacion
 
 import app.trombito.rallycopilot.data.escucha.UbicacionFalsa
+import app.trombito.rallycopilot.domain.ritmo.ProveedorPerfilRitmo
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.ruta.PerfilRitmo
 import app.trombito.rallycopilot.ui.navegacion.FalsoControlNavegacion
 import app.trombito.rallycopilot.ui.navegacion.FalsoEnrutador
 import app.trombito.rallycopilot.ui.navegacion.PALMA
@@ -32,11 +34,26 @@ class IniciarRutaATest {
 
             val resultado = iniciar(destino)
 
-            assertEquals(ResultadoInicioRuta.Iniciada(1_500.0, 18_000.0), resultado)
+            // Sin histórico: Valhalla × 1,12.
+            assertEquals(ResultadoInicioRuta.Iniciada(1_500.0 * 1.12, 18_000.0), resultado)
             assertEquals(listOf(Triple(PuntoGeo(39.7, 2.9), SOLLER, PerfilRuta.MAS_RAPIDA)), enrutador.peticiones)
             assertEquals(destino, control.empezadas.single().first)
             assertEquals(PerfilRuta.MAS_RAPIDA, control.empezadas.single().second)
             assertTrue(control.ordenes.isEmpty())
+        }
+
+    @Test
+    fun `el tiempo que devuelve es el estimado con el perfil de ritmo, no el de Valhalla`() =
+        runBlocking {
+            val perfil =
+                object : ProveedorPerfilRitmo {
+                    override suspend fun perfil() = PerfilRitmo(factorPersonal = 1.3)
+                }
+            enrutador.respuestas[PerfilRuta.MAS_RAPIDA] = ok()
+
+            val resultado = IniciarRutaA(control, enrutador, ubicacion, perfil)(destino)
+
+            assertEquals(ResultadoInicioRuta.Iniciada(1_500.0 * 1.3, 18_000.0), resultado)
         }
 
     @Test
@@ -57,7 +74,7 @@ class IniciarRutaATest {
 
             val resultado = iniciar(destino)
 
-            assertEquals(ResultadoInicioRuta.Iniciada(2_400.0, 18_000.0), resultado)
+            assertEquals(ResultadoInicioRuta.Iniciada(2_400.0 * 1.12, 18_000.0), resultado)
             assertEquals(listOf(listOf(parada.punto)), enrutador.peticionesConParadas)
             assertEquals(listOf(OrdenParadas.CambiarDestino(destino)), control.ordenes)
             assertTrue(control.empezadas.isEmpty())

@@ -40,6 +40,7 @@ import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.escucha.RepositorioMarcas
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.IniciarRutaA
+import app.trombito.rallycopilot.domain.ritmo.ProveedorPerfilRitmo
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.tramos.ControlSalidaCrono
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
@@ -141,6 +142,7 @@ abstract class EscuchaModule {
             ubicacion: FuenteUbicacion,
             buscador: Buscador,
             enrutador: Enrutador,
+            perfilRitmo: ProveedorPerfilRitmo,
             @ApplicationScope ambito: CoroutineScope,
         ): ControlOrdenes {
             val preguntas =
@@ -167,7 +169,7 @@ abstract class EscuchaModule {
             val navegacionPorVoz =
                 NavegacionPorVoz(
                     buscador = buscador,
-                    iniciar = IniciarRutaA(navegacion, enrutador, ubicacion),
+                    iniciar = IniciarRutaA(navegacion, enrutador, ubicacion, perfilRitmo),
                     control = navegacion,
                     ajustes = ajustes,
                     ubicacion = ubicacion,
