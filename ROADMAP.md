@@ -770,6 +770,63 @@ Lo que quedaba en «Más adelante» y encaja sin backend: conducir de noche, ent
 completado (2026-11-08, v1.5.0, junto con H16–H21) · Depende de: H15b
 **Hecho:** tema «Día y noche», atajos y widget, «Mis carreteras», trip en la hoja y «dónde estoy» con punto kilométrico (`datos-2026.11.08-17`).
 
+## H22 — Conducción limpia
+### Objetivo
+Lo que molestó conduciendo la v1.5.0: ver la carretera por delante y encontrar destinos pegados de Google.
+### Alcance
+- Banner de maniobra ~33 % más pequeño; velocidad ~25 % más pequeña en la esquina con la media al lado; coche justo por encima de la velocidad.
+- Botones laterales de 56 dp y fijos; capas y notas grandes solo parado, sin mover a los demás.
+- Barra «¿A dónde?» oculta en marcha salvo al tocar el mapa.
+- Búsqueda de direcciones de Google, abreviaturas, números y nombres ES↔CA; coordenadas con coma decimal, Plus Codes y URLs sin esquema.
+- (v1.5.1, antes) copia automática de los datos para sacarlos por adb/USB.
+### Criterios de aceptación
+- [ ] «Carrer de Ramon Berenguer III, 5, Bajos, Norte, 07002 Palma, Balearic Islands» y «39,5789682, 2,6515765» llevan al sitio.
+- [ ] En el emulador, en marcha: coche sobre la velocidad, botones sin saltos, sin barra de búsqueda.
+### Tests
+- Motor: `LectorDireccion`, abreviaturas y equivalencias, coordenadas (coma decimal, Plus Codes, sin esquema). App: cámara sobre la velocidad, botones fijos, barra en marcha, copia automática.
+### Estado
+en curso (2026-11-14) · Depende de: H21
+
+## H23 — Tramos unificados y llegada real
+### Objetivo
+Un mismo panel y fantasma para cualquier trozo conocido, y una hora de llegada que se cumpla.
+### Alcance
+- Un solo panel (tramo o subtramo) con microsectores, delta y fantasma; referencia en vivo = la del resultado final.
+- Nombre por vía, km y sentido cuando haya PK (Room v21).
+- Hora de llegada aprendida de Joan (velocidad media por vía + factor personal) y corregida en vivo; tiempo previsto guardado por viaje.
+### Criterios de aceptación
+- [ ] Un subtramo enseña fantasma y el mismo HUD que un tramo; el delta en vivo acaba igual que el final.
+- [ ] Con los viajes de Joan, el error medio de la llegada baja frente a Valhalla solo.
+### Tests
+- Motor: `Fantasma` con desfase, `EstimadorLlegada`, nombre por PK y sentido. App: migración 20→21 con la copia real.
+### Estado
+pendiente · Depende de: H22
+
+## H24 — Mis carreteras en el mapa y rutas conocidas
+### Objetivo
+Ver en el mapa por dónde te mueves y a qué ritmo, y que las rutas tiren por lo conocido.
+### Alcance
+- Capa de calor en el mapa en reposo (Uso / Velocidad media en Capas), ficha al tocar, oculta al guiar o circular.
+- Rutas que prefieren carreteras conocidas (≤ 10 % más de tiempo).
+### Criterios de aceptación
+- [ ] Con la copia de Joan restaurada en el emulador, la capa se ve en reposo y desaparece al guiar.
+### Tests
+- Motor: media por vía sin paradas; selector con bonificación de lo conocido.
+### Estado
+pendiente · Depende de: H23
+
+## H25 — Auditoría con Fable
+### Objetivo
+Una pasada completa con ojos nuevos antes de la siguiente prueba en coche.
+### Alcance
+- Auditoría completa por áreas con Fable (interfaz con capturas, navegación, notas y voz, tramos y datos, rendimiento y seguridad) en `docs/auditoria/2026-11b.md`; arreglos con sonnet; revisión final de la interfaz.
+### Criterios de aceptación
+- [ ] Sin hallazgos BLOCKER/HIGH abiertos; lo de producto preguntado a Joan.
+### Tests
+- Los que pida cada arreglo.
+### Estado
+pendiente · Depende de: H24
+
 ## Más adelante
 - Pendientes de hitos anteriores: prueba en coche (H14), topónimos que Vosk no reconoce, condiciones del NAP de la DGT y del CNIG, «Abrir con» desde gestores de archivos reales, H11 (voz de Moya) y H12 (Play).
 

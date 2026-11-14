@@ -1,12 +1,24 @@
 # Preguntas abiertas
 
-> Propósito: dudas de producto, interfaz o alcance que decide Joan · Audiencia: Joan · Actualizado: 2026-11-08 · Relacionado: [ROADMAP.md](ROADMAP.md), [docs/DECISIONES.md](docs/DECISIONES.md)
+> Propósito: dudas de producto, interfaz o alcance que decide Joan · Audiencia: Joan · Actualizado: 2026-11-14 · Relacionado: [ROADMAP.md](ROADMAP.md), [docs/DECISIONES.md](docs/DECISIONES.md)
 
 Cada pregunta: contexto, opciones y **recomendación**. Mientras no hay respuesta se sigue con lo que no depende de
 ella. Las preguntas se hacen en el chat de 4 en 4 hasta acabarlas; la respuesta pasa a DECISIONES.md y la pregunta
 se marca como respondida. Ordenadas por el hito que bloquean.
 
-Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31, 2026-11-01, 2026-11-07 y 2026-11-08). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+Estado: **0 abiertas** · todas respondidas en el chat (2026-10-28, 2026-10-31, 2026-11-01, 2026-11-07, 2026-11-08 y 2026-11-14). Las respuestas están en [docs/DECISIONES.md](docs/DECISIONES.md#respuestas-de-joan-a-questionsmd-2026-10-28).
+
+## Respondidas tras usar la v1.5.0 (2026-11-14, en el chat)
+Van a H22–H25 (ver [ROADMAP.md](ROADMAP.md)).
+- **Botones laterales:** todos de 56 dp y fijos en su hueco (micro, modo, silencio, recentrar/brújula); capas y notas grandes solo parado, arriba, sin mover a los demás.
+- **Tramos y subtramos:** un solo panel con microsectores, delta y fantasma para los dos; detección por geometría y nombre por vía, km y sentido cuando haya PK («Ma-10 · km 12,3→18,7 · hacia Sóller»).
+- **Mapa de calor:** capa en el mapa en reposo, encendida por defecto; en Capas se elige «Uso» o «Velocidad media»; tocando una carretera, pasadas y media; se oculta al guiar y al circular en libre.
+- **Auditoría:** Fable audita por áreas y sonnet arregla; Fable revisa la interfaz al final con capturas.
+- **Rutas conocidas:** preferencia suave: entre rutas de hasta ~10 % más de tiempo, la que tenga más km ya conducidos.
+- **Hora de llegada:** aprendida de Joan (velocidad media real por vía, factor personal para las desconocidas) y corregida en vivo; se guarda el tiempo previsto de cada viaje.
+- **Barra «¿A dónde?»:** en marcha (> 20 km/h) no aparece sola; solo al tocar el mapa o parado. En guiado, solo con la lupa.
+- **Coche y velocidad:** velocidad ~25 % más pequeña en la esquina inferior izquierda, media del tramo al lado; el borde inferior del coche un pelo por encima de la velocidad. Banner de maniobra ~33 % más pequeño.
+- **Datos:** sin exportar a mano: copia automática en la carpeta externa de la app (con interruptor) para sacarla por adb/USB.
 
 ## Respondidas al cerrar H16–H21 (2026-11-08, en el chat)
 - **«Cuidado» en las horquillas:** se deja como está.
