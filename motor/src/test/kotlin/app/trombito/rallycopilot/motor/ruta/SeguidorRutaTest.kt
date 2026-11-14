@@ -345,4 +345,36 @@ class SeguidorRutaTest {
         val e = SeguidorRuta(bucle).actualizar(p(5.0, 0.0), 0)
         assertEquals(0, e.paradasAlcanzadas)
     }
+
+    private fun rutaConVias() =
+        ruta.copy(
+            maniobras =
+                listOf(
+                    m(TipoManiobra.SALIDA, 0, 1, 1000.0, 100.0).copy(vias = listOf("Ma-13")),
+                    m(TipoManiobra.IZQUIERDA, 1, 2, 500.0, 50.0).copy(vias = listOf("Ma-10")),
+                    m(TipoManiobra.DESTINO, 2, 2, 0.0, 0.0),
+                ),
+        )
+
+    @Test
+    fun `un ajuste de tiempo inyectado cambia el tiempo restante`() {
+        val doble = AjusteTiempo { maniobra, fraccion -> 2 * maniobra.tiempoS * fraccion }
+        val e = SeguidorRuta(ruta, doble).actualizar(p(0.0, 0.0), 1_000_000)
+        assertEquals(300.0, e.tiempoRestanteS, 0.1)
+        assertEquals(1_000_000 + 300_000L, e.llegadaMs)
+    }
+
+    @Test
+    fun `con el estimador de llegada la via conocida y la desconocida se corrigen`() {
+        // Ma-13 a 54 km/h reales (Valhalla va a 36): 100 s -> 66,67 s; Ma-10 sin historico: 50 s x 1,12 = 56 s.
+        val perfil = PerfilRitmo(mapOf(IdVia("Ma-13") to RitmoVia(54.0, pasadas = 3, km = 20.0)))
+        val seguidor = SeguidorRuta(rutaConVias(), EstimadorLlegada(perfil).comoAjuste())
+        assertEquals(66.667 + 56.0, seguidor.actualizar(p(0.0, 0.0), 0).tiempoRestanteS, 0.01)
+        assertEquals(33.333 + 56.0, seguidor.actualizar(p(500.0, 0.0), 0).tiempoRestanteS, 0.01)
+    }
+
+    @Test
+    fun `por defecto el tiempo es el de Valhalla`() {
+        assertEquals(150.0, SeguidorRuta(rutaConVias()).actualizar(p(0.0, 0.0), 0).tiempoRestanteS, 0.1)
+    }
 }

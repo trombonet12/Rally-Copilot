@@ -41,9 +41,13 @@ data class EstadoRuta(
  * [RADIO_PARADA_M] o menos de ella (siempre que su progreso no quede a más de [MARGEN_PARADA_M] por detrás de la
  * parada: así una ruta que vuelve a pasar cerca de una parada futura no la da por hecha) o cuando su progreso supera
  * la posición de la parada aunque no se haya acercado a 30 m (fijaciones espaciadas, salto de GPS, curva cerrada).
+ *
+ * [ajusteTiempo] decide el tiempo previsto de cada tramo de maniobra; por defecto el de Valhalla sin corrección (ver
+ * [EstimadorLlegada.comoAjuste] para la hora de llegada realista).
  */
 class SeguidorRuta(
     private val ruta: Ruta,
+    private val ajusteTiempo: AjusteTiempo = AjusteTiempo.VALHALLA,
 ) {
     private val linea = Polilinea(ruta.puntos)
     private val final = ruta.puntos.last()
@@ -141,7 +145,7 @@ class SeguidorRuta(
                     fin == ini -> 1.0
                     else -> (minOf(fin, hasta) - maxOf(ini, desde)) / (fin - ini)
                 }
-            m.tiempoS * fraccion
+            if (fraccion == 0.0) 0.0 else ajusteTiempo.tiempoS(m, fraccion)
         }
     }
 
