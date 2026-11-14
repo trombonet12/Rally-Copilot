@@ -278,6 +278,102 @@ class DetectorSubtramoTest {
         DetectorSubtramo(listOf(tramoDe("A", carretera), tramoDe("A", carretera)), emptyMap())
     }
 
+    /** Pasada con marcas en [cortesM] y la meta: [kmhPorTramo] da la velocidad de cada trozo entre cortes. */
+    private fun pasadaPorTramos(
+        tramo: Tramo,
+        cortesM: List<Double>,
+        kmhPorTramo: List<Double>,
+    ): Pasada {
+        val distancias = listOf(0.0) + cortesM + tramo.longitudM
+        var t = 0.0
+        val marcas = mutableListOf(MarcaTiempo(0.0, 0L))
+        for (k in 1 until distancias.size) {
+            t += (distancias[k] - distancias[k - 1]) / (kmhPorTramo[k - 1] / 3.6) * 1000.0
+            marcas += MarcaTiempo(distancias[k], Math.round(t))
+        }
+        return Pasada(tramo.id, marcas, marcas.last().tMs)
+    }
+
+    @Test
+    fun `el delta en vivo al cerrar es el mismo que el mejorMs final con pasadas de varios tramos`() {
+        val largo = tramoDe("largo", carretera)
+        val corto = tramoDe("corto", Conduccion.subtraza(carretera, 1000.0, 5000.0))
+        val otro = tramoDe("otro", Conduccion.subtraza(carretera, 500.0, 5500.0))
+        val pasadas =
+            mapOf(
+                "largo" to listOf(pasadaA(largo, 36.0), pasadaA(largo, 63.0)),
+                "corto" to listOf(pasadaA(corto, 54.0), pasadaA(corto, 90.0), pasadaA(corto, 45.0)), // mejor: 25 m/s
+                "otro" to listOf(pasadaA(otro, 72.0)),
+            )
+        val d = DetectorSubtramo(listOf(largo, corto, otro), pasadas)
+        val resultados =
+            Conduccion.muestrear(carretera, 72.0, desdeM = 2000.0, hastaM = 3500.0).map { d.alFijar(it) }
+        val hecho = (resultados.flatMap { it.hechos } + d.cerrar()).single()
+        val ultimo = resultados.last().enCurso!!
+        assertNotNull(hecho.mejorMs)
+        assertCerca(60_000, hecho.mejorMs!!, 500.0) // 1500 m a 25 m/s
+        assertEquals(hecho.tiempoMs - hecho.mejorMs!!, ultimo.deltaMs)
+        assertEquals("corto", ultimo.referencia!!.tramoId)
+        assertEquals(hecho.mejorMs, ultimo.referencia!!.tiempoMs)
+        assertCerca(1000.0, ultimo.referencia!!.desdeM, 3.0) // 2000 m de la carretera = 1000 m del tramo corto
+        assertCerca(2500.0, ultimo.referencia!!.hastaM, 3.0)
+    }
+
+    @Test
+    fun `la referencia en vivo se mantiene estable mientras siga cubriendo el trozo`() {
+        val a = tramoDe("A", carretera)
+        val b = tramoDe("B", carretera)
+        // A es la mejor al llegar a 300 m (100 km/h hasta el 2600) y luego muy lenta; B, constante, mejor al final.
+        val pasadas =
+            mapOf(
+                "A" to listOf(pasadaPorTramos(a, listOf(2600.0), listOf(100.0, 20.0))),
+                "B" to listOf(pasadaA(b, 54.0)),
+            )
+        val d = DetectorSubtramo(listOf(a, b), pasadas)
+        val enCurso =
+            Conduccion
+                .muestrear(carretera, 72.0, desdeM = 2000.0, hastaM = 3500.0)
+                .mapNotNull { d.alFijar(it).enCurso }
+        assertTrue(enCurso.size > 20)
+        val primera = enCurso.first().referencia!!
+        assertTrue(
+            enCurso.all { it.referencia!!.pasada === primera.pasada && it.referencia!!.desdeM == primera.desdeM },
+        )
+        assertTrue(enCurso.map { it.referencia!!.hastaM }.zipWithNext().all { (x, y) -> y >= x })
+    }
+
+    @Test
+    fun `la referencia se reevalua cuando deja de cubrir el trozo`() {
+        val largo = tramoDe("largo", carretera)
+        val corto = tramoDe("corto", Conduccion.subtraza(carretera, 1000.0, 3000.0)) // acaba en el 3000 de la carretera
+        val pasadas = mapOf("largo" to listOf(pasadaA(largo, 54.0)), "corto" to listOf(pasadaA(corto, 90.0)))
+        val d = DetectorSubtramo(listOf(largo, corto), pasadas)
+        val resultados =
+            Conduccion.muestrear(carretera, 72.0, desdeM = 2000.0, hastaM = 4000.0).map { d.alFijar(it) }
+        val enCurso = resultados.mapNotNull { it.enCurso }
+        assertEquals("corto", enCurso.first().referencia!!.tramoId)
+        val ultimo = enCurso.last()
+        assertEquals("largo", ultimo.referencia!!.tramoId)
+        val hecho = (resultados.flatMap { it.hechos } + d.cerrar()).single()
+        assertEquals(hecho.tiempoMs - hecho.mejorMs!!, ultimo.deltaMs)
+    }
+
+    @Test
+    fun `la referencia en vivo permite construir el fantasma del trozo`() {
+        val largo = tramoDe("largo", carretera)
+        val pasada = pasadaA(largo, 36.0) // 10 m/s
+        val d = DetectorSubtramo(listOf(largo), mapOf("largo" to listOf(pasada)))
+        val enCurso =
+            Conduccion
+                .muestrear(carretera, 72.0, desdeM = 2000.0, hastaM = 3000.0)
+                .mapNotNull { d.alFijar(it).enCurso }
+                .last()
+        val ref = enCurso.referencia!!
+        val fantasma = Fantasma.deTrozo(largo, ref.pasada, ref.desdeM)
+        val posicion = fantasma.posicionEn(enCurso.transcurridoMs)!!
+        assertCerca(ref.desdeM + enCurso.transcurridoMs / 100.0, posicion.distanciaM, 3.0) // 10 m/s
+    }
+
     @Test
     fun `300 tramos dispersos y 3600 fijaciones se procesan en menos de dos segundos`() {
         val origen = carretera.first()

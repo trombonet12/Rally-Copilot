@@ -7,12 +7,19 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToLong
 
-/** Subtramo en recorrido: [recorridoM] sobre la traza de [tramoRefId] y [deltaMs] contra su mejor pasada. */
+/**
+ * Subtramo en recorrido: [recorridoM] sobre la traza de [tramoRefId] y [deltaMs] contra la [referencia] (null si
+ * ninguna pasada cubre el trozo). La [referencia] es la pasada, de cualquier tramo, con el mejor tiempo en el trozo
+ * (el mismo criterio que `SubtramoHecho.mejorMs`) y se mantiene mientras siga cubriéndolo: su
+ * [ReferenciaSubtramo.desdeM] es el inicio del trozo en el tramo de la referencia y
+ * `Fantasma.deTrozo(tramoDeLaReferencia, pasada, desdeM)` su fantasma.
+ */
 data class SubtramoEnCurso(
     val tramoRefId: String,
     val recorridoM: Double,
     val transcurridoMs: Long,
     val deltaMs: Long?,
+    val referencia: ReferenciaSubtramo? = null,
 )
 
 /**
@@ -119,6 +126,10 @@ class DetectorSubtramo(
         var ultimoM = desdeM
         var ultima = desde
         var fueraDesdeMs: Long? = null
+
+        /** Referencia en vivo (estable: se elige al llegar al umbral y solo se cambia si deja de cubrir el trozo). */
+        var referencia: ReferenciaSubtramo? = null
+        private var referenciaEn: Fijacion? = null
         val recorridoM: Double get() = ultimoM - desdeM
 
         fun ventana(tMs: Long): ClosedFloatingPointRange<Double> {
@@ -134,11 +145,24 @@ class DetectorSubtramo(
             ultima = f
         }
 
-        /** Delta (ms) de [tMs] contra la mejor pasada que cubra el inicio, o null sin referencia. */
-        fun deltaMs(
-            comparador: ComparadorSubtramos,
-            tMs: Long,
-        ): Long? = comparador.tiempoDeReferencia(tramo.id, desdeM, ultimoM)?.let { (tMs - desde.tiempoMs) - it }
+        /**
+         * Actualiza la referencia con la última fijación sobre la traza: la prolonga si sigue cubriendo el trozo; si
+         * no, o si aún no hay, busca la mejor pasada de todos los tramos cercanos (mismo criterio que `mejorMs`).
+         */
+        fun actualizarReferencia(comparador: ComparadorSubtramos) {
+            if (referenciaEn === ultima) return
+            val actual = referencia
+            val segundos = ((ultima.tiempoMs - (referenciaEn ?: ultima).tiempoMs).coerceAtLeast(0L)) / MS_POR_SEGUNDO
+            val base = actual?.hastaM ?: 0.0
+            val ventana = (base - VENTANA_ATRAS_M)..(base + VENTANA_ADELANTE_M + VELOCIDAD_MAX_MS * segundos)
+            referencia =
+                actual?.let { comparador.prolongar(it, ultima.punto, recorridoM, ventana) }
+                    ?: comparador.referencia(desde.punto, ultima.punto, recorridoM)
+            referenciaEn = ultima
+        }
+
+        /** Delta (ms) de [tMs] contra la referencia, o null sin ella. */
+        fun deltaMs(tMs: Long): Long? = referencia?.let { (tMs - desde.tiempoMs) - it.tiempoMs }
 
         fun aTrozo(): Trozo =
             Trozo(tramo, desdeM, ultimoM, Extremo(desde.punto, desde.tiempoMs), Extremo(ultima.punto, ultima.tiempoMs))
@@ -259,12 +283,16 @@ class DetectorSubtramo(
 
     private fun enCurso(f: Fijacion): SubtramoEnCurso? {
         val largos = activos.values.filter { it.recorridoM >= RECORRIDO_EN_CURSO_M }
-        val conDelta = largos.map { Pair(it, it.deltaMs(comparador, f.tiempoMs)) }
+        val conDelta =
+            largos.map {
+                it.actualizarReferencia(comparador)
+                Pair(it, it.deltaMs(f.tiempoMs))
+            }
         val elegido =
             conDelta.filter { it.second != null }.maxByOrNull { it.first.recorridoM }
                 ?: conDelta.maxByOrNull { it.first.recorridoM }
         return elegido?.let { (c, delta) ->
-            SubtramoEnCurso(c.tramo.id, c.recorridoM, f.tiempoMs - c.desde.tiempoMs, delta)
+            SubtramoEnCurso(c.tramo.id, c.recorridoM, f.tiempoMs - c.desde.tiempoMs, delta, c.referencia)
         }
     }
 

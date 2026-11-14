@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.motor.tramos
 
 import app.trombito.rallycopilot.motor.geo.longitudMetros
 import app.trombito.rallycopilot.motor.notas.TrazasDePrueba
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -102,6 +103,69 @@ class FantasmaTest {
         val enVertice = fantasma.posicionEn(100_000)!! // 1000 m, en el vértice: media de ambos rumbos
         assertCerca(45.0, enVertice.rumboGrados, 1.0)
         assertCerca(0.0, enVertice.punto.distanciaA(traza[1]), 1.0)
+    }
+
+    @Test
+    fun `fantasma de trozo arranca en el inicio del trozo con su desfase`() {
+        val fantasma = Fantasma.deTrozo(tramoRecto, constante, 1_000.0, 2_000.0) // a 20 m/s: 50 s
+        assertEquals(50_000L, fantasma.duracionTrozoMs)
+        assertCerca(1_000.0, fantasma.distanciaEn(0)!!, 0.01)
+        assertCerca(1_000.0, fantasma.posicionEn(0)!!.distanciaM, 0.01)
+        assertCerca(1_000.0, recta.first().distanciaA(fantasma.posicionEn(0)!!.punto), 1.0)
+    }
+
+    @Test
+    fun `fantasma de trozo a mitad y en el final del trozo`() {
+        val fantasma = Fantasma.deTrozo(tramoRecto, constante, 1_000.0, 2_000.0)
+        assertCerca(1_500.0, fantasma.distanciaEn(25_000)!!, 0.01)
+        assertCerca(1_500.0, fantasma.posicionEn(25_000)!!.distanciaM, 0.01)
+        assertCerca(2_000.0, fantasma.distanciaEn(50_000)!!, 0.01)
+        assertCerca(0.0, fantasma.posicionEn(25_000)!!.rumboGrados, 0.5)
+    }
+
+    @Test
+    fun `fantasma de trozo no existe antes ni despues del trozo`() {
+        val fantasma = Fantasma.deTrozo(tramoRecto, constante, 1_000.0, 2_000.0)
+        assertNull(fantasma.distanciaEn(-1))
+        assertNull(fantasma.posicionEn(-30_000))
+        assertNull(fantasma.distanciaEn(50_001))
+        assertNull(fantasma.posicionEn(120_000))
+    }
+
+    @Test
+    fun `fantasma de trozo con velocidad variable usa el desfase de la pasada`() {
+        // 10 m/s hasta 1000 m (100 s), luego 40 m/s: el trozo 500..1500 empieza en t = 50 s.
+        val variable =
+            pasada(tramoRecto) {
+                if (it <= 1_000.0) Math.round(it * 100.0) else Math.round(100_000 + (it - 1_000.0) * 25.0)
+            }
+        val fantasma = Fantasma.deTrozo(tramoRecto, variable, 500.0, 1_500.0)
+        assertEquals(62_500L, fantasma.duracionTrozoMs) // 50 s + 12,5 s
+        assertCerca(500.0, fantasma.distanciaEn(0)!!, 0.01)
+        assertCerca(1_000.0, fantasma.distanciaEn(50_000)!!, 0.01)
+        assertCerca(1_400.0, fantasma.distanciaEn(60_000)!!, 0.01)
+    }
+
+    @Test
+    fun `fantasma de trozo sin final llega hasta el final de la pasada`() {
+        val fantasma = Fantasma.deTrozo(tramoRecto, constante, 1_000.0)
+        assertEquals(constante.totalMs - 50_000, fantasma.duracionTrozoMs)
+        assertCerca(tramoRecto.metaM, fantasma.distanciaEn(fantasma.duracionTrozoMs!!)!!, 0.01)
+        assertNull(fantasma.distanciaEn(fantasma.duracionTrozoMs!! + 1))
+    }
+
+    @Test
+    fun `fantasma de trozo que acaba en el final de la traza se acota a la ultima marca`() {
+        val fantasma = Fantasma.deTrozo(tramoRecto, constante, 3_000.0, tramoRecto.longitudM) // meta a 3990 m
+        assertCerca(tramoRecto.metaM, fantasma.distanciaEn(fantasma.duracionTrozoMs!!)!!, 0.01)
+    }
+
+    @Test
+    fun `fantasma de trozo exige un trozo valido dentro de una pasada del tramo`() {
+        assertThrows(IllegalArgumentException::class.java) { Fantasma.deTrozo(tramoRecto, constante, 3_995.0, 4_000.0) }
+        assertThrows(IllegalArgumentException::class.java) { Fantasma.deTrozo(tramoRecto, constante, 2_000.0, 1_000.0) }
+        val ajena = Pasada("otro", constante.tiempos, constante.totalMs)
+        assertThrows(IllegalArgumentException::class.java) { Fantasma.deTrozo(tramoRecto, ajena, 500.0, 2_000.0) }
     }
 
     @Test

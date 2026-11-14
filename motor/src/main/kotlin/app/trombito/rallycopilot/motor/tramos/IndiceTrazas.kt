@@ -75,6 +75,32 @@ internal class IndiceTrazas(
 }
 
 /**
+ * Referencia de un trozo de carretera: la [pasada] del tramo [tramoId] que da el mejor tiempo ([tiempoMs]) entre
+ * [desdeM] y [hastaM] (metros desde la salida de ese tramo). Con ella se construye el fantasma del trozo
+ * (`Fantasma.deTrozo`) y se compara el tiempo en vivo.
+ */
+data class ReferenciaSubtramo(
+    val tramoId: String,
+    val pasada: Pasada,
+    val desdeM: Double,
+    val hastaM: Double,
+    val tiempoMs: Long,
+)
+
+/** Metros más allá de la meta que aún se acotan a la última marca de la pasada. */
+private const val HOLGURA_FIN_M = 5.0
+
+/**
+ * Distancia final acotada de un trozo que acaba en [hastaM]: un trozo que acaba en el final de la traza pasa la meta
+ * (10 m antes) y la pasada no llega ahí, así que se acota a su última marca para no quedarse sin referencia por unos
+ * metros.
+ */
+internal fun Pasada.hastaAcotado(hastaM: Double): Double {
+    val fin = tiempos.lastOrNull()?.distanciaM ?: return hastaM
+    return if (hastaM > fin && hastaM - fin <= Tramo.META_ANTES_M + HOLGURA_FIN_M) fin else hastaM
+}
+
+/**
  * Mejor tiempo previo en un trozo de carretera entre todos los tramos y pasadas guardados: para cada tramo cercano a
  * los dos extremos del trozo (a [DetectorSubtramo.RADIO_M] o menos, en el mismo sentido y con longitud compatible) y
  * cada pasada que cubra el trozo, el tiempo entre ambos extremos; el mínimo.
@@ -84,69 +110,89 @@ internal class ComparadorSubtramos(
     private val tramos: List<Tramo>,
     private val pasadas: Map<String, List<Pasada>>,
 ) {
+    private val posicion = tramos.withIndex().associate { it.value.id to it.index }
+
     /** Mejor tiempo (ms) entre [desde] y [hasta] (a [recorridoM] m de marcha), o null si ninguna pasada lo cubre. */
     fun mejorMs(
         desde: PuntoGeo,
         hasta: PuntoGeo,
         recorridoM: Double,
-    ): Long? =
+    ): Long? = referencia(desde, hasta, recorridoM)?.tiempoMs
+
+    /**
+     * Pasada (de cualquier tramo cercano) con el mejor tiempo entre [desde] y [hasta], o null si ninguna cubre el
+     * trozo. Es el mismo criterio de [mejorMs]: el tiempo de la referencia es el mejor.
+     */
+    fun referencia(
+        desde: PuntoGeo,
+        hasta: PuntoGeo,
+        recorridoM: Double,
+    ): ReferenciaSubtramo? =
         indice
             .cercanos(desde)
             .intersect(indice.cercanos(hasta))
             .mapNotNull { mejorEn(it, desde, hasta, recorridoM) }
-            .minOrNull()
+            .minByOrNull { it.tiempoMs }
 
-    /** Tiempo (ms) de la pasada de menor total del tramo [tramoId] entre [desdeM] y [hastaM], o null sin referencia. */
-    fun tiempoDeReferencia(
-        tramoId: String,
-        desdeM: Double,
-        hastaM: Double,
-    ): Long? =
-        pasadas[tramoId]
-            .orEmpty()
-            .filter { it.tiempoEn(desdeM) != null }
-            .minByOrNull { it.totalMs }
-            ?.let { tiempoEntre(it, desdeM, hastaM) }
+    /**
+     * Prolonga [ref] (misma pasada y mismo inicio) hasta el punto [hasta], tras [recorridoM] m de marcha, buscándolo
+     * en la traza de su tramo dentro de [ventanaM]. Null si [ref] deja de cubrir el trozo: [hasta] a más de
+     * [DetectorSubtramo.RADIO_M] de la traza, longitud incompatible o la pasada no llega.
+     */
+    fun prolongar(
+        ref: ReferenciaSubtramo,
+        hasta: PuntoGeo,
+        recorridoM: Double,
+        ventanaM: ClosedFloatingPointRange<Double>,
+    ): ReferenciaSubtramo? {
+        val i = posicion[ref.tramoId] ?: return null
+        val tope = tramos[i].longitudM
+        val ventana = ventanaM.start.coerceAtMost(tope)..ventanaM.endInclusive.coerceAtMost(tope)
+        val b =
+            indice.traza(i).proyectar(hasta, ventana)?.takeIf {
+                it.lateralM <= DetectorSubtramo.RADIO_M && longitudCompatible(it.progresoM - ref.desdeM, recorridoM)
+            }
+        val tiempo = b?.let { tiempoEntre(ref.pasada, ref.desdeM, it.progresoM) }
+        return if (b != null && tiempo != null) ref.copy(hastaM = b.progresoM, tiempoMs = tiempo) else null
+    }
 
     private fun mejorEn(
         i: Int,
         desde: PuntoGeo,
         hasta: PuntoGeo,
         recorridoM: Double,
-    ): Long? {
+    ): ReferenciaSubtramo? {
         val tramo = tramos[i]
         val traza = indice.traza(i)
         val ventana = 0.0..tramo.longitudM
         val a = traza.proyectar(desde, ventana)?.takeIf { it.lateralM <= DetectorSubtramo.RADIO_M }
         val b = traza.proyectar(hasta, ventana)?.takeIf { it.lateralM <= DetectorSubtramo.RADIO_M }
-        if (a == null || b == null) return null
-        val largoM = b.progresoM - a.progresoM
-        return if (largoM > 0.0 && abs(largoM - recorridoM) <= TOLERANCIA_LONGITUD * recorridoM) {
-            pasadas[tramo.id].orEmpty().mapNotNull { tiempoEntre(it, a.progresoM, b.progresoM) }.minOrNull()
-        } else {
-            null
-        }
+        if (a == null || b == null || !longitudCompatible(b.progresoM - a.progresoM, recorridoM)) return null
+        val candidatas =
+            pasadas[tramo.id].orEmpty().mapNotNull { p ->
+                tiempoEntre(p, a.progresoM, b.progresoM)?.let {
+                    ReferenciaSubtramo(tramo.id, p, a.progresoM, b.progresoM, it)
+                }
+            }
+        return candidatas.minByOrNull { it.tiempoMs }
     }
+
+    private fun longitudCompatible(
+        largoM: Double,
+        recorridoM: Double,
+    ): Boolean = largoM > 0.0 && abs(largoM - recorridoM) <= TOLERANCIA_LONGITUD * recorridoM
 
     private fun tiempoEntre(
         pasada: Pasada,
         desdeM: Double,
         hastaM: Double,
     ): Long? {
-        // Un trozo que acaba en el final de la traza pasa la meta (10 m antes) y la pasada no llega ahí: se acota a su
-        // última marca para no quedarse sin referencia por unos metros.
-        val fin = pasada.tiempos.lastOrNull()?.distanciaM
-        val pasaDeLaMeta = fin != null && hastaM > fin && hastaM - fin <= Tramo.META_ANTES_M + HOLGURA_FIN_M
-        val hasta = if (pasaDeLaMeta && fin != null) fin else hastaM
         val t0 = pasada.tiempoEn(desdeM)
-        val t1 = pasada.tiempoEn(hasta)
+        val t1 = pasada.tiempoEn(pasada.hastaAcotado(hastaM))
         return if (t0 != null && t1 != null && t1 > t0) (t1 - t0).roundToLong() else null
     }
 
     private companion object {
-        /** Metros más allá de la meta que aún se acotan a la última marca de la pasada. */
-        const val HOLGURA_FIN_M = 5.0
-
         /** Diferencia máxima (fracción) entre la longitud del trozo en el tramo y la recorrida. */
         const val TOLERANCIA_LONGITUD = 0.15
     }
