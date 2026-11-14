@@ -69,6 +69,21 @@ abstract class RecorridosDao {
         distanciaM: Double,
     )
 
+    /** Recorridos terminados que aún no se han troceado en tramos de vía, los más antiguos primero. */
+    @Query("SELECT * FROM recorrido WHERE finMs IS NOT NULL AND viasTroceadas = 0 ORDER BY inicioMs, id")
+    abstract suspend fun recorridosSinTrocear(): List<RecorridoEntity>
+
+    /** Marca el recorrido como troceado; devuelve las filas tocadas. */
+    @Query("UPDATE recorrido SET viasTroceadas = 1 WHERE id = :id")
+    abstract suspend fun marcarTroceado(id: Long): Int
+
+    /** Guarda el tiempo previsto (segundos) de un recorrido; devuelve las filas tocadas. */
+    @Query("UPDATE recorrido SET tiempoPrevistoS = :segundos WHERE id = :id")
+    abstract suspend fun guardarTiempoPrevisto(
+        id: Long,
+        segundos: Double?,
+    ): Int
+
     @Query("DELETE FROM recorrido WHERE id = :id")
     abstract suspend fun borrar(id: Long)
 

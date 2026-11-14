@@ -312,6 +312,34 @@ val MIGRATION_19_20: Migration =
     }
 
 /**
+ * v20 -> v21: tramos de vía y llegada aprendida. `tramo` gana `tipo` (`VIAJE` para todos los existentes), los datos de
+ * vía (`viaRef`, `pkDesde`, `pkHasta`, `sentido`), `destino` y `recorridoOrigenId`, con sus índices; `subtramo` gana
+ * la situación en la vía; `recorrido` gana `tiempoPrevistoS` (nulo: desconocido) y `viasTroceadas` (0: pendiente de
+ * trocear en tramos de vía). Solo `ADD COLUMN` e índices: no se toca ni se copia ninguna fila. El SQL es el
+ * `createSql` de `schemas/.../21.json`.
+ */
+val MIGRATION_20_21: Migration =
+    object : Migration(20, 21) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `tramo` ADD COLUMN `tipo` TEXT NOT NULL DEFAULT 'VIAJE'")
+            db.execSQL("ALTER TABLE `tramo` ADD COLUMN `viaRef` TEXT")
+            db.execSQL("ALTER TABLE `tramo` ADD COLUMN `pkDesde` REAL")
+            db.execSQL("ALTER TABLE `tramo` ADD COLUMN `pkHasta` REAL")
+            db.execSQL("ALTER TABLE `tramo` ADD COLUMN `sentido` TEXT")
+            db.execSQL("ALTER TABLE `tramo` ADD COLUMN `destino` TEXT")
+            db.execSQL("ALTER TABLE `tramo` ADD COLUMN `recorridoOrigenId` INTEGER")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tramo_tipo` ON `tramo` (`tipo`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_tramo_viaRef_sentido` ON `tramo` (`viaRef`, `sentido`)")
+            db.execSQL("ALTER TABLE `subtramo` ADD COLUMN `viaRef` TEXT")
+            db.execSQL("ALTER TABLE `subtramo` ADD COLUMN `pkDesde` REAL")
+            db.execSQL("ALTER TABLE `subtramo` ADD COLUMN `pkHasta` REAL")
+            db.execSQL("ALTER TABLE `subtramo` ADD COLUMN `sentido` TEXT")
+            db.execSQL("ALTER TABLE `recorrido` ADD COLUMN `tiempoPrevistoS` REAL")
+            db.execSQL("ALTER TABLE `recorrido` ADD COLUMN `viasTroceadas` INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
+/**
  * Todas las migraciones, en orden, de la v1 a la versión actual de [RallyDatabase]. Es la única lista: la usan la base
  * de producción y los tests; una migración nueva se añade aquí y `MigracionRoomTest` vigila que la cadena no tenga
  * huecos hasta `RallyDatabase.version`.
@@ -337,4 +365,5 @@ val TODAS_LAS_MIGRACIONES: Array<Migration> =
         MIGRATION_17_18,
         MIGRATION_18_19,
         MIGRATION_19_20,
+        MIGRATION_20_21,
     )

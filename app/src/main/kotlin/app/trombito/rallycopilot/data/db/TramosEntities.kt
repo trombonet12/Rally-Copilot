@@ -10,8 +10,16 @@ import androidx.room.PrimaryKey
  * Tramo cronometrable. [traza] es una polilínea codificada (precisión 1e-6), [sectores] y [microsectores] los cortes en
  * metros separados por comas (vacío si no hay) y [creadoEn] milisegundos epoch. [nombre] es el que pone el usuario y
  * [nombreAutomatico] el que se compone al crearlo; [ultimoUso] (epoch) es la salida de la última pasada.
+ *
+ * Desde la v21 hay dos [tipo]: `VIAJE` (un trayecto entero, lo que había hasta entonces) y `VIA` (un tramo de vía: un
+ * trozo de carretera [viaRef] entre los puntos kilométricos [pkDesde]..[pkHasta] en un [sentido] `CRECIENTE`,
+ * `DECRECIENTE` o `DESCONOCIDO`). [destino] es el destino del viaje y [recorridoOrigenId] el viaje del que salió un
+ * tramo de vía (sin clave foránea: el tramo sobrevive a ese recorrido).
  */
-@Entity(tableName = "tramo")
+@Entity(
+    tableName = "tramo",
+    indices = [Index(value = ["tipo"]), Index(value = ["viaRef", "sentido"])],
+)
 data class TramoEntity(
     @PrimaryKey val id: String,
     val nombre: String?,
@@ -23,7 +31,18 @@ data class TramoEntity(
     val nombreAutomatico: String? = null,
     @ColumnInfo(defaultValue = "0") val favorito: Boolean = false,
     @ColumnInfo(defaultValue = "0") val ultimoUso: Long = 0,
+    @ColumnInfo(defaultValue = "'VIAJE'") val tipo: String = TIPO_VIAJE,
+    val viaRef: String? = null,
+    val pkDesde: Double? = null,
+    val pkHasta: Double? = null,
+    val sentido: String? = null,
+    val destino: String? = null,
+    val recorridoOrigenId: Long? = null,
 )
+
+/** Valores de [TramoEntity.tipo]. */
+const val TIPO_VIAJE = "VIAJE"
+const val TIPO_VIA = "VIA"
 
 /**
  * Pasada completa de un tramo; se borra en cascada con él. [inicio] es el instante epoch de la salida y [marcas] la
@@ -64,7 +83,8 @@ data class PasadaEntity(
  * Resultado de un trozo cronometrado de un tramo guardado durante una conducción (subtramo). [desdeM]..[hastaM] son
  * metros sobre la traza del tramo de referencia [tramoRefId] y [longitudM] su longitud; [inicio] es la entrada (epoch
  * ms), [tiempoMs] lo que se tardó y [mejorMs] el mejor tiempo previo en ese trozo (null si era el primero). Las cuatro
- * coordenadas son los extremos del trozo. Se borra en cascada con su recorrido y con su tramo de referencia.
+ * coordenadas son los extremos del trozo. Desde la v21, [viaRef], [pkDesde], [pkHasta] y [sentido] sitúan el
+ * trozo en su vía (null si no se conoce). Se borra en cascada con su recorrido y con su tramo de referencia.
  */
 @Entity(
     tableName = "subtramo",
@@ -98,6 +118,10 @@ data class SubtramoEntity(
     val lonDesde: Double,
     val latHasta: Double,
     val lonHasta: Double,
+    val viaRef: String? = null,
+    val pkDesde: Double? = null,
+    val pkHasta: Double? = null,
+    val sentido: String? = null,
 )
 
 /** Una pasada reducida a lo que necesita el detector de subtramos: su tramo, su tiempo total y su curva (consulta). */

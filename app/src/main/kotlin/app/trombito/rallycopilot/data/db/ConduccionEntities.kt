@@ -46,7 +46,11 @@ data class AjustesConduccionEntity(
     @ColumnInfo(defaultValue = "0") val escuchaCascoSiempre: Boolean = false,
 )
 
-/** Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. */
+/**
+ * Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. Desde la v21,
+ * [tiempoPrevistoS] es el tiempo que se previó al salir (null: no se conoce) y [viasTroceadas] marca que el
+ * recorrido ya se troceó en tramos de vía (false: pendiente, también para los anteriores a la v21).
+ */
 @Entity(tableName = "recorrido")
 data class RecorridoEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -54,6 +58,8 @@ data class RecorridoEntity(
     val finMs: Long?,
     val distanciaM: Double,
     val destinoNombre: String?,
+    val tiempoPrevistoS: Double? = null,
+    @ColumnInfo(defaultValue = "0") val viasTroceadas: Boolean = false,
 )
 
 /** Punto de un recorrido; `orden` empieza en 0. Se borra en cascada con su recorrido. */

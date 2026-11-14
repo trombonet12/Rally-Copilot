@@ -108,6 +108,8 @@ internal object EstructuraRoom {
             "index_pasada_tramoId_totalMs",
             "index_subtramo_recorridoId",
             "index_subtramo_tramoRefId",
+            "index_tramo_tipo",
+            "index_tramo_viaRef_sentido",
         )
 
     /** Tablas que crean SQLite, Android o Room por su cuenta. */

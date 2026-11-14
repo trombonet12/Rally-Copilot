@@ -4,9 +4,11 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.trombito.rallycopilot.data.db.BaseAntigua
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.RecorridoEntity
 import app.trombito.rallycopilot.data.db.SubtramoEntity
+import app.trombito.rallycopilot.data.db.TODAS_LAS_MIGRACIONES
 import app.trombito.rallycopilot.data.db.TramoEntity
 import app.trombito.rallycopilot.domain.copia.CopiaInvalidaException
 import app.trombito.rallycopilot.domain.copia.MotivoCopiaInvalida
@@ -323,6 +325,71 @@ class CopiaSeguridadTest {
         val comprobada = SQLiteDatabase.openDatabase(archivo.path, null, SQLiteDatabase.OPEN_READONLY)
         comprobada.use { assertEquals(11, it.version) }
         assertTrue(!File(archivo.path + "-wal").exists())
+    }
+
+    @Test
+    fun `una copia de la v20 se acepta y al abrir migra a la v21 sin perder datos`() {
+        val contenido = BaseAntigua(contexto).crear(20, "v.db")
+        SQLiteDatabase.openDatabase(contenido.path, null, SQLiteDatabase.OPEN_READWRITE).use { db ->
+            db.execSQL("INSERT INTO recorrido VALUES (1, 1000, 9000, 4321.0, 'Sóller')")
+            db.execSQL(
+                "INSERT INTO tramo (id, nombre, traza, longitudM, sectores, microsectores, creadoEn) " +
+                    "VALUES ('t', NULL, 'x', 5000.0, '', '', 1)",
+            )
+        }
+        val bytes = contenido.readBytes()
+        contexto.deleteDatabase("v.db")
+
+        val resumen = importar(zip(listOf("rally.db" to bytes, "manifest.json" to manifest(20))))
+        assertEquals(20, resumen.esquema)
+
+        base =
+            Room
+                .databaseBuilder(contexto, RallyDatabase::class.java, nombre)
+                .addMigrations(*TODAS_LAS_MIGRACIONES)
+                .allowMainThreadQueries()
+                .build()
+                .also { abiertas += it }
+        val recorrido = checkNotNull(runBlocking { base.recorridosDao().recorrido(1) })
+        assertEquals(4321.0, recorrido.distanciaM, 0.0)
+        assertEquals("Sóller", recorrido.destinoNombre)
+        assertEquals(false, recorrido.viasTroceadas)
+        assertNull(recorrido.tiempoPrevistoS)
+        assertEquals("VIAJE", runBlocking { base.tramosDao().tramo("t") }?.tipo)
+        assertEquals(RallyDatabase.VERSION, base.openHelper.writableDatabase.version)
+    }
+
+    @Test
+    fun `una copia de la v actual con un tramo de via se acepta y conserva sus datos de via`() {
+        runBlocking {
+            base.tramosDao().insertarTramo(
+                TramoEntity(
+                    id = "v",
+                    nombre = null,
+                    traza = "x",
+                    longitudM = 1_000.0,
+                    sectores = "",
+                    microsectores = "",
+                    creadoEn = 1,
+                    tipo = "VIA",
+                    viaRef = "Ma-10",
+                    pkDesde = 3.0,
+                    pkHasta = 4.0,
+                    sentido = "CRECIENTE",
+                    destino = "Sóller",
+                    recorridoOrigenId = 9,
+                ),
+            )
+        }
+        val zip = exportar()
+
+        importar(zip)
+
+        base = abrir()
+        val tramo = runBlocking { base.tramosDao().tramosViaDe("Ma-10", "CRECIENTE") }.single()
+        assertEquals(3.0, tramo.pkDesde)
+        assertEquals("Sóller", tramo.destino)
+        assertEquals(9L, tramo.recorridoOrigenId)
     }
 
     private companion object {

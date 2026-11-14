@@ -35,6 +35,20 @@ abstract class TramosDao {
     @Query("SELECT * FROM tramo WHERE id = :id")
     abstract suspend fun tramo(id: String): TramoEntity?
 
+    /** Los tramos de un [tipo] (`VIAJE` o `VIA`), por orden de creación. */
+    @Query("SELECT * FROM tramo WHERE tipo = :tipo ORDER BY creadoEn, id")
+    abstract suspend fun tramosPorTipo(tipo: String): List<TramoEntity>
+
+    /** Los tramos de vía de la carretera [viaRef] recorridos en [sentido], por punto kilométrico de salida. */
+    @Query(
+        "SELECT * FROM tramo WHERE tipo = 'VIA' AND viaRef = :viaRef AND sentido = :sentido " +
+            "ORDER BY pkDesde, creadoEn, id",
+    )
+    abstract suspend fun tramosViaDe(
+        viaRef: String,
+        sentido: String,
+    ): List<TramoEntity>
+
     @Query("SELECT * FROM pasada WHERE tramoId = :tramoId ORDER BY totalMs, id LIMIT 1")
     abstract suspend fun mejorPasada(tramoId: String): PasadaEntity?
 

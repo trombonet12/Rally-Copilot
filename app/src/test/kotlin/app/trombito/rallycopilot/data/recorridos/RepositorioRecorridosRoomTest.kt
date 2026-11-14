@@ -301,6 +301,15 @@ private class DaoContador(
         distanciaM: Double,
     ) = real.cerrar(id, finMs, distanciaM)
 
+    override suspend fun recorridosSinTrocear() = real.recorridosSinTrocear()
+
+    override suspend fun marcarTroceado(id: Long) = real.marcarTroceado(id)
+
+    override suspend fun guardarTiempoPrevisto(
+        id: Long,
+        segundos: Double?,
+    ) = real.guardarTiempoPrevisto(id, segundos)
+
     override suspend fun borrar(id: Long) = real.borrar(id)
 
     override suspend fun anadirPuntos(
