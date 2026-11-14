@@ -36,6 +36,9 @@ private class LocutorFalso : Locutor {
     val estaHablando = MutableStateFlow(false)
     override val hablando: StateFlow<Boolean> = estaHablando
     val dichas = mutableListOf<String>()
+
+    /** Plazo (`caducaMs`) con el que se pidió cada frase de [dichas], en el mismo orden. */
+    val caducas = mutableListOf<Long?>()
     val vocesUsadas = mutableListOf<VozCopiloto>()
     val volumenes = mutableListOf<Int>()
     val velocidades = mutableListOf<VelocidadHabla>()
@@ -63,6 +66,7 @@ private class LocutorFalso : Locutor {
         caducaMs: Long?,
     ) {
         dichas += texto
+        caducas += caducaMs
     }
 
     override fun duracionEstimadaS(texto: String) = 1.0
@@ -228,7 +232,66 @@ class CopilotoVozTest {
         // A 600 m la curva y el cruce aun quedan lejos (ni activas ni vigentes), pero ya se sintetizan.
         copiloto.fijar(ruta(), 600.0)
 
-        assertEquals(listOf("derecha tres", "cruce, izquierda"), locutor.preparadas.last())
+        assertEquals(listOf("derecha tres", "cruce, izquierda"), locutor.preparadas.last().take(2))
+        assertEquals(emptyList<String>(), locutor.dichas)
+    }
+
+    @Test
+    fun `prepara de una vez todas las variantes del preaviso, que cambia de distancia cada cien metros`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.NOTAS))
+        val ruta = ruta()
+
+        // A 20 m/s el preaviso va de «trescientos» (300 m) a «cien» (justo antes del inminente, a 100 m).
+        copiloto.fijar(ruta, 500.0)
+        val preparadas = locutor.preparadas.last()
+        val variantes = listOf("cien", "doscientos", "trescientos").map { "a $it, cruce, izquierda" }
+        assertTrue("$preparadas", preparadas.containsAll(variantes))
+
+        // Todo lo que se dice al acercarse (sin que lo avise el copiloto de otra forma) ya estaba preparado.
+        for (posicionM in 700..900 step 50) copiloto.fijar(ruta, posicionM.toDouble())
+        assertTrue(locutor.dichas.any { it.startsWith("a ") })
+        for (dicha in locutor.dichas) assertTrue(dicha, dicha in preparadas)
+    }
+
+    @Test
+    fun `en silencio tampoco prepara las variantes del preaviso`() {
+        val locutor = LocutorFalso()
+        val copiloto = copiloto(locutor, con(ModoCopiloto.SILENCIO))
+
+        copiloto.fijar(ruta(), 500.0)
+
+        assertTrue(locutor.preparadas.all { it.isEmpty() })
+    }
+
+    @Test
+    fun `una nota caduca cuando el coche llega a su punto y las maniobras no llevan plazo`() {
+        val locutor = LocutorFalso()
+        val copiloto =
+            CopilotoVoz(locutor, flowOf(con(ModoCopiloto.NOTAS)), reloj = { 5_000L })
+                .also { runBlocking { it.seguirAjustes() } }
+
+        // Nota a 960 m desde 920 m a 20 m/s: 2 s.
+        repeat(2) { copiloto.fijar(ruta(), 920.0) }
+
+        assertEquals(listOf("cruce, izquierda", "derecha tres"), locutor.dichas)
+        assertEquals(listOf(null, 7_000L), locutor.caducas)
+    }
+
+    @Test
+    fun `sin voz elegida lo pendiente caduca y al elegir voz no suena lo viejo`() {
+        val locutor = LocutorFalso()
+        val ajustes = MutableStateFlow(con(ModoCopiloto.COMPLETO, voz = null))
+        val copiloto = CopilotoVoz(locutor, ajustes)
+        val trabajo = Job()
+        CoroutineScope(Dispatchers.Unconfined + trabajo).launch { copiloto.seguirAjustes() }
+        copiloto.anunciarParada(1, "parada alcanzada")
+
+        repeat(30) { copiloto.fijar(ruta(), 100.0 + it) }
+        ajustes.value = ajustes.value.copy(voz = VozCopiloto.DAVEFX)
+        repeat(3) { copiloto.fijar(ruta(), 140.0 + it) }
+        trabajo.cancel()
+
         assertEquals(emptyList<String>(), locutor.dichas)
     }
 
@@ -853,7 +916,9 @@ class CopilotoVozIndicacionesTest {
         val ruta = RutaVoz(AvisosManiobra(maniobras, posiciones), posiciones)
         copiloto.alFijar(NotasEnCurso(hoja, 600.0, 20.0, OrigenNotas.GUIADO), ruta, 600.0, 20.0)
         val preparadas = locutor.preparadas.last().toSet()
-        assertEquals(setOf(nota, giro), preparadas)
+        // Solo la curva, el giro y los textos de preaviso del giro (lo callado, ni sus preavisos, no se prepara).
+        val preavisosDelGiro = listOf("cien", "doscientos", "trescientos").map { "a $it, $giro" }
+        assertEquals(setOf(nota, giro) + preavisosDelGiro, preparadas)
     }
 
     @Test

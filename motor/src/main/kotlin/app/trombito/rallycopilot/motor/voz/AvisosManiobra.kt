@@ -38,8 +38,8 @@ class AvisosManiobra(
         filtro: FiltroIndicaciones = FiltroIndicaciones(),
     ): List<Frase> {
         val v = vMs.coerceAtLeast(0.0)
-        val inminenteM = (v * INMINENTE_S).coerceIn(INMINENTE_MIN_M, INMINENTE_MAX_M)
-        val preavisoM = (v * PREAVISO_S).coerceIn(PREAVISO_MIN_M, PREAVISO_MAX_M)
+        val inminenteM = ventanaInminenteM(v)
+        val preavisoM = ventanaPreavisoM(v)
         return maniobras.indices.mapNotNull { i ->
             val maniobra = maniobras[i]
             val punto = posicionesM[i]
@@ -64,6 +64,32 @@ class AvisosManiobra(
         }
     }
 
+    /**
+     * Todos los textos que puede tomar el preaviso de las próximas [maximo] maniobras aún por delante de [posicionM]
+     * (sin salida ni las que el [filtro] calla) yendo a [vMs]: de menor a mayor distancia, desde «a cien»
+     * hasta lo que cabe en la ventana de preaviso. El texto de [candidatas] cambia cada ~100 m y todos salen de aquí,
+     * así que se pueden sintetizar una sola vez por adelantado en vez de uno por cruce y sobre la marcha.
+     */
+    fun textosPreaviso(
+        posicionM: Double,
+        vMs: Double,
+        filtro: FiltroIndicaciones = FiltroIndicaciones(),
+        maximo: Int,
+    ): List<String> {
+        val v = vMs.coerceAtLeast(0.0)
+        val desde = (ventanaInminenteM(v) / CIENTO_M).roundToInt().coerceAtLeast(1)
+        val hasta = (ventanaPreavisoM(v) / CIENTO_M).roundToInt()
+        return maniobras.indices
+            .filter { posicionesM[it] > posicionM && maniobras[it].tipo != TipoManiobra.SALIDA }
+            .filter { filtro.permite(maniobras[it].tipo) }
+            .take(maximo)
+            .flatMap { i -> (desde..hasta).map { textoPreaviso(i, it) } }
+    }
+
+    private fun ventanaInminenteM(v: Double) = (v * INMINENTE_S).coerceIn(INMINENTE_MIN_M, INMINENTE_MAX_M)
+
+    private fun ventanaPreavisoM(v: Double) = (v * PREAVISO_S).coerceIn(PREAVISO_MIN_M, PREAVISO_MAX_M)
+
     private fun texto(
         indice: Int,
         conVia: Boolean,
@@ -80,10 +106,17 @@ class AvisosManiobra(
     ): Frase? {
         val cientos = (distanciaM / CIENTO_M).roundToInt()
         if (cientos < 1) return null
+        return Frase("maniobra-$indice-preaviso", textoPreaviso(indice, cientos), TipoFrase.MANIOBRA, punto)
+    }
+
+    /** «a trescientos, cruce, derecha, Ma-10» para [cientos] centenares de metros. */
+    private fun textoPreaviso(
+        indice: Int,
+        cientos: Int,
+    ): String {
         val metros = cientos * CIENTO_M.toInt()
         val palabras = if (metros >= MIL_M) "mil" else FrasesNota.enPalabras(metros)
-        val texto = "a $palabras, ${texto(indice, conVia = true)}"
-        return Frase("maniobra-$indice-preaviso", texto, TipoFrase.MANIOBRA, punto)
+        return "a $palabras, ${texto(indice, conVia = true)}"
     }
 
     private companion object {

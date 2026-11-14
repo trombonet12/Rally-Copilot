@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.navegacion
 
+import app.trombito.rallycopilot.data.voz.relojMonotonicoMs
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
 import app.trombito.rallycopilot.domain.notas.NotasEnCurso
 import app.trombito.rallycopilot.domain.notas.OrigenNotas
@@ -70,6 +71,7 @@ class CopilotoVoz(
     private val registro: ((String) -> Unit)? = null,
     private val alDecir: ((String) -> Unit)? = null,
     private val alDecirNota: ((Frase) -> Unit)? = null,
+    private val reloj: () -> Long = ::relojMonotonicoMs,
 ) {
     private val selector = SelectorNotas()
     private val hojaFiltrada = HojaFiltrada()
@@ -178,7 +180,10 @@ class CopilotoVoz(
         val sinPosicion = habladas.isEmpty() && porDecir.isEmpty()
         val posicionM = progresoM ?: notas?.posicionM ?: if (sinPosicion) null else 0.0
         val voz = a.voz
-        if (voz == null || posicionM == null) return
+        if (voz == null || posicionM == null) {
+            pendientesVigentes() // sin voz lo pendiente sigue caducando: al elegirla no suena nada viejo
+            return
+        }
         sincronizarLocutor(a, voz)
         if (ruta !== rutaAnterior) cambiarRuta(ruta, desplazamiento(progresoPrevio, progresoM))
         val v = vMs ?: 0.0
@@ -190,7 +195,7 @@ class CopilotoVoz(
         val llamadasPrevistas = llamadas(contexto, visibles.map { it.copy(activa = true) }, conEspera = false)
         val previstas = llamadasPrevistas.map { it.frase } + maniobras + inminentesPrevistos(ruta, posicionM, a)
         if (!locutor.hablando.value) decirSiguiente(activas, previstas, posicionM, vMs, a)
-        preparar(previstas, posicionM, a)
+        preparar(previstas, variantesPreaviso(ruta, posicionM, v, a), posicionM, a)
     }
 
     /** Frases de las llamadas que ya se pueden cantar (ninguna en pausa); recuerda la entrada de cada una. */
@@ -451,6 +456,22 @@ class CopilotoVoz(
             }.orEmpty()
             .map(::conRuta)
 
+    /**
+     * Los textos del preaviso de las próximas maniobras en todas sus distancias (cambia cada ~100 m): se sintetizan
+     * una vez por adelantado en vez de uno por cruce sobre la marcha. Nada si el modo calla las maniobras.
+     */
+    private fun variantesPreaviso(
+        ruta: RutaVoz?,
+        posicionM: Double,
+        vMs: Double,
+        a: AjustesConduccion,
+    ): List<String> =
+        if (ruta == null || !a.modoCopiloto.permite(TipoFrase.MANIOBRA)) {
+            emptyList()
+        } else {
+            ruta.avisos.textosPreaviso(posicionM, vMs, a.filtroIndicaciones, MANIOBRAS_CON_VARIANTES)
+        }
+
     private fun conRuta(frase: Frase) = frase.copy(id = "r$generacionRuta-${frase.id}")
 
     private fun decir(
@@ -463,7 +484,7 @@ class CopilotoVoz(
             cantadas += frase.id
             cantadas += frase.cubre
         }
-        locutor.decir(frase.texto)
+        locutor.decir(frase.texto, caducaMs = caducaMs(frase, posicionM, vMs))
         alDecir?.invoke(frase.texto)
         if (frase.tipo == TipoFrase.NOTA && frase.puntoM != null) alDecirNota?.invoke(frase)
         registro?.invoke(
@@ -472,15 +493,35 @@ class CopilotoVoz(
         )
     }
 
+    /**
+     * Plazo del reloj del locutor tras el que una nota ya no vale: cuando el coche llega a su punto, a la velocidad
+     * actual. Si la síntesis o la cola la retrasan hasta entonces, se descarta en vez de sonar tarde. Sin velocidad
+     * (parado) o sin punto no caduca.
+     */
+    private fun caducaMs(
+        frase: Frase,
+        posicionM: Double,
+        vMs: Double?,
+    ): Long? {
+        val punto = frase.puntoM?.takeIf { frase.tipo == TipoFrase.NOTA }
+        val v = vMs?.takeIf { it > VELOCIDAD_MIN_CADUCIDAD_MS }
+        if (punto == null || v == null) return null
+        val segundos = ((punto - posicionM) / v).coerceAtLeast(0.0)
+        return reloj() + (segundos * MS_POR_S).toLong()
+    }
+
     private fun preparar(
         previstas: List<Frase>,
+        variantesPreaviso: List<String>,
         posicionM: Double,
         a: AjustesConduccion,
     ) {
         val textos =
-            planificador
-                .proximas(previstas.distinctBy { it.id }, posicionM, a.modoCopiloto, PREPARADAS)
-                .map { it.texto }
+            (
+                planificador
+                    .proximas(previstas.distinctBy { it.id }, posicionM, a.modoCopiloto, PREPARADAS)
+                    .map { it.texto } + variantesPreaviso
+            ).distinct()
         if (textos != ultimaPreparacion) {
             ultimaPreparacion = textos
             locutor.preparar(textos)
@@ -491,6 +532,13 @@ class CopilotoVoz(
         /** Elementos de la hoja que se miran por delante: cantar las activas y preparar las siguientes. */
         const val NOTAS_CONSIDERADAS = 8
         const val MANIOBRAS_PREPARADAS = 3
+
+        /** Maniobras por delante de las que se preparan todas las distancias del preaviso. */
+        const val MANIOBRAS_CON_VARIANTES = 2
+
+        /** Por debajo de esta velocidad (m/s) el coche casi no avanza: una nota no caduca por tiempo. */
+        const val VELOCIDAD_MIN_CADUCIDAD_MS = 1.0
+        const val MS_POR_S = 1_000.0
         const val PREPARADAS = 6
         const val SUFIJO_INMINENTE = "-inminente"
 

@@ -4,6 +4,8 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import app.trombito.rallycopilot.data.audio.ModoAudio
+import app.trombito.rallycopilot.data.audio.RutaAudio
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
@@ -39,36 +41,44 @@ interface FocoAudio {
 }
 
 /**
- * Foco `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK` con los [AtributosVoz]: se pide antes de sonar y se suelta al acabar, de
- * modo que la música de otras apps baja mientras habla el copiloto y vuelve después.
+ * Foco `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK`: se pide antes de sonar y se suelta al acabar, de modo que la música de
+ * otras apps baja mientras habla el copiloto y vuelve después. Se pide con los mismos atributos con que suena la frase
+ * ([ReproductorAudioTrack]): [AtributosVoz.atributosCasco] si la voz va por el intercom ([RutaAudio.modo]) y
+ * [AtributosVoz.atributos] si va por el móvil; el foco y el sonido tienen que coincidir para que el sistema aplique
+ * el ducking al flujo que toca.
  */
 class GestorFocoAudio
     @Inject
     constructor(
         @ApplicationContext contexto: Context,
+        private val ruta: RutaAudio,
     ) : FocoAudio {
         private val audio = contexto.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        private val peticion: AudioFocusRequest =
-            AudioFocusRequest
-                .Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-                .setAudioAttributes(AtributosVoz.atributos)
-                .setOnAudioFocusChangeListener { }
-                .build()
-        private var concedido = false
+
+        /** La petición vigente (con la que se concedió el foco), para abandonar justo esa aunque el modo cambie. */
+        private var concedida: AudioFocusRequest? = null
 
         @Synchronized
         override fun pedir(): Boolean {
-            if (!concedido) {
-                concedido = audio.requestAudioFocus(peticion) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+            if (concedida == null) {
+                val nueva = peticion(porCasco = ruta.modo.value == ModoAudio.CASCO)
+                if (audio.requestAudioFocus(nueva) == AudioManager.AUDIOFOCUS_REQUEST_GRANTED) concedida = nueva
             }
-            return concedido
+            return concedida != null
         }
 
         @Synchronized
         override fun soltar() {
-            if (concedido) {
-                audio.abandonAudioFocusRequest(peticion)
-                concedido = false
+            concedida?.let {
+                audio.abandonAudioFocusRequest(it)
+                concedida = null
             }
         }
+
+        private fun peticion(porCasco: Boolean): AudioFocusRequest =
+            AudioFocusRequest
+                .Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                .setAudioAttributes(if (porCasco) AtributosVoz.atributosCasco else AtributosVoz.atributos)
+                .setOnAudioFocusChangeListener { }
+                .build()
     }

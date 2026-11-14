@@ -54,7 +54,7 @@ interface Locutor {
     /**
      * Hace sonar [texto] con la voz actual. Con [PrioridadVoz.URGENTE] vacía lo que espera sin haber empezado y va
      * primera (la frase que ya suena no se corta). Si [caducaMs] (tiempo absoluto del reloj monótono del locutor,
-     * `SystemClock.elapsedRealtime()`) llega antes de que la frase empiece a sonar, se descarta.
+     * `relojMonotonicoMs()`, basado en `System.nanoTime()`) llega antes de que la frase empiece a sonar, se descarta.
      */
     fun decir(
         texto: String,

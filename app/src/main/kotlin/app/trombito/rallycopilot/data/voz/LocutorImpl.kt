@@ -1,6 +1,5 @@
 package app.trombito.rallycopilot.data.voz
 
-import android.os.SystemClock
 import android.util.Log
 import app.trombito.rallycopilot.domain.diagnostico.RegistroDiagnostico
 import app.trombito.rallycopilot.domain.voz.Locutor
@@ -22,6 +21,14 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
+ * Reloj monótono en ms (`System.nanoTime`) para los plazos de [Locutor.decir]: quien pide la frase y el locutor tienen
+ * que medir contra el mismo reloj. A diferencia de `SystemClock`, también existe en las pruebas JVM sin Android.
+ */
+fun relojMonotonicoMs(): Long = System.nanoTime() / NS_POR_MS
+
+private const val NS_POR_MS = 1_000_000L
+
+/**
  * [Locutor] sobre un [SintetizadorTts] y una [CacheFrases].
  *
  * - **Síntesis**: siempre en [dispatcherSintesis] (un solo hilo) y de una en una (un [Mutex] justo): la cola de
@@ -33,7 +40,9 @@ import kotlinx.coroutines.withContext
  * - **Volumen**: [usarVolumen] aplica una ganancia al PCM justo antes de reproducir (la caché guarda el original), así
  *   que el cambio vale para la frase siguiente y puede subir de 100 % sin saturar ([GananciaPcm]).
  * - **[decir]**: una frase a la vez, por orden de llegada. Sintetiza si no está en caché, pide el foco, suena y lo
- *   suelta. [hablando] es `true` desde que se pide el foco hasta que acaba; si se deniega, no suena y vuelve a `false`.
+ *   suelta. [hablando] es `true` desde que se pide [decir] (también durante la síntesis, para que el copiloto no
+ *   encole otra frase mientras tanto) hasta que acaba la última de la cola; si se deniega el foco, no suena y vuelve a
+ *   `false`.
  *   Una frase [PrioridadVoz.URGENTE] vacía las que esperan sin haber empezado y pasa la primera (la que ya suena no se
  *   corta); una con `caducaMs` se descarta si su plazo (del [reloj] monótono) llega antes de empezar a sonar.
  * - **Caché**: las lecturas solo actualizan el orden LRU en memoria; la fecha de los archivos se vuelca tras
@@ -47,8 +56,8 @@ class LocutorImpl(
     private val foco: FocoAudio,
     private val ambito: CoroutineScope,
     private val dispatcherSintesis: CoroutineDispatcher,
-    /** Reloj monótono (ms) contra el que se miden las caducidades de [decir]. */
-    private val reloj: () -> Long = { SystemClock.elapsedRealtime() },
+    /** Reloj monótono (ms) contra el que se miden las caducidades de [decir]; el mismo que usa [CopilotoVoz]. */
+    private val reloj: () -> Long = ::relojMonotonicoMs,
     /**
      * La voz con la que se habla de verdad cuando se pide una [VozCopiloto] (`VocesInstaladas.efectiva`): una voz
      * que no está instalada (Sharvard aún sin descargar) se sustituye por Dave. Se consulta en cada frase, así que en
@@ -147,6 +156,8 @@ class LocutorImpl(
         synchronized(lockTurnos) {
             if (prioridad == PrioridadVoz.URGENTE) esperaDeVoz.clear()
             esperaDeVoz.addLast(peticion)
+            // Ocupado desde ya: entre este aviso y el sonido hay sintesis, y el copiloto no debe encolar otra frase.
+            estaHablando.value = true
         }
         avisoDeVoz.trySend(Unit)
     }
@@ -180,7 +191,10 @@ class LocutorImpl(
     override fun cerrar() {
         ambito.cancel()
         avisoDeVoz.close()
-        synchronized(lockTurnos) { esperaDeVoz.clear() }
+        synchronized(lockTurnos) {
+            esperaDeVoz.clear()
+            estaHablando.value = false
+        }
         synchronized(lockCola) { pendientes.clear() }
         foco.soltar()
         // liberar() espera a que acabe la frase en curso: va por el hilo de síntesis, no por el que llama.
@@ -252,9 +266,17 @@ class LocutorImpl(
         return muestras?.takeUnless { caducada(peticion) }
     }
 
+    /** Una frase de punta a punta; al acabar (suene o se descarte) [hablando] solo baja si no queda nada esperando. */
     private suspend fun hablar(peticion: Peticion) {
+        try {
+            reproducirVigente(peticion)
+        } finally {
+            synchronized(lockTurnos) { estaHablando.value = esperaDeVoz.isNotEmpty() }
+        }
+    }
+
+    private suspend fun reproducirVigente(peticion: Peticion) {
         val muestras = muestrasVigentes(peticion) ?: return
-        estaHablando.value = true
         try {
             if (foco.pedir()) {
                 val conGanancia = GananciaPcm.aplicar(muestras, volumenPorcentaje)
@@ -265,7 +287,6 @@ class LocutorImpl(
             registro.error(TAG, "voz error reproduccion tipo=${e.javaClass.simpleName}")
         } finally {
             foco.soltar()
-            estaHablando.value = false
             programarPersistenciaDeCache()
         }
     }

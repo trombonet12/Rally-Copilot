@@ -162,6 +162,44 @@ class AvisosManiobraTest {
     }
 
     @Test
+    fun `los textos de preaviso cubren todo lo que se dice al acercarse y solo de las proximas maniobras`() {
+        // A 20 m/s el preaviso se canta de 300 a 100 m: tres textos; la maniobra de 5000 m queda fuera con cuantas = 1.
+        val textos = avisos.textosPreaviso(1000.0, 20.0, maximo = 1)
+        assertEquals(
+            listOf("cien", "doscientos", "trescientos").map { "a $it, cruce, derecha, Ma-10" },
+            textos,
+        )
+        var posicionM = 1000.0
+        while (posicionM < 2000.0) {
+            candidatas(posicionM, 20.0).filter { it.id.endsWith("preaviso") }.forEach { assertTrue(it.texto in textos) }
+            posicionM += 7.0
+        }
+    }
+
+    @Test
+    fun `los textos de preaviso crecen con la velocidad y cantan mil como tope`() {
+        // 40 m/s: de 600 a 200 m. 100 m/s: de 1000 m («mil») a 200 m (inminente a 200).
+        val cientos = listOf("doscientos", "trescientos", "cuatrocientos", "quinientos", "seiscientos")
+        assertEquals(
+            cientos.map { "a $it, cruce, derecha, Ma-10" },
+            avisos.textosPreaviso(1000.0, 40.0, maximo = 1),
+        )
+        val rapido = avisos.textosPreaviso(0.0, 100.0, maximo = 1)
+        assertEquals("a mil, cruce, derecha, Ma-10", rapido.last())
+        assertEquals("a doscientos, cruce, derecha, Ma-10", rapido.first())
+    }
+
+    @Test
+    fun `no hay textos de preaviso para la salida, lo ya pasado ni lo que el filtro calla`() {
+        assertTrue(avisos.textosPreaviso(2500.0, 20.0, maximo = 1).none { it.contains("derecha") })
+        assertEquals(emptyList<String>(), avisos.textosPreaviso(5500.0, 20.0, maximo = 3))
+        val sinCruces = FiltroIndicaciones(avisarCruces = false, avisarSalidasAutopista = false, avisarRotondas = false)
+        val rotonda = Maniobra(TipoManiobra.ROTONDA_ENTRADA, "instruccion", emptyList(), 0, 0, 100.0, 10.0, 3)
+        val soloRotonda = AvisosManiobra(listOf(rotonda), listOf(1000.0))
+        assertEquals(emptyList<String>(), soloRotonda.textosPreaviso(0.0, 20.0, sinCruces, maximo = 1))
+    }
+
+    @Test
     fun `las maniobras de la ruta se pueden consultar`() {
         assertEquals(3, avisos.maniobras.size)
     }

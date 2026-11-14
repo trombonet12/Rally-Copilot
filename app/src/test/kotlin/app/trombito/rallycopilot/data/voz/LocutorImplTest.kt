@@ -6,8 +6,10 @@ import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -193,6 +195,58 @@ class LocutorImplTest {
             assertFalse(locutor.hablando.value)
             assertEquals(1, foco.pedidos)
             assertEquals(1, foco.soltados)
+        }
+
+    @Test
+    fun `hablando es true desde que se pide decir, antes de sintetizar y de sonar`() =
+        runTest {
+            val (locutor, _) = locutor()
+            repro.puerta = CompletableDeferred()
+
+            locutor.decir("curva")
+
+            // Aun no ha empezado la sintesis (ni el foco ni el sonido): el copiloto ya tiene que verlo ocupado.
+            assertTrue(sint.llamadas.isEmpty())
+            assertEquals(0, foco.pedidos)
+            assertTrue(locutor.hablando.value)
+
+            repro.puerta?.complete(Unit)
+            advanceUntilIdle()
+
+            assertFalse(locutor.hablando.value)
+        }
+
+    @Test
+    fun `hablando no parpadea a false entre dos frases encadenadas`() =
+        runTest {
+            val (locutor, _) = locutor()
+            repro.puerta = CompletableDeferred()
+            val valores = mutableListOf<Boolean>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                locutor.hablando.collect { valores += it }
+            }
+
+            locutor.decir("uno")
+            locutor.decir("dos tres")
+            runCurrent()
+            repro.puerta?.complete(Unit)
+            advanceUntilIdle()
+
+            assertEquals(listOf(300, 800), repro.sonadas)
+            assertEquals(listOf(false, true, false), valores)
+        }
+
+    @Test
+    fun `una frase que caduca sin sonar no deja el locutor ocupado`() =
+        runTest {
+            val (locutor, _) = locutor()
+
+            locutor.decir("tarde", caducaMs = ahoraMs - 1)
+            assertTrue(locutor.hablando.value)
+            advanceUntilIdle()
+
+            assertTrue(repro.sonadas.isEmpty())
+            assertFalse(locutor.hablando.value)
         }
 
     @Test
