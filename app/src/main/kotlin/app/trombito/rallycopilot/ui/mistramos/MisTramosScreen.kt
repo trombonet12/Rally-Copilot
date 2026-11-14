@@ -60,6 +60,7 @@ data class AccionesMisTramos(
     val onVolver: () -> Unit = {},
     val onAbrir: (ResumenTramo) -> Unit = {},
     val onFiltro: (FiltroTramos) -> Unit = {},
+    val onPestana: (PestanaTramos) -> Unit = {},
     val onFavorito: (ResumenTramo) -> Unit = {},
     val onBorrar: (ResumenTramo) -> Unit = {},
     val onDeshacer: () -> Unit = {},
@@ -105,11 +106,24 @@ fun MisTramosScreen(
             if (importacion == EstadoImportacion.Importando) {
                 LinearProgressIndicator(Modifier.fillMaxWidth().testTag(ETIQUETA_TRAMOS_IMPORTANDO))
             }
+            PestanasTramos(estado.pestana, acciones.onPestana)
             FiltrosTramos(estado.filtro, acciones.onFiltro)
             when {
-                estado.cargando -> Cargando()
-                estado.tramos.isEmpty() -> VacioTramos(estado.filtro)
-                else -> ListaTramos(estado.tramos, estado.trazas, acciones, pistaLibre)
+                estado.cargando -> {
+                    Cargando()
+                }
+
+                estado.tramos.isEmpty() -> {
+                    VacioTramos(estado.filtro, estado.pestana)
+                }
+
+                estado.pestana == PestanaTramos.CARRETERAS -> {
+                    ListaCarreteras(agruparCarreteras(estado.tramos), estado.trazas, acciones, pistaLibre)
+                }
+
+                else -> {
+                    ListaTramos(estado.tramos, estado.trazas, acciones, pistaLibre)
+                }
             }
         }
         SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).padding(Espacio.l))
@@ -208,11 +222,18 @@ private fun Cargando() {
 }
 
 @Composable
-private fun VacioTramos(filtro: FiltroTramos) {
+private fun VacioTramos(
+    filtro: FiltroTramos,
+    pestana: PestanaTramos,
+) {
     val (titulo, texto) =
         when (filtro) {
             FiltroTramos.TODOS -> {
-                R.string.mistramos_vacio_titulo to R.string.mistramos_vacio_texto
+                if (pestana == PestanaTramos.CARRETERAS) {
+                    R.string.mistramos_vacio_carreteras_titulo to R.string.mistramos_vacio_carreteras_texto
+                } else {
+                    R.string.mistramos_vacio_titulo to R.string.mistramos_vacio_texto
+                }
             }
 
             FiltroTramos.REPETIDOS -> {
@@ -224,7 +245,12 @@ private fun VacioTramos(filtro: FiltroTramos) {
             }
         }
     EstadoVacioWrc(
-        icono = if (filtro == FiltroTramos.FAVORITOS) Iconos.EstrellaVacia else Iconos.Bandera,
+        icono =
+            when {
+                filtro == FiltroTramos.FAVORITOS -> Iconos.EstrellaVacia
+                pestana == PestanaTramos.CARRETERAS -> Iconos.Curvas
+                else -> Iconos.Bandera
+            },
         titulo = stringResource(titulo),
         texto = stringResource(texto),
         etiqueta = ETIQUETA_TRAMOS_VACIO,

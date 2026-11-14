@@ -30,7 +30,9 @@ enum class FiltroTramos { TODOS, REPETIDOS, FAVORITOS }
 /**
  * Fila de «Mis tramos». [nombre] es el efectivo (el del usuario o, si no lo hay, el automático) y [nombrePropio] el
  * que puso el usuario (null si no lo ha cambiado). [subtitulo] son las carreteras del nombre automático
- * ([NombreAutomatico]), si las hay. [ultimoUsoMs] es epoch. [tipo]: viaje entero o tramo de vía.
+ * ([NombreAutomatico]), si las hay. [ultimoUsoMs] es epoch. [tipo]: viaje entero o tramo de vía; [via] sitúa un tramo
+ * `VIA` en su carretera (null en un viaje), [carretera] es cómo se escribe esa carretera («Ma-15»; null si no se sabe)
+ * y [mediaMs] el tiempo medio de sus pasadas (null sin pasadas).
  */
 data class ResumenTramo(
     val id: String,
@@ -43,6 +45,9 @@ data class ResumenTramo(
     val favorito: Boolean,
     val subtitulo: String? = null,
     val tipo: TipoTramo = TipoTramo.VIAJE,
+    val via: DatosVia? = null,
+    val mediaMs: Long? = null,
+    val carretera: String? = null,
 )
 
 /** Punto grabado de una pasada; [tiempoMs] está en el reloj del recorrido (monótono, no epoch). */

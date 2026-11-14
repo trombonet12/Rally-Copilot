@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.comun
 
+import app.trombito.rallycopilot.domain.tramos.DatosVia
 import app.trombito.rallycopilot.domain.tramos.EstadisticasPerfil
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.OrigenPasada
@@ -7,6 +8,7 @@ import app.trombito.rallycopilot.domain.tramos.PasadaDetallada
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
+import app.trombito.rallycopilot.domain.tramos.TipoTramo
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.MarcaTiempo
@@ -28,7 +30,23 @@ fun resumenFalso(
     favorito: Boolean = false,
     longitudM: Double = 5_000.0,
     nombrePropio: String? = null,
-) = ResumenTramo(id, nombre, nombrePropio, longitudM, pasadas, mejorMs, ultimoUsoMs, favorito)
+    via: DatosVia? = null,
+    mediaMs: Long? = null,
+    carretera: String? = null,
+) = ResumenTramo(
+    id,
+    nombre,
+    nombrePropio,
+    longitudM,
+    pasadas,
+    mejorMs,
+    ultimoUsoMs,
+    favorito,
+    tipo = if (via != null) TipoTramo.VIA else TipoTramo.VIAJE,
+    via = via,
+    mediaMs = mediaMs,
+    carretera = carretera,
+)
 
 /** Pasada de prueba de [totalMs] sobre un tramo de [longitudM]. */
 fun pasadaFalsa(

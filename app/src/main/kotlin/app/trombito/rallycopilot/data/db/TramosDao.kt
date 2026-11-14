@@ -80,7 +80,8 @@ abstract class TramosDao {
 
     @Query(
         "SELECT t.id, t.nombre, t.nombreAutomatico, t.longitudM, t.favorito, t.ultimoUso, " +
-            "t.tipo, COUNT(p.id) AS pasadas, MIN(p.totalMs) AS mejorMs " +
+            "t.tipo, COUNT(p.id) AS pasadas, MIN(p.totalMs) AS mejorMs, CAST(AVG(p.totalMs) AS INTEGER) AS mediaMs, " +
+            "t.viaRef, t.pkDesde, t.pkHasta, t.sentido, t.destino, t.recorridoOrigenId " +
             "FROM tramo t LEFT JOIN pasada p ON p.tramoId = t.id " +
             "GROUP BY t.id ORDER BY t.ultimoUso DESC, t.creadoEn DESC, t.id",
     )

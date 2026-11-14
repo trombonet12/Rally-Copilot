@@ -8,6 +8,7 @@ import app.trombito.rallycopilot.data.db.TIPO_VIA
 import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
+import app.trombito.rallycopilot.domain.tramos.DatosVia
 import app.trombito.rallycopilot.domain.tramos.EstadisticasPerfil
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.NombreAutomatico
@@ -22,6 +23,7 @@ import app.trombito.rallycopilot.domain.tramos.TramoCronometrable
 import app.trombito.rallycopilot.motor.tramos.Pasada
 import app.trombito.rallycopilot.motor.tramos.SubtramoHecho
 import app.trombito.rallycopilot.motor.tramos.Tramo
+import app.trombito.rallycopilot.motor.vias.SentidoVia
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -257,11 +259,34 @@ class RepositorioTramosRoom
                 favorito = favorito,
                 subtitulo = automatico?.let(NombreAutomatico::subtitulo),
                 tipo = if (tipo == TIPO_VIA) TipoTramo.VIA else TipoTramo.VIAJE,
+                via = aDatosVia(),
+                mediaMs = mediaMs,
+                carretera = carreteraDe(automatico),
             )
+        }
+
+        /** La carretera tal como la escribió el nombre automático de un tramo `VIA` («Ma-15 · km 20,1→32,4 · …»). */
+        private fun FilaResumenTramo.carreteraDe(automatico: String?): String? =
+            if (tipo == TIPO_VIA) {
+                automatico
+                    ?.let(NombreAutomatico::titulo)
+                    ?.substringBefore(SEPARADOR_NOMBRE_VIA)
+                    ?.trim()
+                    ?.ifEmpty { null }
+            } else {
+                null
+            }
+
+        /** La posición en su carretera de un tramo `VIA` (null en un viaje o si le falta la carretera). */
+        private fun FilaResumenTramo.aDatosVia(): DatosVia? {
+            if (tipo != TIPO_VIA || viaRef == null) return null
+            val sentidoVia = SentidoVia.entries.firstOrNull { it.name == sentido } ?: SentidoVia.DESCONOCIDO
+            return DatosVia(viaRef, pkDesde, pkHasta, sentidoVia, destino, recorridoOrigenId)
         }
 
         private companion object {
             const val PASADAS_PARA_REPETIDO = 2
             const val NOMBRE_POR_DEFECTO = "Tramo sin nombre"
+            const val SEPARADOR_NOMBRE_VIA = " · "
         }
     }

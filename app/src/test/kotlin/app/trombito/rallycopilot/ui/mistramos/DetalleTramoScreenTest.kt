@@ -5,6 +5,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import app.trombito.rallycopilot.domain.tramos.DatosVia
+import app.trombito.rallycopilot.domain.tramos.TipoTramo
+import app.trombito.rallycopilot.motor.vias.SentidoVia
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.comun.resumenFalso
@@ -200,6 +203,22 @@ class DetalleTramoScreenTest {
         }
         assertEquals(listOf("Palma → Valldemossa"), banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_TITULO)))
         assertEquals(listOf("Ma-1110 / Ma-10"), banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_SUBTITULO)))
+    }
+
+    @Test
+    fun `el nombre largo de un tramo de via llega entero al titulo y el detalle es el de siempre`() {
+        val nombre = "Ma-15 · km 20,1→32,4 · hacia Manacor"
+        val deVia =
+            tramo.copy(
+                nombre = nombre,
+                tipo = TipoTramo.VIA,
+                via = DatosVia("MA15", 20.1, 32.4, SentidoVia.CRECIENTE, "Manacor", null),
+            )
+        banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado.copy(tramo = deVia), AccionesDetalleTramo()) } }
+        val titulo = banco.conEtiqueta(ETIQUETA_DETALLE_TITULO)
+        assertEquals(listOf(nombre), banco.textos(titulo))
+        // Las pasadas, los sectores y el resto del detalle son los de siempre.
+        assertTrue("Pasadas" in banco.todosLosTextos())
     }
 
     @Test

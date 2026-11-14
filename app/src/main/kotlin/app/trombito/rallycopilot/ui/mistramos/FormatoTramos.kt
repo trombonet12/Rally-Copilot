@@ -11,6 +11,9 @@ private val MESES = listOf("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago
 /** «850 m» por debajo del kilómetro y «12,4 km» desde él (coma decimal, vía [FormatoEs]). */
 fun formatearDistanciaTramo(metros: Double): String = FormatoEs.distancia(metros)
 
+/** Punto kilométrico con una décima y coma decimal, sin unidad: «20,1». */
+fun formatearPk(km: Double): String = String.format(ES, "%.1f", km)
+
 /** «123,4 km» con una décima y coma decimal (vía [FormatoEs]). */
 fun formatearKilometros(km: Double): String = FormatoEs.kilometros(km)
 

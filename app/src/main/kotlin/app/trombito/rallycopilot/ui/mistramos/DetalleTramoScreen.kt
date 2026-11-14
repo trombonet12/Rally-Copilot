@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
+import app.trombito.rallycopilot.domain.tramos.TipoTramo
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.analisis.MapaTramo
 import app.trombito.rallycopilot.ui.comun.BotonVolver
@@ -84,6 +85,9 @@ private val ALTO_MAPA = 240.dp
 private val ALTO_FILA_PASADA = 56.dp
 private val TAMANO_TITULO = 20.sp
 private val ALTO_LINEA_TITULO = 26.sp
+private val TAMANO_TITULO_VIA = 17.sp
+private val ALTO_LINEA_TITULO_VIA = 22.sp
+private const val LINEAS_TITULO_VIA = 3
 
 /** Cifra de un tile o de una pasada: 22 sp, cursiva Black, sin el apretado de las cifras grandes. */
 private val CifraTile = Rotulo.copy(fontSize = 22.sp, lineHeight = 26.sp, letterSpacing = 0.sp)
@@ -182,11 +186,18 @@ private fun CabeceraDetalle(
     ) {
         BotonVolver(acciones.onVolver)
         Column(Modifier.weight(1f).padding(horizontal = Espacio.xs)) {
+            // El nombre de un tramo de vía («Ma-15 · km 20,1→32,4 · hacia Manacor») es largo: se parte, no se corta.
+            val deVia = tramo?.tipo == TipoTramo.VIA
             Text(
                 text = tramo?.nombre.orEmpty(),
-                style = Titulo.copy(fontSize = TAMANO_TITULO, lineHeight = ALTO_LINEA_TITULO),
+                style =
+                    if (deVia) {
+                        Titulo.copy(fontSize = TAMANO_TITULO_VIA, lineHeight = ALTO_LINEA_TITULO_VIA)
+                    } else {
+                        Titulo.copy(fontSize = TAMANO_TITULO, lineHeight = ALTO_LINEA_TITULO)
+                    },
                 color = MaterialTheme.colorScheme.primary,
-                maxLines = 1,
+                maxLines = if (deVia) LINEAS_TITULO_VIA else 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.testTag(ETIQUETA_DETALLE_TITULO).semantics { heading() },
             )

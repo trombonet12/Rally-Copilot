@@ -1,7 +1,9 @@
 package app.trombito.rallycopilot.ui.mistramos
 
 import android.database.sqlite.SQLiteException
+import app.trombito.rallycopilot.domain.tramos.DatosVia
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
+import app.trombito.rallycopilot.motor.vias.SentidoVia
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
 import app.trombito.rallycopilot.ui.comun.resumenFalso
 import app.trombito.rallycopilot.ui.comun.tramoFalso
@@ -288,5 +290,43 @@ class MisTramosViewModelTest {
                     .getValue("a")
                     .size,
             )
+        }
+
+    @Test
+    fun `las pestanas separan viajes y carreteras, se recuerdan y respetan el filtro`() =
+        runTest {
+            val via = DatosVia("MA15", 1.0, 9.0, SentidoVia.CRECIENTE, "Manacor", null)
+            val v1 = resumenFalso("v1", "Ma-15 · km 1,0→9,0", pasadas = 3, via = via, favorito = true)
+            val v2 = resumenFalso("v2", "Ma-15 · km 10,0→19,0", pasadas = 1, via = via)
+            val repo = FalsoRepositorioTramos(listOf(a, b, v1, v2))
+            val vm = MisTramosViewModel(repo)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+            assertEquals(PestanaTramos.VIAJES, vm.uiState.value.pestana)
+            assertEquals(
+                listOf("a", "b"),
+                vm.uiState.value.tramos
+                    .map { it.id },
+            )
+            vm.onPestana(PestanaTramos.CARRETERAS)
+            assertEquals(PestanaTramos.CARRETERAS, vm.uiState.value.pestana)
+            assertEquals(
+                listOf("v1", "v2"),
+                vm.uiState.value.tramos
+                    .map { it.id },
+            )
+            vm.onFiltro(FiltroTramos.FAVORITOS)
+            assertEquals(
+                listOf("v1"),
+                vm.uiState.value.tramos
+                    .map { it.id },
+            )
+            vm.onPestana(PestanaTramos.VIAJES)
+            assertEquals(
+                listOf("a"),
+                vm.uiState.value.tramos
+                    .map { it.id },
+            )
+            // Solo se leen las siluetas de lo que se ve: los tramos de carretera no se cargan estando en Viajes.
+            assertTrue("v1" !in vm.uiState.value.trazas.keys)
         }
 }

@@ -142,6 +142,13 @@ data class FilaResumenTramo(
     val pasadas: Int,
     val mejorMs: Long?,
     val tipo: String,
+    val mediaMs: Long? = null,
+    val viaRef: String? = null,
+    val pkDesde: Double? = null,
+    val pkHasta: Double? = null,
+    val sentido: String? = null,
+    val destino: String? = null,
+    val recorridoOrigenId: Long? = null,
 )
 
 /** Punto de un recorrido (consulta de recorte, sin el id del recorrido). */

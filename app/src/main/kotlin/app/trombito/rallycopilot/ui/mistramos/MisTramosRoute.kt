@@ -41,6 +41,7 @@ fun MisTramosRoute(
                 onVolver = onVolver,
                 onAbrir = { onAbrirTramo(it.id) },
                 onFiltro = viewModel::onFiltro,
+                onPestana = viewModel::onPestana,
                 onFavorito = viewModel::onFavorito,
                 onBorrar = viewModel::onBorrar,
                 onDeshacer = viewModel::onDeshacer,
