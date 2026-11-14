@@ -61,10 +61,13 @@ class CalidadPosicion(
  * dicha con su posición (la orden «esta nota estaba mal» marca la última). Las familias de avisos
  * que los ajustes apagan (radares, incidencias, velocidad) no se dicen, pero las notas y maniobras no se tocan.
  *
+ * Mientras [escuchando] devuelve `true` (se oye una orden de voz) no se dice nada, como con el altavoz ocupado: lo que
+ * sigue vigente al terminar se dice entonces y lo vencido se descarta.
+ *
  * El [locutor] es de la aplicación y sobrevive a la sesión: [cerrar] solo deja de pedirle trabajo. No es concurrente:
  * [alFijar] y [cerrar] se llaman desde la corrutina de la sesión.
  */
-@Suppress("TooManyFunctions") // un solo planificador por sesión; los ayudantes comparten su estado
+@Suppress("TooManyFunctions", "LongParameterList") // un planificador por sesión; los ayudantes comparten su estado
 class CopilotoVoz(
     private val locutor: Locutor,
     private val ajustes: Flow<AjustesConduccion>,
@@ -72,6 +75,7 @@ class CopilotoVoz(
     private val alDecir: ((String) -> Unit)? = null,
     private val alDecirNota: ((Frase) -> Unit)? = null,
     private val reloj: () -> Long = ::relojMonotonicoMs,
+    private val escuchando: () -> Boolean = { false },
 ) {
     private val selector = SelectorNotas()
     private val hojaFiltrada = HojaFiltrada()
@@ -194,7 +198,8 @@ class CopilotoVoz(
         val activas = llamadasActivas(contexto, visibles, enPausa) + maniobras + habladas + pendientes
         val llamadasPrevistas = llamadas(contexto, visibles.map { it.copy(activa = true) }, conEspera = false)
         val previstas = llamadasPrevistas.map { it.frase } + maniobras + inminentesPrevistos(ruta, posicionM, a)
-        if (!locutor.hablando.value) decirSiguiente(activas, previstas, posicionM, vMs, a)
+        // Sin hablar mientras se escucha una orden (Vosk grabaria la voz sintetica); lo vencido se descarta.
+        if (!locutor.hablando.value && !escuchando()) decirSiguiente(activas, previstas, posicionM, vMs, a)
         preparar(previstas, variantesPreaviso(ruta, posicionM, v, a), posicionM, a)
     }
 

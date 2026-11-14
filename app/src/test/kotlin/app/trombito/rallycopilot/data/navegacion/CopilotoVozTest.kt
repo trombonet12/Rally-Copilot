@@ -186,6 +186,23 @@ class CopilotoVozTest {
     }
 
     @Test
+    fun `no habla mientras se escucha una orden y dice la siguiente vigente al terminar`() {
+        val locutor = LocutorFalso()
+        var escuchando = true
+        val copiloto =
+            CopilotoVoz(locutor, flowOf(con(ModoCopiloto.NOTAS)), escuchando = { escuchando })
+                .also { runBlocking { it.seguirAjustes() } }
+        val ruta = ruta()
+
+        repeat(3) { copiloto.fijar(ruta, 920.0 + it) }
+        assertEquals(emptyList<String>(), locutor.dichas)
+
+        escuchando = false
+        copiloto.fijar(ruta, 924.0)
+        assertEquals(listOf("cruce, izquierda"), locutor.dichas)
+    }
+
+    @Test
     fun `no habla mientras el locutor esta hablando y lo dice cuando acaba`() {
         val locutor = LocutorFalso()
         val copiloto = copiloto(locutor, con(ModoCopiloto.NOTAS))

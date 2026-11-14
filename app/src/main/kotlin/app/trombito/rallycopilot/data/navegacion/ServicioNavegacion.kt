@@ -28,6 +28,7 @@ import app.trombito.rallycopilot.di.ApplicationScope
 import app.trombito.rallycopilot.di.DispatcherDefault
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
 import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
+import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.Enrutador
@@ -83,6 +84,8 @@ class ServicioNavegacion : Service() {
     @Inject lateinit var memoriaFrases: MemoriaFrases
 
     @Inject lateinit var escuchaContinua: EscuchaContinua
+
+    @Inject lateinit var ordenesVoz: ControlOrdenes
 
     @Inject lateinit var ediciones: RepositorioEdiciones
 
@@ -308,6 +311,7 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
                         memoriaFrases.recordarNota(NotaDicha(frase.texto, it, System.currentTimeMillis()))
                     }
                 },
+                escuchando = { ordenesVoz.escuchando.value },
             ),
         alertas = fabricaAlertas.crear(),
         ordenes = control.ordenes,
