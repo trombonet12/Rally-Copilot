@@ -114,12 +114,12 @@ class HudEscalaFuenteTest {
     }
 
     @Test
-    fun `la ficha de luego mide al menos 56 dp, sus textos caben dentro y no bajan de 12 sp`() {
+    fun `la ficha de luego mide al menos 40 dp, sus textos caben dentro y no bajan de 12 sp`() {
         ESCALAS.forEach { escala ->
             banner(escala)
             val nodo = banco.conEtiqueta(ETIQUETA_BANNER_SIGUIENTE)
             val ficha = nodo.boundsInRoot
-            assertTrue("con $escala la ficha mide ${nodo.size.height}", nodo.size.height >= 56 * DENSIDAD - 1)
+            assertTrue("con $escala la ficha mide ${nodo.size.height}", nodo.size.height >= 40 * DENSIDAD - 1)
             // Robolectric mide el texto con anchos de mentira: se comprueba el reparto, no si «cabe» la frase.
             hojas(nodo).filter { it.children.isEmpty() && banco.textos(it).isNotEmpty() }.forEach {
                 val b = it.boundsInRoot

@@ -2,8 +2,10 @@ package app.trombito.rallycopilot.ui.maniobras
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.text.TextLayoutResult
 import app.trombito.rallycopilot.motor.ruta.TipoManiobra
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_PLACA
@@ -119,6 +121,28 @@ class BannerManiobraTest {
         poner(352.0)
         val banner = banco.conEtiqueta(ETIQUETA_BANNER).boundsInRoot
         assertTrue("a todo el ancho: $banner", banner.width > 411 * 3f - 4)
+    }
+
+    @Test
+    fun `el banner es compacto y sus textos no bajan de 12 sp`() {
+        poner(352.0, siguiente = TipoManiobra.DERECHA to "derecha")
+        val alto = banco.conEtiqueta(ETIQUETA_BANNER).boundsInRoot.height
+        assertTrue("el banner con maniobra siguiente mide ${alto / 3} dp", alto <= 100 * 3f)
+        val disposiciones = mutableListOf<TextLayoutResult>()
+        banco.nodos().forEach {
+            it.config
+                .getOrNull(
+                    SemanticsActions.GetTextLayoutResult,
+                )?.action
+                ?.invoke(disposiciones)
+        }
+        assertTrue(disposiciones.isNotEmpty())
+        disposiciones.forEach {
+            assertTrue(
+                "texto de ${it.layoutInput.style.fontSize}",
+                it.layoutInput.style.fontSize.value >= 12f,
+            )
+        }
     }
 
     private fun contraste(

@@ -47,15 +47,21 @@ const val ETIQUETA_BANNER_FRASE = "banner_frase"
 const val ETIQUETA_BANNER_SIGUIENTE = "banner_siguiente"
 
 private val RADIO_BANNER = 16.dp
-private val RELLENO_BANNER = 12.dp
-private val RELLENO_COMPACTO = 8.dp
-private val TAMANO_ICONO = 56.dp
-private val TAMANO_ICONO_COMPACTO = 36.dp
-private val TAMANO_ICONO_SIGUIENTE = 28.dp
-private val ALTO_FICHA_SIGUIENTE = 56.dp
+private val RELLENO_BANNER = 8.dp
+private val RELLENO_COMPACTO = 6.dp
+private val HUECO_BANNER = 8.dp
+private val TAMANO_ICONO = 38.dp
+private val TAMANO_ICONO_COMPACTO = 26.dp
+private val TAMANO_ICONO_SIGUIENTE = 20.dp
+private val ALTO_FICHA_SIGUIENTE = 40.dp
 private val RADIO_FICHA_SIGUIENTE = 10.dp
 private val TEXTO_MINIMO_SIGUIENTE = 12.sp
 private val TEXTO_MAXIMO_SIGUIENTE = 14.sp
+
+/** Cifra de la distancia del banner (estilo local: [CifraMedia] del tema es de la píldora y no se toca). */
+private val CIFRA_BANNER = CifraMedia.copy(fontSize = 28.sp, lineHeight = 30.sp)
+private val CIFRA_BANNER_COMPACTO = CifraMedia.copy(fontSize = 20.sp, lineHeight = 22.sp)
+private val FRASE_BANNER = 14.sp
 
 /** Estilo único de los iconos del banner (flecha ámbar de trazo grueso): el estilo elegido en Ajustes se ignora. */
 private val VARIANTE_BANNER = VarianteManiobra.CHEVRON_HUD
@@ -84,9 +90,9 @@ internal class ParalelogramoShape(
 
 /**
  * Banner superior de la próxima maniobra, variante única: tarjeta de carbón opaco a todo el ancho con borde
- * ámbar, barra roja de 4 dp a la izquierda (acento, nunca relleno), flecha ámbar de 56 dp, distancia en cursiva Black
- * de 40 sp, la frase, la placa de la vía a la derecha y, si la hay, la maniobra siguiente como ficha de carbón sólido
- * de 56 dp de alto como mínimo («Luego ↰ izquierda», icono de 28 dp y texto de 12 sp o más, sin recortar).
+ * ámbar, barra roja de 4 dp a la izquierda (acento, nunca relleno), flecha ámbar de 38 dp, distancia en cursiva Black
+ * de 28 sp, la frase, la placa de la vía a la derecha y, si la hay, la maniobra siguiente como ficha de carbón sólido
+ * de 40 dp de alto como mínimo («Luego ↰ izquierda», icono de 20 dp y texto de 12 sp o más, sin recortar).
  * El escalado de la fuente del sistema se limita a 1,3 ([LimitarEscalaHud]). [salidaRotonda] pone el número de salida
  * en el icono. [via] es el `ref` de la vía de
  * la maniobra. Con [compacto] (pantalla apaisada) va en una sola línea baja y sin maniobra siguiente.
@@ -119,7 +125,7 @@ fun BannerManiobra(
             opaca = true,
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(HUECO_BANNER),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconoManiobra(
@@ -154,14 +160,14 @@ private fun TextosCompletos(
             text = formatearDistanciaManiobra(distanciaM),
             modifier = Modifier.testTag(ETIQUETA_BANNER_DISTANCIA),
             color = TextoSobreCarbon,
-            style = CifraMedia,
+            style = CIFRA_BANNER,
             maxLines = 1,
         )
         Text(
             text = frase,
             modifier = Modifier.testTag(ETIQUETA_BANNER_FRASE),
             color = TextoSobreCarbon,
-            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = FRASE_BANNER, fontWeight = FontWeight.Bold),
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
@@ -178,21 +184,21 @@ private fun TextosCompactos(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(HUECO_BANNER),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
             text = formatearDistanciaManiobra(distanciaM),
             modifier = Modifier.testTag(ETIQUETA_BANNER_DISTANCIA),
             color = TextoSobreCarbon,
-            style = CifraMedia.copy(fontSize = 28.sp, lineHeight = 30.sp),
+            style = CIFRA_BANNER_COMPACTO,
             maxLines = 1,
         )
         Text(
             text = frase,
             modifier = Modifier.weight(1f).testTag(ETIQUETA_BANNER_FRASE),
             color = TextoSobreCarbon,
-            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp, fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = FRASE_BANNER, fontWeight = FontWeight.Bold),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
@@ -200,7 +206,7 @@ private fun TextosCompactos(
 }
 
 /**
- * Ficha de la maniobra siguiente: «Luego» + icono de 28 dp + texto, sobre carbón sólido, de 56 dp de alto como mínimo y
+ * Ficha de la maniobra siguiente: «Luego» + icono de 20 dp + texto, sobre carbón sólido, de 40 dp de alto como mínimo y
  * ocupando el ancho de la columna (no se pega al borde ni se recorta). El texto va de 12 a 14 sp (nunca por debajo de
  * 12) y, si no cabe en una línea, pasa a una segunda. Las rotondas van compactas: «Rotonda · 2.ª salida» o «Rotonda ·
  * 1.ª · Carrer X».
@@ -221,13 +227,13 @@ private fun FilaSiguiente(
     Row(
         modifier =
             Modifier
-                .padding(top = 4.dp)
+                .padding(top = 2.dp)
                 .fillMaxWidth()
                 .testTag(ETIQUETA_BANNER_SIGUIENTE)
                 .background(CarbonOpaco, RoundedCornerShape(RADIO_FICHA_SIGUIENTE))
                 .defaultMinSize(minHeight = ALTO_FICHA_SIGUIENTE)
-                .padding(horizontal = 10.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
