@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.ui.ajustes
 
 import app.trombito.rallycopilot.domain.ajustes.AjustesConduccion
+import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
 import app.trombito.rallycopilot.domain.copia.CopiaDatos
 import app.trombito.rallycopilot.domain.copia.CopiaInvalidaException
 import app.trombito.rallycopilot.domain.copia.MotivoCopiaInvalida
@@ -10,6 +11,8 @@ import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -52,9 +55,31 @@ private class FalsaCopia : CopiaDatos {
     }
 }
 
+private class FalsaAutomatica : CopiaAutomaticaDatos {
+    private val _activa = MutableStateFlow(true)
+    var resultado = true
+    var ahora = 0
+
+    override val activa: StateFlow<Boolean> = _activa
+
+    override fun activar(valor: Boolean) {
+        _activa.value = valor
+    }
+
+    override suspend fun copiarAhora(): Boolean {
+        ahora++
+        return resultado
+    }
+
+    override suspend fun copiarAlTerminar(): Boolean = error("no se usa")
+
+    override suspend fun copiarSiToca(ahoraMs: Long): Boolean = error("no se usa")
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class CopiaViewModelTest {
     private val copia = FalsaCopia()
+    private val automatica = FalsaAutomatica()
     private var reinicios = 0
 
     @Before
@@ -67,7 +92,7 @@ class CopiaViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun crear() = CopiaViewModel(copia) { reinicios++ }
+    private fun crear() = CopiaViewModel(copia, automatica) { reinicios++ }
 
     @Test
     fun `exportar escribe y avisa`() =
@@ -118,6 +143,30 @@ class CopiaViewModelTest {
         }
 
     @Test
+    fun `copiar ahora avisa de que quedo en el movil o falla`() =
+        runTest {
+            val vm = crear()
+            vm.copiarAhora()
+            advanceUntilIdle()
+            assertEquals(EstadoCopia.Copiada, vm.estado.value)
+            vm.avisoVisto()
+            assertEquals(EstadoCopia.Inactiva, vm.estado.value)
+            automatica.resultado = false
+            vm.copiarAhora()
+            advanceUntilIdle()
+            assertEquals(EstadoCopia.Fallo(MotivoCopiaInvalida.NO_SE_PUEDE_ABRIR), vm.estado.value)
+            assertEquals(2, automatica.ahora)
+        }
+
+    @Test
+    fun `el interruptor de copia automatica se refleja`() {
+        val vm = crear()
+        assertTrue(vm.copiaAutomatica.value)
+        vm.activarCopiaAutomatica(false)
+        assertTrue(!vm.copiaAutomatica.value)
+    }
+
+    @Test
     fun `el nombre del archivo lleva la fecha`() {
         assertEquals("rally-copilot-2026-11-06.zip", nombreArchivoCopia(LocalDate.of(2026, 11, 6)))
     }
@@ -145,6 +194,22 @@ class CopiaAjustesPantallaTest {
         val textos = banco.textos(banco.raiz())
         assertTrue("Exportar copia" in textos)
         assertTrue("Importar copia" in textos)
+    }
+
+    @Test
+    fun `datos tiene el interruptor de copia automatica y copiar ahora`() {
+        val cambios = mutableListOf<Boolean>()
+        var ahora = 0
+        banco.ponerAjustes(
+            seccion = SeccionAjustes.DATOS,
+            acciones = AccionesAjustes(onCopiaAutomatica = { cambios += it }, onCopiarAhora = { ahora++ }),
+        )
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AJUSTES_COPIAR_AHORA))
+        assertEquals(1, ahora)
+        assertTrue(banco.hay(ETIQUETA_AJUSTES_COPIA_AUTOMATICA))
+        val textos = banco.textos(banco.raiz())
+        assertTrue("Copia automática" in textos)
+        assertTrue("Copiar ahora" in textos)
     }
 
     @Test

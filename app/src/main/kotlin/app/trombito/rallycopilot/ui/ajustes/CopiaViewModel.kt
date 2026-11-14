@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.ajustes
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
 import app.trombito.rallycopilot.domain.copia.CopiaDatos
 import app.trombito.rallycopilot.domain.copia.CopiaInvalidaException
 import app.trombito.rallycopilot.domain.copia.MotivoCopiaInvalida
@@ -28,6 +29,9 @@ sealed interface EstadoCopia {
 
     data object Exportada : EstadoCopia
 
+    /** «Copiar ahora»: la copia quedó en la carpeta de la app del móvil. */
+    data object Copiada : EstadoCopia
+
     /** Importada: la app se reinicia en un momento. */
     data object Importada : EstadoCopia
 
@@ -38,17 +42,37 @@ sealed interface EstadoCopia {
 
 /**
  * Exportar e importar la copia de seguridad. Los flujos los abre la pantalla (SAF) y se pasan como lambdas, así el
- * ViewModel no sabe de `Uri` ni de `ContentResolver`. Tras importar bien se avisa y se reinicia la app.
+ * ViewModel no sabe de `Uri` ni de `ContentResolver`. Tras importar bien se avisa y se reinicia la app. También lleva
+ * el interruptor «Copia automática» y el botón «Copiar ahora» (copia en la carpeta de la app, sin selector).
  */
 @HiltViewModel
 class CopiaViewModel
     @Inject
     constructor(
         private val copia: CopiaDatos,
+        private val automatica: CopiaAutomaticaDatos,
         private val reiniciador: ReiniciadorApp,
     ) : ViewModel() {
         private val _estado = MutableStateFlow<EstadoCopia>(EstadoCopia.Inactiva)
         val estado: StateFlow<EstadoCopia> = _estado.asStateFlow()
+
+        /** Interruptor «Copia automática». */
+        val copiaAutomatica: StateFlow<Boolean> = automatica.activa
+
+        fun activarCopiaAutomatica(valor: Boolean) = automatica.activar(valor)
+
+        /** «Copiar ahora»: guarda la copia en la carpeta de la app aunque el interruptor esté apagado. */
+        fun copiarAhora() {
+            if (!empezar()) return
+            viewModelScope.launch {
+                _estado.value =
+                    if (automatica.copiarAhora()) {
+                        EstadoCopia.Copiada
+                    } else {
+                        EstadoCopia.Fallo(MotivoCopiaInvalida.NO_SE_PUEDE_ABRIR)
+                    }
+            }
+        }
 
         fun exportar(abrir: () -> OutputStream?) {
             if (!empezar()) return
@@ -88,7 +112,8 @@ class CopiaViewModel
 
         /** El aviso (snackbar) ya se enseñó. */
         fun avisoVisto() {
-            if (_estado.value is EstadoCopia.Exportada || _estado.value is EstadoCopia.Fallo) {
+            val actual = _estado.value
+            if (actual is EstadoCopia.Exportada || actual is EstadoCopia.Copiada || actual is EstadoCopia.Fallo) {
                 _estado.value = EstadoCopia.Inactiva
             }
         }

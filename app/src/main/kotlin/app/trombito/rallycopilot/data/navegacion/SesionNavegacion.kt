@@ -109,6 +109,7 @@ class SesionNavegacion(
     private val tramos: RepositorioTramos? = null,
     private val cronometrar: suspend () -> Boolean = { true },
     private val alPausarNotas: (Boolean) -> Unit = {},
+    private val alGuardarRecorrido: () -> Unit = {},
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
     suspend fun cerrarHuerfanos() {
@@ -147,6 +148,8 @@ class SesionNavegacion(
                     // Sin cronometraje no hay tramo al que anclar lo dictado: se descarta.
                     ediciones?.anclarPendientes(null)
                 }
+                // Recorrido guardado (con sus pasadas y tramo ya cerrados): la copia automática lo recoge.
+                if (recorrido != null) alGuardarRecorrido()
             }
         }
     }

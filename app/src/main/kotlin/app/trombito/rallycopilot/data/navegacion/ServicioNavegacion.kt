@@ -24,9 +24,11 @@ import app.trombito.rallycopilot.data.notas.NotasEnVivoImpl
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.tramos.FabricaCronoSesion
 import app.trombito.rallycopilot.data.voz.LiberadorModelos
+import app.trombito.rallycopilot.di.ApplicationScope
 import app.trombito.rallycopilot.di.DispatcherDefault
 import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.ajustes.RepositorioAjustesConduccion
+import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.Enrutador
@@ -90,6 +92,11 @@ class ServicioNavegacion : Service() {
     @Inject lateinit var tramos: RepositorioTramos
 
     @Inject lateinit var liberadorModelos: LiberadorModelos
+
+    @Inject lateinit var copiaAutomatica: CopiaAutomaticaDatos
+
+    @Inject @ApplicationScope
+    lateinit var alcanceApp: CoroutineScope
 
     @Inject @DispatcherDefault
     lateinit var dispatcherDefault: CoroutineDispatcher
@@ -316,6 +323,8 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         ediciones = ediciones,
         tramos = tramos,
         alPausarNotas = notasEnVivo::pausar,
+        // En el alcance de la app: la sesión (y el servicio) pueden haber acabado antes de que termine la copia.
+        alGuardarRecorrido = { alcanceApp.launch { copiaAutomatica.copiarAlTerminar() } },
     )
 
 /** Solo en un APK depurable: una línea por frase dicha para medir la anticipación (sin coordenadas). */

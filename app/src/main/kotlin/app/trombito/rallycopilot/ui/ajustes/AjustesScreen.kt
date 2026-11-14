@@ -89,6 +89,8 @@ data class AccionesAjustes(
     val onVelocidadHabla: (VelocidadHabla) -> Unit = {},
     val onExportarCopia: () -> Unit = {},
     val onImportarCopia: () -> Unit = {},
+    val onCopiaAutomatica: (Boolean) -> Unit = {},
+    val onCopiarAhora: () -> Unit = {},
     val onVerTutorial: () -> Unit = {},
     val onAyudaNotas: () -> Unit = {},
     val onAyudaVoz: () -> Unit = {},

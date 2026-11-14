@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Copia de seguridad (Ajustes > Datos) -->
+    <string name="copia_automatica">Copia automática</string>
+    <string name="copia_automatica_detalle">Guarda sola una copia en el móvil al acabar cada recorrido y una vez al día.</string>
+    <string name="copia_ahora">Copiar ahora</string>
+    <string name="copia_ahora_detalle">Guarda ya una copia en la carpeta de la aplicación del móvil.</string>
+    <string name="copia_guardada_movil">Copia guardada en el móvil</string>
     <string name="copia_exportar">Exportar copia</string>
     <string name="copia_exportar_detalle">Guarda tus tramos, recorridos, la ubicación de Casa y tus ajustes en un archivo zip.</string>
     <string name="copia_exportar_aviso_titulo">¿Exportar la copia?</string>

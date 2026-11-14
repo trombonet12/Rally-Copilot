@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.data.escucha.FabricaReconocedor
 import app.trombito.rallycopilot.data.voz.LiberadorModelos
 import app.trombito.rallycopilot.di.ApplicationScope
 import app.trombito.rallycopilot.di.DispatcherIo
+import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
 import app.trombito.rallycopilot.ui.mapa.precargarBibliotecaMapa
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineDispatcher
@@ -29,6 +30,8 @@ class RallyCopilotApplication :
 
     @Inject lateinit var siembra: EsperaDatosSembrados
 
+    @Inject lateinit var copiaAutomatica: CopiaAutomaticaDatos
+
     @Inject @ApplicationScope
     lateinit var segundoPlano: CoroutineScope
 
@@ -45,6 +48,11 @@ class RallyCopilotApplication :
         segundoPlano.launch(dispatcherIo) {
             siembra.listo.first { it }
             reconocedores.precopiar()
+        }
+        // Copia automática diaria (para `adb pull`): sembrados los datos, si la última tiene más de 20 h.
+        segundoPlano.launch(dispatcherIo) {
+            siembra.listo.first { it }
+            copiaAutomatica.copiarSiToca(System.currentTimeMillis())
         }
         // La biblioteca nativa del mapa se carga ya, fuera del hilo principal (el primer mapa no la espera).
         segundoPlano.launch(dispatcherIo) { precargarBibliotecaMapa() }

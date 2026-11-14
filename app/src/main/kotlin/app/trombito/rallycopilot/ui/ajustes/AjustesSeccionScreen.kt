@@ -35,6 +35,7 @@ fun AjustesSeccionScreen(
     copiaEnCurso: Boolean = false,
     vozSharvard: EstadoVozDescarga = EstadoVozDescarga(),
     mapas: ResumenMapas? = null,
+    copiaAutomatica: Boolean = true,
 ) {
     FondoWrc(modifier) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -54,7 +55,16 @@ fun AjustesSeccionScreen(
                             alto = minOf(alto, altoDisponible - MARGEN_VERTICAL_APAISADO),
                             modifier = Modifier.weight(1f),
                         )
-                        Controles(seccion, ajustes, acciones, copiaEnCurso, vozSharvard, mapas, Modifier.weight(1f))
+                        Controles(
+                            seccion,
+                            ajustes,
+                            acciones,
+                            copiaEnCurso,
+                            vozSharvard,
+                            mapas,
+                            copiaAutomatica,
+                            Modifier.weight(1f),
+                        )
                     }
                 } else {
                     Column(
@@ -62,7 +72,16 @@ fun AjustesSeccionScreen(
                         verticalArrangement = Arrangement.spacedBy(Espacio.l),
                     ) {
                         if (alto != null) PrevistaDeSeccion(seccion, ajustes, acciones, alto)
-                        Controles(seccion, ajustes, acciones, copiaEnCurso, vozSharvard, mapas, Modifier.weight(1f))
+                        Controles(
+                            seccion,
+                            ajustes,
+                            acciones,
+                            copiaEnCurso,
+                            vozSharvard,
+                            mapas,
+                            copiaAutomatica,
+                            Modifier.weight(1f),
+                        )
                     }
                 }
             }
@@ -80,6 +99,7 @@ private fun Controles(
     copiaEnCurso: Boolean,
     vozSharvard: EstadoVozDescarga,
     mapas: ResumenMapas?,
+    copiaAutomatica: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -95,7 +115,7 @@ private fun Controles(
             SeccionAjustes.MAPA -> ControlesMapa(ajustes, acciones)
             SeccionAjustes.ESCUCHA -> ControlesEscucha(ajustes, acciones)
             SeccionAjustes.TEMA -> ControlesTema(ajustes.tema, acciones.onTema)
-            SeccionAjustes.DATOS -> ControlesDatos(acciones, copiaEnCurso, mapas)
+            SeccionAjustes.DATOS -> ControlesDatos(acciones, copiaEnCurso, mapas, copiaAutomatica)
             SeccionAjustes.AYUDA -> ControlesAyuda(acciones)
             SeccionAjustes.ACERCA_DE -> Unit
         }

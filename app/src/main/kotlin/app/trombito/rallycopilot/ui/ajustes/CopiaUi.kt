@@ -23,6 +23,8 @@ import java.time.LocalDate
 
 const val ETIQUETA_AJUSTES_EXPORTAR = "ajustes-copia-exportar"
 const val ETIQUETA_AJUSTES_IMPORTAR = "ajustes-copia-importar"
+const val ETIQUETA_AJUSTES_COPIA_AUTOMATICA = "ajustes-copia-automatica"
+const val ETIQUETA_AJUSTES_COPIAR_AHORA = "ajustes-copia-ahora"
 const val ETIQUETA_COPIA_PROGRESO = "ajustes-copia-progreso"
 const val ETIQUETA_COPIA_CONFIRMAR = "ajustes-copia-confirmar"
 const val ETIQUETA_COPIA_CANCELAR = "ajustes-copia-cancelar"
@@ -38,6 +40,7 @@ internal fun ControlesDatos(
     acciones: AccionesAjustes,
     copiaEnCurso: Boolean,
     mapas: ResumenMapas? = null,
+    copiaAutomatica: Boolean = true,
 ) {
     FilaAccion(
         titulo = stringResource(R.string.ajustes_mapas_offline),
@@ -49,6 +52,21 @@ internal fun ControlesDatos(
     )
     Opcion(R.string.ajustes_datos_copia_titulo, null) {
         Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+            FilaInterruptor(
+                titulo = stringResource(R.string.copia_automatica),
+                marcado = copiaAutomatica,
+                onCambio = acciones.onCopiaAutomatica,
+                etiqueta = ETIQUETA_AJUSTES_COPIA_AUTOMATICA,
+                detalle = stringResource(R.string.copia_automatica_detalle),
+            )
+            FilaAccion(
+                titulo = stringResource(R.string.copia_ahora),
+                detalle = stringResource(R.string.copia_ahora_detalle),
+                etiqueta = ETIQUETA_AJUSTES_COPIAR_AHORA,
+                onClick = acciones.onCopiarAhora,
+                icono = Iconos.Descarga,
+                habilitada = !copiaEnCurso,
+            )
             FilaAccion(
                 titulo = stringResource(R.string.copia_exportar),
                 detalle = stringResource(R.string.copia_exportar_detalle),
@@ -132,6 +150,7 @@ internal fun AvisoCopia(
     val mensaje =
         when (estado) {
             EstadoCopia.Exportada -> stringResource(R.string.copia_exportada)
+            EstadoCopia.Copiada -> stringResource(R.string.copia_guardada_movil)
             EstadoCopia.Importada -> stringResource(R.string.copia_importada)
             is EstadoCopia.Fallo -> stringResource(textoFallo(estado.motivo))
             else -> null

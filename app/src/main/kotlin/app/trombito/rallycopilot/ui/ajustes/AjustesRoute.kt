@@ -82,8 +82,11 @@ fun AjustesSeccionRoute(
                     onAyudaVoz = ayuda.onVoz,
                     onExportarCopia = { avisandoExportar = true },
                     onImportarCopia = { confirmando = true },
+                    onCopiaAutomatica = copia::activarCopiaAutomatica,
+                    onCopiarAhora = copia::copiarAhora,
                 ),
             copiaEnCurso = estadoCopia is EstadoCopia.Trabajando || estadoCopia is EstadoCopia.Importada,
+            copiaAutomatica = copia.copiaAutomatica.collectAsStateWithLifecycle().value,
         )
         SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).safeDrawingPadding().padding(Espacio.l))
     }

@@ -2,10 +2,12 @@ package app.trombito.rallycopilot.di
 
 import android.content.Context
 import androidx.core.content.pm.PackageInfoCompat
+import app.trombito.rallycopilot.data.copia.CopiaAutomatica
 import app.trombito.rallycopilot.data.copia.CopiaSeguridad
 import app.trombito.rallycopilot.data.copia.InfoApp
 import app.trombito.rallycopilot.data.copia.ReiniciadorAppAndroid
 import app.trombito.rallycopilot.data.db.RallyDatabase
+import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
 import app.trombito.rallycopilot.domain.copia.CopiaDatos
 import app.trombito.rallycopilot.domain.copia.ReiniciadorApp
 import dagger.Module
@@ -34,6 +36,14 @@ object CopiaModule {
             )
         return CopiaSeguridad(base, contexto.getDatabasePath(RallyDatabase.NOMBRE), info, dispatcher)
     }
+
+    @Provides
+    @Singleton
+    fun copiaAutomatica(
+        @ApplicationContext contexto: Context,
+        copia: CopiaDatos,
+        @DispatcherIo dispatcher: CoroutineDispatcher,
+    ): CopiaAutomaticaDatos = CopiaAutomatica(contexto, copia, dispatcher)
 
     @Provides
     @Singleton
