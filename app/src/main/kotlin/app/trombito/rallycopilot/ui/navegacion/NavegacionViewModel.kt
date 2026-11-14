@@ -11,12 +11,16 @@ import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EdicionParadas
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
+import app.trombito.rallycopilot.domain.ritmo.ProveedorPerfilRitmo
+import app.trombito.rallycopilot.domain.ritmo.SinPerfilRitmo
+import app.trombito.rallycopilot.domain.ritmo.tiempoEstimadoS
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.motor.geo.EnlaceUbicacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.geo.ResultadoEnlace
+import app.trombito.rallycopilot.motor.ruta.PerfilRitmo
 import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.FlowPreview
@@ -37,6 +41,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.Locale
 import javax.inject.Inject
 
@@ -44,11 +49,15 @@ private const val ESPERA_BUSQUEDA_MS = 250L
 private const val MS_SEGUNDO = 1_000.0
 private const val LONGITUD_MINIMA_BUSQUEDA = 2
 
+/** Lo máximo que la vista previa espera al perfil de ritmo; pasado, enseña el tiempo con el perfil de partida. */
+private const val ESPERA_PERFIL_MS = 1_500L
+
 /**
  * Presentación de la navegación sobre el mapa: búsqueda de destino (con espera de ~250 ms al teclear), vista previa
  * con las tres rutas calculadas en paralelo desde la última fijación, y el estado de la conducción que publica
  * [ControlNavegacion], más «Seguir a <destino>» tras la muerte del proceso. La posición se la da la pantalla del mapa
- * con [onPosicion] (ya recoge el GPS con el ciclo de vida y el permiso).
+ * con [onPosicion] (ya recoge el GPS con el ciclo de vida y el permiso). Los tiempos de la vista previa son los
+ * estimados con el ritmo aprendido de Joan ([perfilRitmo]), sin la corrección en vivo que solo existe al guiar.
  */
 @HiltViewModel
 @OptIn(FlowPreview::class)
@@ -62,9 +71,11 @@ class NavegacionViewModel
         private val resolvedor: ResolvedorEnlaces,
         private val guiadoPendiente: RepositorioGuiadoPendiente,
         private val ajustes: RepositorioAjustesConduccion,
-        private val reloj: () -> Long,
+        private val perfilRitmo: ProveedorPerfilRitmo = SinPerfilRitmo,
+        private val reloj: () -> Long = System::currentTimeMillis,
     ) : ViewModel() {
         @Inject
+        @Suppress("LongParameterList") // los colaboradores que Hilt inyecta
         constructor(
             buscador: Buscador,
             enrutador: Enrutador,
@@ -72,7 +83,17 @@ class NavegacionViewModel
             resolvedor: ResolvedorEnlaces,
             guiadoPendiente: RepositorioGuiadoPendiente,
             ajustes: RepositorioAjustesConduccion,
-        ) : this(buscador, enrutador, control, resolvedor, guiadoPendiente, ajustes, System::currentTimeMillis)
+            perfilRitmo: ProveedorPerfilRitmo,
+        ) : this(
+            buscador,
+            enrutador,
+            control,
+            resolvedor,
+            guiadoPendiente,
+            ajustes,
+            perfilRitmo,
+            System::currentTimeMillis,
+        )
 
         private val texto = MutableStateFlow("")
         private val consulta = MutableStateFlow("")
@@ -428,6 +449,10 @@ class NavegacionViewModel
             vistaPrevia.value?.let { calcular(it.destino, it.paradas, it.perfil) }
         }
 
+        /** El perfil de ritmo aprendido, o el de partida si tarda más de [ESPERA_PERFIL_MS] (la primera vez). */
+        private suspend fun perfilParaEstimar(): PerfilRitmo =
+            withTimeoutOrNull(ESPERA_PERFIL_MS) { perfilRitmo.perfil() } ?: PerfilRitmo()
+
         /**
          * Calcula las tres rutas (rápida, equilibrada y con curvas) hacia [destino] pasando por [paradas] (en ese
          * orden) desde la última fijación.
@@ -446,7 +471,8 @@ class NavegacionViewModel
                 viewModelScope.launch {
                     PerfilRuta.entries.forEach { p ->
                         launch {
-                            val opcion = enrutador.rutaMedida(origen, puntos, destino.punto, p).aOpcion()
+                            val resultado = enrutador.rutaMedida(origen, puntos, destino.punto, p)
+                            val opcion = resultado.aOpcion(perfilParaEstimar())
                             vistaPrevia.update {
                                 if (it?.destino == destino && it.paradas == paradas) it.conOpcion(p, opcion) else it
                             }
@@ -506,9 +532,9 @@ private fun ubicacion(enlace: ResultadoEnlace.Punto): BusquedaDestino.Ubicacion 
 
 private fun coordenadas(punto: PuntoGeo): String = String.format(Locale.ROOT, "%.5f, %.5f", punto.lat, punto.lon)
 
-private fun ResultadoRuta.aOpcion(): OpcionRuta =
+private fun ResultadoRuta.aOpcion(perfil: PerfilRitmo): OpcionRuta =
     when (this) {
-        is ResultadoRuta.Ok -> OpcionRuta.Lista(ruta, curvasM)
+        is ResultadoRuta.Ok -> OpcionRuta.Lista(ruta, curvasM, ruta.tiempoEstimadoS(perfil))
         ResultadoRuta.SinDatos -> OpcionRuta.SinDatos
         is ResultadoRuta.Error -> OpcionRuta.Error(motivo)
     }

@@ -246,7 +246,9 @@ class SesionNavegacionParadasTest {
             // 9 fijaciones: 400 m. Faltan 600 m a la primera parada.
             advanceTimeBy(8_500)
             assertEquals(600.0, e.guiando.distanciaAProximaM!!, 5.0)
-            assertEquals(30.0, e.guiando.tiempoAProximaS!!, 1.0)
+            // 600 m a 0,05 s/m son 30 s de Valhalla; con el factor personal de partida (1,12) y la corrección en vivo
+            // (yendo mucho más deprisa, 0,988 tras 400 m), unos 33 s.
+            assertEquals(33.2, e.guiando.tiempoAProximaS!!, 1.0)
             assertEquals(1600.0, e.guiando.progreso!!.distanciaRestanteM, 5.0)
 
             // 21 fijaciones: 1000 m, justo en la parada 1.

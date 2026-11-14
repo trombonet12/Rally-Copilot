@@ -46,8 +46,11 @@ sealed interface OpcionRuta {
         val ruta: Ruta,
         /** Metros «de curvas» de la ruta; null si no se han medido (no se muestra «X km de curvas»). */
         val curvasM: Double? = null,
+        /** Tiempo estimado con el ritmo aprendido de Joan; null si no se ha estimado (se enseña el de Valhalla). */
+        val tiempoEstimadoS: Double? = null,
     ) : OpcionRuta {
-        val tiempoS: Double get() = ruta.tiempoS
+        /** El tiempo que se enseña: el estimado y, sin él, el de Valhalla de la ruta. */
+        val tiempoS: Double get() = tiempoEstimadoS ?: ruta.tiempoS
         val distanciaM: Double get() = ruta.longitudM
     }
 

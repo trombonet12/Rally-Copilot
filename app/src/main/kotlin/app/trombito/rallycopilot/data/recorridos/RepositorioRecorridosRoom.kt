@@ -22,6 +22,7 @@ import kotlinx.coroutines.withContext
  * (huérfano) sí se lee entero. Al cerrar un recorrido se recalcula, en [alcance], el factor de calibración de las
  * notas y se guarda ([factorCalibracion]).
  */
+@Suppress("TooManyFunctions") // el contrato del almacén (recorridos, puntos, previsto, calibración) en una sola clase
 class RepositorioRecorridosRoom(
     private val dao: RecorridosDao,
     private val dispatcher: CoroutineDispatcher,
@@ -90,6 +91,13 @@ class RepositorioRecorridosRoom(
             recorrido.copy(finMs = fin, distanciaM = distancia).aDominio()
         }
 
+    override suspend fun guardarTiempoPrevisto(
+        id: Long,
+        segundos: Double?,
+    ) {
+        withContext(dispatcher) { dao.guardarTiempoPrevisto(id, segundos) }
+    }
+
     override suspend fun idsEnCurso(): List<Long> = withContext(dispatcher) { dao.idsEnCurso() }
 
     override fun listar(): Flow<List<Recorrido>> =
@@ -147,4 +155,4 @@ private fun PuntoRecorrido.aEntidad(recorridoId: Long) =
     )
 
 private fun RecorridoEntity.aDominio(): Recorrido? =
-    finMs?.let { Recorrido(id, inicioMs, it, distanciaM, destinoNombre) }
+    finMs?.let { Recorrido(id, inicioMs, it, distanciaM, destinoNombre, tiempoPrevistoS) }

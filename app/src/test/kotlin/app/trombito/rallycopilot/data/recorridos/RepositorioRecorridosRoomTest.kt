@@ -111,6 +111,31 @@ class RepositorioRecorridosRoomTest {
         }
 
     @Test
+    fun `el tiempo previsto guardado al empezar sale en el recorrido terminado`() =
+        runBlocking {
+            val id = repositorio.empezar("Sóller")
+            repositorio.guardarTiempoPrevisto(id, 1_234.5)
+            repositorio.anadirPuntos(id, ruta(11))
+
+            val recorrido = checkNotNull(repositorio.terminar(id))
+
+            assertEquals(1_234.5, recorrido.tiempoPrevistoS ?: 0.0, 0.0)
+            val listado = repositorio.listar().first()
+            assertEquals(1_234.5, listado.single().tiempoPrevistoS ?: 0.0, 0.0)
+        }
+
+    @Test
+    fun `sin tiempo previsto el recorrido lo trae nulo`() =
+        runBlocking {
+            val id = repositorio.empezar()
+            repositorio.anadirPuntos(id, ruta(11))
+
+            assertNull(checkNotNull(repositorio.terminar(id)).tiempoPrevistoS)
+            val listado = repositorio.listar().first()
+            assertNull(listado.single().tiempoPrevistoS)
+        }
+
+    @Test
     fun `los puntos se añaden a continuacion y conservan el orden`() =
         runBlocking {
             val id = repositorio.empezar()

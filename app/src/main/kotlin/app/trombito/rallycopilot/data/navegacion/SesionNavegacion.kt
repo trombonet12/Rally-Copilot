@@ -13,6 +13,8 @@ import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.OrdenParadas
 import app.trombito.rallycopilot.domain.navegacion.aplicar
 import app.trombito.rallycopilot.domain.notas.OrigenNotas
+import app.trombito.rallycopilot.domain.ritmo.ProveedorPerfilRitmo
+import app.trombito.rallycopilot.domain.ritmo.SinPerfilRitmo
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
@@ -23,13 +25,18 @@ import app.trombito.rallycopilot.motor.geo.AcumuladorRecorrido
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.FrasesNota
 import app.trombito.rallycopilot.motor.notas.RutaMedida
+import app.trombito.rallycopilot.motor.ruta.AjusteTiempo
 import app.trombito.rallycopilot.motor.ruta.DetectorSalidaRuta
 import app.trombito.rallycopilot.motor.ruta.EstadoRuta
+import app.trombito.rallycopilot.motor.ruta.EstimadorLlegada
 import app.trombito.rallycopilot.motor.ruta.FrasesParada
+import app.trombito.rallycopilot.motor.ruta.PerfilRitmo
+import app.trombito.rallycopilot.motor.ruta.RitmoViaje
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import app.trombito.rallycopilot.motor.ruta.SeguidorRuta
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
+import app.trombito.rallycopilot.motor.velocidad.MS_POR_S
 import app.trombito.rallycopilot.motor.velocidad.PrecisionGps
 import app.trombito.rallycopilot.motor.voz.AvisosManiobra
 import app.trombito.rallycopilot.motor.voz.Frase
@@ -49,6 +56,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.math.roundToLong
 
 /**
  * Lo que el usuario pidió al pulsar «Empezar»: modo libre o guiado hacia un destino con la ruta ya calculada. En el
@@ -91,6 +100,12 @@ sealed interface SolicitudNavegacion {
  * Paradas: al alcanzar la próxima (a ≤ 30 m o al pasarla) la siguiente pasa a ser el objetivo y el copiloto lo dice
  * («parada alcanzada, siguiente …»); un recálculo conserva solo las paradas pendientes. Las [ordenes] de edición
  * (añadir, quitar, mover) de la UI recalculan la ruta desde la posición actual.
+ *
+ * Hora de llegada realista: el tiempo que queda sale de [EstimadorLlegada] con el [perfilRitmo] aprendido de los
+ * recorridos (se carga sin bloquear el guiado; hasta que llega vale el de partida, Valhalla × 1,12) y se corrige en
+ * vivo con el ritmo del viaje ([RitmoViaje]): real / estimado de lo ya conducido, sin repetir el factor personal. El
+ * ritmo no se reinicia al recalcular la ruta (es de Joan y del día, no de la ruta) y vive lo que la sesión. Al
+ * empezar a guiar se guarda en el recorrido el tiempo de Valhalla puro de la ruta inicial, para aprender el factor.
  */
 @Suppress("LongParameterList") // colaboradores de la sesión: fuente, enrutador, grabación, reloj, salidas y notas
 class SesionNavegacion(
@@ -110,6 +125,7 @@ class SesionNavegacion(
     private val cronometrar: suspend () -> Boolean = { true },
     private val alPausarNotas: (Boolean) -> Unit = {},
     private val alGuardarRecorrido: () -> Unit = {},
+    private val perfilRitmo: ProveedorPerfilRitmo = SinPerfilRitmo,
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
     suspend fun cerrarHuerfanos() {
@@ -130,6 +146,8 @@ class SesionNavegacion(
         var cronometra = false
         var ejecucion: Ejecucion? = null
         try {
+            // Valhalla puro de la ruta inicial (sin factor personal): con él, al cerrar, se aprende el factor personal.
+            if (solicitud is SolicitudNavegacion.Guiada) recorridos.guardarTiempoPrevisto(id, solicitud.ruta.tiempoS)
             // «Cronometrar trayectos» se lee una vez al empezar: sin él, esta conducción no crea ni detecta tramos.
             cronometra = crono != null && solicitud !is SolicitudNavegacion.Reconocimiento && cronometrar()
             ejecucion = Ejecucion(id, solicitud, crono.takeIf { cronometra })
@@ -181,12 +199,7 @@ class SesionNavegacion(
             coroutineScope {
                 tramoReconocido = reconocimiento?.let { tramos?.tramo(it.tramoId) }
                 tramoActivo.value = tramoReconocido
-                val reconocido = tramoReconocido
-                when {
-                    guia != null -> notas?.iniciarGuiado(guia.ruta.puntos)
-                    reconocido != null -> notas?.iniciarReconocimiento(reconocido.id, reconocido.traza)
-                    else -> notas?.iniciarLibre()
-                }
+                iniciarNotas()
                 val vigiladas =
                     if (notas != null && ediciones != null) launch { vigilarEdiciones(notas, ediciones) } else null
                 val ajustesCopiloto = copiloto?.let { launch { it.seguirAjustes() } }
@@ -199,15 +212,19 @@ class SesionNavegacion(
                     } else {
                         null
                     }
+                val cargaPerfil = guia?.let { cargarPerfil(it, this) }
                 publicar(estadoActual())
                 fuente.posiciones().takeWhile { procesar(it, this) }.collect()
-                edicion?.cancel()
-                vigiladas?.cancel()
-                guia?.recalculo?.cancel()
-                ajustesCopiloto?.cancel()
-                pausaNotas?.cancel()
-                datosAlertas?.cancel()
-                cargaTramos?.cancel()
+                listOfNotNull(
+                    edicion,
+                    vigiladas,
+                    guia?.recalculo,
+                    ajustesCopiloto,
+                    pausaNotas,
+                    datosAlertas,
+                    cargaTramos,
+                    cargaPerfil,
+                ).forEach { it.cancel() }
                 cerrarNotas()
                 copiloto?.cerrar()
                 alertas?.cerrar()
@@ -218,6 +235,29 @@ class SesionNavegacion(
                     publicar(EstadoNavegacion.Error(motivoSinGps))
                 }
             }
+
+        /** Las notas de la conducción: la hoja de la ruta, la del tramo reconocido o la de la carretera prevista. */
+        private fun iniciarNotas() {
+            val reconocido = tramoReconocido
+            when {
+                guia != null -> notas?.iniciarGuiado(guia.ruta.puntos)
+                reconocido != null -> notas?.iniciarReconocimiento(reconocido.id, reconocido.traza)
+                else -> notas?.iniciarLibre()
+            }
+        }
+
+        /**
+         * El perfil aprendido llega en cuanto está: inmediato si ya estaba calculado; si tarda más de
+         * [PLAZO_PERFIL_MS] se empieza con el de partida y se cambia al llegar (el ritmo del viaje se conserva).
+         */
+        private suspend fun cargarPerfil(
+            guia: Guia,
+            alcance: CoroutineScope,
+        ): Job {
+            val carga = alcance.launch { guia.fijarPerfil(perfilRitmo.perfil()) }
+            withTimeoutOrNull(PLAZO_PERFIL_MS) { carga.join() }
+            return carga
+        }
 
         /** Devuelve false cuando hay que dejar de recoger posiciones (llegada). */
         private suspend fun procesar(
@@ -246,8 +286,7 @@ class SesionNavegacion(
                 }
             }
             if (guia != null) {
-                val progreso = guia.seguidor.actualizar(fijacion.punto, ahora)
-                guia.progreso = progreso
+                val progreso = guia.situar(fijacion.punto, ahora, fijacion.tiempoMs)
                 paradasAlcanzadas(guia, progreso, alcance)
                 llegado = progreso.llegado
                 if (!llegado) {
@@ -444,6 +483,13 @@ class SesionNavegacion(
         }
     }
 
+    /** Dónde estaba el conductor en la fijación anterior: progreso, instante monótono y tiempo estimado que quedaba. */
+    private class ReferenciaRitmo(
+        val progresoM: Double,
+        val instanteMs: Long,
+        val restanteS: Double,
+    )
+
     private class Guia(
         solicitud: SolicitudNavegacion.Guiada,
     ) {
@@ -462,7 +508,15 @@ class SesionNavegacion(
         var paradasEnRuta: List<Destino> = paradas
         var paradasHechas = 0
         var alcanzadasEnRuta = 0
-        var seguidor = SeguidorRuta(ruta)
+
+        /** Cómo se estima cada tramo: el perfil de ritmo (el de partida hasta que se carga el aprendido). */
+        private var ajuste: AjusteTiempo = EstimadorLlegada().comoAjuste()
+
+        /** Ritmo real del viaje frente al estimado, que corrige en vivo lo que queda ([conRitmo]). */
+        private val ritmo = RitmoViaje()
+        private var referencia: ReferenciaRitmo? = null
+        private val ajusteVigente = AjusteTiempo { maniobra, fraccion -> ajuste.tiempoS(maniobra, fraccion) }
+        var seguidor = SeguidorRuta(ruta, ajusteVigente)
         var rutaVoz = rutaVoz(ruta, seguidor)
         var detector = DetectorSalidaRuta()
         var progreso: EstadoRuta? = null
@@ -490,10 +544,56 @@ class SesionNavegacion(
             destinoEnRuta = destinoNuevo
             alcanzadasEnRuta = 0
             ruta = nueva
-            seguidor = SeguidorRuta(nueva)
+            seguidor = SeguidorRuta(nueva, ajusteVigente)
             rutaVoz = rutaVoz(nueva, seguidor)
             detector = DetectorSalidaRuta()
-            progreso = posicion?.let { seguidor.actualizar(it, ahoraMs) }
+            // El ritmo se conserva; solo se pierde el intervalo que cruza el cambio de ruta (otro eje de progreso).
+            referencia = null
+            progreso = posicion?.let { situar(it, ahoraMs, null) }
+        }
+
+        /** Usa el perfil aprendido de ahora en adelante (el ritmo del viaje se conserva). */
+        fun fijarPerfil(perfil: PerfilRitmo) {
+            ajuste = EstimadorLlegada(perfil).comoAjuste()
+            referencia = null
+        }
+
+        /**
+         * Sitúa al conductor en [punto] y devuelve (y guarda) el estado con el tiempo corregido por el ritmo del viaje.
+         * Con [instanteMs] (reloj monótono de la fijación) alimenta el ritmo con lo avanzado desde la fijación
+         * anterior: metros, tiempo real y tiempo estimado sin corrección en vivo (para no contar dos veces el factor
+         * personal).
+         */
+        fun situar(
+            punto: PuntoGeo,
+            ahoraMs: Long,
+            instanteMs: Long?,
+        ): EstadoRuta {
+            val base = seguidor.actualizar(punto, ahoraMs)
+            val previa = referencia
+            referencia = instanteMs?.let { ReferenciaRitmo(base.progresoM, it, base.tiempoRestanteS) }
+            if (previa != null && instanteMs != null) {
+                ritmo.registrar(
+                    distanciaM = (base.progresoM - previa.progresoM).coerceAtLeast(0.0),
+                    tiempoS = (instanteMs - previa.instanteMs) / MS_POR_S,
+                    previstoS = (previa.restanteS - base.tiempoRestanteS).coerceAtLeast(0.0),
+                )
+            }
+            return conRitmo(base, ahoraMs).also { progreso = it }
+        }
+
+        private fun conRitmo(
+            base: EstadoRuta,
+            ahoraMs: Long,
+        ): EstadoRuta {
+            val factor = ritmo.factor
+            if (factor == 1.0) return base
+            val restanteS = base.tiempoRestanteS * factor
+            return base.copy(
+                tiempoRestanteS = restanteS,
+                llegadaMs = ahoraMs + (restanteS * MS_POR_S).roundToLong(),
+                tiempoAProximaParadaS = base.tiempoAProximaParadaS?.times(factor),
+            )
         }
 
         fun estado() = EstadoNavegacion.Guiando(destino, perfil, ruta, progreso, recalculando, paradas, paradasHechas)
@@ -513,5 +613,8 @@ class SesionNavegacion(
 
         const val ESPERA_LLEGADA_MS = 10_000L
         const val REINTENTO_MS = 10_000L
+
+        /** Lo máximo que se espera, al empezar a guiar, al perfil de ritmo antes de seguir sin él. */
+        const val PLAZO_PERFIL_MS = 300L
     }
 }

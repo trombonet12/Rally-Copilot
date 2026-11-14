@@ -7,8 +7,10 @@ import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
 import app.trombito.rallycopilot.domain.enlaces.ResultadoResolucion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.ritmo.ProveedorPerfilRitmo
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
+import app.trombito.rallycopilot.motor.ruta.PerfilRitmo
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioAjustesConduccion
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +30,12 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+
+private class PerfilFijo(
+    private val perfil: PerfilRitmo,
+) : ProveedorPerfilRitmo {
+    override suspend fun perfil() = perfil
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NavegacionViewModelTest {
@@ -248,6 +256,40 @@ class NavegacionViewModelTest {
             assertTrue(previa.puedeEmpezar)
             assertEquals("Sóller", vm.uiState.value.texto)
             assertEquals(BusquedaDestino.Inactiva, vm.uiState.value.busqueda)
+        }
+
+    @Test
+    fun `cada opcion ensena el tiempo estimado con el perfil de ritmo y la ruta conserva el de Valhalla`() =
+        runTest {
+            rutasOk()
+            val perfil = PerfilFijo(PerfilRitmo(factorPersonal = 1.25))
+            val vm = NavegacionViewModel(buscador, enrutador, control, resolvedor, pendiente, ajustes, perfil)
+            recoger(vm)
+            vm.onPosicion(PALMA)
+            vm.elegirDestino(destino)
+
+            val previa = vm.uiState.value.vistaPrevia!!
+            val opciones = previa.opciones
+            val rapida = opciones.getValue(PerfilRuta.MAS_RAPIDA) as OpcionRuta.Lista
+            assertEquals(1_380.0 * 1.25, rapida.tiempoS, 1e-9)
+            assertEquals(1_380.0, rapida.ruta.tiempoS, 0.0)
+            val sinuosa = opciones.getValue(PerfilRuta.SINUOSA) as OpcionRuta.Lista
+            assertEquals(2_100.0 * 1.25, sinuosa.tiempoS, 1e-9)
+        }
+
+    @Test
+    fun `sin historico la vista previa ya no es optimista Valhalla por 1,12`() =
+        runTest {
+            rutasOk()
+            val vm = crear()
+            recoger(vm)
+            vm.onPosicion(PALMA)
+            vm.elegirDestino(destino)
+
+            val previa = vm.uiState.value.vistaPrevia!!
+            val opciones = previa.opciones
+            val rapida = opciones.getValue(PerfilRuta.MAS_RAPIDA) as OpcionRuta.Lista
+            assertEquals(1_380.0 * 1.12, rapida.tiempoS, 1e-9)
         }
 
     @Test

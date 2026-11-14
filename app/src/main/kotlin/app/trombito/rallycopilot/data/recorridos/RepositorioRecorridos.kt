@@ -3,13 +3,17 @@ package app.trombito.rallycopilot.data.recorridos
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
-/** Recorrido grabado y terminado (>= [RepositorioRecorridos.DISTANCIA_MINIMA_M]). */
+/**
+ * Recorrido grabado y terminado (>= [RepositorioRecorridos.DISTANCIA_MINIMA_M]). [tiempoPrevistoS] es el tiempo de
+ * Valhalla de la ruta con que se empezó a guiar (null: modo libre, reconocimiento o recorrido anterior a guardarlo).
+ */
 data class Recorrido(
     val id: Long,
     val inicioMs: Long,
     val finMs: Long,
     val distanciaM: Double,
     val destinoNombre: String?,
+    val tiempoPrevistoS: Double? = null,
 )
 
 /** Muestra de posición de un recorrido; [tiempoMs] en milisegundos epoch, [velocidadMs] en m/s si el GPS la da. */
@@ -33,6 +37,15 @@ interface RepositorioRecorridos {
 
     /** Cierra el recorrido. Devuelve null si recorre menos de 1 km: se descarta con todos sus puntos. */
     suspend fun terminar(id: Long): Recorrido?
+
+    /**
+     * Guarda el tiempo previsto (s, el de Valhalla puro) con que se empieza a guiar el recorrido en curso [id]; con él,
+     * al cerrarlo, se aprende cuánto tarda Joan de más frente a lo previsto. Por defecto no hace nada.
+     */
+    suspend fun guardarTiempoPrevisto(
+        id: Long,
+        segundos: Double?,
+    ) = Unit
 
     /** Ids de los recorridos aún abiertos (en curso, o huérfanos si la app se cerró a mitad). */
     suspend fun idsEnCurso(): List<Long>
