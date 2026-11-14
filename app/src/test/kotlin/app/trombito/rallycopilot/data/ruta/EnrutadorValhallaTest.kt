@@ -4,6 +4,7 @@ import app.trombito.rallycopilot.data.vias.DatosVias
 import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
+import app.trombito.rallycopilot.domain.ruta.ViasConocidas
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.FrasesManiobra
 import app.trombito.rallycopilot.motor.ruta.Polyline6
@@ -262,6 +263,48 @@ class EnrutadorValhallaTest {
             assertTrue(rapida.curvasM!! < 100.0)
             assertTrue("${equilibrada.curvasM}", equilibrada.curvasM!! > rapida.curvasM!! + 300.0)
             assertTrue("${curvas.curvasM}", curvas.curvasM!! > equilibrada.curvasM!! + 300.0)
+        }
+
+    private fun enrutadorConConocidas(conocidoSiTiempoS: Double) =
+        EnrutadorValhalla(
+            tarExistente(),
+            fabricaDeVariantes(),
+            UnconfinedTestDispatcher(),
+            System::nanoTime,
+            conocidas =
+                object : ViasConocidas {
+                    // El tiempo no viaja en los puntos: se reconoce cada ruta por su forma (serpiente → tiempo).
+                    override suspend fun metrosConocidos(puntos: List<PuntoGeo>): Double {
+                        val tiempos = mapOf(3_000.0 to 1_300.0, 1_500.0 to 800.0, 700.0 to 650.0, 0.0 to 600.0)
+                        // La polilínea vuelve de Polyline6 redondeada: se elige la forma más parecida.
+                        val tiempo =
+                            tiempos.entries
+                                .minBy { (serpentinaM, _) ->
+                                    forma(serpentinaM).zip(puntos).sumOf { (x, y) -> kotlin.math.abs(x.lon - y.lon) }
+                                }.value
+                        return if (tiempo == conocidoSiTiempoS) 3_000.0 else 0.0
+                    }
+                },
+        )
+
+    @Test
+    fun `rapida prefiere la conocida dentro del 10 por ciento y curvas no cambia a una con menos curvas`() =
+        runTest {
+            val e = enrutadorConConocidas(conocidoSiTiempoS = 650.0)
+            val curvas = e.rutaMedida(a, emptyList(), b, PerfilRuta.SINUOSA) as ResultadoRuta.Ok
+            assertEquals(800.0, curvas.ruta.tiempoS, 0.0) // 650 es conocida pero tiene menos curvas que la de 800 s
+            val rapida = e.rutaMedida(a, emptyList(), b, PerfilRuta.MAS_RAPIDA) as ResultadoRuta.Ok
+            assertEquals(650.0, rapida.ruta.tiempoS, 0.0) // 650 ≤ 1,1 × 600
+        }
+
+    @Test
+    fun `una ruta conocida que pasa del tope del 10 por ciento no cambia la eleccion`() =
+        runTest {
+            val e = enrutadorConConocidas(conocidoSiTiempoS = 1_300.0)
+            val curvas = e.rutaMedida(a, emptyList(), b, PerfilRuta.SINUOSA) as ResultadoRuta.Ok
+            val equilibrada = e.rutaMedida(a, emptyList(), b, PerfilRuta.EQUILIBRADA) as ResultadoRuta.Ok
+            assertEquals(800.0, curvas.ruta.tiempoS, 0.0)
+            assertEquals(650.0, equilibrada.ruta.tiempoS, 0.0)
         }
 
     @Test

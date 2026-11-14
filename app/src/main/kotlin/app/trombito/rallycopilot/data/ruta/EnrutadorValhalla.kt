@@ -7,6 +7,7 @@ import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
+import app.trombito.rallycopilot.domain.ruta.ViasConocidas
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.ruta.CorrectorRotondas
 import app.trombito.rallycopilot.motor.ruta.LectorRutaValhalla
@@ -30,6 +31,7 @@ import javax.inject.Singleton
  * mirar el tar espera a que termine la siembra de los datos del APK.
  */
 @Singleton
+@Suppress("LongParameterList") // colaboradores del motor: tar, fábrica, reloj, siembra, vías y vías conocidas
 class EnrutadorValhalla internal constructor(
     private val tar: File,
     private val fabrica: FabricaMotorRutas,
@@ -37,6 +39,7 @@ class EnrutadorValhalla internal constructor(
     private val reloj: () -> Long,
     private val siembra: EsperaDatosSembrados = EsperaDatosSembrados.Ninguna,
     private val vias: FuenteVias? = null,
+    private val conocidas: ViasConocidas = ViasConocidas.Ninguna,
 ) : Enrutador {
     @Inject
     constructor(
@@ -45,7 +48,8 @@ class EnrutadorValhalla internal constructor(
         @DispatcherIo dispatcher: CoroutineDispatcher,
         siembra: EsperaDatosSembrados,
         vias: FuenteVias,
-    ) : this(File(config.directorioMapa, NOMBRE_TAR), fabrica, dispatcher, System::nanoTime, siembra, vias)
+        conocidas: ViasConocidas,
+    ) : this(File(config.directorioMapa, NOMBRE_TAR), fabrica, dispatcher, System::nanoTime, siembra, vias, conocidas)
 
     private val cerrojo = Mutex()
     private var motor: MotorRutas? = null
@@ -93,7 +97,7 @@ class EnrutadorValhalla internal constructor(
         val rapida = candidatas.rapida()
         return when {
             rapida !is ResultadoRuta.Ok -> rapida
-            perfil != PerfilRuta.MAS_RAPIDA -> elegirVariante(perfil, candidatas, rapida)
+            perfil != PerfilRuta.MAS_RAPIDA || conocidas.hayHistorial() -> elegirVariante(perfil, candidatas, rapida)
             medirSiempre -> rapida.copy(curvasM = candidatas.curvasDe(rapida.ruta))
             else -> rapida
         }
@@ -107,8 +111,8 @@ class EnrutadorValhalla internal constructor(
         val elegida =
             SelectorPerfiles.elegir(
                 perfil,
-                Candidata(rapida.ruta, candidatas.curvasDe(rapida.ruta)),
-                candidatas.otras().map { Candidata(it, candidatas.curvasDe(it)) },
+                candidatas.medida(rapida.ruta),
+                candidatas.otras().map { candidatas.medida(it) },
             )
         return ResultadoRuta.Ok(elegida.ruta, candidatas.calculoMs(), elegida.curvasM)
     }
@@ -140,6 +144,8 @@ class EnrutadorValhalla internal constructor(
         private var rapidaOk: ResultadoRuta.Ok? = null
         private var otrasRutas: List<Ruta>? = null
         private val medidas = HashMap<Ruta, Double>()
+        private val cerrojoConocidos = Mutex()
+        private val conocidosMedidos = HashMap<Ruta, Double>()
 
         private val totalMs = AtomicLong()
 
@@ -172,6 +178,17 @@ class EnrutadorValhalla internal constructor(
             totalMs.addAndGet(resultados.sumOf { it.calculoMs })
             return resultados.map { it.ruta }.filter { it != rutaRapida }.distinct()
         }
+
+        /** [ruta] con sus metros de curvas y de vías ya conducidas. */
+        suspend fun medida(ruta: Ruta): Candidata = Candidata(ruta, curvasDe(ruta), conocidosDe(ruta))
+
+        /** Metros de [ruta] sobre vías conducidas; como las curvas, se miden una sola vez por ruta. */
+        private suspend fun conocidosDe(ruta: Ruta): Double =
+            cerrojoConocidos.withLock {
+                conocidosMedidos[ruta]
+                    ?: withContext(dispatcher) { conocidas.metrosConocidos(ruta.puntos) }
+                        .also { conocidosMedidos[ruta] = it }
+            }
 
         /** Metros de curvas de [ruta]; una ruta ya medida (o igual a otra) no se mide otra vez. */
         suspend fun curvasDe(ruta: Ruta): Double =
