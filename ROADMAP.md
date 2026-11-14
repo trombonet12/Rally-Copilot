@@ -777,6 +777,7 @@ Lo que molestó conduciendo la v1.5.0: ver la carretera por delante y encontrar 
 - Banner de maniobra ~33 % más pequeño; velocidad ~25 % más pequeña en la esquina con la media al lado; coche justo por encima de la velocidad.
 - Botones laterales de 56 dp y fijos; capas y notas grandes solo parado, sin mover a los demás.
 - Barra «¿A dónde?» oculta en marcha salvo al tocar el mapa.
+- GPS: el fused del sistema en alta precisión a 1 Hz (con Google Play el GPS crudo no fijaba en frío); registro de diagnóstico en la carpeta de la app.
 - Búsqueda de direcciones de Google, abreviaturas, números y nombres ES↔CA; coordenadas con coma decimal, Plus Codes y URLs sin esquema.
 - (v1.5.1, antes) copia automática de los datos para sacarlos por adb/USB.
 ### Criterios de aceptación
@@ -792,7 +793,7 @@ en curso (2026-11-14) · Depende de: H21
 Un mismo panel y fantasma para cualquier trozo conocido, y una hora de llegada que se cumpla.
 ### Alcance
 - Un solo panel (tramo o subtramo) con microsectores, delta y fantasma; referencia en vivo = la del resultado final.
-- Nombre por vía, km y sentido cuando haya PK (Room v21).
+- Tramos de vía: cada viaje se trocea por carretera («Ma-15 · km 20→32 · hacia Manacor», ≥ 1 km) además del tramo-viaje de siempre; Mis tramos con pestañas Viajes / Carreteras (Room v21).
 - Migración de lo ya guardado: tras Room v21, un trabajo único e idempotente rellena vía, km y sentido de los tramos y subtramos existentes y renombra solo los de nombre automático; pasadas, tiempos y récords intactos.
 - Hora de llegada aprendida de Joan (velocidad media por vía + factor personal) y corregida en vivo; tiempo previsto guardado por viaje.
 ### Criterios de aceptación
