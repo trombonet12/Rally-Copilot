@@ -49,9 +49,154 @@ class EnlaceUbicacionTest {
 
     @Test
     fun `coma decimal ambigua no se reconoce`() {
-        assertNoReconocido("39,83 2,81")
+        assertNoReconocido("39,5,2,6")
         assertNoReconocido("39,83")
-        assertNoReconocido("39,8505 2,7997")
+        assertNoReconocido("39,5 2")
+        assertNoReconocido("39.5,2,6")
+    }
+
+    // --- Lo que pega Google Maps en español (coma decimal) ---
+
+    @Test
+    fun `caso real de Google Maps en espanol con coma decimal`() {
+        assertPunto(39.5789682, 2.6515765, null, "39,5789682, 2,6515765")
+    }
+
+    @Test
+    fun `coma decimal con separador coma, punto y coma o espacios`() {
+        assertPunto(39.83, 2.81, null, "39,83 2,81")
+        assertPunto(39.83, 2.81, null, "39,83   2,81")
+        assertPunto(39.83, 2.81, null, "39,83; 2,81")
+        assertPunto(39.83, 2.81, null, "39,83;2,81")
+        assertPunto(39.83, 2.81, null, "39,83 ; 2,81")
+        assertPunto(39.8505, 2.7997, null, "39,8505 2,7997")
+        assertPunto(-33.8688, 151.2093, null, "-33,8688, 151,2093")
+        assertPunto(40.4168, -3.7038, null, "40,4168, -3,7038")
+    }
+
+    @Test
+    fun `coma decimal fuera de rango no se reconoce`() {
+        assertNoReconocido("91,0 2,0")
+        assertNoReconocido("39,8 180,5")
+        assertNoReconocido("-90,5, 2,0")
+    }
+
+    // --- Normalizacion del texto pegado ---
+
+    @Test
+    fun `espacios unicode se tratan como espacio`() {
+        assertPunto(39.5789682, 2.6515765, null, "39,5789682,\u00A02,6515765")
+        assertPunto(39.5789682, 2.6515765, null, "39.5789682,\u202F2.6515765")
+        assertPunto(39.5789682, 2.6515765, null, "39.5789682\u2009\u20092.6515765")
+        assertPunto(39.5789682, 2.6515765, null, "39.5789682,\u30002.6515765")
+    }
+
+    @Test
+    fun `caracteres invisibles se quitan`() {
+        assertPunto(39.5789682, 2.6515765, null, "\u200E39.5789682, 2.6515765\u200E")
+        assertPunto(39.5789682, 2.6515765, null, "\uFEFF39.5789682, 2.6515765")
+        assertPunto(39.5789682, 2.6515765, null, "39.5789682,\u200B 2.6515765\u200F")
+        assertPunto(39.5789682, 2.6515765, null, "39,5789682,\u200E 2,6515765")
+    }
+
+    @Test
+    fun `puntuacion sobrante en los bordes se quita`() {
+        assertPunto(39.5789682, 2.6515765, null, "(39.5789682, 2.6515765)")
+        assertPunto(39.5789682, 2.6515765, null, "\u201C39,5789682, 2,6515765\u201D")
+        assertPunto(39.5789682, 2.6515765, null, "39.5789682, 2.6515765.")
+        assertPunto(39.5789682, 2.6515765, null, "\"39.5789682, 2.6515765\";")
+    }
+
+    @Test
+    fun `menos tipografico vale como signo`() {
+        assertPunto(39.5, -2.5, null, "39.5, \u22122.5")
+    }
+
+    // --- Sexagesimales con simbolos tipograficos ---
+
+    @Test
+    fun `dms con ordinal y comillas rectas`() {
+        assertPunto(39 + 34 / 60.0 + 44.3 / 3600, 2 + 39 / 60.0 + 5.7 / 3600, null, "39º34'44.3\"N 2º39'05.7\"E", 1e-9)
+    }
+
+    @Test
+    fun `dms con simbolos tipograficos`() {
+        val lat = 39 + 34 / 60.0 + 44.3 / 3600
+        val lon = 2 + 39 / 60.0 + 5.7 / 3600
+        assertPunto(lat, lon, null, "39°34\u203244.3\u2033N 2°39\u203205.7\u2033E", 1e-9)
+        assertPunto(lat, lon, null, "39\u02DA34\u203244.3\u2033N 2\u02DA39\u203205.7\u2033E", 1e-9)
+        assertPunto(lat, lon, null, "39°34\u201944.3\u201DN 2°39\u201905.7\u201DE", 1e-9)
+        assertPunto(lat, lon, null, "39°34\u201844.3\u201CN 2°39\u201805.7\u201CE", 1e-9)
+        assertPunto(lat, lon, null, "39°34'44.3''N 2°39'05.7''E", 1e-9)
+        assertPunto(lat, lon, null, "\u200E39°34'44.3\"N\u00A02°39'05.7\"E\u200E", 1e-9)
+    }
+
+    // --- Enlaces sin esquema ---
+
+    @Test
+    fun `google sin esquema`() {
+        assertPunto(39.57, 2.65, null, "www.google.com/maps/@39.57,2.65,15z")
+        assertPunto(39.57, 2.65, null, "maps.google.com/?q=39.57,2.65")
+        assertPunto(39.7667, 2.7150, "Sóller", "google.es/maps/place/S%C3%B3ller/@39.7667,2.7150,14z")
+        assertPunto(39.57, 2.65, null, "https://www.google.cat/maps/@39.57,2.65,15z")
+        assertPunto(39.57, 2.65, null, "google.com.mx/maps/@39.57,2.65,15z")
+    }
+
+    @Test
+    fun `enlaces cortos sin esquema necesitan red con https`() {
+        assertEquals(
+            ResultadoEnlace.NecesitaRed("https://maps.app.goo.gl/AbCdEf123"),
+            EnlaceUbicacion.leer("maps.app.goo.gl/AbCdEf123"),
+        )
+        assertEquals(
+            ResultadoEnlace.NecesitaRed("https://goo.gl/maps/Xy9z"),
+            EnlaceUbicacion.leer("goo.gl/maps/Xy9z"),
+        )
+        assertEquals(
+            ResultadoEnlace.NecesitaRed("https://maps.app.goo.gl/AbCdEf123"),
+            EnlaceUbicacion.leer("Sa Calobra\nmaps.app.goo.gl/AbCdEf123"),
+        )
+    }
+
+    @Test
+    fun `puntuacion al final de un enlace no forma parte de el`() {
+        assertEquals(
+            ResultadoEnlace.NecesitaRed("https://maps.app.goo.gl/AbCdEf123"),
+            EnlaceUbicacion.leer("(https://maps.app.goo.gl/AbCdEf123)."),
+        )
+    }
+
+    @Test
+    fun `dominios que no son de mapas no se reconocen sin esquema`() {
+        assertNoReconocido("example.com/@39.8505,2.7997,15z")
+        assertNoReconocido("notgoogle.com/maps/@39.8505,2.7997,15z")
+        assertNoReconocido("google.com.evil.com/maps/@39.8505,2.7997,15z")
+    }
+
+    // --- Plus Codes ---
+
+    @Test
+    fun `plus code completo`() {
+        assertPunto(39.5789375, 2.6515625, null, "8FF4HMH2+HJ", 1e-7)
+        assertPunto(39.5789375, 2.6515625, null, "8ff4hmh2+hj", 1e-7)
+        assertPunto(39.5789375, 2.6515625, null, "8FF4HMH2+HJ Palma, Illes Balears", 1e-7)
+        assertPunto(37.4220625, -122.0840625, null, "849VCWC8+R9", 1e-7)
+    }
+
+    @Test
+    fun `plus code corto con localidad se recupera en el centro de Mallorca`() {
+        assertPunto(39.5789375, 2.6515625, null, "HMH2+HJ Palma", 1e-7)
+        assertPunto(39.5789375, 2.6515625, null, "hmh2+hj palma, illes balears", 1e-7)
+        assertPunto(39.5789375, 2.6515625, null, "HMH2+HJ", 1e-7)
+    }
+
+    @Test
+    fun `plus code invalido no se reconoce`() {
+        assertNoReconocido("8FF4HMH2+H") // un solo carácter tras el +
+        assertNoReconocido("8FF4HMH2") // sin +
+        assertNoReconocido("HMH+HJ") // longitud impar
+        assertNoReconocido("X2222222+") // latitud fuera de rango
+        assertNoReconocido("AAAA+BB") // letras fuera del alfabeto
     }
 
     @Test
@@ -81,7 +226,7 @@ class EnlaceUbicacionTest {
     @Test
     fun `grados y minutos decimales con hemisferio`() {
         assertPunto(39.83, 2.81, null, "39°49.8'N 2°48.6'E")
-        assertPunto(39.83, 2.81, null, "39°49.8′N, 2°48.6′E")
+        assertPunto(39.83, 2.81, null, "39°49.8\u2032N, 2°48.6\u2032E")
     }
 
     @Test

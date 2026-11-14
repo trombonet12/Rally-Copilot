@@ -27,26 +27,90 @@ sealed interface ResultadoEnlace {
 }
 
 /**
- * Interpreta texto de ubicación: coordenadas decimales o sexagesimales, `geo:`, y enlaces de OpenStreetMap y
- * Google Maps. Sin red: los enlaces cortos de Google/OSM devuelven [ResultadoEnlace.NecesitaRed].
- * Acepta cualquier punto del mundo (la app avisa si cae fuera de Mallorca) y rechaza coordenadas fuera de rango.
+ * Interpreta texto de ubicación: coordenadas decimales o sexagesimales, Plus Codes, `geo:`, y enlaces de
+ * OpenStreetMap y Google Maps (con o sin `https://`). Sin red: los enlaces cortos de Google/OSM devuelven
+ * [ResultadoEnlace.NecesitaRed]. Acepta cualquier punto del mundo (la app avisa si cae fuera de Mallorca) y rechaza
+ * coordenadas fuera de rango.
  *
  * Decisiones:
- * - En texto libre las coordenadas decimales exigen punto decimal en ambas («39,83 2,81» es ambiguo: no se
- *   reconoce), con separador coma, punto y coma o espacio.
- * - Si el texto contiene una URL (típico de «Compartir» de Google Maps: «Nombre https://…») se usa la URL.
+ * - Antes de interpretar se normaliza el texto pegado: espacios Unicode (NBSP…) a espacio, marcas invisibles
+ *   (LRM, RLM, ZWSP, BOM) fuera y puntuación sobrante en los bordes fuera.
+ * - Coordenadas decimales en texto libre: con punto decimal en ambas («39.83, 2.81»; separador coma, punto y coma o
+ *   espacio) o, como las copia Google Maps en español, con coma decimal en ambas y separada por «, », «; » o
+ *   espacios («39,5789682, 2,6515765»). «39,5,2,6» (sin espacio) es ambiguo y no se reconoce.
+ * - Si el texto contiene una URL (típico de «Compartir» de Google Maps: «Nombre https://…») se usa la URL; también
+ *   las que no llevan esquema si el dominio es de Google Maps, goo.gl u OpenStreetMap.
+ * - Plus Codes completos y cortos («JHX2+XX Palma»); los cortos se recuperan con referencia en el centro de Mallorca.
  * - En Google Maps manda `!3d..!4d..` (el sitio) sobre `@lat,lon` (el centro de la vista).
  */
 object EnlaceUbicacion {
     private val URL_EN_TEXTO = Regex("""https?://\S+""", RegexOption.IGNORE_CASE)
+    private val URL_SIN_ESQUEMA =
+        Regex("""(?<![\w@./:-])((?:[a-z0-9-]+\.)+[a-z]{2,}(?:[/?#]\S*)?)""", RegexOption.IGNORE_CASE)
+    private val CENTRO_MALLORCA = PuntoGeo(39.6, 2.9)
 
     fun leer(texto: String): ResultadoEnlace {
-        val t = texto.trim()
-        val url = URL_EN_TEXTO.find(t)?.value
+        val t = Normalizador.limpiar(texto)
+        val url = enlaceEn(t)
         return when {
-            t.startsWith("geo:", ignoreCase = true) -> LectorGeo.leer(t)
-            url != null -> LectorUrl.leer(url)
-            else -> Coord.resultado(Coord.deTexto(t)?.let { Marcador(it, null) })
+            t.startsWith("geo:", ignoreCase = true) -> {
+                LectorGeo.leer(t)
+            }
+
+            url != null -> {
+                LectorUrl.leer(url)
+            }
+
+            else -> {
+                PlusCode.leer(t, CENTRO_MALLORCA)?.let { ResultadoEnlace.Punto(it, null) }
+                    ?: Coord.resultado(Coord.deTexto(t)?.let { Marcador(it, null) })
+            }
+        }
+    }
+
+    /** Primera URL del texto: con esquema, o sin él si el dominio es de mapas (se le añade `https://`). */
+    private fun enlaceEn(texto: String): String? =
+        URL_EN_TEXTO.find(texto)?.value?.let { Normalizador.quitarFinal(it) }
+            ?: URL_SIN_ESQUEMA
+                .findAll(texto)
+                .map { Normalizador.quitarFinal(it.value) }
+                .firstOrNull { LectorUrl.esDominioDeMapas(PartesUrl("https://$it").host) }
+                ?.let { "https://$it" }
+}
+
+private object Normalizador {
+    private val ESPACIOS = Regex("""[\p{Zs}\u2028\u2029\t]""")
+    private val INVISIBLES = Regex("""[\u00AD\u200B-\u200F\u202A-\u202E\u2060\u2066-\u2069\uFEFF]""")
+    private const val BORDES = ".,;:!?()[]{}<>\"'«»“”‘’„"
+    private const val CIERRES = ")]}"
+    private const val APERTURAS = "([{"
+
+    fun limpiar(texto: String): String =
+        quitarFinal(
+            texto
+                .replace(INVISIBLES, "")
+                .replace(ESPACIOS, " ")
+                .replace('\u2212', '-')
+                .trimStart { it.isWhitespace() || it in BORDES },
+        )
+
+    /** Quita espacios y puntuación del final; un `)`, `]` o `}` solo si no cierra un paréntesis del propio texto. */
+    fun quitarFinal(texto: String): String {
+        var fin = texto.length
+        while (fin > 0 && sobra(texto, fin)) fin--
+        return texto.substring(0, fin)
+    }
+
+    private fun sobra(
+        texto: String,
+        fin: Int,
+    ): Boolean {
+        val c = texto[fin - 1]
+        val cierre = CIERRES.indexOf(c)
+        return when {
+            c.isWhitespace() -> true
+            cierre >= 0 -> texto.take(fin).count { it == c } > texto.take(fin).count { it == APERTURAS[cierre] }
+            else -> c in BORDES
         }
     }
 }
@@ -59,6 +123,9 @@ private data class Marcador(
 private object Coord {
     private const val NUM = """-?\d+(?:\.\d+)?"""
     private val PAR_DECIMAL = Regex("""^(-?\d+\.\d+)\s*(?:,|;|\s)\s*(-?\d+\.\d+)$""")
+
+    // Coma decimal (Google Maps en español): exige espacio entre ambos números, o punto y coma.
+    private val PAR_COMA = Regex("""^(-?\d{1,3},\d+)(?:\s*;\s*|\s*,?\s+)(-?\d{1,3},\d+)$""")
     private val CONSULTA = Regex("""^(?:loc:)?\s*($NUM)\s*,\s*($NUM)\s*(?:\((.*)\))?$""")
 
     fun punto(
@@ -79,10 +146,15 @@ private object Coord {
     fun resultado(marcador: Marcador?): ResultadoEnlace =
         marcador?.let { ResultadoEnlace.Punto(it.punto, it.nombre) } ?: ResultadoEnlace.NoReconocido
 
-    /** Texto libre: decimales con punto («39.83, 2.81») o sexagesimales con hemisferio. */
-    fun deTexto(texto: String): PuntoGeo? =
-        PAR_DECIMAL.matchEntire(texto.trim())?.let { punto(it.groupValues[1], it.groupValues[2]) }
-            ?: Sexagesimal.leer(texto.trim())
+    /** Texto libre: decimales con punto o coma («39.83, 2.81», «39,83 2,81») o sexagesimales con hemisferio. */
+    fun deTexto(texto: String): PuntoGeo? {
+        val t = texto.trim()
+        return PAR_DECIMAL.matchEntire(t)?.let { punto(it.groupValues[1], it.groupValues[2]) }
+            ?: PAR_COMA.matchEntire(t)?.let {
+                punto(it.groupValues[1].replace(',', '.'), it.groupValues[2].replace(',', '.'))
+            }
+            ?: Sexagesimal.leer(t)
+    }
 
     /** Valor de un parámetro de consulta: «lat,lon», «loc:lat,lon» o «lat,lon(Nombre)». */
     fun consulta(texto: String): Marcador? =
@@ -109,15 +181,28 @@ private object Coord {
 private object Sexagesimal {
     private const val NUM =
         """(\d{1,3}(?:\.\d+)?)\s*°?\s*""" +
-            """(?:(\d{1,2}(?:\.\d+)?)\s*['′’]?\s*""" +
-            """(?:(\d{1,2}(?:\.\d+)?)\s*(?:"|″|”|''|’’)?)?)?"""
+            """(?:(\d{1,2}(?:\.\d+)?)\s*'?\s*""" +
+            """(?:(\d{1,2}(?:\.\d+)?)\s*(?:"|'')?)?)?"""
 
     // Grupos: 1 hemisferio previo, 2-4 grados/minutos/segundos; 5-7 grados/minutos/segundos, 8 hemisferio posterior.
     private val COMPONENTE = Regex("""(?:([NSEW])\s*$NUM|$NUM\s*([NSEW]))""", RegexOption.IGNORE_CASE)
     private const val MIN_POR_GRADO = 60.0
     private const val SEG_POR_GRADO = 3600.0
 
-    fun leer(texto: String): PuntoGeo? {
+    /** Grado, minuto y segundo tipográficos (º ˚ ′ ’ ‘ ″ ” “) a sus equivalentes ASCII. */
+    private fun simplificar(texto: String): String =
+        texto
+            .replace('º', '°')
+            .replace('˚', '°')
+            .replace('′', '\'')
+            .replace('’', '\'')
+            .replace('‘', '\'')
+            .replace('″', '"')
+            .replace('”', '"')
+            .replace('“', '"')
+
+    fun leer(original: String): PuntoGeo? {
+        val texto = simplificar(original)
         val encontrados = COMPONENTE.findAll(texto).toList()
         val sobrante = COMPONENTE.replace(texto, "")
         val valores = encontrados.map { valor(it) }
@@ -225,6 +310,10 @@ private object LectorUrl {
             }
         }
     }
+
+    /** Dominios cuyos enlaces se reconocen aunque se peguen sin `https://`. */
+    fun esDominioDeMapas(host: String): Boolean =
+        host in HOSTS_OSM || host == "goo.gl" || host == "maps.app.goo.gl" || HOST_GOOGLE.matches(host)
 
     private fun esEnlaceCorto(p: PartesUrl): Boolean =
         p.host == "maps.app.goo.gl" ||

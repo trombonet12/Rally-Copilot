@@ -156,7 +156,12 @@ class ResolvedorEnlacesHttpTest {
                 "https://evil.com/maps",
                 "https://google.com.evil.com/maps",
                 "https://notgoogle.com/maps",
-                "https://www.google.fr/maps",
+                "https://google.fr.evil.com/maps",
+                "https://evil-google.com/maps",
+                "https://www.google.com.evil.es/maps",
+                "https://goo.gl.evil.com/maps",
+                "https://maps.app.goo.gl.evil.com/x",
+                "https://google/maps",
                 "https://usuario@www.google.com/maps",
             ).forEach { destino ->
                 guion.redirecciones.clear()
@@ -166,7 +171,7 @@ class ResolvedorEnlacesHttpTest {
         }
 
     @Test
-    fun `acepta destinos en google com, google es, goo gl y maps app goo gl`() =
+    fun `acepta destinos en cualquier google tld, goo gl y maps app goo gl`() =
         runTest {
             listOf(
                 "https://google.com/x",
@@ -174,6 +179,12 @@ class ResolvedorEnlacesHttpTest {
                 "https://maps.google.com/x",
                 "https://goo.gl/x",
                 "https://maps.app.goo.gl/otro",
+                "https://www.google.fr/maps",
+                "https://www.google.cat/maps",
+                "https://www.google.com.mx/maps",
+                "https://maps.google.com.mx/maps",
+                "https://www.google.co.uk/maps",
+                "https://consent.google.cat/ml",
             ).forEach { destino ->
                 guion.redirecciones.clear()
                 guion.redirecciones[CORTO] = destino

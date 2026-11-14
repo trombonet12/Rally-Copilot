@@ -23,7 +23,8 @@ private val CODIGOS_SIN_HEAD = setOf(400, 403, 405, 501)
 /**
  * Sigue a mano la redirección de un enlace corto de Google Maps (HEAD, o GET sin leer el cuerpo si HEAD falla).
  * Solo https; el enlace inicial solo puede ser `maps.app.goo.gl` o `goo.gl/maps…`, y cada salto solo puede ir a
- * `*.google.com`, `*.google.es`, `maps.app.goo.gl` o `goo.gl`. Para en cuanto una redirección ya trae coordenadas.
+ * `google.<tld>` (también `google.com.mx`, `google.cat`…) y sus subdominios, `maps.app.goo.gl` o `goo.gl`.
+ * Para en cuanto una redirección ya trae coordenadas.
  * Sin cookies ni datos del usuario; los logs solo llevan el tipo de error, nunca la URL.
  */
 class ResolvedorEnlacesHttp(
@@ -140,8 +141,9 @@ class ResolvedorEnlacesHttp(
     }
 
     internal companion object {
-        private val SUFIJOS_PERMITIDOS = listOf(".google.com", ".google.es")
-        private val HOSTS_PERMITIDOS = setOf("google.com", "google.es", "maps.app.goo.gl", "goo.gl")
+        // google.com, google.es, google.cat, google.com.mx, google.co.uk… y subdominios (maps., consent., www.).
+        private val HOST_GOOGLE = Regex("""^(?:[a-z0-9-]+\.)*google\.(?:com?\.)?[a-z]{2,3}$""")
+        private val HOSTS_PERMITIDOS = setOf("maps.app.goo.gl", "goo.gl")
 
         fun parsear(texto: String): URL? = runCatching { URL(texto.trim()) }.getOrNull()
 
@@ -156,7 +158,7 @@ class ResolvedorEnlacesHttp(
             val host = url.host.lowercase()
             return url.protocol == "https" &&
                 url.userInfo == null &&
-                (host in HOSTS_PERMITIDOS || SUFIJOS_PERMITIDOS.any { host.endsWith(it) })
+                (host in HOSTS_PERMITIDOS || HOST_GOOGLE.matches(host))
         }
     }
 }
