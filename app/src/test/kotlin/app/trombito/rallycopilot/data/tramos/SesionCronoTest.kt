@@ -920,6 +920,35 @@ class SesionCronoTest {
         }
 
     @Test
+    fun `el subtramo en marcha publica el fantasma de la referencia, sus cortes y los parciales con signo`() =
+        runTest {
+            conducir(conduccion(40.0))
+
+            val c = conducir(trozo(60.0, 1_000.0, 3_000.0, salir = true))
+
+            val vivos = c.estados.mapNotNull { it.subtramo }
+            val conFantasma = vivos.filter { it.fantasma != null }
+            assertTrue("hubo fantasma de subtramo", conFantasma.isNotEmpty())
+            val ultimo = conFantasma.last()
+            // La referencia va a 40 km/h desde el inicio del trozo (~1 km): su cronómetro marca 0 ahí.
+            val esperadoM = 1_000.0 + 40.0 / 3.6 * ultimo.transcurridoMs / 1000.0
+            assertEquals(esperadoM, checkNotNull(ultimo.fantasma).distanciaM, 150.0)
+            assertTrue(ultimo.recorridoM > ultimo.fantasma!!.distanciaM - 1_000.0)
+            // Cortes del tramo de la referencia dentro del trozo, relativos a su inicio y con el trozo como barra.
+            assertTrue(ultimo.microsectoresM.isNotEmpty())
+            assertTrue(ultimo.microsectoresM.all { it > 0.0 && it < ultimo.longitudM })
+            assertTrue(ultimo.longitudM > ultimo.recorridoM)
+            // Los parciales cerrados van numerados desde 1, a favor (60 km/h contra 40 km/h) y en orden de distancia.
+            val micros = ultimo.parciales.filter { it.tipo == TipoCorte.MICROSECTOR }
+            assertTrue(micros.isNotEmpty())
+            assertEquals((1..micros.size).toList(), micros.map { it.numero })
+            assertTrue(micros.all { it.distanciaM <= ultimo.recorridoM })
+            assertTrue(micros.mapNotNull { it.diferenciaMs }.all { it < 0L })
+            assertTrue(micros.mapNotNull { it.deltaAcumuladoMs }.all { it < 0L })
+            assertEquals(ultimo.parciales.lastOrNull(), ultimo.ultimaMarca)
+        }
+
+    @Test
     fun `un trozo de menos de un kilometro no se cronometra`() =
         runTest {
             conducir(conduccion(40.0))

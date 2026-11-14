@@ -3,8 +3,11 @@ package app.trombito.rallycopilot.ui.tramos
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.domain.tramos.ParcialCrono
 import app.trombito.rallycopilot.domain.tramos.ResultadoCrono
+import app.trombito.rallycopilot.domain.tramos.SubtramoVivo
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrado
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.tramos.PosicionFantasma
 
 /** Instante (ms epoch) en que se publicó el estado de prueba. */
 internal const val AHORA_PRUEBA_MS = 1_000_000L
@@ -72,3 +75,26 @@ internal fun cronoTerminado(resultado: ResultadoCrono) =
         progresoM = 3_990.0,
         resultado = resultado,
     )
+
+/**
+ * Conducción sin tramo completo pero con un subtramo de 2,4 km en marcha (52,3 s): con referencia lleva cortes de
+ * sector y microsector del tramo de la referencia, los parciales ya cerrados y el fantasma; con [deltaMs] null no hay
+ * referencia (solo la barra simple).
+ */
+internal fun cronoConSubtramo(
+    deltaMs: Long? = -3_100L,
+    parciales: List<ParcialCrono> = listOf(sector(1, -300L)),
+) = cronoSinTramo().copy(
+    subtramo =
+        SubtramoVivo(
+            recorridoM = 2_400.0,
+            deltaMs = deltaMs,
+            transcurridoMs = 52_300L,
+            longitudM = if (deltaMs == null) 0.0 else 4_000.0,
+            sectoresM = if (deltaMs == null) emptyList() else listOf(1_000.0, 2_000.0, 3_000.0),
+            microsectoresM = if (deltaMs == null) emptyList() else listOf(1_500.0, 3_500.0),
+            parciales = if (deltaMs == null) emptyList() else parciales,
+            ultimaMarca = if (deltaMs == null) null else parciales.lastOrNull(),
+            fantasma = if (deltaMs == null) null else PosicionFantasma(PuntoGeo(39.7, 2.9), 90.0, 2_500.0),
+        ),
+)

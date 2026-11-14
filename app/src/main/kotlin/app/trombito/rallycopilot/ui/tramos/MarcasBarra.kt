@@ -25,18 +25,26 @@ internal data class MarcaBarra(
 internal fun marcasDeBarra(
     tramo: TramoCronometrado,
     parciales: List<ParcialCrono>,
+): List<MarcaBarra> = marcasDeBarra(tramo.metaM, tramo.sectoresM, tramo.microsectoresM, parciales)
+
+/** Las marcas de una barra de [metaM] metros con los cortes [sectoresM] y [microsectoresM] (desde su inicio). */
+internal fun marcasDeBarra(
+    metaM: Double,
+    sectoresM: List<Double>,
+    microsectoresM: List<Double>,
+    parciales: List<ParcialCrono>,
 ): List<MarcaBarra> {
     fun marcas(
         cortes: List<Double>,
         tipo: TipoCorte,
     ) = cortes.mapIndexedNotNull { i, d ->
-        val fraccion = fraccionProgreso(d, tramo.metaM)
-        if (d <= 0.0 || d >= tramo.metaM) {
+        val fraccion = fraccionProgreso(d, metaM)
+        if (d <= 0.0 || d >= metaM) {
             null
         } else {
             val cerrado = parciales.firstOrNull { it.tipo == tipo && it.numero == i + 1 }
             MarcaBarra(fraccion, tipo, i + 1, cerrado?.diferenciaMs?.let(::signoDelta))
         }
     }
-    return marcas(tramo.sectoresM, TipoCorte.SECTOR) + marcas(tramo.microsectoresM, TipoCorte.MICROSECTOR)
+    return marcas(sectoresM, TipoCorte.SECTOR) + marcas(microsectoresM, TipoCorte.MICROSECTOR)
 }

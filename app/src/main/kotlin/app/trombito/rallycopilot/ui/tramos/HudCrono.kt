@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -48,7 +49,10 @@ import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.domain.tramos.ParcialCrono
+import app.trombito.rallycopilot.domain.tramos.SegmentoVivo
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
+import app.trombito.rallycopilot.domain.tramos.TipoSegmento
+import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.maniobras.ParalelogramoShape
 import app.trombito.rallycopilot.ui.navegacion.guiado.ColoresGuiado
 import app.trombito.rallycopilot.ui.theme.LimitarEscalaHud
@@ -57,6 +61,9 @@ const val ETIQUETA_CRONO_HUD = "crono-hud"
 const val ETIQUETA_CRONO_TIEMPO = "crono-tiempo"
 const val ETIQUETA_CRONO_DELTA = "crono-delta"
 const val ETIQUETA_CRONO_BARRA = "crono-barra"
+
+/** Rótulo del trozo: «Subtramo · 2,4 km» o el nombre del tramo. */
+const val ETIQUETA_CRONO_ROTULO = "crono-rotulo"
 
 /** Parcial ya cerrado: `crono-parcial-S1`, `crono-parcial-M2`. */
 const val ETIQUETA_CRONO_PARCIAL_PREFIJO = "crono-parcial-"
@@ -83,6 +90,7 @@ private class MedidasHud(
     val compacto: Boolean,
 ) {
     val anchoDelta: Dp get() = if (compacto) 76.dp else 104.dp
+    val rotulo: TextUnit get() = if (compacto) 12.sp else 14.sp
 }
 
 private val NORMAL =
@@ -113,12 +121,13 @@ private fun estiloCifras(tamano: TextUnit) =
     )
 
 /**
- * HUD de retransmisión de un tramo conocido (con mejor pasada): cronómetro grande, delta en vivo (verde si va más
- * rápido que la mejor pasada, rojo si más lento), barra de progreso con las marcas de sectores y microsectores y los
- * parciales de sector ya pasados. El parcial recién cortado destaca [DURACION_PARCIAL_DESTACADO_MS]. En apaisado
- * ([compacto]) cronómetro, delta y parciales van en una fila sobre la barra. No pinta nada sin tramo. [reloj] es el
- * reloj de pared (ms epoch) con el que el cronómetro sigue contando entre fijaciones. El escalado de la fuente del
- * sistema se limita a 1,3 ([LimitarEscalaHud]).
+ * HUD de retransmisión de un tramo conocido (con mejor pasada) o de un subtramo en marcha (el mismo panel para los
+ * dos; el subtramo lleva el rótulo «Subtramo · x km» y los cortes del tramo de su referencia): cronómetro grande,
+ * delta en vivo (verde si va más rápido que la mejor pasada, rojo si más lento), barra de progreso con las marcas de
+ * sectores y microsectores y los parciales de sector ya pasados. El parcial recién cortado destaca
+ * [DURACION_PARCIAL_DESTACADO_MS]. En apaisado ([compacto]) cronómetro, delta y parciales van en una fila sobre la
+ * barra. No pinta nada sin tramo ni subtramo. [reloj] es el reloj de pared (ms epoch) con el que el cronómetro sigue
+ * contando entre fijaciones. El escalado de la fuente del sistema se limita a 1,3 ([LimitarEscalaHud]).
  */
 @Composable
 fun HudCrono(
@@ -127,29 +136,45 @@ fun HudCrono(
     compacto: Boolean = false,
     reloj: () -> Long = System::currentTimeMillis,
 ) {
-    if (crono.tramo == null) return
+    val segmento = crono.segmento ?: return
     val medidas = if (compacto) COMPACTO else NORMAL
-    val transcurrido = rememberTranscurridoMs(crono, reloj, PERIODO_HUD_MS)
-    LimitarEscalaHud { ContenidoHud(crono, transcurrido, modifier, medidas) }
+    // El subtramo cuenta desde su propio inicio, no desde la salida de la conducción.
+    val base =
+        remember(crono, segmento.tipo, segmento.transcurridoMs) {
+            if (segmento.tipo == TipoSegmento.SUBTRAMO) {
+                crono.copy(transcurridoMs = segmento.transcurridoMs, resultado = null, enMarcha = true)
+            } else {
+                crono
+            }
+        }
+    val transcurrido = rememberTranscurridoMs(base, reloj, PERIODO_HUD_MS)
+    LimitarEscalaHud { ContenidoHud(segmento, !base.enMarcha, transcurrido, modifier, medidas) }
 }
 
 @Composable
 private fun ContenidoHud(
-    crono: CronoEnCurso,
+    segmento: SegmentoVivo,
+    listo: Boolean,
     transcurrido: () -> Long,
     modifier: Modifier,
     medidas: MedidasHud,
 ) {
     val compacto = medidas.compacto
-    val destacado = rememberParcialDestacado(crono.ultimaMarca)
+    val destacado = rememberParcialDestacado(segmento.ultimaMarca)
     val forma = ParalelogramoShape(medidas.sesgo)
     val parciales: @Composable () -> Unit = {
         Parciales(
-            parciales = crono.parciales.filter { it.tipo == TipoCorte.SECTOR },
+            parciales = segmento.parciales.filter { it.tipo == TipoCorte.SECTOR },
             destacado = destacado,
             medidas = medidas,
         )
     }
+    val distancia = FormatoEs.distancia(segmento.progresoM)
+    val rotulo =
+        when {
+            segmento.tipo == TipoSegmento.SUBTRAMO -> stringResource(R.string.subtramo_hud_titulo, distancia)
+            else -> segmento.nombre
+        }
     Column(
         modifier =
             modifier
@@ -160,17 +185,28 @@ private fun ContenidoHud(
                 .padding(horizontal = medidas.sesgo + 8.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        if (rotulo != null) {
+            Text(
+                text = rotulo,
+                style = estiloCifras(medidas.rotulo),
+                color = ColoresGuiado.Laton,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag(ETIQUETA_CRONO_ROTULO),
+            )
+        }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TiempoYDelta(
                 transcurrido,
-                crono.deltaMs,
+                segmento.deltaMs,
                 medidas,
                 if (compacto) Modifier else Modifier.weight(1f),
-                listo = !crono.enMarcha,
+                listo = listo,
+                distanciaSubtramo = if (segmento.tipo == TipoSegmento.SUBTRAMO) distancia else null,
             )
             if (compacto) Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) { parciales() }
         }
-        BarraTramo(crono, medidas)
+        BarraTramo(segmento, medidas)
         if (!compacto) parciales()
     }
 }
@@ -181,27 +217,22 @@ private fun ContenidoHud(
  * décima.
  */
 @Composable
+@Suppress("LongParameterList") // estado ya resuelto por el llamador
 private fun TiempoYDelta(
     transcurridoMs: () -> Long,
     deltaMs: Long?,
     medidas: MedidasHud,
     modifier: Modifier,
     listo: Boolean = false,
+    distanciaSubtramo: String? = null,
 ) {
     val recursos = LocalContext.current.resources
     val alfa = if (listo) rememberAlfaListo() else 1f
     Row(
         modifier =
             modifier.clearAndSetSemantics {
-                val tiempo = descripcionTiempo(recursos, transcurridoMs())
                 contentDescription =
-                    if (listo) {
-                        recursos.getString(R.string.crono_listo_descripcion)
-                    } else if (deltaMs == null) {
-                        recursos.getString(R.string.crono_hud_descripcion_sin_delta, tiempo)
-                    } else {
-                        recursos.getString(R.string.crono_hud_descripcion, tiempo, descripcionDelta(recursos, deltaMs))
-                    }
+                    descripcionCronometro(recursos, transcurridoMs(), deltaMs, listo, distanciaSubtramo)
             },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = if (medidas.compacto) Arrangement.spacedBy(10.dp) else Arrangement.SpaceBetween,
@@ -366,12 +397,14 @@ private fun ChipParcial(
  */
 @Composable
 private fun BarraTramo(
-    crono: CronoEnCurso,
+    segmento: SegmentoVivo,
     medidas: MedidasHud,
 ) {
-    val tramo = crono.tramo ?: return
-    val fraccion = fraccionProgreso(crono.progresoM, tramo.metaM)
-    val marcas = remember(tramo, crono.parciales) { marcasDeBarra(tramo, crono.parciales) }
+    val fraccion = fraccionProgreso(segmento.progresoM, segmento.longitudM)
+    val marcas =
+        remember(segmento.longitudM, segmento.sectoresM, segmento.microsectoresM, segmento.parciales) {
+            marcasDeBarra(segmento.longitudM, segmento.sectoresM, segmento.microsectoresM, segmento.parciales)
+        }
     val descripcion = stringResource(R.string.crono_barra_descripcion, (fraccion * PORCENTAJE).toInt())
     Canvas(
         Modifier

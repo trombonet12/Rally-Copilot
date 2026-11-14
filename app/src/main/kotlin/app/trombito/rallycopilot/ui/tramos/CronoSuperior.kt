@@ -39,8 +39,8 @@ val LocalAccionesSalidaCrono = staticCompositionLocalOf<AccionesSalidaCrono?> { 
 
 /**
  * Lo que el cronómetro pone arriba del mapa, bajo el banner de maniobra, la franja de notas y el banner de alerta: el
- * HUD completo si el tramo es conocido (con mejor pasada), la tarjeta de meta unos segundos al cruzarla, la línea del
- * subtramo en marcha y la tarjeta del último subtramo cerrado durante [DURACION_TARJETA_SUBTRAMO_MS]; en cualquier
+ * mismo HUD completo para un tramo conocido (con mejor pasada) y para un subtramo en marcha, la tarjeta de meta unos
+ * segundos al cruzarla y la tarjeta del último subtramo cerrado durante [DURACION_TARJETA_SUBTRAMO_MS]; en cualquier
  * otro caso nada (con un tramo nuevo o sin tramo solo hay [CronometroMini] en el panel inferior). Con [compacto]
  * (apaisado) todo es más bajo.
  */
@@ -58,12 +58,10 @@ fun CronoSuperior(
         return
     }
     val hud = vistaCrono(crono) == VistaCrono.HUD
-    val vivo = crono.subtramo
     val tarjeta = rememberSubtramoReciente(crono.ultimoSubtramo, reloj)
-    if (hud || vivo != null || tarjeta != null) {
+    if (hud || tarjeta != null) {
         Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             if (hud) HudCrono(crono, Modifier, compacto, reloj)
-            if (vivo != null) SubtramoEnVivo(crono, vivo, compacto = compacto, reloj = reloj)
             if (tarjeta != null) TarjetaSubtramo(tarjeta, compacta = compacto)
         }
     }

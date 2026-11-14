@@ -7,9 +7,9 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
+import app.trombito.rallycopilot.domain.tramos.ParcialCrono
 import app.trombito.rallycopilot.domain.tramos.ResultadoCrono
 import app.trombito.rallycopilot.domain.tramos.SubtramoResultado
-import app.trombito.rallycopilot.domain.tramos.SubtramoVivo
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** Línea del subtramo en marcha y tarjeta del recién cerrado, que salen en el mismo sitio que el HUD del crono. */
+/** El subtramo en marcha sale en el mismo HUD que un tramo; tarjeta del recién cerrado en el mismo sitio. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
 class SubtramoHudTest {
@@ -39,10 +39,14 @@ class SubtramoHudTest {
 
     private fun textos(etiqueta: String) = banco.textos(banco.conEtiqueta(etiqueta))
 
+    private fun descripcionQueEmpieza(prefijo: String) =
+        banco.nodos().firstNotNullOf { n -> banco.descripcion(n)?.takeIf { it.startsWith(prefijo) } }
+
     private fun conSubtramo(
         deltaMs: Long?,
         ultimo: SubtramoResultado? = null,
-    ) = cronoSinTramo().copy(subtramo = SubtramoVivo(2_400.0, deltaMs, 52_300L), ultimoSubtramo = ultimo)
+        parciales: List<ParcialCrono> = listOf(sector(1, -300L)),
+    ) = cronoConSubtramo(deltaMs, parciales).copy(ultimoSubtramo = ultimo)
 
     private fun cerrado(
         mejorMs: Long?,
@@ -50,30 +54,48 @@ class SubtramoHudTest {
     ) = SubtramoResultado(2_400.0, 112_300L, mejorMs, ahora - hace)
 
     @Test
-    fun `la linea del subtramo enseña la distancia, el tiempo y el delta a favor`() {
+    fun `el subtramo en marcha sale en el mismo HUD que un tramo, con rotulo, tiempo y delta a favor`() {
         poner(conSubtramo(-3_100L))
-        assertTrue(banco.hay(ETIQUETA_SUBTRAMO_HUD))
-        assertTrue("Subtramo · 2,4 km" in banco.todosLosTextos())
-        assertEquals(listOf("00:52,3"), textos(ETIQUETA_SUBTRAMO_TIEMPO))
-        assertEquals(listOf("▼ −3,1"), textos(ETIQUETA_SUBTRAMO_DELTA))
+        assertTrue(banco.hay(ETIQUETA_CRONO_HUD))
+        assertEquals(listOf("Subtramo · 2,4 km"), textos(ETIQUETA_CRONO_ROTULO))
+        assertEquals(listOf("00:52,3"), textos(ETIQUETA_CRONO_TIEMPO))
+        assertEquals(listOf("▼ −3,1"), textos(ETIQUETA_CRONO_DELTA))
+        assertTrue(banco.hay(ETIQUETA_CRONO_BARRA))
+    }
+
+    @Test
+    fun `con un subtramo en marcha el panel no pone cronometro pequeno, igual que con un tramo conocido`() {
+        assertEquals(VistaCrono.HUD, vistaCrono(conSubtramo(-3_100L)))
+        assertEquals(VistaCrono.HUD, vistaCrono(conSubtramo(null)))
+        assertEquals(VistaCrono.MINI, vistaCrono(cronoSinTramo()))
+        crono = conSubtramo(-3_100L)
+        banco.poner { RallyCopilotTheme { CronoMiniEnPanel(crono, reloj = { ahora }) } }
+        assertFalse(banco.hay(ETIQUETA_CRONO_MINI))
+    }
+
+    @Test
+    fun `el HUD del subtramo lleva el parcial de sector, la barra y su descripcion para TalkBack`() {
+        poner(conSubtramo(-3_100L, parciales = listOf(sector(1, -300L), sector(2, 800L))))
+        assertTrue(banco.hay(ETIQUETA_CRONO_PARCIAL_PREFIJO + "S1"))
+        assertTrue(banco.hay(ETIQUETA_CRONO_PARCIAL_PREFIJO + "S2"))
         assertEquals(
             "Subtramo de 2,4 km. Tiempo: 52,3 segundos. Respecto a tu mejor tiempo: menos 3,1 segundos",
-            banco.descripcion(banco.conEtiqueta(ETIQUETA_SUBTRAMO_HUD)),
+            descripcionQueEmpieza("Subtramo de"),
         )
     }
 
     @Test
-    fun `un delta en contra sale con flecha hacia arriba y sin delta solo hay tiempo`() {
+    fun `un delta en contra sale con flecha hacia arriba y sin referencia hay barra simple sin delta ni parciales`() {
         poner(conSubtramo(1_200L))
-        assertEquals(listOf("▲ +1,2"), textos(ETIQUETA_SUBTRAMO_DELTA))
+        assertEquals(listOf("▲ +1,2"), textos(ETIQUETA_CRONO_DELTA))
         crono = conSubtramo(null)
         banco.reposo()
-        assertFalse(banco.hay(ETIQUETA_SUBTRAMO_DELTA))
-        assertEquals(listOf("00:52,3"), textos(ETIQUETA_SUBTRAMO_TIEMPO))
-        assertEquals(
-            "Subtramo de 2,4 km. Tiempo: 52,3 segundos",
-            banco.descripcion(banco.conEtiqueta(ETIQUETA_SUBTRAMO_HUD)),
-        )
+        assertTrue("sigue siendo el mismo HUD", banco.hay(ETIQUETA_CRONO_HUD))
+        assertEquals(listOf("—"), textos(ETIQUETA_CRONO_DELTA))
+        assertEquals(listOf("00:52,3"), textos(ETIQUETA_CRONO_TIEMPO))
+        assertTrue(banco.hay(ETIQUETA_CRONO_BARRA))
+        assertTrue(banco.etiquetas(ETIQUETA_CRONO_PARCIAL_PREFIJO).isEmpty())
+        assertEquals("Subtramo de 2,4 km. Tiempo: 52,3 segundos", descripcionQueEmpieza("Subtramo de"))
     }
 
     @Test
@@ -83,14 +105,22 @@ class SubtramoHudTest {
         banco.poner { RallyCopilotTheme { CronoSuperior(crono, reloj = { reloj }) } }
         reloj += 5_000L
         banco.esperar(PERIODO_HUD_MS + 100L)
-        assertEquals(listOf("00:57,3"), textos(ETIQUETA_SUBTRAMO_TIEMPO))
+        assertEquals(listOf("00:57,3"), textos(ETIQUETA_CRONO_TIEMPO))
     }
 
     @Test
     fun `sin subtramo ni cerrado no se pinta nada`() {
         poner(cronoSinTramo())
-        assertFalse(banco.hay(ETIQUETA_SUBTRAMO_HUD))
+        assertFalse(banco.hay(ETIQUETA_CRONO_HUD))
         assertFalse(banco.hay(ETIQUETA_SUBTRAMO_TARJETA))
+    }
+
+    @Test
+    fun `con un tramo vivo manda el tramo y su HUD no lleva rotulo de subtramo`() {
+        poner(cronoConocido(deltaMs = 1_200L).copy(subtramo = cronoConSubtramo().subtramo))
+        assertFalse(banco.hay(ETIQUETA_CRONO_ROTULO))
+        assertEquals(listOf("▲ +1,2"), textos(ETIQUETA_CRONO_DELTA))
+        assertEquals(listOf("02:30,4"), textos(ETIQUETA_CRONO_TIEMPO))
     }
 
     @Test

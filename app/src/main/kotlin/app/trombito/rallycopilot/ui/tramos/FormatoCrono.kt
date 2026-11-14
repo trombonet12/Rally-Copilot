@@ -6,6 +6,7 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.domain.tramos.ParcialCrono
 import app.trombito.rallycopilot.domain.tramos.TipoCorte
+import app.trombito.rallycopilot.domain.tramos.TipoSegmento
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrado
 import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.navegacion.guiado.ColoresGuiado
@@ -29,15 +30,18 @@ internal const val DURACION_PARCIAL_DESTACADO_MS = 3_000L
 internal enum class VistaCrono { NINGUNA, HUD, MINI }
 
 /**
- * HUD completo solo con un tramo guardado que tiene mejor pasada de referencia («tramo conocido», decisión de Joan);
+ * HUD completo, el mismo para un tramo y para un subtramo: con un tramo guardado que tiene mejor pasada de referencia
+ * («tramo conocido», decisión de Joan) o con cualquier subtramo en marcha (siempre es un trozo de un tramo guardado);
  * en cualquier otro caso (tramo nuevo o conducción sin tramo) solo el cronómetro pequeño.
  */
-internal fun vistaCrono(crono: CronoEnCurso?): VistaCrono =
-    when {
+internal fun vistaCrono(crono: CronoEnCurso?): VistaCrono {
+    val segmento = crono?.segmento
+    return when {
         crono == null -> VistaCrono.NINGUNA
-        crono.tramo != null && crono.hayMejorPasada -> VistaCrono.HUD
+        segmento != null && (segmento.tipo == TipoSegmento.SUBTRAMO || segmento.hayReferencia) -> VistaCrono.HUD
         else -> VistaCrono.MINI
     }
+}
 
 /** Si el delta es a favor, en contra o ninguno (con la precisión de una décima, como se lee en pantalla). */
 internal enum class SignoDelta { MEJOR, PEOR, IGUAL }

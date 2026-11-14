@@ -41,3 +41,36 @@ internal fun descripcionDelta(
         SignoDelta.MEJOR -> recursos.getString(R.string.crono_delta_menos, descripcionDecimas(recursos, decimas(ms)))
         SignoDelta.PEOR -> recursos.getString(R.string.crono_delta_mas, descripcionDecimas(recursos, decimas(ms)))
     }
+
+/** Lo que TalkBack lee del cronómetro; con [distanciaSubtramo] dice que es un subtramo y de qué longitud. */
+internal fun descripcionCronometro(
+    recursos: Resources,
+    transcurridoMs: Long,
+    deltaMs: Long?,
+    listo: Boolean,
+    distanciaSubtramo: String?,
+): String {
+    val tiempo = descripcionTiempo(recursos, transcurridoMs)
+    val delta = deltaMs?.let { descripcionDelta(recursos, it) }
+    return when {
+        listo -> {
+            recursos.getString(R.string.crono_listo_descripcion)
+        }
+
+        distanciaSubtramo != null && delta == null -> {
+            recursos.getString(R.string.subtramo_hud_descripcion_sin_delta, distanciaSubtramo, tiempo)
+        }
+
+        distanciaSubtramo != null -> {
+            recursos.getString(R.string.subtramo_hud_descripcion, distanciaSubtramo, tiempo, delta)
+        }
+
+        delta == null -> {
+            recursos.getString(R.string.crono_hud_descripcion_sin_delta, tiempo)
+        }
+
+        else -> {
+            recursos.getString(R.string.crono_hud_descripcion, tiempo, delta)
+        }
+    }
+}

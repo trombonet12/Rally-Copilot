@@ -32,6 +32,7 @@ import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import app.trombito.rallycopilot.ui.tramos.ETIQUETA_CRONO_HUD
 import app.trombito.rallycopilot.ui.tramos.ETIQUETA_CRONO_META
 import app.trombito.rallycopilot.ui.tramos.ETIQUETA_CRONO_MINI
+import app.trombito.rallycopilot.ui.tramos.cronoConSubtramo
 import app.trombito.rallycopilot.ui.tramos.cronoConocido
 import app.trombito.rallycopilot.ui.tramos.cronoSinReferencia
 import app.trombito.rallycopilot.ui.tramos.cronoSinTramo
@@ -101,6 +102,16 @@ class MapaScreenCronoVerticalTest : MapaScreenCronoBase() {
     }
 
     @Test
+    fun `con un subtramo en marcha sale el mismo HUD bajo las notas y sin cronometro pequeno`() {
+        poner(guiando(), cronoConSubtramo(), radar)
+        val hud = bounds(ETIQUETA_CRONO_HUD)
+        assertTrue("bajo la franja", hud.top >= bounds(ETIQUETA_FRANJA_NOTAS).bottom)
+        assertTrue("bajo el banner de alerta", hud.top >= bounds(ETIQUETA_ALERTA_BANNER).bottom)
+        assertTrue("sobre el panel de velocidad", hud.bottom <= bounds("panel").top)
+        assertFalse(banco.hay(ETIQUETA_CRONO_MINI))
+    }
+
+    @Test
     fun `en modo libre el HUD sale bajo las notas`() {
         poner(libre, cronoConocido())
         assertTrue(bounds(ETIQUETA_CRONO_HUD).top >= bounds(ETIQUETA_FRANJA_NOTAS).bottom)
@@ -153,6 +164,15 @@ class MapaScreenCronoHorizontalTest : MapaScreenCronoBase() {
         assertTrue("queda sobre la hoja: $hud vs $panel", hud.bottom <= panel.top)
         assertTrue("bajo la franja", hud.top >= bounds(ETIQUETA_FRANJA_NOTAS).bottom)
         assertTrue("es bajo: $hud", hud.height < 411 * 3 * 0.25f)
+        assertTrue("cabe en la pantalla", hud.bottom <= 411 * 3f)
+    }
+
+    @Test
+    fun `en horizontal el HUD compacto del subtramo cabe en la zona del mapa, bajo las notas`() {
+        poner(guiando(), cronoConSubtramo(parciales = listOf(sector(1, -300L), sector(2, 1_200L))), radar)
+        val hud = bounds(ETIQUETA_CRONO_HUD)
+        assertTrue("queda sobre la hoja: $hud", hud.bottom <= bounds("panel").top)
+        assertTrue("bajo la franja", hud.top >= bounds(ETIQUETA_FRANJA_NOTAS).bottom)
         assertTrue("cabe en la pantalla", hud.bottom <= 411 * 3f)
     }
 

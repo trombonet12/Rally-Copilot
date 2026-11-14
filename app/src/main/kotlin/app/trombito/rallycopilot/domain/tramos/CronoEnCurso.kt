@@ -48,11 +48,48 @@ data class ResultadoCrono(
 /**
  * Subtramo en marcha (trozo de 300 m o más de un tramo guardado, en su sentido): [recorridoM] hechos, [transcurridoMs]
  * desde su inicio y [deltaMs] contra el mejor tiempo previo en ese trozo (negativo = más rápido; null sin referencia).
+ *
+ * Con referencia lleva lo mismo que un tramo conocido: [longitudM] es lo que queda de trazado de referencia desde el
+ * inicio del trozo hasta su meta (0 si no se conoce), [sectoresM] y [microsectoresM] los cortes del tramo de la
+ * referencia que caen dentro, en metros desde el inicio del trozo; [parciales] los ya cerrados (también relativos al
+ * inicio del trozo y numerados desde 1), [ultimaMarca] el último y [fantasma] dónde iba la pasada de referencia a este
+ * mismo instante del subtramo.
  */
+@Suppress("LongParameterList") // los mismos datos que un tramo vivo
 data class SubtramoVivo(
     val recorridoM: Double,
     val deltaMs: Long?,
     val transcurridoMs: Long,
+    val longitudM: Double = 0.0,
+    val sectoresM: List<Double> = emptyList(),
+    val microsectoresM: List<Double> = emptyList(),
+    val parciales: List<ParcialCrono> = emptyList(),
+    val ultimaMarca: ParcialCrono? = null,
+    val fantasma: PosicionFantasma? = null,
+)
+
+/** Qué clase de trozo cronometrado es el [SegmentoVivo]. */
+enum class TipoSegmento { TRAMO, SUBTRAMO }
+
+/**
+ * Lo que el HUD pinta de un trozo en marcha, sea un tramo guardado o un subtramo: el mismo panel para los dos. [nombre]
+ * es el del tramo si lo tiene; [longitudM] la distancia hasta la meta (0 si no se conoce: barra sin avance); [deltaMs],
+ * [parciales] y [fantasma] solo existen con [hayReferencia] (mejor pasada con la que comparar).
+ */
+@Suppress("LongParameterList") // los datos de un trozo vivo
+data class SegmentoVivo(
+    val tipo: TipoSegmento,
+    val nombre: String?,
+    val longitudM: Double,
+    val transcurridoMs: Long,
+    val deltaMs: Long?,
+    val progresoM: Double,
+    val sectoresM: List<Double>,
+    val microsectoresM: List<Double>,
+    val parciales: List<ParcialCrono>,
+    val ultimaMarca: ParcialCrono?,
+    val hayReferencia: Boolean,
+    val fantasma: PosicionFantasma?,
 )
 
 /**
@@ -85,6 +122,8 @@ data class SubtramoResultado(
  *
  * [fantasma] es dónde iba el coche de la mejor pasada a este mismo instante del cronómetro (coche fantasma del mapa);
  * null sin tramo vivo, sin mejor pasada o antes de que el fantasma salga.
+ *
+ * [segmento] unifica tramo y subtramo para el HUD: el tramo si lo hay (manda) y, si no, el subtramo en marcha.
  */
 data class CronoEnCurso(
     val tramo: TramoCronometrado?,
@@ -101,7 +140,43 @@ data class CronoEnCurso(
     val subtramo: SubtramoVivo? = null,
     val ultimoSubtramo: SubtramoResultado? = null,
     val fantasma: PosicionFantasma? = null,
-)
+) {
+    /** El trozo vivo común para el HUD: el tramo (manda) o, sin él, el subtramo en marcha; null si no hay ninguno. */
+    val segmento: SegmentoVivo?
+        get() = tramo?.let(::segmentoDeTramo) ?: subtramo?.let(::segmentoDeSubtramo)
+
+    private fun segmentoDeTramo(t: TramoCronometrado) =
+        SegmentoVivo(
+            tipo = TipoSegmento.TRAMO,
+            nombre = t.nombre,
+            longitudM = t.metaM,
+            transcurridoMs = transcurridoMs,
+            deltaMs = deltaMs,
+            progresoM = progresoM,
+            sectoresM = t.sectoresM,
+            microsectoresM = t.microsectoresM,
+            parciales = parciales,
+            ultimaMarca = ultimaMarca,
+            hayReferencia = hayMejorPasada,
+            fantasma = fantasma,
+        )
+
+    private fun segmentoDeSubtramo(s: SubtramoVivo) =
+        SegmentoVivo(
+            tipo = TipoSegmento.SUBTRAMO,
+            nombre = null,
+            longitudM = s.longitudM,
+            transcurridoMs = s.transcurridoMs,
+            deltaMs = s.deltaMs,
+            progresoM = s.recorridoM,
+            sectoresM = s.sectoresM,
+            microsectoresM = s.microsectoresM,
+            parciales = s.parciales,
+            ultimaMarca = s.ultimaMarca,
+            hayReferencia = s.deltaMs != null,
+            fantasma = s.fantasma,
+        )
+}
 
 /** Da la salida del cronómetro de la conducción en curso (salida manual); sin conducción no hace nada. */
 interface ControlSalidaCrono {

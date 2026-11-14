@@ -117,6 +117,9 @@ class SesionCrono(
 
     @Volatile private var detectorSubtramos: DetectorSubtramo? = null
     private var subtramoVivo: SubtramoVivo? = null
+
+    /** Fantasma y parciales del subtramo en marcha (los del trozo de la referencia). */
+    private val seguimientoSubtramo = SeguimientoSubtramo { catalogo[it] }
     private var ultimoSubtramo: SubtramoResultado? = null
     private val guardadosSubtramo = ArrayList<Job>()
 
@@ -171,7 +174,7 @@ class SesionCrono(
             val frases = ArrayList<Frase>()
             detector?.alFijar(f)?.forEach { procesar(it, f, frases) }
             detectorSubtramos?.alFijar(f)?.let { r ->
-                subtramoVivo = r.enCurso?.let { SubtramoVivo(it.recorridoM, it.deltaMs, it.transcurridoMs) }
+                subtramoVivo = seguimientoSubtramo.actualizar(r.enCurso)
                 r.hechos.forEach { cerrarSubtramo(it, frases) }
             }
             publicar(estado(f))

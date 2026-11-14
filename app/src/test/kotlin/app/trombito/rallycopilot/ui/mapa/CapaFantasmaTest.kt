@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.mapa
 
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.domain.tramos.ResultadoCrono
+import app.trombito.rallycopilot.domain.tramos.SubtramoVivo
 import app.trombito.rallycopilot.domain.tramos.TramoCronometrado
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.PosicionFantasma
@@ -109,5 +110,36 @@ class CapaFantasmaTest {
         assertNull(fantasmaDelCrono(crono(mejor = false)))
         assertNull(fantasmaDelCrono(crono(resultado = ResultadoCrono(150_000L, -800L, true, 150_800L))))
         assertNull(fantasmaDelCrono(crono(fantasma = null)))
+    }
+
+    private fun cronoConSubtramo(
+        deltaMs: Long? = -1_500L,
+        fantasma: PosicionFantasma? = this.fantasma,
+        resultado: ResultadoCrono? = null,
+    ) = CronoEnCurso(
+        tramo = null,
+        transcurridoMs = 60_000L,
+        actualizadoEnMs = 1L,
+        resultado = resultado,
+        subtramo = SubtramoVivo(1_500.0, deltaMs, 52_000L, fantasma = fantasma),
+    )
+
+    @Test
+    fun `con un subtramo vivo y referencia el mapa recibe el fantasma del subtramo`() {
+        assertEquals(fantasma, fantasmaDelCrono(cronoConSubtramo()))
+    }
+
+    @Test
+    fun `un subtramo sin referencia, sin fantasma o ya con resultado no lo tiene`() {
+        assertNull(fantasmaDelCrono(cronoConSubtramo(deltaMs = null)))
+        assertNull(fantasmaDelCrono(cronoConSubtramo(fantasma = null)))
+        assertNull(fantasmaDelCrono(cronoConSubtramo(resultado = ResultadoCrono(150_000L, -800L, true, 150_800L))))
+    }
+
+    @Test
+    fun `con tramo y subtramo a la vez manda el fantasma del tramo`() {
+        val delTramo = PosicionFantasma(PuntoGeo(39.8, 2.8), 10.0, 300.0)
+        val ambos = crono(fantasma = delTramo).copy(subtramo = cronoConSubtramo().subtramo)
+        assertEquals(delTramo, fantasmaDelCrono(ambos))
     }
 }
