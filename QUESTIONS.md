@@ -18,6 +18,7 @@ Van a H22–H25 (ver [ROADMAP.md](ROADMAP.md)).
 - **Hora de llegada:** aprendida de Joan (velocidad media real por vía, factor personal para las desconocidas) y corregida en vivo; se guarda el tiempo previsto de cada viaje.
 - **Barra «¿A dónde?»:** en marcha (> 20 km/h) no aparece sola; solo al tocar el mapa o parado. En guiado, solo con la lupa.
 - **Coche y velocidad:** velocidad ~25 % más pequeña en la esquina inferior izquierda, media del tramo al lado; el borde inferior del coche un pelo por encima de la velocidad. Banner de maniobra ~33 % más pequeño.
+- **Tramos ya guardados:** la app los migra sola al sistema de vía, km y sentido, sin perder datos.
 - **Datos:** sin exportar a mano: copia automática en la carpeta externa de la app (con interruptor) para sacarla por adb/USB.
 
 ## Respondidas al cerrar H16–H21 (2026-11-08, en el chat)

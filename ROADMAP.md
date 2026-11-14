@@ -793,10 +793,12 @@ Un mismo panel y fantasma para cualquier trozo conocido, y una hora de llegada q
 ### Alcance
 - Un solo panel (tramo o subtramo) con microsectores, delta y fantasma; referencia en vivo = la del resultado final.
 - Nombre por vía, km y sentido cuando haya PK (Room v21).
+- Migración de lo ya guardado: tras Room v21, un trabajo único e idempotente rellena vía, km y sentido de los tramos y subtramos existentes y renombra solo los de nombre automático; pasadas, tiempos y récords intactos.
 - Hora de llegada aprendida de Joan (velocidad media por vía + factor personal) y corregida en vivo; tiempo previsto guardado por viaje.
 ### Criterios de aceptación
 - [ ] Un subtramo enseña fantasma y el mismo HUD que un tramo; el delta en vivo acaba igual que el final.
 - [ ] Con los viajes de Joan, el error medio de la llegada baja frente a Valhalla solo.
+- [ ] Con la copia real de Joan, todos sus tramos y subtramos quedan con vía/km/sentido cuando hay PK, sin perder ninguna pasada.
 ### Tests
 - Motor: `Fantasma` con desfase, `EstimadorLlegada`, nombre por PK y sentido. App: migración 20→21 con la copia real.
 ### Estado
