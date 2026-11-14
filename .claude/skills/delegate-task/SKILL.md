@@ -1,6 +1,6 @@
 ---
 name: delegate-task
-description: Generar un brief para un subagente con BRIEF.template.md y comprobar límites de tamaño, validación y justificación de cada subagente (sin límite fijo de simultáneos); si no cumple, dividir. No ejecuta la delegación.
+description: Generar un brief para un subagente con BRIEF.template.md y comprobar límites de tamaño, validación y que cada subagente esté justificado; si no cumple, dividir. No ejecuta la delegación.
 allowed-tools: Read, Grep, Glob, Bash(wc *)
 ---
 
