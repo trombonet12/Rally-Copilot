@@ -21,6 +21,8 @@ Van a H22–H25 (ver [ROADMAP.md](ROADMAP.md)).
 - **Tramos de vía (tras ver sus datos: los tramos guardados son viajes de 3–4 carreteras):** las dos cosas: se mantiene el tramo-viaje y además cada viaje se trocea en tramos de vía («Ma-15 · km 20→32 · hacia Manacor», ≥ 1 km) con fantasma y récords; Mis tramos con dos pestañas.
 - **GPS que no fijaba (viaje del 2026-11-14 07:33):** la app no pillaba GPS y Google Maps sí; se arregla en H22 pidiendo el fused en alta precisión.
 - **Tramos ya guardados:** la app los migra sola al sistema de vía, km y sentido, sin perder datos.
+- **Pantalla encendida (auditoría H25):** solo conduciendo (libre o guiado); en reposo se apaga normal.
+- **Atascos (auditoría H25):** un atasco que avanza retrasa la llegada; solo estar quieto del todo más de 2 min cuenta como parada.
 - **Datos:** sin exportar a mano: copia automática en la carpeta externa de la app (con interruptor) para sacarla por adb/USB.
 
 ## Respondidas al cerrar H16–H21 (2026-11-08, en el chat)
