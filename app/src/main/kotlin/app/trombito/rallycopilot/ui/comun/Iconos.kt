@@ -394,4 +394,39 @@ object Iconos {
     val Grafico: ImageVector by lazy {
         icono("Grafico", "M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z")
     }
+
+    /** Llama (Material «whatshot»): la capa de calor de las carreteras conducidas. */
+    val Calor: ImageVector by lazy {
+        icono(
+            "Calor",
+            "M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 " +
+                "10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22" +
+                "-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 " +
+                "4.8-4.8 4.8z",
+        )
+    }
+
+    /** Flechas en bucle (Material «repeat»): las veces que se ha pasado por una carretera. */
+    val Repetir: ImageVector by lazy {
+        icono("Repetir", "M7 7h10v3l4-4-4-4v3H5v6h2V7zm10 10H7v-3l-4 4 4 4v-3h12v-6h-2v4z")
+    }
+
+    /** Velocímetro (Material «speed»): la velocidad media. */
+    val Velocimetro: ImageVector by lazy {
+        icono(
+            "Velocimetro",
+            "M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19" +
+                "a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.27-10.44zm-9.79 6.84a2 2 0 0 0 2.83 0" +
+                "l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z",
+        )
+    }
+
+    /** Regla (Material «straighten»): los kilómetros. */
+    val Regla: ImageVector by lazy {
+        icono(
+            "Regla",
+            "M21 6H3c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H3V8h2v4h2V8h2v4h2V8h2v4" +
+                "h2V8h2v4h2V8h2v8z",
+        )
+    }
 }

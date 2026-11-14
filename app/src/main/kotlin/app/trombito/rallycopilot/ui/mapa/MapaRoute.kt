@@ -73,11 +73,14 @@ fun MapaRoute(
     alertasViewModel: AlertasViewModel = hiltViewModel(),
     cronoViewModel: CronoViewModel = hiltViewModel(),
     edicionViewModel: EdicionMapaViewModel = hiltViewModel(),
+    calorViewModel: CalorViewModel = hiltViewModel(),
 ) {
     val estadoBase by viewModel.uiState.collectAsStateWithLifecycle()
+    val calor by calorViewModel.estado.collectAsStateWithLifecycle()
     val temaOscuro = LocalTemaOscuro.current
-    val estado = remember(estadoBase, temaOscuro) { estadoBase.copy(temaOscuro = temaOscuro) }
+    val estado = remember(estadoBase, temaOscuro, calor) { estadoBase.copy(temaOscuro = temaOscuro, calor = calor) }
     val navegacion by navegacionViewModel.uiState.collectAsStateWithLifecycle()
+    val datosCalor = rememberDatosCalor(calorViewModel, calor, navegacion.control, estado.velocidadKmh)
     val notas by notasViewModel.uiState.collectAsStateWithLifecycle()
     val copiloto by copilotoViewModel.uiState.collectAsStateWithLifecycle()
     val alertas by alertasViewModel.uiState.collectAsStateWithLifecycle()
@@ -95,7 +98,15 @@ fun MapaRoute(
     val salida = remember(cronoViewModel) { AccionesSalidaCrono(cronoViewModel::decir, cronoViewModel::darSalida) }
     // Las acciones y los bloques derivados se recuerdan: con instancias nuevas en cada fijación nada se podría saltar.
     val accionesDelMapa =
-        rememberAccionesDelMapa(viewModel, alertasViewModel, permiso, reservaPuntoPx, onAbrirMapasOffline, onSalir)
+        rememberAccionesDelMapa(
+            viewModel,
+            alertasViewModel,
+            permiso,
+            reservaPuntoPx,
+            onAbrirMapasOffline,
+            onSalir,
+            calorViewModel,
+        )
     val accionesNav = remember(navegacionViewModel) { accionesNavegacion(navegacionViewModel) }
     val accionesCop = remember(copilotoViewModel) { accionesCopiloto(copilotoViewModel) }
     val navegacionEnMapa =
@@ -118,10 +129,21 @@ fun MapaRoute(
                 VistaMapa(
                     estiloJson = estiloJson,
                     posicion = estado.posicionMostrada,
-                    camara = camaraVistaMapa(viewModel, alertasViewModel, navegacionViewModel, edicionViewModel),
+                    camara =
+                        camaraVistaMapa(
+                            viewModel,
+                            alertasViewModel,
+                            navegacionViewModel,
+                            edicionViewModel,
+                            calorViewModel,
+                        ),
                     preferencias =
                         preferenciasVista(estado, ruta, alertas, edicion.value.marcadores, estela.value)
-                            .copy(reservaPuntoPx = reservaPuntoPx.intValue, fantasma = fantasmaDelCrono(crono)),
+                            .copy(
+                                reservaPuntoPx = reservaPuntoPx.intValue,
+                                fantasma = fantasmaDelCrono(crono),
+                                calor = datosCalor,
+                            ),
                     modifier = modificador,
                 )
             },
@@ -148,7 +170,8 @@ private fun camaraVistaMapa(
     alertas: AlertasViewModel,
     navegacion: NavegacionViewModel,
     edicion: EdicionMapaViewModel,
-) = remember(viewModel, alertas, navegacion, edicion) {
+    calor: CalorViewModel,
+) = remember(viewModel, alertas, navegacion, edicion, calor) {
     CamaraVistaMapa(
         inicial = viewModel.camaraGuardada,
         onCambio = viewModel::onCamara,
@@ -161,6 +184,7 @@ private fun camaraVistaMapa(
         },
         onMantenerPulsado = navegacion::onMantenerPulsado,
         onToqueNota = edicion::onTocarNota,
+        onToqueCalor = calor::onFicha,
     )
 }.conArranque()
 
@@ -184,9 +208,16 @@ private fun preferenciasVista(
     estela = estela,
 )
 
-/** El fantasma solo se ve con un tramo vivo (sin resultado de meta) y mejor pasada con la que correr. */
+/**
+ * El fantasma solo se ve con un tramo o un subtramo vivo (sin resultado de meta) y una pasada de referencia con la que
+ * correr; el del subtramo es el de la mejor pasada por ese trozo.
+ */
 internal fun fantasmaDelCrono(crono: CronoEnCurso?): PosicionFantasma? =
-    crono?.takeIf { it.tramo != null && it.resultado == null && it.hayMejorPasada }?.fantasma
+    crono
+        ?.takeIf { it.resultado == null }
+        ?.segmento
+        ?.takeIf { it.hayReferencia }
+        ?.fantasma
 
 /** La ruta del guiado o de la vista previa lista para pintar; conserva la instancia mientras no cambien los puntos. */
 @Composable

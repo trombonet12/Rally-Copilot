@@ -7,7 +7,10 @@ import app.trombito.rallycopilot.di.DispatcherDefault
 import app.trombito.rallycopilot.domain.carreteras.CalculoCarreteras
 import app.trombito.rallycopilot.domain.carreteras.MisCarreteras
 import app.trombito.rallycopilot.motor.analisis.AgregadoCarreteras
+import app.trombito.rallycopilot.motor.analisis.AnalisisMarcha
 import app.trombito.rallycopilot.motor.analisis.AnalisisRecorrido
+import app.trombito.rallycopilot.motor.analisis.PuntoTiempo
+import app.trombito.rallycopilot.motor.analisis.VelocidadVias
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,9 +25,10 @@ import javax.inject.Singleton
 
 /**
  * Estadísticas de «Mis carreteras»: lee los recorridos terminados y sus puntos, los asigna a las vías de OSM y suma
- * pasadas, kilómetros y curvas ([AgregadoCarreteras]). Todo el cálculo va en [dispatcher] (CPU). El análisis de cada
- * recorrido se guarda en caché por id mientras vivan las mismas vías, así que abrir de nuevo la pantalla (o terminar un
- * recorrido más) solo calcula lo nuevo. Sin vías instaladas siguen saliendo los kilómetros y las curvas.
+ * pasadas, kilómetros y curvas ([AgregadoCarreteras]) y la velocidad media en marcha por vía ([VelocidadVias], con los
+ * tiempos de los puntos). Todo el cálculo va en [dispatcher] (CPU). El análisis de cada recorrido (los dos) se guarda
+ * en caché por id mientras vivan las mismas vías, así que abrir de nuevo la pantalla (o terminar un recorrido más) solo
+ * calcula lo nuevo. Sin vías instaladas siguen saliendo los kilómetros y las curvas.
  */
 @Singleton
 class CalculadorCarreteras
@@ -34,7 +38,13 @@ class CalculadorCarreteras
         private val vias: FuenteVias,
         @DispatcherDefault private val dispatcher: CoroutineDispatcher,
     ) : CalculoCarreteras {
-        private val cache = ConcurrentHashMap<Long, AnalisisRecorrido>()
+        /** Los dos análisis de un recorrido: carreteras (pasadas, curvas) y marcha (velocidad en marcha por vía). */
+        private class Analizado(
+            val carreteras: AnalisisRecorrido,
+            val marcha: AnalisisMarcha,
+        )
+
+        private val cache = ConcurrentHashMap<Long, Analizado>()
 
         @Volatile
         private var viasDeLaCache: DatosVias? = null
@@ -58,13 +68,38 @@ class CalculadorCarreteras
                 AgregadoCarreteras.ViaDe { punto, rumbo ->
                     datos?.indice?.cercana(punto, rumbo, AgregadoCarreteras.RADIO_VIA_M)?.via
                 }
+            val coincidenciaDe =
+                VelocidadVias.CoincidenciaDe { punto, rumbo ->
+                    datos?.indice?.cercana(punto, rumbo, AgregadoCarreteras.RADIO_VIA_M)
+                }
             val analisis =
                 ids.map { id ->
                     currentCoroutineContext().ensureActive()
-                    cache[id] ?: AgregadoCarreteras.analizar(puntosDe(id), viaDe).also { cache[id] = it }
+                    cache[id] ?: analizar(id, datos != null, viaDe, coincidenciaDe).also { cache[id] = it }
                 }
-            return MisCarreteras(AgregadoCarreteras.agregar(analisis), hayVias = datos != null)
+            return MisCarreteras(
+                resumen = AgregadoCarreteras.agregar(analisis.map { it.carreteras }),
+                hayVias = datos != null,
+                velocidades = VelocidadVias.agregar(analisis.map { it.marcha }),
+            )
         }
 
-        private suspend fun puntosDe(id: Long): List<PuntoGeo> = recorridos.puntos(id).map { PuntoGeo(it.lat, it.lon) }
+        private suspend fun analizar(
+            id: Long,
+            hayVias: Boolean,
+            viaDe: AgregadoCarreteras.ViaDe,
+            coincidenciaDe: VelocidadVias.CoincidenciaDe,
+        ): Analizado {
+            val puntos = recorridos.puntos(id)
+            val marcha =
+                if (hayVias) {
+                    VelocidadVias.analizar(
+                        puntos.map { PuntoTiempo(PuntoGeo(it.lat, it.lon), it.tiempoMs, it.velocidadMs) },
+                        coincidenciaDe,
+                    )
+                } else {
+                    AnalisisMarcha(emptyList())
+                }
+            return Analizado(AgregadoCarreteras.analizar(puntos.map { PuntoGeo(it.lat, it.lon) }, viaDe), marcha)
+        }
     }

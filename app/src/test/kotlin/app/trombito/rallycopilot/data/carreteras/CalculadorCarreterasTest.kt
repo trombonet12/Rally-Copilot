@@ -32,6 +32,8 @@ internal fun lineaEste(
 /** Recorridos en memoria con los puntos de cada uno; cuenta cuántas veces se leen. */
 internal class RecorridosFalsos(
     trazas: Map<Long, List<PuntoGeo>>,
+    /** Milisegundos entre dos puntos seguidos; 1 000 con puntos cada 10 m son 36 km/h. */
+    private val pasoMs: Long = 1_000L,
 ) : RepositorioRecorridos {
     val trazas = trazas.toMutableMap()
     val lista = MutableStateFlow(trazas.keys.map { Recorrido(it, it, it + 1, 2_000.0, null) })
@@ -54,7 +56,7 @@ internal class RecorridosFalsos(
     override suspend fun puntos(id: Long): List<PuntoRecorrido> {
         fallo?.let { throw it }
         lecturas++
-        return trazas.getValue(id).mapIndexed { i, p -> PuntoRecorrido(p.lat, p.lon, i * 1_000L) }
+        return trazas.getValue(id).mapIndexed { i, p -> PuntoRecorrido(p.lat, p.lon, i * pasoMs) }
     }
 
     override suspend fun borrar(id: Long) = Unit
@@ -76,6 +78,9 @@ internal fun viaFalsa(
     desdeM: Int,
     hastaM: Int,
 ) = Via(id, "secondary", null, null, null, SentidoUnico.NO, ref, null, lineaEste(desdeM, hastaM, 100))
+
+/** Velocidad media por vía que calcula [CalculadorCarreteras] al emitir. */
+private suspend fun CalculadorCarreteras.velocidades() = observar().first().velocidades
 
 class CalculadorCarreterasTest {
     private val ma10 = viaFalsa(1, "Ma-10", 0, 1_000)
@@ -110,6 +115,57 @@ class CalculadorCarreterasTest {
             val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)))
             val calculador = CalculadorCarreteras(repo, viasFalsas(listOf(ma10)), StandardTestDispatcher(testScheduler))
             calculador.observar().first()
+            calculador.observar().first()
+            assertEquals(1, repo.lecturas)
+        }
+
+    @Test
+    fun `calcula la velocidad media en marcha de cada via y suma las pasadas`() =
+        runTest {
+            // Puntos cada 10 m y 1 s: 36 km/h; con puntos cada 0,5 s serían 72 km/h.
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)))
+            val calculador = CalculadorCarreteras(repo, viasFalsas(listOf(ma10)), StandardTestDispatcher(testScheduler))
+            val via = calculador.velocidades().single()
+            assertEquals(ma10.id, via.via.id)
+            assertEquals(1, via.pasadas)
+            assertEquals(36.0, via.velMediaKmh!!, 0.5)
+            assertEquals(0.9, via.km, 0.02)
+        }
+
+    @Test
+    fun `el doble de ritmo da el doble de velocidad media`() =
+        runTest {
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)), pasoMs = 500L)
+            val calculador = CalculadorCarreteras(repo, viasFalsas(listOf(ma10)), StandardTestDispatcher(testScheduler))
+            assertEquals(72.0, calculador.velocidades().single().velMediaKmh!!, 1.0)
+        }
+
+    @Test
+    fun `dos pasadas por la via suman pasadas y kilometros sin cambiar la media`() =
+        runTest {
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900), 2L to lineaEste(0, 900)))
+            val calculador = CalculadorCarreteras(repo, viasFalsas(listOf(ma10)), StandardTestDispatcher(testScheduler))
+            val via = calculador.velocidades().single()
+            assertEquals(2, via.pasadas)
+            assertEquals(36.0, via.velMediaKmh!!, 0.5)
+            assertEquals(1.8, via.km, 0.04)
+        }
+
+    @Test
+    fun `sin vias no hay velocidades`() =
+        runTest {
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)))
+            val calculador = CalculadorCarreteras(repo, viasFalsas(null), StandardTestDispatcher(testScheduler))
+            assertTrue(calculador.velocidades().isEmpty())
+        }
+
+    @Test
+    fun `un recorrido parado no suma velocidad y uno ya analizado no se lee dos veces`() =
+        runTest {
+            // Un punto cada 10 m pero cada 60 s: hueco de más de 30 s, no cuenta como marcha.
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)), pasoMs = 60_000L)
+            val calculador = CalculadorCarreteras(repo, viasFalsas(listOf(ma10)), StandardTestDispatcher(testScheduler))
+            assertTrue(calculador.velocidades().isEmpty())
             calculador.observar().first()
             assertEquals(1, repo.lecturas)
         }

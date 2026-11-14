@@ -48,6 +48,8 @@ data class MapaUiState(
     val zoomObjetivo: Double? = null,
     /** El tema de la interfaz es oscuro (lo pone la ruta desde el tema aplicado). */
     val temaOscuro: Boolean = true,
+    /** Interruptor, modo y ficha de la capa de calor (lo pone la ruta desde [CalorViewModel]). */
+    val calor: CalorUi = CalorUi(),
 ) {
     val hayDatos: Boolean get() = estilos != null
 

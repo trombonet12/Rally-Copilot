@@ -84,6 +84,8 @@ data class CamaraVistaMapa(
     val onZoomManual: (zoom: Double, ahoraMs: Long) -> Unit = { _, _ -> },
     /** Toque en el mapa: el id de la incidencia tocada o null si se tocó otra cosa. */
     val onToqueIncidencia: (id: String?) -> Unit = {},
+    /** Toque en una carretera de la capa de calor (su ficha) o en otra cosa (null: se cierra la ficha). */
+    val onToqueCalor: (ficha: FichaCalor?) -> Unit = {},
     /** Toque en una nota del mapa (solo hay notas pintadas con el coche parado): su posición en la hoja. */
     val onToqueNota: (posicionM: Double) -> Unit = {},
     /** Mantener pulsado el mapa: el punto y el nombre del lugar o la calle bajo el dedo (null si no hay). */
@@ -126,6 +128,8 @@ data class PreferenciasVistaMapa(
     val zonaInferiorPx: Int = 0,
     /** Coche fantasma de la mejor pasada (translúcido, bajo el coche real); null = ninguno. */
     val fantasma: PosicionFantasma? = null,
+    /** Capa de calor de las carreteras conducidas (vías y modo); null = oculta (en marcha, guiando o apagada). */
+    val calor: DatosCalor? = null,
 )
 
 /**
@@ -174,6 +178,7 @@ fun VistaMapa(
                 alCambiarZoomManual = { zoom, ahora -> actual.value.onZoomManual(zoom, ahora) },
                 alTocarIncidencia = { actual.value.onToqueIncidencia(it) },
                 alTocarNota = { actual.value.onToqueNota(it) },
+                alTocarCalor = { actual.value.onToqueCalor(it) },
                 alMantenerPulsado = { punto, nombre -> actual.value.onMantenerPulsado(punto, nombre) },
                 alTocar = { actual.value.onToque(it) },
             )
@@ -300,11 +305,13 @@ private class ControladorMapa(
     alCambiarZoomManual: (Double, Long) -> Unit,
     private val alTocarIncidencia: (String?) -> Unit,
     private val alTocarNota: (Double) -> Unit,
+    private val alTocarCalor: (FichaCalor?) -> Unit,
     private val alMantenerPulsado: (PuntoGeo, String?) -> Unit,
     private val alTocar: (PuntoGeo) -> Unit,
 ) {
     private var mapa: MapLibreMap? = null
     private var estilo: Style? = null
+    private val capaCalor = CapaCalor()
     private val capaEstela = CapaEstela()
     private val capaFantasma = CapaFantasma()
     private var estiloPedido: String? = null
@@ -367,8 +374,11 @@ private class ControladorMapa(
                 }
                 val id = CapaIncidencias.idEn(m, pantalla.x, pantalla.y, densidad)
                 alTocarIncidencia(id)
-                if (id == null) alTocar(PuntoGeo(punto.latitude, punto.longitude))
-                id != null
+                if (id != null) return@addOnMapClickListener true
+                val ficha = capaCalor.fichaEn(m, pantalla.x, pantalla.y, densidad)
+                alTocarCalor(ficha)
+                if (ficha == null) alTocar(PuntoGeo(punto.latitude, punto.longitude))
+                ficha != null
             }
             m.addOnMapLongClickListener { punto ->
                 val pantalla = m.projection.toScreenLocation(punto)
@@ -456,6 +466,7 @@ private class ControladorMapa(
         if (nuevas.bocadillo != previas.bocadillo) CapaBocadillo.actualizar(capas, vista.context, nuevas.bocadillo)
         if (nuevas.notas != previas.notas) CapaNotas.actualizar(capas, nuevas.notas)
         if (nuevas.estela != previas.estela) capaEstela.actualizar(capas, nuevas.estela)
+        if (nuevas.calor != previas.calor) capaCalor.actualizar(capas, nuevas.calor)
         if (nuevas.fantasma != previas.fantasma || nuevas.icono != previas.icono) {
             capaFantasma.actualizar(capas, vista.context, nuevas.icono, nuevas.fantasma)
         }
@@ -473,6 +484,7 @@ private class ControladorMapa(
             aplicarRelieve(cargado, preferencias.relieve)
             // Antes de activar la ubicación: la línea de la ruta queda debajo de la flecha de posición, y la estela
             // (que se instala antes) debajo de la ruta.
+            capaCalor.instalar(cargado, preferencias.calor)
             capaEstela.instalar(cargado, preferencias.estela)
             CapaRuta.instalar(cargado, vista.context, preferencias.ruta)
             CapaRadares.instalar(cargado, vista.context, preferencias.radares)

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Capa de calor del mapa: por dónde se mueve y a qué ritmo -->
+    <string name="calor_capa">Mapa de calor de tus carreteras</string>
+    <string name="calor_modo_uso">Colorear por veces que has pasado</string>
+    <string name="calor_modo_velocidad">Colorear por velocidad media</string>
+    <string name="calor_ficha_sin_nombre">Carretera sin nombre</string>
+    <string name="calor_ficha_titulo">%1$s · %2$s</string>
+    <plurals name="calor_ficha_pasadas">
+        <item quantity="one">%1$d pasada</item>
+        <item quantity="other">%1$d pasadas</item>
+    </plurals>
+    <string name="calor_ficha_km">%1$.1f km</string>
+    <string name="calor_ficha_velocidad">%1$d km/h de media</string>
+    <string name="calor_ficha_velocidad_corta">%1$d km/h</string>
+    <string name="calor_ficha_sin_velocidad">Sin velocidad</string>
+    <string name="calor_ficha_cerrar">Cerrar ficha de la carretera</string>
+</resources>

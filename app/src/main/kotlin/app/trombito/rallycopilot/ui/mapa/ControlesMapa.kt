@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.mapa
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -29,6 +30,9 @@ const val ETIQUETA_CAPAS_BOTON = "mapa-capas-boton"
 const val ETIQUETA_CAPAS_PANEL = "mapa-capas-panel"
 const val ETIQUETA_RELIEVE = "mapa-relieve"
 const val ETIQUETA_ORIENTACION = "mapa-orientacion"
+const val ETIQUETA_CALOR = "mapa-calor"
+const val ETIQUETA_CALOR_USO = "mapa-calor-uso"
+const val ETIQUETA_CALOR_VELOCIDAD = "mapa-calor-velocidad"
 
 private const val OPACIDAD_PANEL = 0.88f
 private val RADIO_PANEL = 28.dp
@@ -51,7 +55,10 @@ internal fun BotonCapas(
     ) { Icon(Iconos.Capas, contentDescription = null) }
 }
 
-/** Base Mapa/Satélite e interruptor de relieve; se pinta sobre el mapa, encima del botón de capas. */
+/**
+ * Base Mapa/Satélite e interruptor de relieve y, al lado, el interruptor de la capa de calor con sus dos modos (uso y
+ * velocidad media); se pinta sobre el mapa, encima del botón de capas.
+ */
 @Composable
 internal fun PanelCapas(
     estado: MapaUiState,
@@ -64,10 +71,17 @@ internal fun PanelCapas(
         color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(OPACIDAD_PANEL),
         modifier = modifier.testTag(ETIQUETA_CAPAS_PANEL).semantics { contentDescription = descripcion },
     ) {
-        Column(Modifier.padding(Espacio.xs), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-            BotonCapa(CapaMapa.VECTORIAL, estado, acciones.onCapa)
-            BotonCapa(CapaMapa.SATELITE, estado, acciones.onCapa)
-            BotonRelieve(estado.relieve, acciones.onRelieve)
+        Row(Modifier.padding(Espacio.xs), horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+                BotonCapa(CapaMapa.VECTORIAL, estado, acciones.onCapa)
+                BotonCapa(CapaMapa.SATELITE, estado, acciones.onCapa)
+                BotonRelieve(estado.relieve, acciones.onRelieve)
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+                BotonCalor(estado.calor.activo, acciones.onCalor)
+                BotonModoCalor(ModoCalor.USO, estado.calor, acciones.onModoCalor)
+                BotonModoCalor(ModoCalor.VELOCIDAD, estado.calor, acciones.onModoCalor)
+            }
         }
     }
 }
@@ -118,6 +132,48 @@ private fun BotonRelieve(
                 rol = Role.Switch,
             ),
     ) { Icon(Iconos.Relieve, contentDescription = null) }
+}
+
+@Composable
+private fun BotonCalor(
+    activo: Boolean,
+    onCalor: (Boolean) -> Unit,
+) {
+    BotonIcono(
+        descripcion = stringResource(R.string.calor_capa),
+        onClick = { onCalor(!activo) },
+        modifier = Modifier.testTag(ETIQUETA_CALOR),
+        estado =
+            EstadoBotonIcono(
+                seleccionado = activo,
+                descripcionEstado =
+                    stringResource(if (activo) R.string.mapa_estado_activado else R.string.mapa_estado_desactivado),
+                rol = Role.Switch,
+            ),
+    ) { Icon(Iconos.Calor, contentDescription = null) }
+}
+
+/** Uno de los dos modos de la capa de calor; sin la capa encendida se ven apagados y no se pueden cambiar. */
+@Composable
+private fun BotonModoCalor(
+    modo: ModoCalor,
+    calor: CalorUi,
+    onModo: (ModoCalor) -> Unit,
+) {
+    val velocidad = modo == ModoCalor.VELOCIDAD
+    val elegido = calor.modo == modo
+    BotonIcono(
+        descripcion = stringResource(if (velocidad) R.string.calor_modo_velocidad else R.string.calor_modo_uso),
+        onClick = { onModo(modo) },
+        modifier = Modifier.testTag(if (velocidad) ETIQUETA_CALOR_VELOCIDAD else ETIQUETA_CALOR_USO),
+        estado =
+            EstadoBotonIcono(
+                seleccionado = elegido && calor.activo,
+                habilitado = calor.activo,
+                descripcionEstado = if (elegido) stringResource(R.string.mapa_estado_seleccionado) else null,
+                rol = Role.RadioButton,
+            ),
+    ) { Icon(if (velocidad) Iconos.Velocimetro else Iconos.Repetir, contentDescription = null) }
 }
 
 /**

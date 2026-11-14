@@ -144,6 +144,12 @@ data class AccionesMapa(
     val onAbrirMapasOffline: () -> Unit = {},
     /** Cierra la tarjeta de la incidencia tocada en el mapa. */
     val onCerrarIncidencia: () -> Unit = {},
+    /** Enciende o apaga la capa de calor de las carreteras conducidas. */
+    val onCalor: (Boolean) -> Unit = {},
+    /** Cambia el modo de la capa de calor (uso o velocidad media). */
+    val onModoCalor: (ModoCalor) -> Unit = {},
+    /** Cierra la ficha de la carretera de la capa de calor tocada en el mapa. */
+    val onCerrarCalor: () -> Unit = {},
     /** La ✕ de la hoja en modo libre: sale del mapa. */
     val onSalir: () -> Unit = {},
     /** Píxeles que tapa la tarjeta del punto elegido (su alto más el margen; 0 sin tarjeta): el mapa los reserva. */
@@ -509,6 +515,8 @@ private fun AvisosDelPie(contenido: ZonaMapaContenido) {
     contenido.alertas.seleccionada?.let {
         TarjetaIncidencia(it, contenido.alertas.frescura, acciones.onCerrarIncidencia)
     }
+    val fichaCalor = contenido.estado.calor.ficha
+    if (fichaCalor != null) TarjetaCalor(fichaCalor, acciones.onCerrarCalor)
     if (vista.permiso != EstadoPermisoUbicacion.CONCEDIDO) {
         TarjetaPermiso(vista.permiso, acciones.onPedirPermiso, acciones.onAbrirAjustes)
     }
