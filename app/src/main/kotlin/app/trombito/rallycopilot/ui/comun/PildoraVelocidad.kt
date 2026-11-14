@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.ui.theme.CarbonTranslucido
 import app.trombito.rallycopilot.ui.theme.CifraMedia
@@ -67,6 +68,12 @@ private const val OPACIDAD_PULSO_MIN = 0.25f
 private const val OPACIDAD_SENAL_DESCONOCIDA = 0.75f
 private const val PERIODO_PULSO_EXCESO_MS = 2L * Movimiento.PULSO_EXCESO
 private val GROSOR_BORDE_PILDORA = 2.dp
+
+/** Alto mínimo de la píldora: es informativa (no se toca) y ocupa poco para no tapar el mapa. */
+private val ALTO_MIN_PILDORA = 40.dp
+
+/** Cifra de la velocidad de la píldora: la cifra media (40 sp) al 75 %, para que el cajetín ocupe un cuarto menos. */
+private val CifraPildora = CifraMedia.copy(fontSize = 30.sp, lineHeight = 33.sp)
 
 /**
  * Señal redonda de límite (aro rojo, fondo blanco, cifra negra: colores de la señal real, el rojo es aquí el aro,
@@ -140,7 +147,7 @@ fun SenalLimiteDesconocida(
 }
 
 /**
- * Píldora de velocidad de la conducción: velocidad actual en cifra media (40 sp) y señal de límite de 40 dp, sobre
+ * Píldora de velocidad de la conducción: velocidad actual en cifra de 30 sp y señal de límite de 30 dp, sobre
  * carbón translúcido. Con [excede] el borde de la píldora pulsa en rojo tres veces y queda fijo (no hay relleno rojo)
  * y aparece una flecha ▲ (redundancia al color). [velocidadKmh] nulo = sin dato; [limiteKmh] nulo = sin señal, salvo
  * con [limiteDesconocido] (se va por una vía sin límite en los datos): señal gris con «?». El escalado de la fuente del
@@ -181,14 +188,14 @@ private fun ContenidoPildora(
     val descripcion = listOfNotNull(velocidadTexto, limiteTexto, if (excede) excesoTexto else null).joinToString(". ")
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Espacio.m),
+        horizontalArrangement = Arrangement.spacedBy(Espacio.s),
         modifier =
             modifier
                 .testTag(ETIQUETA_PILDORA_VELOCIDAD)
-                .defaultMinSize(minHeight = Medidas.zonaTactil)
+                .defaultMinSize(minHeight = ALTO_MIN_PILDORA)
                 .background(CarbonTranslucido, Radios.formaPildora)
                 .border(GROSOR_BORDE_PILDORA, colorBorde, Radios.formaPildora)
-                .padding(horizontal = Espacio.l, vertical = Espacio.s)
+                .padding(horizontal = Espacio.m, vertical = Espacio.xs)
                 .clearAndSetSemantics {
                     contentDescription = descripcion
                     if (excede) stateDescription = excesoTexto
@@ -240,7 +247,7 @@ private fun CifraVelocidad(velocidadKmh: Int?) {
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
         Text(
             text = velocidadKmh?.toString() ?: stringResource(R.string.panel_velocidad_vacia),
-            style = CifraMedia,
+            style = CifraPildora,
             color = TextoSobreCarbon,
             maxLines = 1,
             softWrap = false,
@@ -249,7 +256,7 @@ private fun CifraVelocidad(velocidadKmh: Int?) {
             text = stringResource(R.string.panel_unidad),
             style = EtiquetaIcono,
             color = TextoSecundarioSobreCarbon,
-            modifier = Modifier.padding(bottom = Espacio.s),
+            modifier = Modifier.padding(bottom = Espacio.xs),
         )
     }
 }

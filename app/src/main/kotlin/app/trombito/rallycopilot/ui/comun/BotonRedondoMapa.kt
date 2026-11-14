@@ -40,8 +40,8 @@ import app.trombito.rallycopilot.ui.theme.TextoSobreCarbon
 private const val OPACIDAD_DESHABILITADO = 0.38f
 
 /**
- * Lado de los [BotonRedondoMapa] que no son principales: 48 dp por defecto; quien agrupa los botones que se tocan
- * conduciendo (silencio, modo, micrófono) lo sube con `Medidas.botonConduccion`.
+ * Lado de los [BotonRedondoMapa] que no son principales: 48 dp por defecto; la columna de botones del mapa lo sube a
+ * 56 dp (`Medidas.botonMapa`) para todos.
  */
 val LocalLadoBotonMapa = staticCompositionLocalOf<Dp> { Medidas.zonaTactil }
 
@@ -55,8 +55,8 @@ fun ConLadoBotonMapa(
 }
 
 /**
- * Botón redondo que flota sobre el mapa: carbón translúcido con sombra, 48 dp (56 dp si [principal]; 64 dp dentro de
- * [ConLadoBotonMapa]). [activo] lo
+ * Botón redondo que flota sobre el mapa: carbón translúcido con sombra, 48 dp (56 dp si [principal] o dentro de
+ * [ConLadoBotonMapa] con `Medidas.botonMapa`). [activo] lo
  * resalta en ámbar (borde de 1,5 dp e icono ámbar). [etiqueta] (12 sp) solo cuando el icono no es obvio. Aunque la
  * app esté en tema claro el botón es oscuro: el icono se pinta con la paleta del carbón. [descripcion] es lo que
  * lee TalkBack; el [contenido] pinta el icono (24 dp en listas, 28 dp en cabeceras: ver `Medidas`).

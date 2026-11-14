@@ -120,11 +120,29 @@ class PildoraConduccionTest {
     }
 
     @Test
-    fun `la media del tramo va encima de la pildora y no a su derecha`() {
+    fun `la media del tramo va a la derecha de la pildora y a su altura, no encima`() {
         poner(alertas = AlertasPanel(tramo = MediaTramoUi(mediaKmh = 78, supera = false, terminado = false)))
         val media = banco.conEtiqueta(ETIQUETA_MEDIA).boundsInRoot
         val pildora = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
-        assertTrue("encima", media.bottom <= pildora.top)
-        assertTrue("no a la derecha", media.left < pildora.right)
+        assertTrue("a la derecha", media.left >= pildora.right)
+        assertTrue("a su altura", media.top < pildora.bottom && media.bottom > pildora.top)
+    }
+
+    @Test
+    fun `el cajetin es compacto y la senal de limite mide 30 dp`() {
+        poner()
+        val pildora = banco.conEtiqueta(ETIQUETA_VELOCIDAD)
+        val d = 3
+        assertTrue("alto ${pildora.size.height}", pildora.size.height <= 46 * d)
+        assertEquals(30 * d, banco.conEtiqueta(ETIQUETA_LIMITE).size.width)
+    }
+
+    @Test
+    fun `con el exceso la flecha va al lado y la pildora queda pegada a la izquierda`() {
+        poner(alertas = AlertasPanel(rojo = true, tramo = MediaTramoUi(78, supera = true, terminado = false)))
+        val pildora = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
+        val media = banco.conEtiqueta(ETIQUETA_MEDIA).boundsInRoot
+        assertEquals("pegada al borde izquierdo", 0f, pildora.left, 1f)
+        assertTrue("la media sigue a la derecha", media.left > pildora.right)
     }
 }

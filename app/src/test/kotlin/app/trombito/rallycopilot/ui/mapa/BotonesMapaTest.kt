@@ -110,6 +110,8 @@ class BotonesMapaTest {
     private val deConduccion = listOf(ETIQUETA_MICROFONO_BOTON, ETIQUETA_MODO_BOTON, ETIQUETA_SILENCIO_BOTON)
     private val fijos = deConduccion + ETIQUETA_ORIENTACION
 
+    private fun arriba(etiqueta: String) = banco.conEtiqueta(etiqueta).boundsInRoot.top
+
     @Test
     fun `parado se ven todos los botones`() {
         poner(velocidadKmh = 0)
@@ -174,15 +176,45 @@ class BotonesMapaTest {
     }
 
     @Test
-    fun `los botones no llevan texto y miden 48 dp y 64 dp los de conduccion`() {
+    fun `los botones no llevan texto y miden todos 56 dp`() {
         poner(velocidadKmh = 0)
         (secundarios + fijos).forEach {
             val nodo = banco.conEtiqueta(it)
-            val minimo = (if (it in deConduccion) 64 else 48) * 3
+            val lado = 56 * 3
             assertTrue("$it con texto", banco.textos(nodo).isEmpty())
             assertTrue("$it sin descripcion", !banco.descripcion(nodo).isNullOrBlank())
-            assertTrue("$it mide ${nodo.size}", nodo.size.width >= minimo && nodo.size.height >= minimo)
+            assertTrue("$it mide ${nodo.size}", nodo.size.width == lado && nodo.size.height == lado)
         }
+    }
+
+    @Test
+    fun `el orden de abajo arriba es recentrar, silencio, modo, micro y capas`() {
+        poner(velocidadKmh = 0)
+        val orden =
+            listOf(
+                ETIQUETA_ORIENTACION,
+                ETIQUETA_SILENCIO_BOTON,
+                ETIQUETA_MODO_BOTON,
+                ETIQUETA_MICROFONO_BOTON,
+                ETIQUETA_CAPAS_BOTON,
+            )
+        orden.zipWithNext().forEach { (abajo, encima) ->
+            assertTrue("$encima sobre $abajo", arriba(encima) < arriba(abajo))
+        }
+    }
+
+    @Test
+    fun `al esconderse capas y notas grandes los fijos no se mueven`() {
+        poner(velocidadKmh = 0)
+        val parado = fijos.associateWith { arriba(it) }
+        conVelocidad(60)
+        banco.esperar(1_000)
+        assertFalse(banco.hay(ETIQUETA_CAPAS_BOTON))
+        fijos.forEach { assertEquals("$it se movió al esconderse capas", parado.getValue(it), arriba(it), 0.5f) }
+        conVelocidad(0)
+        banco.esperar(3_500)
+        assertTrue(banco.hay(ETIQUETA_CAPAS_BOTON))
+        fijos.forEach { assertEquals("$it se movió al volver capas", parado.getValue(it), arriba(it), 0.5f) }
     }
 
     @Test

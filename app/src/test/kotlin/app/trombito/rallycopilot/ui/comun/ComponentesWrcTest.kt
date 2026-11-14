@@ -132,7 +132,7 @@ class ComponentesWrcTest {
     fun `pildora de velocidad describe velocidad y limite sin exceso`() {
         poner { PildoraVelocidad(velocidadKmh = 45, limiteKmh = 50) }
         val nodo = banco.conEtiqueta(ETIQUETA_PILDORA_VELOCIDAD)
-        assertTrue(nodo.size.height >= dp(48))
+        assertTrue(nodo.size.height >= dp(40))
         val descripcion = banco.descripcion(nodo).orEmpty()
         assertTrue(descripcion, descripcion.contains("45") && descripcion.contains("50"))
         assertNull(banco.descripcionEstado(ETIQUETA_PILDORA_VELOCIDAD))
@@ -155,10 +155,10 @@ class ComponentesWrcTest {
     }
 
     @Test
-    fun `senal de limite mide 40 dp`() {
+    fun `senal de limite mide 30 dp`() {
         poner { SenalLimiteWrc(50, Modifier.testTag("s")) }
         val nodo = banco.conEtiqueta("s")
-        assertEquals(dp(40), nodo.size.width)
+        assertEquals(dp(30), nodo.size.width)
         assertTrue(banco.textos(nodo).contains("50"))
     }
 

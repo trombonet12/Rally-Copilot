@@ -30,21 +30,24 @@ internal fun barraDestinoRetenida(
 ): Boolean = enfocada || hayTexto || hayBusqueda || hayVistaPrevia
 
 /**
- * Visibilidad de la barra en modo libre: sin notas en la franja se ve como siempre; con notas se esconde (la franja
- * ocupa su sitio) salvo que el usuario la haya [reclamada] tocando el mapa o esté [retenida] por su uso.
+ * Visibilidad de la barra en modo libre. Parado y sin notas en la franja se ve como siempre; con notas o en [enMarcha]
+ * (más de 20 km/h, ver [rememberMarchaRapida]) se esconde, salvo que el usuario la haya [reclamada] tocando el mapa o
+ * esté [retenida] por su uso.
  */
 internal fun barraDestinoVisible(
     hayNotas: Boolean,
     reclamada: Boolean,
     retenida: Boolean,
-): Boolean = !hayNotas || reclamada || retenida
+    enMarcha: Boolean = false,
+): Boolean = (!hayNotas && !enMarcha) || reclamada || retenida
 
 /** Si hay que contar los [RETARDO_OCULTAR_BARRA_MS] para volver a esconder la barra. */
 internal fun barraDestinoCuentaAtras(
     hayNotas: Boolean,
     reclamada: Boolean,
     retenida: Boolean,
-): Boolean = hayNotas && reclamada && !retenida
+    enMarcha: Boolean = false,
+): Boolean = (hayNotas || enMarcha) && reclamada && !retenida
 
 /** Estado de la barra «¿A dónde?» en modo libre: si el usuario la ha pedido con un toque, el foco y los toques. */
 @Stable

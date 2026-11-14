@@ -422,8 +422,11 @@ private fun BoxScope.ZonaInferior(
         Column(columna.then(medida.fondo)) {
             Column(Modifier.padding(horizontal = Espacio.s), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
                 avisos()
-                Row(Modifier.fillMaxWidth().then(medida.fila), verticalAlignment = Alignment.Bottom) {
-                    Box(Modifier.weight(1f)) { pildora() }
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+                    // La píldora (con su burbuja) pegada abajo a la izquierda; el coche se mide sobre ella.
+                    Box(Modifier.weight(1f).then(medida.pildora), contentAlignment = Alignment.BottomStart) {
+                        pildora()
+                    }
                     GrupoDerecho(contenido, Modifier)
                 }
                 if (!hoja) Box(Modifier.navigationBarsPadding().padding(bottom = Espacio.s)) { Column { fase() } }
@@ -436,7 +439,7 @@ private fun BoxScope.ZonaInferior(
     }
 }
 
-/** La burbuja de escucha, justo sobre la píldora de velocidad, a la izquierda de la columna de botones. */
+/** La burbuja de escucha, justo sobre la píldora de velocidad, que va pegada abajo a la izquierda. */
 @Composable
 private fun PildoraDelPie(contenido: ZonaMapaContenido) {
     val estado = contenido.estado
@@ -613,8 +616,9 @@ private class ContenidoCabecera(
 /**
  * Arriba: en reposo, la barra «¿A dónde?» a todo el ancho con su lista de resultados; debajo, el carrete de notas de
  * la carretera y el banner de alerta (modo libre) y «Seguir a <destino>» si hay un guiado a medias. Mientras se guía,
- * el banner de maniobra, el carrete de notas y el banner de alerta ocupan esa franja. Con notas en el carrete la
- * barra se esconde (el carrete sube a su sitio): reaparece al tocar el mapa y se vuelve a esconder a los 8 s sin
+ * el banner de maniobra, el carrete de notas y el banner de alerta ocupan esa franja. Con notas en el carrete o en
+ * marcha (más de 20 km/h) la barra se esconde (el carrete sube a su sitio): reaparece al tocar el mapa y se vuelve a
+ * esconder a los 8 s sin
  * toques, nunca con el campo enfocado, texto escrito, resultados o vista previa abiertos. El aviso de mapas
  * actualizados va abajo ([PieMapa]).
  */
@@ -629,6 +633,8 @@ private fun CabeceraMapa(
     val navegacion = contenido.navegacion
     val buscar = estado.hayDatos && navegacion.estado.enReposo
     val hayNotas = navegacion.notas.visibles.isNotEmpty()
+    // En marcha (mismo criterio que los botones secundarios) la barra no sale sola: solo al tocar el mapa.
+    val enMarcha = rememberMarchaRapida(estado.velocidadKmh)
     val retenida =
         barraDestinoRetenida(
             enfocada = barra.enfocada,
@@ -636,11 +642,11 @@ private fun CabeceraMapa(
             hayBusqueda = navegacion.estado.busqueda !is BusquedaDestino.Inactiva,
             hayVistaPrevia = navegacion.estado.vistaPrevia != null,
         )
-    OcultarBarraTrasInactividad(barra, buscar && barraDestinoCuentaAtras(hayNotas, barra.reclamada, retenida))
+    OcultarBarraTrasInactividad(barra, buscar && barraDestinoCuentaAtras(hayNotas, barra.reclamada, retenida, enMarcha))
     LaunchedEffect(buscar) { if (!buscar) barra.ocultar() }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
         if (buscar) {
-            if (barraDestinoVisible(hayNotas, barra.reclamada, retenida)) {
+            if (barraDestinoVisible(hayNotas, barra.reclamada, retenida, enMarcha)) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     CabeceraBusqueda(
                         navegacion.estado,
@@ -818,10 +824,11 @@ private fun TarjetaPermiso(
 }
 
 /**
- * Mide el alto de la zona inferior de conducción desde el borde inferior del mapa: la fila de la píldora (con la
- * burbuja de escucha, la media y la flecha de exceso, que van dentro de ella) y los botones, más todo lo que tiene
- * debajo. Los avisos de encima salen un momento y no cuentan: harían saltar la cámara. [fondo] va en la columna
- * entera, pegada abajo, y [fila] en la fila.
+ * Mide el alto de la zona inferior de conducción desde el borde inferior del mapa: el bloque de la píldora de velocidad
+ * (con la burbuja de escucha encima si está; la media y la flecha de exceso van a su lado) y la hoja que tiene debajo.
+ * No cuentan los botones de la derecha (quedan fuera de la vertical del coche) ni los avisos de encima (salen un
+ * momento y harían saltar la cámara). [fondo] va en la columna entera, pegada abajo, y [pildora] en el bloque de la
+ * píldora.
  */
 private class MedidorZonaInferior(
     private val zona: ZonaInferiorMedida?,
@@ -835,7 +842,7 @@ private class MedidorZonaInferior(
             publicar()
         }
 
-    val fila: Modifier =
+    val pildora: Modifier =
         Modifier.onGloballyPositioned {
             arribaPx = it.positionInRoot().y
             publicar()

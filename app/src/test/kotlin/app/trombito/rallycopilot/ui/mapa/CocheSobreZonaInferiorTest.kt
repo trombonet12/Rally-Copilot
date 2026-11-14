@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
 private const val ETIQUETA_MAPA_PRUEBA = "mapa-prueba"
 private const val DENSIDAD_XHDPI = 2f
 
-/** El coche que calcula la cámara queda por encima de la píldora, la media y la flecha en una pantalla pequeña. */
+/** El coche que calcula la cámara queda justo por encima de la píldora de velocidad en una pantalla pequeña. */
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w360dp-h640dp-xhdpi")
 class CocheSobreZonaInferiorTest {
@@ -72,7 +72,7 @@ class CocheSobreZonaInferiorTest {
         banco.esperar(300)
     }
 
-    private fun comprobarCocheSobreLaZona(etiquetaMasAlta: String) {
+    private fun comprobarCocheSobreLaPildora() {
         val medida = checkNotNull(zona)
         assertTrue("la zona se midió", medida.establePx.intValue > 0)
         val mapa = banco.conEtiqueta(ETIQUETA_MAPA_PRUEBA).boundsInRoot
@@ -80,35 +80,44 @@ class CocheSobreZonaInferiorTest {
             fraccionMarcador(mapa.width.toInt(), mapa.height.toInt(), medida.establePx.intValue, DENSIDAD_XHDPI)
         val centro = mapa.top + fraccion * mapa.height
         val bordeInferiorIcono = centro + MITAD_ICONO_MAX_DP * DENSIDAD_XHDPI
-        val techoZona = banco.conEtiqueta(etiquetaMasAlta).boundsInRoot.top
+        val techoPildora = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot.top
         assertTrue(
-            "el icono del coche (hasta $bordeInferiorIcono) tapa $etiquetaMasAlta (desde $techoZona)",
-            bordeInferiorIcono + MARGEN_SOBRE_ZONA_DP * DENSIDAD_XHDPI <= techoZona + 1f,
+            "el icono del coche (hasta $bordeInferiorIcono) tapa la píldora (desde $techoPildora)",
+            bordeInferiorIcono + MARGEN_SOBRE_ZONA_DP * DENSIDAD_XHDPI <= techoPildora + 1f,
+        )
+        // Y no queda mucho más arriba: «un pelillo» sobre la píldora (la reserva del icono más alto, 60 dp).
+        assertTrue(
+            "el coche queda demasiado alto: $bordeInferiorIcono frente a $techoPildora",
+            techoPildora - bordeInferiorIcono <= (MARGEN_SOBRE_ZONA_DP + 2) * DENSIDAD_XHDPI + 1f || fraccion >= 0.79,
         )
     }
 
     @Test
-    fun `con la media y la flecha de exceso encima de la pildora el coche queda por encima`() {
+    fun `con la media y la flecha de exceso al lado de la pildora el coche queda por encima de ella`() {
         val tramo = MediaTramoUi(130, supera = true, terminado = false)
         poner(1.3f, AlertasUiState(panel = AlertasPanel(rojo = true, exceso = true, tramo = tramo)))
         assertNotNull(zona)
-        comprobarCocheSobreLaZona(ETIQUETA_MEDIA)
+        comprobarCocheSobreLaPildora()
+        val media = banco.conEtiqueta(ETIQUETA_MEDIA).boundsInRoot
+        val pildora = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
+        assertTrue("la media va a la derecha, no encima", media.left >= pildora.right - 1f)
+        assertTrue("la media no sobresale de la píldora", media.top >= pildora.top - 2f)
     }
 
     @Test
     fun `solo con la pildora el coche queda por encima de ella con fuente 1,3`() {
         poner(1.3f, AlertasUiState())
-        comprobarCocheSobreLaZona(ETIQUETA_VELOCIDAD)
+        comprobarCocheSobreLaPildora()
     }
 
     @Test
-    fun `la zona medida es el alto desde el borde inferior hasta lo mas alto de la fila de la pildora`() {
+    fun `la zona medida es el alto desde el borde inferior hasta lo mas alto de la pildora`() {
         poner(1.0f, AlertasUiState(panel = AlertasPanel(tramo = MediaTramoUi(78, supera = false, terminado = false))))
         val mapa = banco.conEtiqueta(ETIQUETA_MAPA_PRUEBA).boundsInRoot
-        val media = banco.conEtiqueta(ETIQUETA_MEDIA).boundsInRoot
-        val esperado = mapa.bottom - media.top
-        // La fila puede ser algo más alta que la media (los botones de la derecha): la zona nunca es menor.
-        assertTrue(checkNotNull(zona).medidaPx.intValue >= esperado.toInt() - 1)
+        val pildora = banco.conEtiqueta(ETIQUETA_VELOCIDAD).boundsInRoot
+        val esperado = mapa.bottom - pildora.top
+        // Los botones de la derecha son más altos que la píldora y no cuentan.
+        assertEquals(esperado, checkNotNull(zona).medidaPx.intValue.toFloat(), 2f)
         assertEquals(checkNotNull(zona).medidaPx.intValue, zona!!.establePx.intValue)
     }
 }

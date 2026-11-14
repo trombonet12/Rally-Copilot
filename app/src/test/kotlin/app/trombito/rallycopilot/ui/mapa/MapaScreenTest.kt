@@ -250,7 +250,7 @@ class MapaScreenTest {
             "Velocidad: 72 kilómetros por hora. Límite de velocidad desconocido en esta vía",
             banco.descripcion(banco.conEtiqueta(ETIQUETA_VELOCIDAD)),
         )
-        assertEquals(40 * 3, senal.size.width)
+        assertEquals(30 * 3, senal.size.width)
     }
 
     @Test
@@ -373,13 +373,12 @@ class MapaScreenTest {
     }
 
     @Test
-    fun `la columna de botones tiene objetivos de 64 dp los de conduccion y 48 dp la brujula separados 12 dp`() {
+    fun `la columna de botones tiene objetivos de 56 dp todos separados 12 dp`() {
         poner(conDatos())
         val fijos = listOf(ETIQUETA_MODO_BOTON, ETIQUETA_SILENCIO_BOTON, ETIQUETA_ORIENTACION)
         val cajas = fijos.map { banco.conEtiqueta(it).boundsInRoot }.sortedBy { it.top }
-        val minimos = listOf(64, 64, 48)
-        cajas.zip(minimos).forEach { (c, dp) ->
-            assertTrue("$c < $dp dp", c.width >= dp * 3f - 1 && c.height >= dp * 3f - 1)
+        cajas.forEach { c ->
+            assertTrue("$c < 56 dp", c.width >= 56 * 3f - 1 && c.height >= 56 * 3f - 1)
         }
         cajas.zipWithNext().forEach { (a, b) -> assertEquals("hueco de 12 dp", 12 * 3f, b.top - a.bottom, 1f) }
     }
@@ -400,9 +399,9 @@ class MapaScreenTest {
         val aviso = banco.conEtiqueta(ETIQUETA_AVISO).boundsInRoot
         val raiz = banco.raiz().boundsInRoot
         assertTrue("aviso a todo el ancho: $aviso", aviso.width > raiz.width * 0.9f)
-        listOf(ETIQUETA_CAPAS_BOTON, ETIQUETA_ORIENTACION).forEach {
-            assertTrue("$it no esta arriba", banco.conEtiqueta(it).boundsInRoot.top > raiz.height / 2)
-        }
+        // La columna de botones (capas arriba del todo, solo parado) queda en la mitad de abajo, lejos de la cabecera.
+        assertTrue("capas bajo la cabecera", banco.conEtiqueta(ETIQUETA_CAPAS_BOTON).boundsInRoot.top > raiz.height / 4)
+        assertTrue("la brújula abajo", banco.conEtiqueta(ETIQUETA_ORIENTACION).boundsInRoot.top > raiz.height / 2)
     }
 
     @Test

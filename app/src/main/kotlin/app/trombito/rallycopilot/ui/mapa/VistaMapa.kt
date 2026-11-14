@@ -438,7 +438,8 @@ private class ControladorMapa(
         previas: PreferenciasVistaMapa,
         nuevas: PreferenciasVistaMapa,
     ) {
-        val cambio = nuevas.siguiendo && nuevas.zonaInferiorPx != previas.zonaInferiorPx
+        val cambio =
+            nuevas.siguiendo && (nuevas.zonaInferiorPx != previas.zonaInferiorPx || nuevas.icono != previas.icono)
         if (cambio && componente.cameraMode != CameraMode.NONE) {
             componente.rellenarSeguimiento(relleno(), DURACION_RELLENO_ZONA_MS)
         }
@@ -578,7 +579,8 @@ private class ControladorMapa(
     /** Relleno superior del seguimiento: el coche sobre la zona inferior de la pantalla (ver [fraccionMarcador]). */
     private fun relleno(): Double {
         val densidad = vista.resources.displayMetrics.density
-        val fraccion = fraccionMarcador(vista.width, vista.height, preferencias.zonaInferiorPx, densidad)
+        val alto = altoIconoDp(preferencias.icono)
+        val fraccion = fraccionMarcador(vista.width, vista.height, preferencias.zonaInferiorPx, densidad, alto)
         return rellenoSuperiorSeguimiento(vista.width, vista.height, fraccion).toDouble()
     }
 

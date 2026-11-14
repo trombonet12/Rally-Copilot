@@ -60,10 +60,10 @@ object Medidas {
     val zonaTactil = 48.dp
     val accionPrincipal = 56.dp
 
-    /** Botones del mapa que se tocan conduciendo (silencio, modo del copiloto, micrófono). */
-    val botonConduccion = 64.dp
+    /** Todos los botones redondos de la columna del mapa (capas, notas grandes, micrófono, modo, silencio, brújula). */
+    val botonMapa = 56.dp
     val indicadorCarga = 32.dp
-    val senalLimite = 40.dp
+    val senalLimite = 30.dp
     val bordeActivo = 1.5.dp
     val barraAcento = 4.dp
     val alturaDegradadoMapa = 96.dp

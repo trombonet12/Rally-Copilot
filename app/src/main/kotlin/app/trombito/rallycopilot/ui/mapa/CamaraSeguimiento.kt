@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.mapa
 
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.staticCompositionLocalOf
+import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -27,11 +28,20 @@ internal const val MARCADOR_HORIZONTAL = 0.70
 internal fun inclinacionSeguimiento(orientacion: Orientacion): Double =
     if (orientacion == Orientacion.NORTE) INCLINACION_NORTE else INCLINACION_RUMBO
 
-/** Separación entre el borde superior de la zona inferior de conducción y el icono del coche. */
-internal const val MARGEN_SOBRE_ZONA_DP = 12
+/** Separación entre el borde superior de la píldora de velocidad y el borde inferior del icono del coche. */
+internal const val MARGEN_SOBRE_ZONA_DP = 5
 
-/** Mitad del icono de posición más alto (60 dp): el coche se coloca por su centro. */
-internal const val MITAD_ICONO_MAX_DP = 30
+/** Alto del icono de posición más alto (el casco, 60 dp): el coche se coloca por su centro. */
+internal const val ALTO_ICONO_MAX_DP = 60
+
+/** Mitad del icono de posición más alto: lo que sube el centro sobre el margen si no se conoce el icono. */
+internal const val MITAD_ICONO_MAX_DP = ALTO_ICONO_MAX_DP / 2
+
+/** Alto (dp) del icono de posición elegido: el casco mide 60 dp y los demás 48 dp. */
+internal fun altoIconoDp(icono: IconoPosicion): Int =
+    if (icono == IconoPosicion.CASCO) ALTO_ICONO_MAX_DP else ALTO_ICONO_DP
+
+private const val ALTO_ICONO_DP = 48
 
 /** La zona inferior solo deja bajar el coche si se mantiene más baja este tiempo (la flecha de exceso no lo rebota). */
 internal const val RETARDO_BAJADA_ZONA_MS = 3_000L
@@ -44,21 +54,23 @@ private const val MARCADOR_MINIMO = 0.5
 
 /**
  * Altura (fracción del alto del mapa, desde arriba) a la que queda el coche: la de siempre ([MARCADOR_VERTICAL] o
- * [MARCADOR_HORIZONTAL]) o, en vertical, más arriba si la zona inferior de conducción ([zonaInferiorPx]: píldora con
- * lo que lleva encima y botones, medida desde el borde inferior del mapa; 0 = sin medir) lo taparía: el centro del
- * icono queda a [MARGEN_SOBRE_ZONA_DP] más [MITAD_ICONO_MAX_DP] sobre su borde superior. En horizontal la píldora
- * va en la columna de la izquierda y los botones a la derecha, fuera de la vertical del coche, y no se mide.
+ * [MARCADOR_HORIZONTAL]) o, en vertical, más arriba si la zona inferior ([zonaInferiorPx]: la píldora de velocidad con
+ * la burbuja de escucha si la hay y la hoja de conducción, medida desde el borde inferior del mapa; 0 = sin medir) lo
+ * taparía: el borde inferior del icono ([altoIconoDp]) queda [MARGEN_SOBRE_ZONA_DP] sobre el borde superior de la
+ * píldora, es decir, el centro a esa distancia más la mitad del icono. Los botones de la derecha no se miden (quedan
+ * fuera de la vertical del coche). En horizontal la píldora va en la columna de la izquierda y no se mide.
  */
 internal fun fraccionMarcador(
     anchoPx: Int,
     altoPx: Int,
     zonaInferiorPx: Int = 0,
     densidad: Float = 1f,
+    altoIconoDp: Int = ALTO_ICONO_MAX_DP,
 ): Double {
     val horizontal = anchoPx > altoPx
     val porDefecto = if (horizontal) MARCADOR_HORIZONTAL else MARCADOR_VERTICAL
     if (altoPx <= 0 || horizontal || zonaInferiorPx <= 0) return porDefecto
-    val reservaPx = (MARGEN_SOBRE_ZONA_DP + MITAD_ICONO_MAX_DP) * densidad.toDouble()
+    val reservaPx = (MARGEN_SOBRE_ZONA_DP + altoIconoDp / 2.0) * densidad.toDouble()
     return ((altoPx - zonaInferiorPx - reservaPx) / altoPx).coerceIn(MARCADOR_MINIMO, porDefecto)
 }
 
@@ -94,8 +106,8 @@ internal fun Flow<Int>.sinRebotes(retardoMs: Long = RETARDO_BAJADA_ZONA_MS): Flo
     }
 
 /**
- * Alto (px, desde el borde inferior del mapa) de la zona inferior de conducción. [medidaPx] lo escribe la pantalla al
- * medirla y [establePx] lo lee el mapa ya sin rebotes (ver [sinRebotes]); 0 = sin medir.
+ * Alto (px, desde el borde inferior del mapa) de la zona inferior de conducción (píldora y hoja). [medidaPx] lo
+ * escribe la pantalla al medirla y [establePx] lo lee el mapa ya sin rebotes (ver [sinRebotes]); 0 = sin medir.
  */
 internal class ZonaInferiorMedida {
     val medidaPx = mutableIntStateOf(0)

@@ -20,6 +20,21 @@ class VisibilidadBarraDestinoTest {
     }
 
     @Test
+    fun `en marcha la barra no sale ni sin notas salvo que se reclame o se use`() {
+        assertFalse(barraDestinoVisible(hayNotas = false, reclamada = false, retenida = false, enMarcha = true))
+        assertTrue(barraDestinoVisible(hayNotas = false, reclamada = true, retenida = false, enMarcha = true))
+        assertTrue(barraDestinoVisible(hayNotas = false, reclamada = false, retenida = true, enMarcha = true))
+        assertTrue(barraDestinoVisible(hayNotas = false, reclamada = false, retenida = false, enMarcha = false))
+    }
+
+    @Test
+    fun `en marcha la cuenta atras corre aunque no haya notas`() {
+        assertTrue(barraDestinoCuentaAtras(hayNotas = false, reclamada = true, retenida = false, enMarcha = true))
+        assertFalse(barraDestinoCuentaAtras(hayNotas = false, reclamada = false, retenida = false, enMarcha = true))
+        assertFalse(barraDestinoCuentaAtras(hayNotas = false, reclamada = true, retenida = true, enMarcha = true))
+    }
+
+    @Test
     fun `foco, texto, resultados o vista previa retienen la barra`() {
         assertFalse(barraDestinoRetenida(false, false, false, false))
         assertTrue(barraDestinoRetenida(true, false, false, false))

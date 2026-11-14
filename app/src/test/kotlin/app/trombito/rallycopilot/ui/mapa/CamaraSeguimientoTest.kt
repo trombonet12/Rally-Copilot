@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mapa
 
+import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -58,18 +59,18 @@ class CamaraSeguimientoTest {
         assertEquals(0.80, baja, 0.0)
         val alta = fraccionMarcador((412 * d).toInt(), alto, zonaInferiorPx = (216 * d).toInt(), densidad = d)
         assertTrue(alta < 0.80)
-        assertEquals((915 - 216 - 12 - 30).toDouble(), alta * 915, 0.5)
+        assertEquals((915 - 216 - 5 - 30).toDouble(), alta * 915, 0.5)
     }
 
     @Test
     fun `el coche queda sobre el borde de la zona en 360x640 y 412x915 con fuente, media y flecha`() {
-        // (ancho dp, alto dp, densidad, zona dp): la zona crece con la fuente 1,3, la media (60) y la flecha (32).
+        // (ancho dp, alto dp, densidad, zona dp): la zona crece con la fuente 1,3 y con la burbuja de escucha (60).
         val casos =
             listOf(
                 Caso(360, 640, 2f, 192),
-                Caso(360, 640, 2f, 192 + 32 + 60),
+                Caso(360, 640, 2f, 192 + 60),
                 Caso(412, 915, 2.625f, 216),
-                Caso(412, 915, 2.625f, 216 + 32 + 60 + 20),
+                Caso(412, 915, 2.625f, 216 + 60 + 20),
             )
         casos.forEach { c ->
             val alto = c.altoDp * c.densidad
@@ -77,11 +78,27 @@ class CamaraSeguimientoTest {
             val fraccion = fraccionMarcador((c.anchoDp * c.densidad).toInt(), alto.toInt(), zona, c.densidad)
             val centroDp = fraccion * c.altoDp
             val bordeZonaDp = c.altoDp - c.zonaDp
-            // Si no cabe a la altura de siempre, el icono entero (mitad 30 dp) queda a 12 dp o más sobre la zona.
-            val esperado = minOf(0.80 * c.altoDp, bordeZonaDp - 12.0 - 30.0)
+            // Si no cabe a la altura de siempre, el icono entero (mitad 30 dp) queda a 5 dp o más sobre la píldora.
+            val esperado = minOf(0.80 * c.altoDp, bordeZonaDp - 5.0 - 30.0)
             assertEquals("caso $c", maxOf(esperado, 0.5 * c.altoDp), centroDp, 0.5)
-            if (centroDp > 0.5 * c.altoDp + 0.5) assertTrue("caso $c", centroDp + 30 + 12 <= bordeZonaDp + 0.5)
+            if (centroDp > 0.5 * c.altoDp + 0.5) assertTrue("caso $c", centroDp + 30 + 5 <= bordeZonaDp + 0.5)
         }
+    }
+
+    @Test
+    fun `con el icono real el borde inferior queda 5 dp sobre la pildora y el coche mas bajo que con el casco`() {
+        val d = 2f
+        val alto = (640 * d).toInt()
+        val zona = (200 * d).toInt()
+        val ancho = (360 * d).toInt()
+        val casco = fraccionMarcador(ancho, alto, zona, d, altoIconoDp(IconoPosicion.CASCO))
+        val coche = fraccionMarcador(ancho, alto, zona, d, altoIconoDp(IconoPosicion.COCHE_RALLY))
+        assertEquals(60, altoIconoDp(IconoPosicion.CASCO))
+        assertEquals(48, altoIconoDp(IconoPosicion.FLECHA_WRC))
+        // Borde inferior del icono = centro + mitad; la píldora empieza a 640 - 200 = 440 dp.
+        assertEquals(440.0 - 5.0, casco * 640 + 30, 0.5)
+        assertEquals(440.0 - 5.0, coche * 640 + 24, 0.5)
+        assertTrue("el icono menor baja más", coche > casco)
     }
 
     @Test
