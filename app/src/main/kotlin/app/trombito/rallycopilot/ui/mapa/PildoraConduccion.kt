@@ -37,8 +37,8 @@ import app.trombito.rallycopilot.ui.comun.RojoAcentoClaro
 import app.trombito.rallycopilot.ui.comun.rememberLectorPantallaActivo
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LimitarEscalaHud
-import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 import app.trombito.rallycopilot.ui.theme.Medidas
+import app.trombito.rallycopilot.ui.theme.RallyOscuro
 
 /** La píldora de velocidad (la velocidad actual, con o sin límite). */
 const val ETIQUETA_VELOCIDAD = ETIQUETA_PILDORA_VELOCIDAD
@@ -120,8 +120,8 @@ internal fun PildoraConduccion(
  */
 @Composable
 private fun MediaTramo(tramo: MediaTramoUi) {
-    val colores = LocalColoresRally.current
-    val color = if (tramo.supera) colores.deltaPeor else colores.aviso
+    // Fondo carbón fijo: los colores van de la paleta oscura aunque la app esté en tema claro.
+    val color = if (tramo.supera) RallyOscuro.deltaPeor else RallyOscuro.aviso
     val forma = RoundedCornerShape(RADIO_MEDIA)
     val media = tramo.mediaKmh
     val base =
@@ -153,7 +153,7 @@ private fun MediaTramo(tramo: MediaTramoUi) {
             text = media?.toString() ?: stringResource(R.string.panel_media_vacia),
             style = MaterialTheme.typography.titleLarge.copy(fontSize = 18.sp, lineHeight = 18.sp),
             fontWeight = FontWeight.Black,
-            color = if (tramo.supera) colores.deltaPeor else TextoMedia,
+            color = if (tramo.supera) RallyOscuro.deltaPeor else TextoMedia,
         )
     }
 }

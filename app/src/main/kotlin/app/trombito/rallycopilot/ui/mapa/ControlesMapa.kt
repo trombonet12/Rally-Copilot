@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -24,6 +23,8 @@ import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.BotonRedondoMapa
 import app.trombito.rallycopilot.ui.comun.EstadoBotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.TemaSobreCarbon
+import app.trombito.rallycopilot.ui.theme.CarbonTranslucido
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_CAPAS_BOTON = "mapa-capas-boton"
@@ -34,7 +35,6 @@ const val ETIQUETA_CALOR = "mapa-calor"
 const val ETIQUETA_CALOR_USO = "mapa-calor-uso"
 const val ETIQUETA_CALOR_VELOCIDAD = "mapa-calor-velocidad"
 
-private const val OPACIDAD_PANEL = 0.88f
 private val RADIO_PANEL = 28.dp
 
 /**
@@ -66,21 +66,24 @@ internal fun PanelCapas(
     modifier: Modifier = Modifier,
 ) {
     val descripcion = stringResource(R.string.mapa_capa_selector)
-    Surface(
-        shape = RoundedCornerShape(RADIO_PANEL),
-        color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(OPACIDAD_PANEL),
-        modifier = modifier.testTag(ETIQUETA_CAPAS_PANEL).semantics { contentDescription = descripcion },
-    ) {
-        Row(Modifier.padding(Espacio.xs), horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-            Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-                BotonCapa(CapaMapa.VECTORIAL, estado, acciones.onCapa)
-                BotonCapa(CapaMapa.SATELITE, estado, acciones.onCapa)
-                BotonRelieve(estado.relieve, acciones.onRelieve)
-            }
-            Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-                BotonCalor(estado.calor.activo, acciones.onCalor)
-                BotonModoCalor(ModoCalor.USO, estado.calor, acciones.onModoCalor)
-                BotonModoCalor(ModoCalor.VELOCIDAD, estado.calor, acciones.onModoCalor)
+    // Carbón fijo, como los botones de la columna: en tema claro el panel no mezcla dos estilos.
+    TemaSobreCarbon {
+        Surface(
+            shape = RoundedCornerShape(RADIO_PANEL),
+            color = CarbonTranslucido,
+            modifier = modifier.testTag(ETIQUETA_CAPAS_PANEL).semantics { contentDescription = descripcion },
+        ) {
+            Row(Modifier.padding(Espacio.xs), horizontalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+                Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+                    BotonCapa(CapaMapa.VECTORIAL, estado, acciones.onCapa)
+                    BotonCapa(CapaMapa.SATELITE, estado, acciones.onCapa)
+                    BotonRelieve(estado.relieve, acciones.onRelieve)
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+                    BotonCalor(estado.calor.activo, acciones.onCalor)
+                    BotonModoCalor(ModoCalor.USO, estado.calor, acciones.onModoCalor)
+                    BotonModoCalor(ModoCalor.VELOCIDAD, estado.calor, acciones.onModoCalor)
+                }
             }
         }
     }

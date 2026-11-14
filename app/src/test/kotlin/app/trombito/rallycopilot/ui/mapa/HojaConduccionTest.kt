@@ -227,6 +227,13 @@ class HojaConduccionTest {
     }
 
     @Test
+    fun `el trip tiene objetivo tactil de al menos 48 dp para la pulsacion larga`() {
+        poner(libre)
+        val km = banco.conEtiqueta(ETIQUETA_KM_RECORRIDOS)
+        assertTrue("el trip mide ${km.size.height} px", km.size.height >= 48 * 3)
+    }
+
+    @Test
     fun `la X de libre cierra el mapa y la lupa lleva al campo de destino`() {
         poner(libre)
         assertFalse(banco.hay(ETIQUETA_TERMINAR))

@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,6 +54,7 @@ import app.trombito.rallycopilot.ui.navegacion.guiado.PieGuiado
 import app.trombito.rallycopilot.ui.navegacion.guiado.proximaParada
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
+import app.trombito.rallycopilot.ui.theme.Medidas
 import app.trombito.rallycopilot.ui.tramos.CronoMiniEnPanel
 import app.trombito.rallycopilot.ui.tramos.EscalaCronoMini
 import kotlinx.coroutines.delay
@@ -218,14 +220,17 @@ private fun KmTrip(
         modifier =
             Modifier
                 .testTag(if (confirmando) ETIQUETA_TRIP_CONFIRMACION else ETIQUETA_KM_RECORRIDOS)
-                .padding(horizontal = Espacio.s)
+                // Objetivo táctil de 48 dp (el texto mide ~20 dp): la pulsación larga cubre todo el alto.
+                .heightIn(min = Medidas.zonaTactil)
                 .then(
                     if (onTripACero != null) {
                         Modifier.pointerInput(onTripACero) { detectTapGestures(onLongPress = { reiniciar() }) }
                     } else {
                         Modifier
                     },
-                ).semantics {
+                ).wrapContentHeight(Alignment.CenterVertically)
+                .padding(horizontal = Espacio.s)
+                .semantics {
                     contentDescription = descripcion
                     if (confirmando) liveRegion = LiveRegionMode.Polite
                     if (onTripACero != null) {

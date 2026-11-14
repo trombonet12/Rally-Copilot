@@ -184,13 +184,17 @@ fun MapaScreen(
     crono: CronoEnCurso? = null,
     superposicion: @Composable BoxScope.() -> Unit = {},
 ) {
-    MantenerPantallaEncendida()
+    // Solo conduciendo: en reposo la pantalla se apaga con el tiempo normal del móvil.
+    val conduciendo = navegacion.estado.control.let { it is EstadoNavegacion.Libre || it is EstadoNavegacion.Guiando }
+    if (conduciendo) MantenerPantallaEncendida()
     var abierto by rememberSaveable { mutableStateOf(MenuMapa.NINGUNO) }
     val menu = MenuAbierto(abierto) { abierto = it }
     DialogoVozSiToca(copiloto)
     val modoAnterior = rememberModoAnterior(copiloto.estado.modo)
     // Capas y notas grandes se esconden por encima de 20 km/h y vuelven al parar (con histéresis).
     val rapido = rememberMarchaRapida(estado.velocidadKmh)
+    // Sin su botón (que se esconde en marcha) el panel de capas no se podría cerrar: se cierra al arrancar.
+    LaunchedEffect(rapido) { if (rapido && abierto == MenuMapa.CAPAS) abierto = MenuMapa.NINGUNO }
     val botones =
         if (estado.hayDatos || copiloto.estado.notasGrandes) {
             botonesDeLaColumna(estado, vista, acciones, navegacion, copiloto, menu, modoAnterior)

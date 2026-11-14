@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
-import app.trombito.rallycopilot.ui.comun.BotonIcono
+import app.trombito.rallycopilot.ui.comun.BotonRedondoMapa
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.navegacion.guiado.ColoresGuiado
 import kotlin.math.roundToInt
@@ -105,11 +105,12 @@ fun TarjetaCalor(
                 )
             }
         }
-        BotonIcono(
+        // Botón carbón fijo (icono claro): con el tema claro un BotonIcono con tinte fijo quedaba invisible.
+        BotonRedondoMapa(
             descripcion = stringResource(R.string.calor_ficha_cerrar),
             onClick = onCerrar,
             modifier = Modifier.testTag(ETIQUETA_CALOR_FICHA_CERRAR),
-        ) { Icon(Iconos.Cerrar, contentDescription = null, tint = ColoresGuiado.Texto) }
+        ) { Icon(Iconos.Cerrar, contentDescription = null) }
     }
 }
 

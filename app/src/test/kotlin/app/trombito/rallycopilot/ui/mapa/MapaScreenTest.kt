@@ -15,6 +15,7 @@ import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
+import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_SENAL_LIMITE_DESCONOCIDO
@@ -23,6 +24,9 @@ import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.comun.fijacion
 import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_BOTON
 import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_SILENCIO_BOTON
+import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
+import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
+import app.trombito.rallycopilot.ui.navegacion.NavegacionUiState
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -94,6 +98,21 @@ class MapaScreenTest {
         assertTrue(banco.hay(ETIQUETA_CAPA_SATELITE))
         assertTrue(banco.hay(ETIQUETA_RELIEVE))
         abrirCapas()
+        assertFalse(banco.hay(ETIQUETA_CAPAS_PANEL))
+    }
+
+    @Test
+    fun `el panel de capas abierto se cierra solo al pasar a marcha`() {
+        var velocidad by mutableStateOf<Int?>(0)
+        banco.poner {
+            RallyCopilotTheme {
+                MapaScreen(conDatos().copy(velocidadKmh = velocidad), EstadoVistaMapa(), AccionesMapa(), mapaFalso)
+            }
+        }
+        abrirCapas()
+        assertTrue(banco.hay(ETIQUETA_CAPAS_PANEL))
+        velocidad = 63
+        banco.reposo()
         assertFalse(banco.hay(ETIQUETA_CAPAS_PANEL))
     }
 
@@ -187,12 +206,23 @@ class MapaScreenTest {
     }
 
     @Test
-    fun `la pantalla se mantiene encendida solo mientras el mapa esta visible`() {
+    fun `conduciendo la pantalla se mantiene encendida solo mientras el mapa esta visible`() {
         lateinit var vista: View
         var visible by mutableStateOf(true)
         banco.poner {
             vista = LocalView.current
-            RallyCopilotTheme { if (visible) MapaScreen(conDatos(), EstadoVistaMapa(), AccionesMapa(), mapaFalso) }
+            RallyCopilotTheme {
+                if (visible) {
+                    val libre = NavegacionUiState(control = EstadoNavegacion.Libre(0L, 0.0))
+                    MapaScreen(
+                        conDatos(),
+                        EstadoVistaMapa(),
+                        AccionesMapa(),
+                        mapaFalso,
+                        navegacion = NavegacionEnMapa(libre, AccionesNavegacion()),
+                    )
+                }
+            }
         }
         assertTrue(vista.keepScreenOn)
         visible = false
