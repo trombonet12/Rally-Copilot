@@ -148,11 +148,8 @@ class DomainDependencyRuleTest {
             }.toList()
 
     private companion object {
-        /**
-         * Lista blanca de `runBlocking` en producción. `ServicioNavegacion` lee un ajuste con plazo en el arranque del
-         * servicio (`onCreate`), donde hay que decidir los tipos del primer plano antes de volver al sistema.
-         */
-        val RUNBLOCKING_PERMITIDO: Set<String> = setOf("data/navegacion/ServicioNavegacion.kt")
+        /** Lista blanca de `runBlocking` en producción (vacía: `ServicioNavegacion` ya no bloquea). */
+        val RUNBLOCKING_PERMITIDO: Set<String> = emptySet()
 
         /**
          * Lista blanca data -> ui. Solo Activities que el sistema lanza a través de un PendingIntent (p. ej. desde la

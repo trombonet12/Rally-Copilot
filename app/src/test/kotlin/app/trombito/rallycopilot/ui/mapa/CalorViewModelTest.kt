@@ -94,7 +94,7 @@ class CalorViewModelTest {
 
     private fun almacen() = AlmacenCalor(RuntimeEnvironment.getApplication())
 
-    private fun crear(calculo: CarreterasFalsas) = CalorViewModel(calculo, almacen())
+    private fun crear(calculo: CarreterasFalsas) = CalorViewModel(calculo, almacen(), Dispatchers.Default)
 
     @Test
     fun `por defecto la capa esta encendida y en modo uso`() {

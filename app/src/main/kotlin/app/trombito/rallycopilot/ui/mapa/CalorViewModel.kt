@@ -3,12 +3,12 @@ package app.trombito.rallycopilot.ui.mapa
 import android.database.sqlite.SQLiteException
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.trombito.rallycopilot.di.DispatcherDefault
 import app.trombito.rallycopilot.domain.carreteras.CalculoCarreteras
 import app.trombito.rallycopilot.domain.carreteras.MisCarreteras
 import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -38,8 +38,11 @@ class CalorViewModel
         construirGeoJson: (List<TramoCalor>, ModoCalor) -> String,
     ) : ViewModel() {
         @Inject
-        constructor(calculo: CalculoCarreteras, almacen: AlmacenCalor) :
-            this(calculo, almacen, Dispatchers.Default, ::calorGeoJsonTexto)
+        constructor(
+            calculo: CalculoCarreteras,
+            almacen: AlmacenCalor,
+            @DispatcherDefault calculoJson: CoroutineDispatcher,
+        ) : this(calculo, almacen, calculoJson, ::calorGeoJsonTexto)
 
         private val activo = MutableStateFlow(almacen.activo())
         private val modo = MutableStateFlow(almacen.modo())
