@@ -888,6 +888,69 @@ Ajustes fáciles de recorrer y un perfil que aporte conclusiones.
 ### Estado
 en curso (2026-11-23)
 
+## H30 — Tablero del piloto
+### Objetivo
+Que el Perfil dé conclusiones y no listas (propuesta A de `docs/auditoria/2026-11c-perfil.md`).
+### Alcance
+- El Perfil pasa a ser un tablero de tarjetas con frase y cifra:
+  - ritmo en marcha;
+  - último viaje frente a la media;
+  - carretera más conducida;
+  - carretera más revirada;
+  - curva tipo;
+  - km estrenados;
+  - récords de verdad;
+  - velocidad por grado de curva.
+- Limpieza:
+  - «Mis carreteras» y la pestaña Carreteras se fusionan;
+  - se quitan «Repetidos», el historial duplicado, la tarjeta de instrucciones y la Evolución vacía;
+  - la primera pasada deja de contar como récord;
+  - la media pasa a ser en marcha;
+  - el vocabulario queda en viaje, tramo y pasada.
+### Criterios de aceptación
+- [ ] Ninguna tarjeta sale vacía: si no hay datos suficientes, no aparece.
+### Tests
+- `ConclusionesPiloto` y velocidad por grado (motor, TDD).
+### Estado
+pendiente
+
+## H31 — Carreteras como protagonistas
+### Objetivo
+Una ficha por carretera (propuesta B).
+### Alcance
+- Sentido de los tramos de vía estable frente a cambios de OSM (pendiente de `2026-11b`).
+- Nombre por el pueblo más cercano a la meta, o por el rumbo si no hay pueblo.
+- Ficha de carretera con:
+  - ritmo por sentido;
+  - curvas por km y reparto por grado;
+  - km conocidos;
+  - tramos sobre una regla de km.
+### Criterios de aceptación
+- [ ] Cada carretera conducida tiene ficha con datos de los dos sentidos si los hay.
+### Tests
+- Agregado por carretera y sentido; nombre por pueblo.
+### Estado
+pendiente
+
+## H32 — Temporada
+### Objetivo
+Progresión tipo juego WRC (propuesta C).
+### Alcance
+- Temporada con:
+  - km por semana;
+  - racha;
+  - hitos de km, curvas y carreteras;
+  - carné de carreteras;
+  - vitrina de récords que mejoran;
+  - resumen del mes compartible como imagen.
+- Nivel de piloto solo por km, curvas, carreteras y constancia.
+### Criterios de aceptación
+- [ ] Nada premia la velocidad en carretera abierta.
+### Tests
+- Hitos, racha y nivel (motor, TDD).
+### Estado
+pendiente
+
 ## Más adelante
 - Pendientes de hitos anteriores: prueba en coche (H14), topónimos que Vosk no reconoce, condiciones del NAP de la DGT y del CNIG, «Abrir con» desde gestores de archivos reales, H11 (voz de Moya) y H12 (Play).
 

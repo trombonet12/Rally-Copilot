@@ -354,3 +354,10 @@ Contexto y opciones en [docs/auditoria/2026-11.md](docs/auditoria/2026-11.md). T
   - **Mis tramos y perfil:** Fable audita y propone; Joan elige antes de implementar.
   - **Notas en el mapa (sin pregunta):** número de la curva en el ápice y mini icono en las advertencias, solo las próximas.
   - **Hoja de conducción (sin pregunta):** la lupa abre la búsqueda con el teclado; la hoja no aparenta deslizarse si no se despliega.
+  - **Mis tramos y Perfil (auditoría de Fable, `docs/auditoria/2026-11c-perfil.md`):** las tres propuestas: A (tablero de conclusiones), B (carreteras como protagonistas, con ficha por carretera) y C (temporada con hitos, carné y vitrina de récords). Además, toda la limpieza:
+    - fusionar Carreteras y Mis carreteras;
+    - quitar «Repetidos» y el historial duplicado;
+    - récord solo si mejora un tiempo anterior, y media en marcha;
+    - vocabulario único (viaje, tramo, pasada).
+
+    Velocidad por grado de curva en el tablero. Tramos sin destino: el pueblo más cercano a la meta y, si no hay, el rumbo.
