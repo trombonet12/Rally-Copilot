@@ -98,7 +98,8 @@ class PerfilPilotoTest {
         assertEquals(listOf("a1", "a2", "a3", "a4"), evolucion.map { it.pasadaId })
         assertEquals(listOf(1L, 2L, 3L, 4L).map { it * dia }, evolucion.map { it.fechaMs })
         assertEquals(listOf(200_000L, 190_000L, 195_000L, 180_000L), evolucion.map { it.tiempoMs })
-        assertEquals(listOf(true, true, false, true), evolucion.map { it.esRecord })
+        // La primera pasada no es récord: no mejora nada anterior.
+        assertEquals(listOf(false, true, false, true), evolucion.map { it.esRecord })
     }
 
     @Test
@@ -116,6 +117,29 @@ class PerfilPilotoTest {
     }
 
     @Test
+    fun `la primera pasada de un tramo no es record ni en la evolucion ni en el historial`() {
+        val unica = PerfilPiloto.de(listOf(b), recorridos)
+        assertEquals(
+            listOf(false),
+            unica.tramos
+                .single()
+                .evolucion
+                .map { it.esRecord },
+        )
+        assertFalse(unica.historial.single().esRecord)
+        // Con una segunda pasada mejor, esa sí es récord y la primera sigue sin serlo.
+        val dos =
+            TramoRegistrado(
+                "d",
+                "D",
+                1000.0,
+                listOf(registrada("d1", "d", 1000.0, 50_000L, 1), registrada("d2", "d", 1000.0, 45_000L, 2)),
+            )
+        val historial = PerfilPiloto.de(listOf(dos), emptyList()).historial.associate { it.pasadaId to it.esRecord }
+        assertEquals(mapOf("d1" to false, "d2" to true), historial)
+    }
+
+    @Test
     fun `un empate de tiempos deja como mejor la pasada mas antigua`() {
         val empate =
             TramoRegistrado(
@@ -126,7 +150,7 @@ class PerfilPilotoTest {
             )
         val resumen = PerfilPiloto.de(listOf(empate), emptyList()).tramos.single()
         assertEquals("vieja", resumen.mejorPasadaId)
-        assertEquals(listOf(true, false), resumen.evolucion.map { it.esRecord })
+        assertEquals(listOf(false, false), resumen.evolucion.map { it.esRecord })
     }
 
     @Test

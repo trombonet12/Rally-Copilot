@@ -23,7 +23,7 @@ data class RecorridoRegistrado(
     val distanciaM: Double,
 )
 
-/** Punto de la evolución de un tramo; [esRecord] si fue el mejor tiempo hasta ese momento. */
+/** Punto de la evolución de un tramo; [esRecord] si mejoró el mejor tiempo anterior (la primera pasada no lo es). */
 data class PuntoEvolucion(
     val pasadaId: String,
     val fechaMs: Long,
@@ -106,7 +106,8 @@ data class PerfilPiloto(
             var mejorHastaAhora = Long.MAX_VALUE
             val evolucion =
                 cronologicas.map {
-                    val record = it.pasada.totalMs < mejorHastaAhora
+                    // Un récord mejora una pasada anterior del mismo tramo: la primera no lo es.
+                    val record = mejorHastaAhora != Long.MAX_VALUE && it.pasada.totalMs < mejorHastaAhora
                     mejorHastaAhora = minOf(mejorHastaAhora, it.pasada.totalMs)
                     PuntoEvolucion(it.id, it.fechaMs, it.pasada.totalMs, record)
                 }

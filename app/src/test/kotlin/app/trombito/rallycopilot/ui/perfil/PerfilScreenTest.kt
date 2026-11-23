@@ -1,12 +1,12 @@
 package app.trombito.rallycopilot.ui.perfil
 
-import app.trombito.rallycopilot.motor.analisis.PasadaRegistrada
-import app.trombito.rallycopilot.motor.analisis.PerfilPiloto
-import app.trombito.rallycopilot.motor.analisis.RecorridoRegistrado
-import app.trombito.rallycopilot.motor.analisis.TramoRegistrado
+import app.trombito.rallycopilot.domain.perfil.TableroPiloto
+import app.trombito.rallycopilot.domain.perfil.UltimoViaje
+import app.trombito.rallycopilot.motor.analisis.Conclusion
+import app.trombito.rallycopilot.motor.analisis.TipoConclusion
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_MASCOTA_VACIO
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
-import app.trombito.rallycopilot.ui.comun.pasadaFalsa
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -17,152 +17,144 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
+// Pantalla alta: la lista perezosa solo compone lo que cabe.
 @RunWith(RobolectricTestRunner::class)
-@Config(qualifiers = "w411dp-h891dp-xxhdpi")
+@Config(qualifiers = "w411dp-h2400dp-xxhdpi")
 class PerfilScreenTest {
     @get:Rule val limpieza = LimpiezaCompose()
 
     private val banco = BancoCompose()
 
-    private val perfil =
-        PerfilPiloto.de(
-            tramos =
+    private val tablero =
+        TableroPiloto(
+            viajes = 10,
+            kmTotales = 412.3,
+            primerViajeMs = 1_762_000_000_000L,
+            ultimoViaje = UltimoViaje(7L, 1_762_500_000_000L, 12_400.0, "Sóller"),
+            conclusiones =
                 listOf(
-                    TramoRegistrado(
-                        "a",
-                        "Ma-2141 · Escorca",
-                        4_990.0,
-                        listOf(
-                            PasadaRegistrada("1", pasadaFalsa("a", 250_000L), 1_760_000_000_000L),
-                            PasadaRegistrada("2", pasadaFalsa("a", 240_000L), 1_761_000_000_000L),
-                            PasadaRegistrada("3", pasadaFalsa("a", 245_500L), 1_762_000_000_000L),
-                        ),
+                    Conclusion(
+                        TipoConclusion.RITMO,
+                        "71 km/h",
+                        "Vas a 71 km/h de media en marcha, sin contar las paradas.",
                     ),
-                    TramoRegistrado(
-                        "b",
-                        "Ma-10 · Valldemossa",
-                        9_990.0,
-                        listOf(PasadaRegistrada("4", pasadaFalsa("b", 500_000L), 1_762_500_000_000L)),
+                    Conclusion(
+                        TipoConclusion.CARRETERA_FAVORITA,
+                        "Ma-10",
+                        "Tu carretera es la Ma-10: 6 de tus 10 viajes.",
                     ),
+                    Conclusion(TipoConclusion.RECORDS, "2", "Has mejorado tu mejor tiempo 2 veces."),
                 ),
-            recorridos = listOf(RecorridoRegistrado(1_762_500_000_000L, 42_500.0)),
         )
-    private val estado = PerfilUiState(cargando = false, perfil = perfil)
+    private val estado = PerfilUiState(cargando = false, tablero = tablero)
 
     @Test
-    fun `los totales muestran kilometros, tramos, pasadas y velocidad media`() {
+    fun `la cabecera dice desde cuando, cuantos viajes y cuantos kilometros`() {
         banco.poner { RallyCopilotTheme { PerfilScreen(estado, AccionesPerfil()) } }
-        assertTrue("42,5" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_KM)))
-        assertTrue("2" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_TRAMOS)))
-        assertTrue("4" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_PASADAS)))
-        val velocidad = banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_VELOCIDAD))
-        assertTrue("Km/h medios" in velocidad)
-        assertTrue(velocidad.any { Regex("""\d+""").matches(it) })
+        val cabecera = banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_CABECERA)).single()
+        assertTrue(cabecera, cabecera.startsWith("Desde el "))
+        assertTrue(cabecera, "10 viajes" in cabecera)
+        assertTrue(cabecera, "412,3 km" in cabecera)
     }
 
     @Test
-    fun `los mejores tiempos listan los tramos con su mejor tiempo y el de mas pasadas va primero`() {
+    fun `un solo viaje va en singular`() {
+        val uno = estado.copy(tablero = tablero.copy(viajes = 1))
+        banco.poner { RallyCopilotTheme { PerfilScreen(uno, AccionesPerfil()) } }
+        val cabecera = banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_CABECERA)).single()
+        assertTrue(cabecera, "1 viaje ·" in cabecera)
+    }
+
+    @Test
+    fun `hay una tarjeta por conclusion con su cifra y su frase, en el orden del tablero`() {
         banco.poner { RallyCopilotTheme { PerfilScreen(estado, AccionesPerfil()) } }
-        assertEquals(listOf("perfil-mejor-a", "perfil-mejor-b"), banco.etiquetas(ETIQUETA_MEJOR_PREFIJO))
-        val a = banco.textos(banco.conEtiqueta("${ETIQUETA_MEJOR_PREFIJO}a"))
-        assertTrue("04:00,0" in a)
-        assertTrue("Ma-2141 · Escorca" in a)
-        assertTrue(a.any { it.contains("3 pasadas") })
+        assertEquals(
+            listOf("perfil-conclusion-RITMO", "perfil-conclusion-CARRETERA_FAVORITA", "perfil-conclusion-RECORDS"),
+            banco.etiquetas(ETIQUETA_PERFIL_CONCLUSION_PREFIJO),
+        )
+        val ritmo = banco.textos(banco.conEtiqueta("${ETIQUETA_PERFIL_CONCLUSION_PREFIJO}RITMO"))
+        assertTrue("Tu ritmo en marcha" in ritmo)
+        assertTrue("71 km/h" in ritmo)
+        assertTrue(ritmo.any { it.contains("sin contar las paradas") })
     }
 
     @Test
-    fun `tocar un tramo elige su evolucion`() {
-        val elegidos = mutableListOf<String>()
-        banco.poner { RallyCopilotTheme { PerfilScreen(estado, AccionesPerfil(onSeleccionar = { elegidos += it })) } }
-        banco.pulsar(banco.conEtiqueta("${ETIQUETA_MEJOR_PREFIJO}b"))
-        assertEquals(listOf("b"), elegidos)
+    fun `el ultimo viaje muestra el destino y abre su resumen`() {
+        val abiertos = mutableListOf<Long>()
+        banco.poner { RallyCopilotTheme { PerfilScreen(estado, AccionesPerfil(onVerViaje = { abiertos += it })) } }
+        val textos = banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_ULTIMO_VIAJE))
+        assertTrue("Último viaje" in textos)
+        assertTrue("Sóller" in textos)
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_PERFIL_ULTIMO_VIAJE))
+        assertEquals(listOf(7L), abiertos)
     }
 
     @Test
-    fun `el icono del analisis de un tramo abre su mejor pasada y no cambia la evolucion`() {
-        val abiertas = mutableListOf<Pair<String, Long>>()
-        val elegidos = mutableListOf<String>()
+    fun `un viaje libre no tiene destino y lo dice`() {
+        val libre =
+            estado.copy(
+                tablero = tablero.copy(ultimoViaje = UltimoViaje(8L, 1_762_500_000_000L, 5_000.0, null)),
+            )
+        banco.poner { RallyCopilotTheme { PerfilScreen(libre, AccionesPerfil()) } }
+        assertTrue("Viaje libre" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_ULTIMO_VIAJE)))
+    }
+
+    @Test
+    fun `los enlaces abren los viajes y las carreteras`() {
+        var viajes = 0
+        var carreteras = 0
+        banco.poner {
+            RallyCopilotTheme {
+                PerfilScreen(estado, AccionesPerfil(onVerViajes = { viajes++ }, onVerCarreteras = { carreteras++ }))
+            }
+        }
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_PERFIL_VER_VIAJES))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_PERFIL_VER_CARRETERAS))
+        assertEquals(1, viajes)
+        assertEquals(1, carreteras)
+        assertTrue("Ver todos los viajes" in banco.todosLosTextos())
+        assertTrue("Ver carreteras" in banco.todosLosTextos())
+    }
+
+    @Test
+    fun `ya no hay mejores tiempos, historial ni evolucion`() {
+        banco.poner { RallyCopilotTheme { PerfilScreen(estado, AccionesPerfil()) } }
+        val textos = banco.todosLosTextos()
+        listOf("Mejores tiempos", "Historial reciente", "Evolución", "Km/h medios").forEach {
+            assertFalse(it, it in textos)
+        }
+    }
+
+    @Test
+    fun `con viajes pero sin conclusiones avisa en vez de dejar huecos`() {
+        val sinConclusiones = estado.copy(tablero = tablero.copy(conclusiones = emptyList()))
+        banco.poner { RallyCopilotTheme { PerfilScreen(sinConclusiones, AccionesPerfil()) } }
+        assertTrue(banco.hay(ETIQUETA_PERFIL_SIN_CONCLUSIONES))
+        assertTrue(banco.hay(ETIQUETA_PERFIL_ULTIMO_VIAJE))
+        assertTrue(banco.etiquetas(ETIQUETA_PERFIL_CONCLUSION_PREFIJO).isEmpty())
+    }
+
+    @Test
+    fun `sin viajes sale el estado vacio con Trombito dormido`() {
+        banco.poner { RallyCopilotTheme { PerfilScreen(PerfilUiState(cargando = false), AccionesPerfil()) } }
+        assertTrue(banco.hay(ETIQUETA_PERFIL_VACIO))
+        assertTrue(banco.hay(ETIQUETA_MASCOTA_VACIO))
+        assertTrue("Tu perfil empieza aquí" in banco.todosLosTextos())
+        assertFalse(banco.hay(ETIQUETA_PERFIL_CABECERA))
+    }
+
+    @Test
+    fun `un fallo de lectura se cuenta sin cerrar la pantalla`() {
         banco.poner {
             RallyCopilotTheme {
                 PerfilScreen(
-                    estado,
-                    AccionesPerfil(onSeleccionar = { elegidos += it }, onVerAnalisis = { t, p -> abiertas += t to p }),
+                    PerfilUiState(cargando = false, error = true),
+                    AccionesPerfil(),
                 )
             }
         }
-        banco.pulsar(banco.conEtiqueta("${ETIQUETA_MEJOR_ANALISIS_PREFIJO}a"))
-        banco.pulsar(banco.conEtiqueta("${ETIQUETA_MEJOR_ANALISIS_PREFIJO}b"))
-        assertEquals(listOf("a" to 2L, "b" to 4L), abiertas)
-        assertTrue(elegidos.isEmpty())
-    }
-
-    // Pantalla alta: la lista perezosa solo compone lo que cabe.
-    @Test
-    @Config(qualifiers = "w411dp-h2400dp-xxhdpi")
-    fun `tocar una pasada del historial abre su analisis`() {
-        val abiertas = mutableListOf<Pair<String, Long>>()
-        banco.poner {
-            RallyCopilotTheme {
-                PerfilScreen(estado, AccionesPerfil(onVerAnalisis = { t, p -> abiertas += t to p }))
-            }
-        }
-        banco.pulsar(banco.conEtiqueta("${ETIQUETA_HISTORIAL_PREFIJO}3"))
-        banco.pulsar(banco.conEtiqueta("${ETIQUETA_HISTORIAL_PREFIJO}4"))
-        assertEquals(listOf("a" to 3L, "b" to 4L), abiertas)
-    }
-
-    @Test
-    fun `la evolucion es la del tramo elegido y el grafico se describe`() {
-        banco.poner { RallyCopilotTheme { PerfilScreen(estado.copy(seleccionadoId = "a"), AccionesPerfil()) } }
-        assertEquals("Ma-2141 · Escorca", banco.textos(banco.conEtiqueta(ETIQUETA_EVOLUCION_TITULO)).single())
-        val descripcion = banco.descripcion(banco.conEtiqueta(ETIQUETA_GRAFICO))
-        assertEquals("Evolución del tiempo: 3 pasadas, mejor tiempo 04:00,0, 2 récords", descripcion)
-    }
-
-    // Pantalla alta: la lista perezosa solo compone lo que cabe.
-    @Test
-    @Config(qualifiers = "w411dp-h2400dp-xxhdpi")
-    fun `el historial muestra las pasadas recientes con su diferencia y los records`() {
-        banco.poner { RallyCopilotTheme { PerfilScreen(estado, AccionesPerfil()) } }
-        val ultimas = banco.etiquetas(ETIQUETA_HISTORIAL_PREFIJO)
-        assertEquals(
-            listOf("perfil-historial-4", "perfil-historial-3", "perfil-historial-2", "perfil-historial-1"),
-            ultimas,
-        )
-        val tercera = banco.textos(banco.conEtiqueta("${ETIQUETA_HISTORIAL_PREFIJO}3"))
-        assertTrue("04:05,5" in tercera)
-        assertTrue("+5,5" in tercera)
-        val mejor = banco.textos(banco.conEtiqueta("${ETIQUETA_HISTORIAL_PREFIJO}2"))
-        // Un récord se dice una vez: estrella y «Récord», sin «Mejor» al lado.
-        assertTrue("Récord" in mejor)
-        assertFalse("Mejor" in mejor)
-    }
-
-    @Test
-    fun `con menos de tres pasadas la evolucion avisa y muestra el punto en vez de un grafico`() {
-        banco.poner { RallyCopilotTheme { PerfilScreen(estado.copy(seleccionadoId = "b"), AccionesPerfil()) } }
-        assertTrue(banco.hay(ETIQUETA_EVOLUCION_VACIA))
-        assertFalse(banco.hay(ETIQUETA_GRAFICO))
-        assertTrue("Corre este tramo otra vez para ver cómo evolucionas." in banco.todosLosTextos())
-        assertTrue(banco.textos(banco.conEtiqueta(ETIQUETA_EVOLUCION_PUNTO)).any { it.startsWith("08:20,0") })
-    }
-
-    @Test
-    fun `sin datos sale el estado vacio amable`() {
-        val vacio = PerfilUiState(cargando = false, perfil = PerfilPiloto.de(emptyList(), emptyList()))
-        banco.poner { RallyCopilotTheme { PerfilScreen(vacio, AccionesPerfil()) } }
-        assertTrue(banco.hay(ETIQUETA_PERFIL_VACIO))
-        assertTrue("Tu perfil empieza aquí" in banco.todosLosTextos())
-        assertFalse(banco.hay(ETIQUETA_PERFIL_KM))
-    }
-
-    @Test
-    fun `con kilometros pero sin tramos avisa en vez de dejar huecos`() {
-        val soloKm = PerfilPiloto.de(emptyList(), listOf(RecorridoRegistrado(1L, 3_000.0)))
-        banco.poner { RallyCopilotTheme { PerfilScreen(PerfilUiState(false, soloKm), AccionesPerfil()) } }
-        assertTrue("3,0" in banco.textos(banco.conEtiqueta(ETIQUETA_PERFIL_KM)))
-        assertTrue("Todavía no has completado ningún tramo." in banco.todosLosTextos())
-        assertFalse(banco.hay(ETIQUETA_GRAFICO))
+        assertTrue(banco.hay(ETIQUETA_PERFIL_ERROR))
+        assertFalse(banco.hay(ETIQUETA_PERFIL_VACIO))
     }
 
     @Test

@@ -1,34 +1,20 @@
 package app.trombito.rallycopilot.ui.perfil
 
-import app.trombito.rallycopilot.motor.analisis.PerfilPiloto
-import app.trombito.rallycopilot.motor.analisis.ResumenTramo as ResumenTramoPerfil
+import app.trombito.rallycopilot.domain.perfil.TableroPiloto
+import app.trombito.rallycopilot.motor.analisis.Conclusion
 
 /**
- * Estado del perfil. [seleccionadoId] es el tramo cuya evolución se ve (por defecto, el de más pasadas); [mejores] son
- * los tramos con pasadas, de más a menos hechos, limitados a [TOP_TRAMOS].
+ * Estado del perfil del piloto: el [tablero] ya calculado (cabecera, último viaje y conclusiones). [error] si falló la
+ * lectura de los viajes.
  */
 data class PerfilUiState(
     val cargando: Boolean = true,
-    val perfil: PerfilPiloto? = null,
-    val seleccionadoId: String? = null,
+    val error: Boolean = false,
+    val tablero: TableroPiloto = TableroPiloto(),
 ) {
-    /** Sin kilómetros ni pasadas: el perfil empieza en el primer trayecto. */
-    val vacio: Boolean get() = !cargando && (perfil == null || (perfil.numeroPasadas == 0 && perfil.kmTotales <= 0.0))
+    /** Sin ningún viaje terminado: el perfil empieza en el primero. */
+    val vacio: Boolean get() = !cargando && !error && tablero.viajes == 0
 
-    val mejores: List<ResumenTramoPerfil>
-        get() =
-            perfil
-                ?.tramos
-                .orEmpty()
-                .filter { it.numeroPasadas > 0 }
-                .sortedWith(compareByDescending<ResumenTramoPerfil> { it.numeroPasadas }.thenBy { it.nombre })
-                .take(TOP_TRAMOS)
-
-    val seleccionado: ResumenTramoPerfil? get() =
-        mejores.firstOrNull { it.tramoId == seleccionadoId }
-            ?: mejores.firstOrNull()
-
-    companion object {
-        const val TOP_TRAMOS = 5
-    }
+    /** Las tarjetas de conclusión en el orden de `TipoConclusion`, que es el orden del tablero. */
+    val conclusiones: List<Conclusion> get() = tablero.conclusiones.sortedBy { it.tipo.ordinal }
 }

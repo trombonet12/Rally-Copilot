@@ -93,6 +93,8 @@ class CalculadorCarreteras
                 resumen = AgregadoCarreteras.agregar(analisis.map { it.carreteras }),
                 hayVias = datos != null,
                 velocidades = VelocidadVias.agregar(analisis.map { it.marcha }),
+                // `listar()` va del más reciente al más antiguo.
+                ultimoViaje = analisis.firstOrNull()?.marcha,
             )
         }
 

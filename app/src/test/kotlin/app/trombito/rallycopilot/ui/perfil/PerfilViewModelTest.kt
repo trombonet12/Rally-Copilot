@@ -1,11 +1,16 @@
 package app.trombito.rallycopilot.ui.perfil
 
-import app.trombito.rallycopilot.domain.tramos.EstadisticasPerfil
-import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
-import app.trombito.rallycopilot.ui.comun.detalladaFalsa
-import app.trombito.rallycopilot.ui.comun.resumenFalso
+import android.database.sqlite.SQLiteException
+import app.trombito.rallycopilot.domain.perfil.CalculoTablero
+import app.trombito.rallycopilot.domain.perfil.TableroPiloto
+import app.trombito.rallycopilot.domain.perfil.UltimoViaje
+import app.trombito.rallycopilot.motor.analisis.Conclusion
+import app.trombito.rallycopilot.motor.analisis.TipoConclusion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -15,31 +20,41 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import java.io.IOException
+
+/** Cálculo en memoria: emite lo que se le ponga en [tablero], o lanza [fallo] al observarlo. */
+private class CalculoTableroFalso(
+    inicial: TableroPiloto = TableroPiloto(),
+    private val fallo: Throwable? = null,
+) : CalculoTablero {
+    val tablero = MutableStateFlow(inicial)
+
+    override fun observar(): Flow<TableroPiloto> =
+        if (fallo == null) {
+            tablero
+        } else {
+            flow { throw fallo }
+        }
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@RunWith(RobolectricTestRunner::class)
 class PerfilViewModelTest {
-    private val repositorio =
-        FalsoRepositorioTramos(
-            resumenes =
-                listOf(
-                    resumenFalso("a", "Ma-2141 · Escorca", pasadas = 2, longitudM = 5_000.0),
-                    resumenFalso("b", "Ma-10 · Valldemossa", pasadas = 1, longitudM = 10_000.0),
-                    resumenFalso("c", "Sin pasadas", pasadas = 0, mejorMs = null),
-                ),
-            pasadas =
-                mapOf(
-                    "a" to
-                        listOf(
-                            detalladaFalsa(2, "a", 240_000L, 2_000L, esMejor = true),
-                            detalladaFalsa(1, "a", 250_000L, 1_000L),
-                        ),
-                    "b" to listOf(detalladaFalsa(3, "b", 500_000L, 3_000L, esMejor = true)),
-                ),
-            perfil = EstadisticasPerfil(4, 42_500.0, 500L, 3_500L, 3, 3),
+    private val ritmo = Conclusion(TipoConclusion.RITMO, "71 km/h", "Vas a 71 km/h de media en marcha.")
+    private val records = Conclusion(TipoConclusion.RECORDS, "2", "Has mejorado tu mejor tiempo 2 veces.")
+    private val tablero =
+        TableroPiloto(
+            viajes = 3,
+            kmTotales = 42.5,
+            primerViajeMs = 1_000L,
+            ultimoViaje = UltimoViaje(7L, 3_000L, 12_000.0, "Sóller"),
+            // Desordenadas a propósito: el estado las ordena como el tablero.
+            conclusiones = listOf(records, ritmo),
         )
 
     @Before
@@ -52,119 +67,79 @@ class PerfilViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun TestScope.crear(repo: FalsoRepositorioTramos = repositorio): PerfilViewModel {
-        val vm = PerfilViewModel(repo)
+    private fun TestScope.crear(calculo: CalculoTablero): PerfilViewModel {
+        val vm = PerfilViewModel(calculo)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
 
     @Test
-    fun `empieza cargando y luego agrega kilometros, tramos y pasadas`() =
+    fun `empieza cargando y luego ensena el tablero`() =
         runTest {
-            val vm = PerfilViewModel(repositorio)
+            val vm = PerfilViewModel(CalculoTableroFalso(tablero))
             assertTrue(vm.uiState.value.cargando)
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
-            val perfil = vm.uiState.value.perfil
-            assertNotNull(perfil)
-            assertFalse(vm.uiState.value.cargando)
-            assertEquals(42.5, perfil!!.kmTotales, 1e-9)
-            assertEquals(3, perfil.numeroTramos)
-            assertEquals(3, perfil.numeroPasadas)
-            // 19 970 m cronometrados (hasta la meta) en 990 s.
-            assertEquals(19_970.0 / 990_000.0 * 3600.0, perfil.velMediaKmh!!, 1e-6)
+            val estado = vm.uiState.value
+            assertFalse(estado.cargando)
+            assertFalse(estado.error)
+            assertEquals(3, estado.tablero.viajes)
+            assertEquals(42.5, estado.tablero.kmTotales, 1e-9)
+            assertEquals(7L, estado.tablero.ultimoViaje?.id)
         }
 
     @Test
-    fun `los mejores tiempos son los de cada tramo con pasadas, el de mas pasadas primero`() =
+    fun `las conclusiones salen en el orden del tablero`() =
         runTest {
-            val vm = crear()
-            val mejores = vm.uiState.value.mejores
-            assertEquals(listOf("a", "b"), mejores.map { it.tramoId })
-            assertEquals(listOf(240_000L, 500_000L), mejores.map { it.mejorMs })
+            val vm = crear(CalculoTableroFalso(tablero))
             assertEquals(
-                "a",
-                vm.uiState.value.seleccionado
-                    ?.tramoId,
+                listOf(TipoConclusion.RITMO, TipoConclusion.RECORDS),
+                vm.uiState.value.conclusiones
+                    .map { it.tipo },
             )
         }
 
     @Test
-    fun `elegir un tramo cambia la evolucion que se ve`() =
+    fun `sin viajes el perfil esta vacio`() =
         runTest {
-            val vm = crear()
-            vm.onSeleccionar("b")
-            assertEquals(
-                "b",
-                vm.uiState.value.seleccionado
-                    ?.tramoId,
-            )
-            assertEquals(
-                1,
-                vm.uiState.value.seleccionado
-                    ?.evolucion
-                    ?.size,
-            )
-            vm.onSeleccionar("a")
-            assertEquals(
-                listOf(true, true),
-                vm.uiState.value.seleccionado
-                    ?.evolucion
-                    ?.map { it.esRecord },
-            )
-        }
-
-    @Test
-    fun `una seleccion que ya no existe vuelve al tramo por defecto`() =
-        runTest {
-            val vm = crear()
-            vm.onSeleccionar("fantasma")
-            assertEquals(
-                "a",
-                vm.uiState.value.seleccionado
-                    ?.tramoId,
-            )
-        }
-
-    @Test
-    fun `el historial va de mas nuevo a mas antiguo con la diferencia contra la mejor`() =
-        runTest {
-            val vm = crear()
-            val historial =
-                vm.uiState.value.perfil!!
-                    .historial
-            assertEquals(listOf("3", "2", "1"), historial.map { it.pasadaId })
-            assertEquals(listOf(0L, 0L, 10_000L), historial.map { it.deltaMejorMs })
-        }
-
-    @Test
-    fun `sin recorridos ni pasadas el perfil esta vacio`() =
-        runTest {
-            val vm = crear(FalsoRepositorioTramos())
+            val vm = crear(CalculoTableroFalso())
             assertFalse(vm.uiState.value.cargando)
             assertTrue(vm.uiState.value.vacio)
         }
 
     @Test
-    fun `se actualiza cuando llega una pasada nueva`() =
+    fun `con un viaje pero sin conclusiones no esta vacio`() =
         runTest {
-            val vm = crear()
-            repositorio.pasadasPorTramo["b"] =
-                listOf(
-                    detalladaFalsa(4, "b", 480_000L, 4_000L, esMejor = true),
-                    detalladaFalsa(3, "b", 500_000L, 3_000L),
-                )
-            repositorio.resumenesMutable.value =
-                repositorio.resumenesMutable.value.map { if (it.id == "b") it.copy(pasadas = 2) else it }
-            assertEquals(
-                4,
-                vm.uiState.value.perfil
-                    ?.numeroPasadas,
+            val vm = crear(CalculoTableroFalso(TableroPiloto(viajes = 1, kmTotales = 2.0)))
+            assertFalse(vm.uiState.value.vacio)
+            assertTrue(
+                vm.uiState.value.conclusiones
+                    .isEmpty(),
             )
-            assertEquals(
-                480_000L,
-                vm.uiState.value.mejores
-                    .first { it.tramoId == "b" }
-                    .mejorMs,
-            )
+        }
+
+    @Test
+    fun `se actualiza cuando termina un viaje mas`() =
+        runTest {
+            val calculo = CalculoTableroFalso(tablero)
+            val vm = crear(calculo)
+            calculo.tablero.value = tablero.copy(viajes = 4, kmTotales = 50.0)
+            assertEquals(4, vm.uiState.value.tablero.viajes)
+            assertEquals(50.0, vm.uiState.value.tablero.kmTotales, 1e-9)
+        }
+
+    @Test
+    fun `un fallo de la base pasa a error sin cerrar la pantalla`() =
+        runTest {
+            val vm = crear(CalculoTableroFalso(fallo = SQLiteException("disco")))
+            assertTrue(vm.uiState.value.error)
+            assertFalse(vm.uiState.value.cargando)
+            assertFalse(vm.uiState.value.vacio)
+        }
+
+    @Test
+    fun `un fallo de lectura de puntos tambien pasa a error`() =
+        runTest {
+            val vm = crear(CalculoTableroFalso(fallo = IOException("puntos")))
+            assertTrue(vm.uiState.value.error)
         }
 }

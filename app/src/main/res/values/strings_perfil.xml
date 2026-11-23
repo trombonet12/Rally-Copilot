@@ -1,26 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="perfil_vacio_titulo">Tu perfil empieza aquí</string>
-    <string name="perfil_vacio_texto">Cuando completes tu primer tramo verás aquí tus kilómetros, tus mejores tiempos y cómo mejoras.</string>
+    <string name="perfil_vacio_texto">Cuando termines tu primer viaje verás aquí tus kilómetros, tu ritmo y lo que dicen tus carreteras.</string>
+    <string name="perfil_error_titulo">No se ha podido leer tu perfil</string>
+    <string name="perfil_error_texto">Cierra la pantalla y vuelve a abrirla. Si sigue igual, reinicia la app.</string>
 
-    <string name="perfil_km">Kilómetros</string>
-    <string name="perfil_tramos">Tramos</string>
-    <string name="perfil_pasadas">Pasadas</string>
-    <string name="perfil_velocidad">Km/h medios</string>
+    <string name="perfil_cabecera">Desde el %1$s · %2$s · %3$s</string>
+    <plurals name="perfil_viajes">
+        <item quantity="one">%d viaje</item>
+        <item quantity="other">%d viajes</item>
+    </plurals>
 
-    <string name="perfil_mejores_titulo">Mejores tiempos</string>
-    <string name="perfil_mejores_ayuda">Toca un tramo para ver cómo evoluciona, o el icono del gráfico para abrir el análisis de su mejor pasada.</string>
-    <string name="perfil_sin_tramos">Todavía no has completado ningún tramo.</string>
+    <string name="perfil_ultimo_titulo">Último viaje</string>
+    <string name="perfil_ultimo_libre">Viaje libre</string>
+    <string name="perfil_ultimo_detalle">%1$s · %2$s</string>
+    <string name="perfil_ultimo_accion">Ver el resumen del último viaje</string>
 
-    <string name="perfil_evolucion_titulo">Evolución</string>
+    <string name="perfil_sin_conclusiones">Con unos kilómetros más de carretera irán apareciendo aquí tus conclusiones.</string>
+
+    <string name="perfil_conclusion_ritmo">Tu ritmo en marcha</string>
+    <string name="perfil_conclusion_ultimo_viaje">Último viaje frente a tu ritmo</string>
+    <string name="perfil_conclusion_carretera_favorita">Tu carretera</string>
+    <string name="perfil_conclusion_carretera_revirada">La más revirada</string>
+    <string name="perfil_conclusion_curva_tipo">Tu curva tipo</string>
+    <string name="perfil_conclusion_km_estrenados">Carretera estrenada</string>
+    <string name="perfil_conclusion_records">Récords</string>
+    <string name="perfil_conclusion_velocidad_por_grado">Velocidad en curva</string>
+
+    <string name="perfil_ver_viajes">Ver todos los viajes</string>
+    <string name="perfil_ver_carreteras">Ver carreteras</string>
+
     <string name="perfil_grafico_descripcion">Evolución del tiempo: %1$d pasadas, mejor tiempo %2$s, %3$d récords</string>
     <string name="perfil_grafico_leyenda">El punto grande marca un récord: un nuevo mejor tiempo del tramo.</string>
-
-    <string name="perfil_historial_titulo">Historial reciente</string>
-    <string name="perfil_historial_vacio">Aún no hay pasadas en el historial.</string>
-    <string name="perfil_ver_analisis_mejor">Ver el análisis de la mejor pasada de %1$s</string>
-    <string name="perfil_ver_analisis_pasada">Ver el análisis de la pasada de %1$s</string>
-    <string name="perfil_record">Récord</string>
-    <string name="perfil_evolucion_vacia_titulo">Aún no hay evolución</string>
-    <string name="perfil_evolucion_vacia_texto">Corre este tramo otra vez para ver cómo evolucionas.</string>
 </resources>
