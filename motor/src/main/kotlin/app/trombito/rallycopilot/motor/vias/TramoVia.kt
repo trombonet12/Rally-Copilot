@@ -136,13 +136,14 @@ private fun solapePk(
 private fun cubierto(
     a: TramoVia,
     b: TramoVia,
-): Double {
-    if (a.trazado.size < 2 || b.trazado.size < 2) return 0.0
-    val trazaB = TrazaMetros(b.trazado)
-    val dentro =
-        a.trazado.count {
-            (trazaB.proyectar(it)?.distanciaM ?: Double.POSITIVE_INFINITY) <=
-                CERCANIA_GEOMETRIA_M
-        }
-    return dentro.toDouble() / a.trazado.size
+): Double = if (a.trazado.size < 2) 0.0 else puntosCubiertos(a.trazado, b.trazado).size.toDouble() / a.trazado.size
+
+/** Los puntos de [a] (en su orden) a menos de 30 m de la polilínea [b]; vacío si alguna tiene menos de dos puntos. */
+internal fun puntosCubiertos(
+    a: List<PuntoGeo>,
+    b: List<PuntoGeo>,
+): List<PuntoGeo> {
+    if (a.size < 2 || b.size < 2) return emptyList()
+    val trazaB = TrazaMetros(b)
+    return a.filter { (trazaB.proyectar(it)?.distanciaM ?: Double.POSITIVE_INFINITY) <= CERCANIA_GEOMETRIA_M }
 }
