@@ -4,31 +4,54 @@
 
 | Campo | Valor |
 |---|---|
-| Hito | H26–H29 · **v1.7.0** (lo que salió conduciendo la v1.6.0) · siguiente: H29b (pantallas con el sistema visual común), H30 tablero, H31 carreteras, H32 temporada |
-| Estado | **v1.7.1 publicada** (release de GitHub, 2026-11-23 11:42 UTC; la 1.7.0 no salió por un test intermitente del CI, ya arreglado). Joan la actualiza con Obtainium |
+| Hito | H29a–H32 · **v1.8.0** (todo lo pendiente tras la v1.7.1, en una sola versión por decisión de Joan) · siguiente: prueba en coche, revisión final de interfaz con Fable y retoques aplazados · H11 y H12 pospuestos |
+| Estado | v1.8.0 lista para publicar: gate y scripts en verde, prueba única en el emulador con los datos de Joan (migración v22, Inicio, tablero, temporada, Mis carreteras) |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
 ## Próxima acción
-1. **H29b**: migrar las pantallas al sistema visual común (piezas ya hechas en `ui/comun` y `ui/theme`), siguiendo el plan de [auditoria/2026-11d-pantallas.md](auditoria/2026-11d-pantallas.md):
-   - las tres poses de Trombito (`docs/assets/poses/`) a VectorDrawable;
-   - Inicio con «Última salida» pulsable y «Repetir»;
-   - hoja del copiloto en dos pestañas;
-   - «?» de ayuda de notas;
-   - hoja previa a «Reconocer»;
-   - destinos recientes.
-2. **H30–H32**: tablero del piloto (`ConclusionesPiloto` y `VelocidadPorGrado` ya en el motor), ficha por carretera y temporada.
-3. **Posible fallo:** restaurar una copia en un móvil sin datos podría dejar los mapas «dañados». La copia lleva `archivo_instalado` y la siembra se salta el estilo. Comprobarlo con `CopiaSeguridad` y, si se confirma, no restaurar esa tabla.
-4. **Pulir:**
-   - En el resumen del viaje, un trozo de tramo sale con el nombre del tramo entero.
-   - Las filas de la portada de Ajustes tienen hueco de más por debajo.
-   - La llegada del resumen se compara con el tiempo de Valhalla sin el factor personal.
-5. **Pendientes de [auditoria/2026-11b.md](auditoria/2026-11b.md)**:
-   - sentido estable ante cambios de OSM, que H31 necesita;
-   - dos pasadas por el mismo trozo;
-   - trozo perdido si `repetir` da null.
-6. **Pregunta para Joan:** la nota muestra dos distancias pegadas («IZQUIERDA 6 · 50 m» y «40 m»).
+1. Joan prueba la v1.8.0 en el coche. Qué mirar:
+   - números de curva y avisos en el mapa (colores izquierda/derecha por decidir);
+   - toque de radares, incidencias y banderas en marcha;
+   - lupa;
+   - fantasma;
+   - «Fin de tramo»;
+   - resumen del viaje;
+   - hoja del copiloto en pestañas;
+   - tablero y temporada.
+2. Si algún toque sigue fallando en el móvil, conectarlo y sacar `registros/rally.log`: cada toque deja «Mapa toque capa=…».
+3. Revisión final de la interfaz con Fable, aplazada por Joan para ir rápido.
+4. Retoques aplazados de H29b:
+   - iconos por categoría en la búsqueda;
+   - Dibujar ruta con `MapaConPanelWrc`;
+   - un solo snackbar.
+5. Pendientes técnicos: las pistas de los km de tramo con «~» en la ficha de carretera (hace falta guardar `pkEstimado`).
 
 ## Completado
+- 2026-11-23 · **H29a–H32** (v1.8.0):
+  - Mapa:
+    - todo se puede tocar y explica qué es: radares fijos y de tramo, incidencias con «DGT hace X min», notas y banderas;
+    - la hoja del copiloto va en dos pestañas con «?»;
+    - las tarjetas del mapa van en carbón.
+  - Visual:
+    - piezas comunes WRC;
+    - Trombito saludando, con bandera y dormido;
+    - Inicio con «Última salida» pulsable y «Repetir»;
+    - análisis, editor, Mapas offline (relieve con datos móviles), vista previa con barra de curvas y llegada, ayudas en chips y hoja de «Reconocer».
+  - Carrete: solo muestra la distancia que falta.
+  - Destinos recientes en chips.
+  - Datos:
+    - Room v22 con `llegadaEstimadaS`;
+    - restaurar una copia ya no daña los mapas;
+    - dos pasadas por el mismo trozo;
+    - troceado sin esperar al migrador.
+  - Tramos de vía:
+    - emparejados por geometría, con sentido estable;
+    - nombre por el pueblo más cercano a la meta o por el rumbo.
+  - Perfil:
+    - tablero de conclusiones con récords de verdad y media en marcha;
+    - temporada con nivel de piloto, hitos, carné, vitrina y resumen del mes compartible.
+  - Mis carreteras: mapa de calor y ficha por carretera.
+  - Capturas en [capturas/h26-h29/](capturas/h26-h29/).
 - 2026-11-23 · **H26–H29** (v1.7.0), tras la prueba en coche de la v1.6.0:
   - Voz:
     - con los cruces desactivados, los giros ya no dicen «cruce»;
