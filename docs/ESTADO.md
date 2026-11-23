@@ -1,20 +1,56 @@
 # Estado
 
-> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-14 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
+> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-23 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
 
 | Campo | Valor |
 |---|---|
-| Hito | H22–H25 · **v1.6.0** (H22–H24 + arreglos de la auditoría H25 juntos, decisión de Joan) · siguiente: pendientes de la auditoría y prueba en coche · H11 y H12 pospuestos |
-| Estado | **v1.6.0 publicada** (release de GitHub, 2026-11-14 22:13 UTC). No instalada por cable: el móvil se desconectó antes. Joan puede actualizar con Obtainium o se instala en la próxima sesión |
+| Hito | H26–H29 · **v1.7.0** (lo que salió conduciendo la v1.6.0) · siguiente: H29b (pantallas con el sistema visual común), H30 tablero, H31 carreteras, H32 temporada |
+| Estado | v1.7.0 lista para publicar con gate y scripts en verde y prueba en el emulador con los datos de Joan |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
 ## Próxima acción
-1. La release 1.6.0 está publicada. Si Joan no la ha actualizado con Obtainium, instalarla en el móvil con `gh release download` y `adb install -r`, abrir la app, sacar con `adb pull` `Android/data/app.trombito.rallycopilot/files/{copias,registros}` y comprobar que la migración v20→21 y los tramos de vía cuadran (10 viajes y 11 tramos-viaje intactos).
-2. Pendientes de [auditoria/2026-11b.md](auditoria/2026-11b.md) (estado «pendiente»): sentido estable ante cambios de datos de OSM, subtramos no situables, dos pasadas por el mismo trozo, trozo perdido si `repetir` da null y espera al migrador.
-3. Pregunta para Joan: la nota muestra dos distancias pegadas («IZQUIERDA 6 · 50 m» y «40 m»).
-4. El AVD `trombito-36` tiene una base v21 antigua (sin `llegado`): borrar los datos de `app.trombito.rallycopilot.dev` antes de probar.
+1. **H29b**: migrar las pantallas al sistema visual común (piezas ya hechas en `ui/comun` y `ui/theme`), siguiendo el plan de [auditoria/2026-11d-pantallas.md](auditoria/2026-11d-pantallas.md):
+   - las tres poses de Trombito (`docs/assets/poses/`) a VectorDrawable;
+   - Inicio con «Última salida» pulsable y «Repetir»;
+   - hoja del copiloto en dos pestañas;
+   - «?» de ayuda de notas;
+   - hoja previa a «Reconocer»;
+   - destinos recientes.
+2. **H30–H32**: tablero del piloto (`ConclusionesPiloto` y `VelocidadPorGrado` ya en el motor), ficha por carretera y temporada.
+3. **Posible fallo:** restaurar una copia en un móvil sin datos podría dejar los mapas «dañados». La copia lleva `archivo_instalado` y la siembra se salta el estilo. Comprobarlo con `CopiaSeguridad` y, si se confirma, no restaurar esa tabla.
+4. **Pulir:**
+   - En el resumen del viaje, un trozo de tramo sale con el nombre del tramo entero.
+   - Las filas de la portada de Ajustes tienen hueco de más por debajo.
+   - La llegada del resumen se compara con el tiempo de Valhalla sin el factor personal.
+5. **Pendientes de [auditoria/2026-11b.md](auditoria/2026-11b.md)**:
+   - sentido estable ante cambios de OSM, que H31 necesita;
+   - dos pasadas por el mismo trozo;
+   - trozo perdido si `repetir` da null.
+6. **Pregunta para Joan:** la nota muestra dos distancias pegadas («IZQUIERDA 6 · 50 m» y «40 m»).
 
 ## Completado
+- 2026-11-23 · **H26–H29** (v1.7.0), tras la prueba en coche de la v1.6.0:
+  - Voz:
+    - con los cruces desactivados, los giros ya no dicen «cruce»;
+    - la parada alcanzada tampoco.
+  - Rutas: iguales por geometría, al menos dos alternativas distintas y sin chips repetidos.
+  - Incidencias:
+    - la DGT aporta km, sentido, municipio, carriles, límite y comentario;
+    - al tocarlas sale el bocadillo con el detalle, también con el mapa en movimiento.
+  - Mapa:
+    - grado de la curva en el ápice y mini iconos de aviso en los próximos 1,5 km;
+    - tramos conocidos en ámbar con banderas y «Fin de tramo» en el HUD;
+    - fantasma visible en modo claro;
+    - sin el cartel «Esperando conexión»: el relieve espera WiFi y Mapas offline lo dice;
+    - la hoja ya no tiene asa falsa y la lupa abre el teclado.
+  - Resumen del viaje al terminar, y desde el detalle del tramo.
+  - Ajustes en una columna con 8 categorías.
+  - Auditorías de Fable:
+    - Mis tramos y Perfil ([2026-11c](auditoria/2026-11c-perfil.md));
+    - menú y pantallas ([2026-11d](auditoria/2026-11d-pantallas.md)).
+  - Piezas comunes WRC.
+  - Poses de Trombito elegidas por Joan.
+  - Capturas en [capturas/h26-h29/](capturas/h26-h29/).
 - 2026-11-14 · **H22–H25** (v1.6.0), tras la prueba en coche de la v1.5.0:
   - Interfaz: banner de maniobra un 33 % más pequeño; velocidad compacta con el coche justo encima; botones fijos de 56 dp; sin barra de búsqueda en marcha.
   - Búsqueda: direcciones y coordenadas copiadas de Google, Plus Codes y nombres en castellano y catalán.

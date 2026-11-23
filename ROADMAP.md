@@ -843,7 +843,7 @@ Corregir lo que molestó conduciendo la v1.6.0.
 ### Tests
 - Frases sin «cruce»; rutas iguales por geometría y alternativa forzada.
 ### Estado
-en curso (2026-11-23)
+completado (2026-11-23, v1.7.0, H26–H29 juntos) · ver docs/ESTADO.md
 
 ## H27 — Incidencias con detalle y notas en el mapa
 ### Objetivo
@@ -858,7 +858,7 @@ Saber qué es cada incidencia y ver las notas sobre el mapa de un vistazo.
 ### Tests
 - Parser DATEX sobre el fixture real; ápice de las notas.
 ### Estado
-en curso (2026-11-23)
+completado (2026-11-23, v1.7.0, H26–H29 juntos) · ver docs/ESTADO.md
 
 ## H28 — Tramos en ruta y resumen del viaje
 ### Objetivo
@@ -872,7 +872,7 @@ Ver dónde empieza y acaba cada tramo y entender el viaje al terminar.
 ### Tests
 - Tramos que solapan una ruta; `ResumenViaje`.
 ### Estado
-en curso (2026-11-23)
+completado (2026-11-23, v1.7.0, H26–H29 juntos) · ver docs/ESTADO.md
 
 ## H29 — Ajustes en una columna y auditoría del perfil
 ### Objetivo
@@ -886,7 +886,7 @@ Ajustes fáciles de recorrer y un perfil que aporte conclusiones.
 ### Tests
 - Los de Ajustes ajustados.
 ### Estado
-en curso (2026-11-23)
+completado (2026-11-23, v1.7.0, H26–H29 juntos) · ver docs/ESTADO.md
 
 ## H29b — Sistema visual común y pantallas más vistosas
 ### Objetivo
@@ -922,7 +922,7 @@ Un solo lenguaje WRC en toda la app, no solo en el HUD (`docs/auditoria/2026-11d
 ### Tests
 - Los de cada pantalla tocada; destinos recientes (datos).
 ### Estado
-pendiente
+en curso: piezas comunes, tokens y poses de Trombito hechos (2026-11-23); falta migrar las pantallas
 
 ## H30 — Tablero del piloto
 ### Objetivo
