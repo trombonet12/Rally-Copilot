@@ -888,6 +888,42 @@ Ajustes fáciles de recorrer y un perfil que aporte conclusiones.
 ### Estado
 en curso (2026-11-23)
 
+## H29b — Sistema visual común y pantallas más vistosas
+### Objetivo
+Un solo lenguaje WRC en toda la app, no solo en el HUD (`docs/auditoria/2026-11d-pantallas.md`). Va antes de H30 porque el tablero usa sus piezas.
+### Alcance
+- Piezas comunes:
+  - cabecera WRC sobre la trama de carbono;
+  - tarjeta de dato;
+  - estado vacío ilustrado;
+  - chip y selector sin azul;
+  - fila de lista;
+  - plantilla de mapa con panel;
+  - estilos de cifra tabular;
+  - transiciones y esqueletos de carga.
+- Bisel en lo protagonista. Las tarjetas sobre el mapa, siempre carbón. Un solo rojo y los radios unificados.
+- Inicio: «Última salida» pulsable con «Repetir último tramo».
+- Trombito:
+  - poses nuevas, enseñadas a Joan antes;
+  - aparece en la bienvenida, al elegir voz, en los vacíos, en la carga y en el resumen del viaje.
+- Hoja del copiloto en dos pestañas de icono. «?» de ayuda de notas en la hoja y en el editor. Hoja explicativa antes de «Reconocer».
+- Los 3 últimos destinos como chips junto a «Ir a casa».
+- Pantallas:
+  - vista previa de rutas con barra de curvas y hora de llegada;
+  - Mapas offline con un botón principal;
+  - búsqueda con iconos por categoría;
+  - «Qué le puedes decir» en chips;
+  - la llegada con la forma de la meta;
+  - el editor con iconos de curva;
+  - los avisos unificados.
+### Criterios de aceptación
+- [ ] Las mismas cabecera, fondo, estado vacío y chip en todas las pantallas; sin azul de Material.
+- [ ] Nada se mueve en el mapa en marcha que no informe.
+### Tests
+- Los de cada pantalla tocada; destinos recientes (datos).
+### Estado
+pendiente
+
 ## H30 — Tablero del piloto
 ### Objetivo
 Que el Perfil dé conclusiones y no listas (propuesta A de `docs/auditoria/2026-11c-perfil.md`).

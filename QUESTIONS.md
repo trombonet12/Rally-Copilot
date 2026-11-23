@@ -361,3 +361,12 @@ Contexto y opciones en [docs/auditoria/2026-11.md](docs/auditoria/2026-11.md). T
     - vocabulario único (viaje, tramo, pasada).
 
     Velocidad por grado de curva en el tablero. Tramos sin destino: el pueblo más cercano a la meta y, si no hay, el rumbo.
+  - **Menú y pantallas (auditoría de Fable, `docs/auditoria/2026-11d-pantallas.md`):**
+    - Inicio: «Última salida» pulsable, con «Repetir último tramo». Cuando exista el tablero, una tarjeta de temporada.
+    - Bisel en lo protagonista: CONDUCIR, tarjetas de dato y cabeceras.
+    - Trombito con poses nuevas (saludando, bandera, dormido), enseñadas renderizadas antes de usarlas. Nunca en el mapa en marcha.
+    - Hoja del copiloto en dos pestañas de icono («Qué canta» / «Cómo suena»).
+    - Antes de «Reconocer», una hoja que explica las dos pasadas.
+    - Los 3 últimos destinos como chips.
+    - «?» de ayuda de notas en la hoja del copiloto y en el editor.
+    - Las tarjetas sobre el mapa, todas carbón siempre.
