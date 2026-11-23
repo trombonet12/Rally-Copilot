@@ -47,7 +47,7 @@ const val ETIQUETA_ICONO_PREFIJO = "ajustes-icono-"
 const val ETIQUETA_ORIENTACION_RUMBO = "ajustes-orientacion-rumbo"
 const val ETIQUETA_ORIENTACION_NORTE = "ajustes-orientacion-norte"
 
-private val ALTO_FILA = 72.dp
+private val ALTO_FILA = 64.dp
 private val ICONO_FILA = 32.dp
 
 /** Callbacks de Ajustes. */
@@ -140,13 +140,17 @@ private fun FilaPortada(
         modifier =
             modifier
                 .fillMaxWidth()
-                .heightIn(min = ALTO_FILA)
                 .testTag(ETIQUETA_SECCION_PREFIJO + seccion.clave),
-        relleno = Espacio.m,
+        relleno = 0.dp,
         onClick = onClick,
     ) {
+        // El alto mínimo va en la fila (no en la tarjeta) para que el contenido quede centrado en vertical.
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = ALTO_FILA)
+                    .padding(horizontal = Espacio.m, vertical = Espacio.s),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Espacio.m),
         ) {

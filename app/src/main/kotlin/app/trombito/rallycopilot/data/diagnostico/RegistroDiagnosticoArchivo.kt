@@ -138,6 +138,14 @@ object FiltroRegistro {
     // confundirlas con dos magnitudes de una línea normal (km=12.30 ...).
     private val PAREJA_ESPACIO =
         Regex("""(?<![\w.,])-?\d{1,3}[.,]\d{3,}\s+-?\d{1,3}[.,]\d{3,}(?![\w.])""")
+
+    // Las de Mallorca («39.57 2.65», latitud 38-40 y longitud 0-4 o negativa, en cualquier orden) se filtran ya con
+    // 2 decimales: ese rango tan estrecho no se parece a otras magnitudes del registro.
+    private val PAREJA_MALLORCA =
+        Regex(
+            """(?<![\w.,])(?:-?(?:3[89]|40)[.,]\d{2,}\s+-?[0-4][.,]\d{2,}""" +
+                """|-?[0-4][.,]\d{2,}\s+-?(?:3[89]|40)[.,]\d{2,})(?![\w.])""",
+        )
     private val CLAVE_UBICACION =
         Regex("""\b(lat|lon|lng|latitud|longitud|latitude|longitude)\w*\s*[=:]\s*-?\d""", RegexOption.IGNORE_CASE)
     private val CLAVE_ESPACIO =
@@ -150,6 +158,6 @@ object FiltroRegistro {
 
     fun sospechosa(linea: String): Boolean =
         PAREJA_DECIMALES.containsMatchIn(linea) || PAREJA_ESPACIO.containsMatchIn(linea) ||
-            CLAVE_UBICACION.containsMatchIn(linea) || CLAVE_ESPACIO.containsMatchIn(linea) ||
-            SECRETO.containsMatchIn(linea)
+            PAREJA_MALLORCA.containsMatchIn(linea) || CLAVE_UBICACION.containsMatchIn(linea) ||
+            CLAVE_ESPACIO.containsMatchIn(linea) || SECRETO.containsMatchIn(linea)
 }

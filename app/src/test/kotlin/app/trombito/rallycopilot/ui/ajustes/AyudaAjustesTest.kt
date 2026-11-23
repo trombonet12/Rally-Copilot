@@ -118,6 +118,35 @@ class AyudaAjustesTest {
     }
 
     @Test
+    fun `la tabla de notas ensena cada grado a izquierda y a derecha`() {
+        banco.poner { RallyCopilotTheme { AyudaNotasScreen(onVolver = {}) } }
+        (1..6).forEach {
+            assertTrue("Falta la curva izquierda $it", banco.hay(ETIQUETA_AYUDA_NOTAS_IZQUIERDA_PREFIJO + it))
+            assertTrue("Falta la curva derecha $it", banco.hay(ETIQUETA_AYUDA_NOTAS_DERECHA_PREFIJO + it))
+        }
+    }
+
+    @Test
+    fun `en la chuleta de voz los pares sin y con comparten fila y las frases van en dos columnas`() {
+        banco.poner { RallyCopilotTheme { AyudaVozScreen(onVolver = {}) } }
+
+        fun nodo(texto: String) = banco.nodos().first { n -> texto in banco.textos(n) && banco.textos(n).size == 1 }
+        listOf("cruces", "puentes", "rotondas", "salidas").forEach {
+            val sin = nodo("«Sin $it»").boundsInRoot
+            val con = nodo("«Con $it»").boundsInRoot
+            assertEquals("«Sin $it» y «Con $it» no están en la misma fila", sin.top, con.top, 1f)
+            assertTrue("«Con $it» debe ir a la derecha de «Sin $it»", con.left > sin.left)
+        }
+        val columnas =
+            FrasesOrdenes.porOrden
+                .filter { (orden, _) -> GrupoVoz.de(orden) == GrupoVoz.RUTA }
+                .map { (orden, frases) ->
+                    nodo(ChuletaVoz.formato(frases.first(), orden is Orden.Pregunta)).boundsInRoot.left
+                }.distinct()
+        assertEquals("Las frases deben ir en dos columnas", 2, columnas.size)
+    }
+
+    @Test
     fun `Ajustes Mapa ensena la casa con Borrar`() {
         var borradas = 0
         banco.ponerAjustes(

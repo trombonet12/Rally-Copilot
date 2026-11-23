@@ -126,11 +126,23 @@ class RegistroDiagnosticoArchivoTest {
     }
 
     @Test
+    fun `no escribe coordenadas de Mallorca separadas por espacio con dos decimales`() {
+        val r = registro()
+        r.registrarSincrono(NivelRegistro.INFO, "T", "posicion 39.57 2.65")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "posicion 39,57 2,65 fin")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "en (39.57 2.65) parado")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "orden inversa 2.65 39.57")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "oeste 39.57 -2.65")
+        assertFalse(log().exists())
+    }
+
+    @Test
     fun `el filtro ampliado no rechaza lineas normales`() {
         val r = registro()
         r.registrarSincrono(NivelRegistro.INFO, "T", "latencia 50 ms km=12.30 15.75 via=Ma-13")
+        r.registrarSincrono(NivelRegistro.INFO, "T", "limite 50.00 2.50 km=39.57 resto=2.65 m")
         r.registrarSincrono(NivelRegistro.INFO, "T", "tramo completado tiempo_ms=61234 delta_ms=-120 2.5 m")
-        assertEquals(2, log().readLines().size)
+        assertEquals(3, log().readLines().size)
     }
 
     @Test
