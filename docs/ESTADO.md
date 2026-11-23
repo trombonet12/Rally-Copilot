@@ -5,7 +5,7 @@
 | Campo | Valor |
 |---|---|
 | Hito | H29a–H32 · **v1.8.0** (todo lo pendiente tras la v1.7.1, en una sola versión por decisión de Joan) · siguiente: prueba en coche, revisión final de interfaz con Fable y retoques aplazados · H11 y H12 pospuestos |
-| Estado | v1.8.0 lista para publicar: gate y scripts en verde, prueba única en el emulador con los datos de Joan (migración v22, Inicio, tablero, temporada, Mis carreteras) |
+| Estado | **v1.8.0 publicada** (release de GitHub, 2026-11-23 15:30 UTC). Joan la actualiza con Obtainium y la prueba en el coche |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
 ## Próxima acción
