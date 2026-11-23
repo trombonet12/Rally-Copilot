@@ -540,4 +540,53 @@ class TramosViaTest {
             assertNull(intentado.viaRef)
             assertEquals(0, migrador().migrar().subtramos)
         }
+
+    /** El mismo viaje que [viaje] pero hacia el oeste (de [hastaM] a [desdeM]). */
+    private fun viajeAlOeste(
+        inicioMs: Long,
+        metrosPorSegundo: Double = 20.0,
+    ): List<PuntoRecorrido> =
+        viaje(inicioMs, metrosPorSegundo).let { ida ->
+            ida.reversed().mapIndexed { i, p -> p.copy(tiempoMs = inicioMs + i * 1_000L) }
+        }
+
+    @Test
+    fun `un trozo con el eje invertido se anade al tramo existente con su sentido`() =
+        runBlocking {
+            val g = guardador()
+            val primero = viaje(1_000_000L)
+            g.trocearYMarcar(recorridoConPuntos(primero), primero)
+            // El eje de OSM cambió: lo guardado como CRECIENTE ahora sería DECRECIENTE; se simula guardándolo así.
+            base.openHelper.writableDatabase.execSQL("UPDATE tramo SET sentido = 'DECRECIENTE' WHERE tipo = 'VIA'")
+            val segundo = viaje(90_000_000L, 25.0)
+            val id2 = recorridoConPuntos(segundo)
+
+            g.trocearYMarcar(id2, segundo)
+
+            val tramos = tramosVia()
+            assertEquals(3, tramos.size)
+            assertTrue(tramos.all { it.sentido == "DECRECIENTE" })
+            for (t in tramos) {
+                assertTrue(t.viaRef, base.tramosDao().pasadas(t.id).any { it.recorridoId == id2 })
+            }
+        }
+
+    @Test
+    fun `el sentido contrario real crea un tramo nuevo con el sentido opuesto`() =
+        runBlocking {
+            val g = guardador()
+            val ida = viaje(1_000_000L)
+            g.trocearYMarcar(recorridoConPuntos(ida), ida)
+            val vuelta = viajeAlOeste(90_000_000L)
+            val id2 = recorridoConPuntos(vuelta)
+
+            g.trocearYMarcar(id2, vuelta)
+
+            val ma15 = tramosVia().filter { it.viaRef == "MA15" }
+            assertEquals(2, ma15.size)
+            assertEquals(setOf("CRECIENTE", "DECRECIENTE"), ma15.map { it.sentido }.toSet())
+            val contrario = ma15.single { it.sentido == "DECRECIENTE" }
+            assertEquals(listOf(id2), base.tramosDao().pasadas(contrario.id).map { it.recorridoId })
+            assertEquals(1, base.tramosDao().pasadas(ma15.single { it.sentido == "CRECIENTE" }.id).size)
+        }
 }

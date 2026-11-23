@@ -127,8 +127,8 @@ class EmparejadorTramosVia(
         nuevo: TramoVia,
         otro: TramoVia,
     ): Relacion {
-        val rumboNuevo = FirmaTramoVia.de(puntosCubiertos(nuevo.trazado, otro.trazado))?.rumboGrados
-        val rumboOtro = FirmaTramoVia.de(puntosCubiertos(otro.trazado, nuevo.trazado))?.rumboGrados
+        val rumboNuevo = rumboSobre(nuevo.trazado, otro.trazado)
+        val rumboOtro = rumboSobre(otro.trazado, nuevo.trazado)
         if (rumboNuevo == null || rumboOtro == null) return Relacion.DISTINTO
         val diferencia = Rumbo.diferencia(rumboNuevo, rumboOtro)
         return when {
@@ -136,6 +136,18 @@ class EmparejadorTramosVia(
             diferencia >= LLANO - toleranciaRumboGrados -> Relacion.SENTIDO_CONTRARIO
             else -> Relacion.DISTINTO
         }
+    }
+
+    /**
+     * Rumbo medio de la parte de [trazado] que cae sobre [referencia]. Una traza simplificada (una recta puede quedar
+     * en dos vértices) puede no tener dos vértices dentro de la otra: entonces se usa el rumbo de toda la traza.
+     */
+    private fun rumboSobre(
+        trazado: List<PuntoGeo>,
+        referencia: List<PuntoGeo>,
+    ): Double? {
+        val cubiertos = puntosCubiertos(trazado, referencia)
+        return FirmaTramoVia.de(if (cubiertos.size >= 2) cubiertos else trazado)?.rumboGrados
     }
 
     private fun opuesto(sentido: SentidoVia): SentidoVia? =

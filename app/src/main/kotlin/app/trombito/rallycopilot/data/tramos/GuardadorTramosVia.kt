@@ -15,10 +15,12 @@ import app.trombito.rallycopilot.domain.tramos.RecorteTraza
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.tramos.TramoDesdeRecorrido
+import app.trombito.rallycopilot.motor.vias.EmparejadorTramosVia
+import app.trombito.rallycopilot.motor.vias.ResultadoEmparejo
 import app.trombito.rallycopilot.motor.vias.SentidoVia
 import app.trombito.rallycopilot.motor.vias.TramoVia
+import app.trombito.rallycopilot.motor.vias.TramoViaGuardado
 import app.trombito.rallycopilot.motor.vias.nombreTramoVia
-import app.trombito.rallycopilot.motor.vias.solapeTramosVia
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -38,9 +40,11 @@ enum class ResultadoTroceado {
 
 /**
  * Trocea un viaje en tramos de vía (`TroceadorVias`) y los guarda: cada trozo de al menos un kilómetro de una
- * carretera y sentido. Si ya hay tramos `VIA` de esa carretera y sentido que solapan al menos [UMBRAL_SOLAPE] con el
- * trozo, no se crea otro: el trozo se añade como pasada de cada uno por el que el cronómetro de la repetición llega a
- * meta; si no hay ninguno, es un tramo `VIA` nuevo con su primera pasada y el nombre automático [nombreTramoVia]. El
+ * carretera y sentido. Si ya hay tramos `VIA` de esa carretera que coinciden por geometría ([EmparejadorTramosVia]:
+ * solape de al menos [UMBRAL_SOLAPE] y rumbo compatible, sin depender del eje de OSM) con el trozo, no se crea otro: el
+ * trozo se añade como pasada de cada uno por el que el cronómetro de la repetición llega a meta; si no hay ninguno, es
+ * un tramo `VIA` nuevo (con el sentido coherente con los guardados) con su primera pasada y el nombre automático
+ * [nombreTramoVia]. El
  * tiempo de cada pasada es relativo al inicio del trozo.
  *
  * Es idempotente: un tramo que ya tiene esa pasada del recorrido (p. ej. la detectó la conducción en vivo, mismo
@@ -78,6 +82,7 @@ class GuardadorTramosVia
         )
 
         private val candado = Mutex()
+        private val emparejador = EmparejadorTramosVia()
 
         /** Trocea [puntos] (los del recorrido [recorridoId], en orden) y guarda lo que sale; no marca el recorrido. */
         suspend fun trocear(
@@ -115,8 +120,9 @@ class GuardadorTramosVia
             if (idVia == null || trozo.size < 2) return
             try {
                 val conDestino = tramo.copy(destino = destinoDe(tramo))
-                if (!anadirAExistente(recorridoId, idVia, conDestino, trozo)) {
-                    crearNuevo(recorridoId, idVia, conDestino, trozo)
+                val emparejo = anadirAExistente(recorridoId, idVia, conDestino, trozo)
+                if (emparejo.coincidencias.isEmpty()) {
+                    crearNuevo(recorridoId, idVia, conDestino.copy(sentido = emparejo.sentido), trozo)
                 }
             } catch (e: IllegalArgumentException) {
                 Log.w(ETIQUETA, "Trozo de vía descartado: ${e.javaClass.simpleName}")
@@ -138,34 +144,41 @@ class GuardadorTramosVia
         }
 
         /**
-         * Si ya hay tramos `VIA` de esta carretera y sentido que solapan al menos [UMBRAL_SOLAPE] con el trozo, no se
-         * crea otro: el trozo se añade como pasada de cada uno que cruce entero (el cronómetro de la repetición recorta
-         * la pasada a su salida y meta). Devuelve verdadero si había alguno que solapara, se añadiera pasada o no.
+         * Empareja el trozo por geometría con los tramos `VIA` guardados de esta carretera, de cualquier sentido
+         * ([EmparejadorTramosVia]): el eje de la carretera cambia con los datos de OSM, así que ni el sentido ni los PK
+         * deciden la identidad. Si coincide con alguno, el trozo se añade como pasada de cada uno que cruce entero (el
+         * cronómetro de la repetición recorta la pasada a su salida y meta). Devuelve el emparejo: sin
+         * coincidencias, su sentido es con el que debe crearse el tramo nuevo (el coherente con los guardados).
          */
         private suspend fun anadirAExistente(
             recorridoId: Long,
             idVia: String,
             tramo: TramoVia,
             trozo: List<PuntoRecorrido>,
-        ): Boolean {
-            val solapados =
-                tramos.tramosViaDe(idVia, tramo.sentido.name).mapNotNull { fila ->
-                    val guardado = fila.aTramo()
-                    if (guardado != null && solapeTramosVia(tramo, fila.comoTramoVia(guardado)) >= UMBRAL_SOLAPE) {
-                        fila.id to guardado
-                    } else {
-                        null
+        ): ResultadoEmparejo {
+            val filas = tramos.tramosViaDeCualquierSentido(idVia)
+            val porId = HashMap<String, Tramo>()
+            val guardados =
+                filas.mapNotNull { fila ->
+                    fila.aTramo()?.let { guardado ->
+                        porId[fila.id] = guardado
+                        TramoViaGuardado(fila.id, fila.comoTramoVia(guardado))
                     }
                 }
-            for ((id, guardado) in solapados) anadirSiCabe(recorridoId, id, guardado, trozo)
-            return solapados.isNotEmpty()
+            val emparejo = emparejador.emparejar(tramo, guardados)
+            for (coincidencia in emparejo.coincidencias) {
+                porId[coincidencia.id]?.let { anadirSiCabe(recorridoId, coincidencia.id, it, trozo) }
+            }
+            return emparejo
         }
 
-        /** El tramo `VIA` guardado como [TramoVia], con lo justo para medir el solape con otro. */
-        private fun TramoEntity.comoTramoVia(guardado: Tramo) =
-            TramoVia(
-                ref = viaRef,
-                nombreVia = null,
+        /** El tramo `VIA` guardado como [TramoVia], con lo justo para emparejarlo por geometría. */
+        private fun TramoEntity.comoTramoVia(guardado: Tramo): TramoVia {
+            // Una vía sin ref se identifica por su nombre con prefijo «~»: se devuelve a nombre para el mismo id.
+            val nombre = viaRef?.takeIf { it.startsWith(PREFIJO_NOMBRE) }?.removePrefix(PREFIJO_NOMBRE)
+            return TramoVia(
+                ref = if (nombre == null) viaRef else null,
+                nombreVia = nombre,
                 desdeM = 0.0,
                 hastaM = guardado.longitudM,
                 pkDesde = pkDesde,
@@ -174,6 +187,7 @@ class GuardadorTramosVia
                 destino = null,
                 trazado = guardado.traza,
             )
+        }
 
         /**
          * Verdadero si el tramo ya tenía esta pasada o se le ha añadido; falso si el trozo no cruza su salida y su meta
@@ -238,6 +252,7 @@ class GuardadorTramosVia
         companion object {
             /** Solape (respecto al más corto) con un tramo `VIA` guardado a partir del cual es el mismo tramo. */
             const val UMBRAL_SOLAPE = 0.5
+            private const val PREFIJO_NOMBRE = "~"
             private const val RADIO_DESTINO_M = 5_000.0
             private const val ETIQUETA = "GuardadorTramosVia"
         }

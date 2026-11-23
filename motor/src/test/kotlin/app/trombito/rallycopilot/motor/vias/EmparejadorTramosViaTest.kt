@@ -127,6 +127,21 @@ class EmparejadorTramosViaTest {
     }
 
     @Test
+    fun `un guardado simplificado a dos vertices coincide con un trozo que cubre solo una parte`() {
+        val simplificado = tramo(listOf(en(0.0), en(5_000.0)), SentidoVia.CRECIENTE)
+        val parte = tramo(recta(1_000.0, 3_000.0), SentidoVia.DECRECIENTE, pkDesde = 3.0, pkHasta = 1.0)
+        val contrario = tramo(recta(3_000.0, 1_000.0), SentidoVia.CRECIENTE)
+
+        val mismo = emparejador.emparejar(parte, listOf(guardado("a", simplificado)))
+        val otro = emparejador.emparejar(contrario, listOf(guardado("a", simplificado)))
+
+        assertEquals(listOf("a"), mismo.coincidencias.map { it.id })
+        assertEquals(SentidoVia.CRECIENTE, mismo.sentido)
+        assertTrue(otro.coincidencias.isEmpty())
+        assertEquals(SentidoVia.DECRECIENTE, otro.sentido)
+    }
+
+    @Test
     fun `con varios tramos guardados que solapan devuelve todos ordenados por solape`() {
         val parcial = tramo(recta(0.0, 3_000.0), SentidoVia.CRECIENTE, pkDesde = 10.0, pkHasta = 13.0)
 

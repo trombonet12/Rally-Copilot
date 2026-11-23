@@ -75,6 +75,10 @@ abstract class TramosDao {
         sentido: String,
     ): List<TramoEntity>
 
+    /** Los tramos de vía de la carretera [viaRef] con cualquier sentido, por orden de creación. */
+    @Query("SELECT * FROM tramo WHERE tipo = 'VIA' AND viaRef = :viaRef ORDER BY creadoEn, id")
+    abstract suspend fun tramosViaDeCualquierSentido(viaRef: String): List<TramoEntity>
+
     @Query("SELECT * FROM pasada WHERE tramoId = :tramoId ORDER BY totalMs, id LIMIT 1")
     abstract suspend fun mejorPasada(tramoId: String): PasadaEntity?
 
