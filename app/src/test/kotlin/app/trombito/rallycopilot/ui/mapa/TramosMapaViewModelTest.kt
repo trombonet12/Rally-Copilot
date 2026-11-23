@@ -4,6 +4,9 @@ import app.trombito.rallycopilot.domain.tramos.ProveedorTramosPorDelante
 import app.trombito.rallycopilot.domain.tramos.TramosPorDelante
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.TramoEnCamino
+import app.trombito.rallycopilot.ui.alertas.BanderaMapa
+import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
+import app.trombito.rallycopilot.ui.comun.resumenFalso
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -52,7 +55,7 @@ class TramosMapaViewModelTest {
     @Test
     fun `publica los tramos y la distancia a la meta a pasos de 10 m`() =
         runTest {
-            val vm = TramosMapaViewModel(proveedor)
+            val vm = TramosMapaViewModel(proveedor, FalsoRepositorioTramos())
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.tramos.collect { } }
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.finDeTramoM.collect { } }
             assertNull(vm.finDeTramoM.value)
@@ -66,7 +69,7 @@ class TramosMapaViewModelTest {
     @Test
     fun `la distancia sola no vuelve a emitir los tramos`() =
         runTest {
-            val vm = TramosMapaViewModel(proveedor)
+            val vm = TramosMapaViewModel(proveedor, FalsoRepositorioTramos())
             val emitidos = mutableListOf<List<TramoEnCamino>>()
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.tramos.collect { emitidos += it } }
             val lista = listOf(trozo)
@@ -76,5 +79,37 @@ class TramosMapaViewModelTest {
 
             assertEquals(2, emitidos.size)
             assertSame(lista, emitidos.last())
+        }
+
+    @Test
+    fun `las banderas llevan el nombre y el mejor tiempo del tramo y solo existen con tramos por delante`() =
+        runTest {
+            val repositorio = FalsoRepositorioTramos(listOf(resumenFalso("A", nombre = "Sóller", mejorMs = 239_200L)))
+            val vm = TramosMapaViewModel(proveedor, repositorio)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.banderas.collect { } }
+            assertEquals(emptyList<BanderaMapa>(), vm.banderas.value)
+
+            fuente.value = TramosPorDelante(listOf(trozo), 800.0)
+
+            assertEquals(
+                listOf(
+                    BanderaMapa("A", esMeta = false, lat = 39.7, lon = 2.9, nombre = "Sóller", mejorMs = 239_200L),
+                    BanderaMapa("A", esMeta = true, lat = 39.71, lon = 2.9, nombre = "Sóller", mejorMs = 239_200L),
+                ),
+                vm.banderas.value,
+            )
+            fuente.value = TramosPorDelante()
+            assertEquals(emptyList<BanderaMapa>(), vm.banderas.value)
+        }
+
+    @Test
+    fun `una bandera de un tramo sin resumen sale sin nombre ni tiempo`() =
+        runTest {
+            val vm = TramosMapaViewModel(proveedor, FalsoRepositorioTramos())
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.banderas.collect { } }
+            fuente.value = TramosPorDelante(listOf(trozo), null)
+            val bandera = vm.banderas.value.first()
+            assertNull(bandera.nombre)
+            assertNull(bandera.mejorMs)
         }
 }

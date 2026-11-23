@@ -18,6 +18,7 @@ import app.trombito.rallycopilot.ui.alertas.ClaseRadar
 import app.trombito.rallycopilot.ui.alertas.ETIQUETA_ALERTA_BANNER
 import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.alertas.MediaTramoUi
+import app.trombito.rallycopilot.ui.alertas.SeleccionMapa
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.copiloto.ETIQUETA_MODO_BOTON
@@ -168,7 +169,8 @@ class MapaScreenAlertasVerticalTest : MapaScreenAlertasBase() {
     fun `la incidencia tocada ya no abre una ficha inferior, sale como bocadillo en el mapa`() {
         val marcador =
             MarcadorIncidencia("a", TipoIncidencia.OBRAS, 39.7, 2.9, "Obras en Ma-10", "Ma-10", enRuta = false)
-        poner(libre, AlertasUiState(marcadores = listOf(marcador), seleccionada = marcador))
+        val tocada = SeleccionMapa.Incidencia(marcador.id)
+        poner(libre, AlertasUiState(marcadores = listOf(marcador), seleccionada = tocada))
         assertFalse(banco.hay("incidencia-tarjeta"))
     }
 }

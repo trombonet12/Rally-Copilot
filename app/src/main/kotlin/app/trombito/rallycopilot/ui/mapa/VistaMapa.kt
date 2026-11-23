@@ -33,6 +33,7 @@ import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.ui.alertas.BocadilloMapa
 import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.alertas.RadaresUi
+import app.trombito.rallycopilot.ui.alertas.SeleccionMapa
 import app.trombito.rallycopilot.ui.comun.recurso
 import org.maplibre.android.LibraryLoader
 import org.maplibre.android.MapLibre
@@ -83,8 +84,13 @@ data class CamaraVistaMapa(
     val onSeguimientoPerdido: () -> Unit = {},
     /** El usuario cambió el zoom con un gesto: zoom final y reloj monótono (ms) para pausar el zoom automático. */
     val onZoomManual: (zoom: Double, ahoraMs: Long) -> Unit = { _, _ -> },
-    /** Toque en el mapa: el id de la incidencia tocada o null si se tocó otra cosa. */
-    val onToqueIncidencia: (id: String?) -> Unit = {},
+    /**
+     * Toque en el mapa: el elemento con bocadillo tocado (incidencia, radar, tramo de radar, bandera de tramo o nota
+     * del mapa) o null si se tocó otra cosa (se cierra el bocadillo).
+     */
+    val onSeleccion: (seleccion: SeleccionMapa?) -> Unit = {},
+    /** Una línea para el registro de diagnóstico de cada toque en el mapa («toque capa=radar resultado=bocadillo»). */
+    val onToqueDiagnostico: (linea: String) -> Unit = {},
     /** Toque en una carretera de la capa de calor (su ficha) o en otra cosa (null: se cierra la ficha). */
     val onToqueCalor: (ficha: FichaCalor?) -> Unit = {},
     /** Toque en una nota del mapa (solo hay notas pintadas con el coche parado): su posición en la hoja. */
@@ -181,7 +187,8 @@ fun VistaMapa(
                 alCambiarCamara = { actual.value.onCambio(it) },
                 alPerderSeguimiento = { actual.value.onSeguimientoPerdido() },
                 alCambiarZoomManual = { zoom, ahora -> actual.value.onZoomManual(zoom, ahora) },
-                alTocarIncidencia = { actual.value.onToqueIncidencia(it) },
+                alSeleccionar = { actual.value.onSeleccion(it) },
+                alRegistrarToque = { actual.value.onToqueDiagnostico(it) },
                 alTocarNota = { actual.value.onToqueNota(it) },
                 alTocarCalor = { actual.value.onToqueCalor(it) },
                 alMantenerPulsado = { punto, nombre -> actual.value.onMantenerPulsado(punto, nombre) },
@@ -308,7 +315,8 @@ private class ControladorMapa(
     private val alCambiarCamara: (CamaraMapa) -> Unit,
     private val alPerderSeguimiento: () -> Unit,
     alCambiarZoomManual: (Double, Long) -> Unit,
-    private val alTocarIncidencia: (String?) -> Unit,
+    private val alSeleccionar: (SeleccionMapa?) -> Unit,
+    private val alRegistrarToque: (String) -> Unit,
     private val alTocarNota: (Double) -> Unit,
     private val alTocarCalor: (FichaCalor?) -> Unit,
     private val alMantenerPulsado: (PuntoGeo, String?) -> Unit,
@@ -369,32 +377,17 @@ private class ControladorMapa(
                 ),
             )
             zoom.escuchar(m) { activo }
-            m.addOnMapClickListener { punto ->
-                val pantalla = m.projection.toScreenLocation(punto)
-                val densidad = vista.resources.displayMetrics.density
-                val nota = CapaNotas.posicionEn(m, pantalla.x, pantalla.y, densidad)
-                if (nota != null) {
-                    alTocarNota(nota)
-                    return@addOnMapClickListener true
-                }
-                // La incidencia gana a la capa de calor; si la capa no devuelve nada (cámara en movimiento), se mide.
-                val id =
-                    CapaIncidencias.idEn(m, pantalla.x, pantalla.y, densidad)
-                        ?: CapaIncidencias.idCercano(m, preferencias.incidencias, pantalla.x, pantalla.y, densidad)
-                alTocarIncidencia(id)
-                if (id != null) return@addOnMapClickListener true
-                val ficha = capaCalor.fichaEn(m, pantalla.x, pantalla.y, densidad)
-                alTocarCalor(ficha)
-                if (ficha == null) alTocar(PuntoGeo(punto.latitude, punto.longitude))
-                ficha != null
-            }
+            m.addOnMapClickListener { punto -> alTocarMapa(m, punto) }
             m.addOnMapLongClickListener { punto ->
                 val pantalla = m.projection.toScreenLocation(punto)
                 val nombre = NombreDelPunto.en(m, pantalla.x, pantalla.y, vista.resources.displayMetrics.density)
                 alMantenerPulsado(PuntoGeo(punto.latitude, punto.longitude), nombre)
                 true
             }
-            m.addOnCameraIdleListener { guardarCamaraActual(m) }
+            m.addOnCameraIdleListener {
+                guardarCamaraActual(m)
+                reubicarBocadillo()
+            }
             // El alto del mapa cambia al girar o al abrir un panel: el marcador debe seguir en su sitio.
             vista.addOnLayoutChangeListener { _, izq, arr, der, aba, oIzq, oArr, oDer, oAba ->
                 val cambio = (der - izq) != (oDer - oIzq) || (aba - arr) != (oAba - oArr)
@@ -404,6 +397,59 @@ private class ControladorMapa(
             }
             estiloPedido?.let(::aplicarEstilo)
         }
+    }
+
+    /**
+     * Un toque en el mapa: un solo despachador consulta las capas por prioridad (ver [despacharToque]; cada una mira lo
+     * pintado y, si falla, mide en pantalla) y avisa de lo que se tocó. Devuelve si el toque se consume.
+     */
+    private fun alTocarMapa(
+        m: MapLibreMap,
+        punto: LatLng,
+    ): Boolean {
+        val pantalla = m.projection.toScreenLocation(punto)
+        val densidad = vista.resources.displayMetrics.density
+        val consultas = consultasDeMapa(m, preferencias, capaCalor, pantalla.x, pantalla.y, densidad)
+        val geo = PuntoGeo(punto.latitude, punto.longitude)
+        val resultado = despacharToque(consultas, preferencias.radares, preferencias.notasMapa, geo)
+        alRegistrarToque(lineaDiagnosticoToque(resultado))
+        when (resultado) {
+            is ResultadoToque.Selecciona -> {
+                alSeleccionar(resultado.seleccion)
+            }
+
+            is ResultadoToque.EditaNota -> {
+                alSeleccionar(null)
+                alTocarNota(resultado.posicionM)
+            }
+
+            is ResultadoToque.Ficha -> {
+                alSeleccionar(null)
+                alTocarCalor(resultado.ficha)
+            }
+
+            is ResultadoToque.Nada -> {
+                alSeleccionar(null)
+                alTocarCalor(null)
+                alTocar(geo)
+            }
+        }
+        return resultado !is ResultadoToque.Nada
+    }
+
+    /** Dónde cae en pantalla el marcador del [bocadillo]: con ello el bocadillo se limita a lo que cabe. */
+    private fun entornoBocadillo(bocadillo: BocadilloMapa?): EntornoBocadillo? {
+        val m = mapa
+        if (m == null || bocadillo == null || vista.width <= 0) return null
+        val p = m.projection.toScreenLocation(LatLng(bocadillo.lat, bocadillo.lon))
+        return EntornoBocadillo(vista.width, p.x, p.y)
+    }
+
+    /** La cámara se paró: el bocadillo abierto se recoloca (puede haberse acercado a un borde o a los botones). */
+    private fun reubicarBocadillo() {
+        val capas = estilo ?: return
+        val bocadillo = preferencias.bocadillo ?: return
+        CapaBocadillo.actualizar(capas, vista.context, bocadillo, entornoBocadillo(bocadillo))
     }
 
     private fun guardarCamaraActual(m: MapLibreMap) {
@@ -471,7 +517,9 @@ private class ControladorMapa(
         val capas = estilo ?: return
         if (nuevas.incidencias != previas.incidencias) CapaIncidencias.actualizar(capas, nuevas.incidencias)
         if (nuevas.radares != previas.radares) CapaRadares.actualizar(capas, nuevas.radares)
-        if (nuevas.bocadillo != previas.bocadillo) CapaBocadillo.actualizar(capas, vista.context, nuevas.bocadillo)
+        if (nuevas.bocadillo != previas.bocadillo) {
+            CapaBocadillo.actualizar(capas, vista.context, nuevas.bocadillo, entornoBocadillo(nuevas.bocadillo))
+        }
         if (nuevas.notas != previas.notas) CapaNotas.actualizar(capas, nuevas.notas)
         if (nuevas.notasMapa != previas.notasMapa) CapaNotasMapa.actualizar(capas, nuevas.notasMapa)
         if (nuevas.estela != previas.estela) capaEstela.actualizar(capas, nuevas.estela)
@@ -505,7 +553,12 @@ private class ControladorMapa(
             CapaNotasMapa.instalar(cargado, vista.context, preferencias.notasMapa)
             // El fantasma, antes de la ubicación y del bocadillo: queda por debajo del coche real.
             capaFantasma.instalar(cargado, vista.context, preferencias.icono, preferencias.fantasma)
-            CapaBocadillo.instalar(cargado, vista.context, preferencias.bocadillo)
+            CapaBocadillo.instalar(
+                cargado,
+                vista.context,
+                preferencias.bocadillo,
+                entornoBocadillo(preferencias.bocadillo),
+            )
             asegurarUbicacion()
         }
     }

@@ -14,6 +14,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -95,6 +96,12 @@ fun MapaRoute(
     val tramosCamino = tramosViewModel.tramos.collectAsStateWithLifecycle()
     // Sin `by`: solo el HUD lo lee (con el estado, no el valor) y la raíz no se recompone cada 10 m.
     val finDeTramoM = tramosViewModel.finDeTramoM.collectAsStateWithLifecycle()
+    val banderas = tramosViewModel.banderas.collectAsStateWithLifecycle()
+    // El bocadillo de una curva, un aviso o una bandera tocados lo monta el ViewModel de alertas con lo pintado.
+    LaunchedEffect(alertasViewModel, notasMapa, banderas) {
+        snapshotFlow { notasMapa.value to banderas.value }
+            .collect { (n, b) -> alertasViewModel.actualizarTocables(n, b) }
+    }
     val permiso = rememberPermisoUbicacion()
     EfectosDelMapa(permiso.estado, estado, navegacion, viewModel, navegacionViewModel)
     // Sin `by`: solo el mapa lee la reserva, así que su cambio no recompone la raíz.
@@ -188,11 +195,12 @@ private fun camaraVistaMapa(
         onCambio = viewModel::onCamara,
         onSeguimientoPerdido = viewModel::onSeguimientoPerdido,
         onZoomManual = viewModel::onZoomManual,
-        // Tocar el mapa fuera de una incidencia cierra también la tarjeta del punto elegido.
-        onToqueIncidencia = { id ->
-            alertas.onSeleccionar(id)
-            if (id == null) navegacion.cerrarPunto()
+        // Tocar el mapa fuera de un elemento con bocadillo cierra también la tarjeta del punto elegido.
+        onSeleccion = { seleccion ->
+            alertas.onSeleccionar(seleccion)
+            if (seleccion == null) navegacion.cerrarPunto()
         },
+        onToqueDiagnostico = alertas::registrarToque,
         onMantenerPulsado = navegacion::onMantenerPulsado,
         onToqueNota = edicion::onTocarNota,
         onToqueCalor = calor::onFicha,

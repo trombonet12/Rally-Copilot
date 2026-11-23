@@ -1,7 +1,9 @@
 package app.trombito.rallycopilot.ui.mapa
 
 import android.content.Context
+import android.graphics.RectF
 import androidx.compose.ui.graphics.toArgb
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.alertas.ClaseRadar
 import app.trombito.rallycopilot.ui.alertas.MarcadorRadar
 import app.trombito.rallycopilot.ui.alertas.RadaresUi
@@ -9,6 +11,8 @@ import app.trombito.rallycopilot.ui.alertas.TramoRadarMapa
 import app.trombito.rallycopilot.ui.alertas.iconoRadar
 import app.trombito.rallycopilot.ui.alertas.imagenRadar
 import app.trombito.rallycopilot.ui.theme.RallyOscuro
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.LineLayer
@@ -27,10 +31,10 @@ private const val ID_FUENTE_TRAMOS = "tramos-radar-fuente"
 private const val ID_CAPA_TRAMOS = "tramos-radar-capa"
 
 /** Los marcadores de radar se ven desde este zoom (la isla entera cabe en ~8–9). */
-private const val ZOOM_MARCADORES = 10f
+internal const val ZOOM_MIN_RADARES = 10f
 
 /** El segmento de un tramo de radar se ve desde este zoom. */
-private const val ZOOM_TRAMOS = 11f
+internal const val ZOOM_MIN_TRAMOS_RADAR = 11f
 private const val ZOOM_CERCA = 15
 private const val TAMANO_LEJOS = 0.6f
 private const val TAMANO_CERCA = 1f
@@ -65,12 +69,12 @@ internal object CapaRadares {
                     Expression.interpolate(
                         Expression.linear(),
                         Expression.zoom(),
-                        Expression.stop(ZOOM_TRAMOS.toInt(), ANCHO_TRAMO_LEJOS),
+                        Expression.stop(ZOOM_MIN_TRAMOS_RADAR.toInt(), ANCHO_TRAMO_LEJOS),
                         Expression.stop(ZOOM_CERCA, ANCHO_TRAMO_CERCA),
                     ),
                 ),
             )
-        tramos.minZoom = ZOOM_TRAMOS
+        tramos.minZoom = ZOOM_MIN_TRAMOS_RADAR
         estilo.addLayer(tramos)
         estilo.addSource(GeoJsonSource(ID_FUENTE_RADARES, featuresRadares(radares.marcadores)))
         val marcadores =
@@ -82,12 +86,12 @@ internal object CapaRadares {
                     Expression.interpolate(
                         Expression.linear(),
                         Expression.zoom(),
-                        Expression.stop(ZOOM_MARCADORES.toInt(), TAMANO_LEJOS),
+                        Expression.stop(ZOOM_MIN_RADARES.toInt(), TAMANO_LEJOS),
                         Expression.stop(ZOOM_CERCA, TAMANO_CERCA),
                     ),
                 ),
             )
-        marcadores.minZoom = ZOOM_MARCADORES
+        marcadores.minZoom = ZOOM_MIN_RADARES
         estilo.addLayer(marcadores)
     }
 
@@ -98,6 +102,82 @@ internal object CapaRadares {
         estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_TRAMOS)?.setGeoJson(featuresTramos(radares.tramos))
         estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_RADARES)?.setGeoJson(featuresRadares(radares.marcadores))
     }
+
+    /** El id del marcador de radar pintado bajo el toque en [x], [y] (píxeles), con un margen cómodo para el dedo. */
+    fun radarEn(
+        mapa: MapLibreMap,
+        x: Float,
+        y: Float,
+        densidad: Float,
+    ): String? =
+        mapa
+            .queryRenderedFeatures(zonaDeToque(x, y, densidad), ID_CAPA_RADARES)
+            .firstOrNull()
+            ?.getStringProperty(PROPIEDAD_ID)
+
+    /** El id del tramo de radar cuya línea está pintada bajo el toque. */
+    fun tramoEn(
+        mapa: MapLibreMap,
+        x: Float,
+        y: Float,
+        densidad: Float,
+    ): String? =
+        mapa
+            .queryRenderedFeatures(zonaDeToque(x, y, densidad), ID_CAPA_TRAMOS)
+            .firstOrNull()
+            ?.getStringProperty(PROPIEDAD_ID)
+
+    /**
+     * Como [radarEn] pero midiendo en pantalla la distancia a los [marcadores] (no depende de lo que la capa tenga
+     * colocado en ese instante); solo si el zoom ya muestra los marcadores.
+     */
+    fun radarCercano(
+        mapa: MapLibreMap,
+        marcadores: List<MarcadorRadar>,
+        x: Float,
+        y: Float,
+        densidad: Float,
+    ): String? =
+        if (mapa.cameraPosition.zoom < ZOOM_MIN_RADARES) {
+            null
+        } else {
+            masCercano(marcadores, x, y, MARGEN_TOQUE_DP * densidad) {
+                mapa.projection.toScreenLocation(LatLng(it.lat, it.lon)).let { p -> p.x to p.y }
+            }?.id
+        }
+
+    /** Como [tramoEn] pero midiendo la distancia en pantalla a la línea de cada tramo; el más cercano al dedo. */
+    fun tramoCercano(
+        mapa: MapLibreMap,
+        tramos: List<TramoRadarMapa>,
+        x: Float,
+        y: Float,
+        densidad: Float,
+    ): String? =
+        if (mapa.cameraPosition.zoom < ZOOM_MIN_TRAMOS_RADAR) {
+            null
+        } else {
+            tramos
+                .map { t -> t.id to distanciaALinea(t.puntos.map { pantalla(mapa, it) }, x, y) }
+                .filter { it.second <= MARGEN_TOQUE_DP * densidad }
+                .minByOrNull { it.second }
+                ?.first
+        }
+
+    private fun pantalla(
+        mapa: MapLibreMap,
+        punto: PuntoGeo,
+    ): Pair<Float, Float> = mapa.projection.toScreenLocation(LatLng(punto.lat, punto.lon)).let { it.x to it.y }
+}
+
+/** El cuadrado de [MARGEN_TOQUE_DP] alrededor del dedo en el que se buscan elementos pintados. */
+internal fun zonaDeToque(
+    x: Float,
+    y: Float,
+    densidad: Float,
+): RectF {
+    val margen = MARGEN_TOQUE_DP * densidad
+    return RectF(x - margen, y - margen, x + margen, y + margen)
 }
 
 /** Un punto por radar con el nombre de la imagen de su clase. */

@@ -7,8 +7,12 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import androidx.compose.ui.graphics.toArgb
+import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.TramoEnCamino
+import app.trombito.rallycopilot.ui.alertas.SeleccionMapa
 import app.trombito.rallycopilot.ui.theme.AmbarSobreCarbon
+import org.maplibre.android.geometry.LatLng
+import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.LineLayer
@@ -29,9 +33,9 @@ internal const val IMAGEN_BANDERA_SALIDA = "tramos-bandera-salida"
 internal const val IMAGEN_BANDERA_META = "tramos-bandera-meta"
 internal const val PROPIEDAD_BANDERA = "bandera"
 
-/** La línea de los tramos se ve desde este zoom y las banderas desde [ZOOM_BANDERAS]. */
+/** La línea de los tramos se ve desde este zoom y las banderas desde [ZOOM_MIN_BANDERAS]. */
 private const val ZOOM_LINEAS = 10f
-private const val ZOOM_BANDERAS = 12f
+internal const val ZOOM_MIN_BANDERAS = 12f
 private const val EXPONENTE_ANCHO = 1.5f
 private const val ZOOM_ANCHO_MINIMO = 8
 private const val ZOOM_ANCHO_MEDIO = 14
@@ -103,7 +107,7 @@ internal object CapaTramos {
                     ),
                 ),
             )
-        banderas.minZoom = ZOOM_BANDERAS
+        banderas.minZoom = ZOOM_MIN_BANDERAS
         estilo.addLayer(banderas)
     }
 
@@ -114,7 +118,62 @@ internal object CapaTramos {
         estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_LINEAS)?.setGeoJson(featuresLineasTramos(tramos))
         estilo.getSourceAs<GeoJsonSource>(ID_FUENTE_BANDERAS)?.setGeoJson(featuresBanderasTramos(tramos))
     }
+
+    /** La bandera pintada bajo el toque en [x], [y] (píxeles), con un margen cómodo para el dedo. */
+    fun banderaEn(
+        mapa: MapLibreMap,
+        x: Float,
+        y: Float,
+        densidad: Float,
+    ): SeleccionMapa.Bandera? {
+        val bandera = mapa.queryRenderedFeatures(zonaDeToque(x, y, densidad), ID_CAPA_BANDERAS).firstOrNull()
+        val tramoId = bandera?.getStringProperty(PROPIEDAD_ID)
+        return if (bandera == null || tramoId == null) {
+            null
+        } else {
+            SeleccionMapa.Bandera(tramoId, esMeta = bandera.getStringProperty(PROPIEDAD_BANDERA) == IMAGEN_BANDERA_META)
+        }
+    }
+
+    /**
+     * Como [banderaEn] pero midiendo en pantalla la distancia a la tela de cada bandera de [tramos] (sin depender de lo
+     * que la capa tenga colocado en ese instante); solo si el zoom ya las muestra.
+     */
+    fun banderaCercana(
+        mapa: MapLibreMap,
+        tramos: List<TramoEnCamino>,
+        x: Float,
+        y: Float,
+        densidad: Float,
+    ): SeleccionMapa.Bandera? =
+        if (mapa.cameraPosition.zoom < ZOOM_MIN_BANDERAS) {
+            null
+        } else {
+            val centroTela = LADO_BANDERA_DP * CENTRO_TELA * densidad
+            masCercano(banderasDe(tramos), x, y, MARGEN_TOQUE_DP * densidad) {
+                val p = mapa.projection.toScreenLocation(LatLng(it.punto.lat, it.punto.lon))
+                (p.x + centroTela) to (p.y - centroTela)
+            }?.seleccion
+        }
 }
+
+/** Una bandera pintada: [seleccion] dice de qué tramo y si es salida o meta; [punto] es donde clava el mástil. */
+internal data class PuntoBandera(
+    val seleccion: SeleccionMapa.Bandera,
+    val punto: PuntoGeo,
+)
+
+/** Las banderas que se pintan para [tramos] (las mismas que [featuresBanderasTramos]). */
+internal fun banderasDe(tramos: List<TramoEnCamino>): List<PuntoBandera> =
+    tramos.flatMap { t ->
+        listOfNotNull(
+            if (t.empiezaEnSalida) PuntoBandera(SeleccionMapa.Bandera(t.tramoId, esMeta = false), t.salida) else null,
+            if (t.acabaEnMeta) PuntoBandera(SeleccionMapa.Bandera(t.tramoId, esMeta = true), t.meta) else null,
+        )
+    }
+
+/** El centro de la tela respecto al ancla abajo-izquierda de la bandera, en fracción de su lado. */
+private const val CENTRO_TELA = 0.4f
 
 /** Una línea por trozo de tramo con al menos dos puntos. */
 internal fun featuresLineasTramos(tramos: List<TramoEnCamino>): FeatureCollection =

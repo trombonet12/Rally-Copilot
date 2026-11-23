@@ -51,7 +51,7 @@ internal fun tituloAviso(
         }
     }
 
-/** Texto corto del bocadillo del mapa: «Radar fijo 80», «Radar · sentido contrario», «Pasaste a 87», «Obras»... */
+/** Título del bocadillo del mapa: «Radar fijo · 80 km/h», «Radar · sentido contrario», «Pasaste a 87», «Obras»... */
 internal fun textoBocadillo(
     recursos: Resources,
     contenido: ContenidoBocadillo,
@@ -77,6 +77,14 @@ internal fun textoBocadillo(
 
         is ContenidoBocadillo.Incidencia -> {
             recursos.getString(tituloIncidencia(contenido.tipo))
+        }
+
+        is ContenidoBocadillo.RadarTocado,
+        is ContenidoBocadillo.TramoRadarTocado,
+        is ContenidoBocadillo.NotaDelMapa,
+        is ContenidoBocadillo.Bandera,
+        -> {
+            tituloTocado(recursos, contenido).orEmpty()
         }
     }
 

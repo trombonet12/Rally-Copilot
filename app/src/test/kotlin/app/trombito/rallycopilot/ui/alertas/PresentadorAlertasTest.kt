@@ -39,7 +39,7 @@ class PresentadorAlertasTest {
         alertas: AlertasEnCurso?,
         vigentes: IncidenciasVigentes = IncidenciasVigentes(),
         seleccionada: String? = null,
-    ) = presentarAlertas(alertas, vigentes, AHORA_MS, seleccionada)
+    ) = presentarAlertas(alertas, vigentes, AHORA_MS, seleccionada?.let { SeleccionMapa.Incidencia(it) })
 
     @Test
     fun `sin conduccion ni incidencias no hay nada`() {
@@ -194,7 +194,7 @@ class PresentadorAlertasTest {
     @Test
     fun `la tarjeta es la incidencia elegida mientras exista`() {
         val vigentes = IncidenciasVigentes(listOf(incidencia("a"), incidencia("b")), null)
-        assertEquals("b", presentar(null, vigentes, "b").seleccionada?.id)
+        assertEquals(SeleccionMapa.Incidencia("b"), presentar(null, vigentes, "b").seleccionada)
         assertNull(presentar(null, vigentes, "c").seleccionada)
         assertNull(presentar(null, vigentes, null).seleccionada)
     }

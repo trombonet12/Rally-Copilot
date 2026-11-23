@@ -8,9 +8,13 @@ import app.trombito.rallycopilot.domain.alertas.ProveedorRadaresMapa
 import app.trombito.rallycopilot.domain.alertas.RadarProximo
 import app.trombito.rallycopilot.domain.alertas.RadaresEnMapa
 import app.trombito.rallycopilot.domain.alertas.RepositorioIncidencias
+import app.trombito.rallycopilot.domain.alertas.TramoEnMapa
+import app.trombito.rallycopilot.domain.diagnostico.NivelRegistro
+import app.trombito.rallycopilot.domain.diagnostico.RegistroDiagnostico
 import app.trombito.rallycopilot.motor.alertas.Radar
 import app.trombito.rallycopilot.motor.alertas.TipoRadar
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.ui.mapa.NotasEnMapa
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,6 +48,24 @@ private class FalsoRepositorioIncidencias : RepositorioIncidencias {
     override suspend fun refrescar() = Unit
 }
 
+private class RegistroEnMemoria : RegistroDiagnostico {
+    val lineas = mutableListOf<String>()
+
+    override fun registrar(
+        nivel: NivelRegistro,
+        etiqueta: String,
+        mensaje: String,
+    ) {
+        lineas += "$etiqueta $mensaje"
+    }
+
+    override fun registrarSincrono(
+        nivel: NivelRegistro,
+        etiqueta: String,
+        mensaje: String,
+    ) = registrar(nivel, etiqueta, mensaje)
+}
+
 private class FalsosRadaresMapa(
     var datos: RadaresEnMapa = RadaresEnMapa(),
 ) : ProveedorRadaresMapa {
@@ -55,6 +77,7 @@ class AlertasViewModelTest {
     private val proveedor = FalsoProveedorAlertas()
     private val repositorio = FalsoRepositorioIncidencias()
     private val radares = FalsosRadaresMapa()
+    private val registro = RegistroEnMemoria()
     private var ahoraMs = AHORA_MS
 
     @Before
@@ -68,7 +91,7 @@ class AlertasViewModelTest {
     }
 
     private fun TestScope.crear(): AlertasViewModel {
-        val vm = AlertasViewModel(proveedor, repositorio, radares)
+        val vm = AlertasViewModel(proveedor, repositorio, radares, registro)
         vm.reloj = { ahoraMs }
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
@@ -88,7 +111,7 @@ class AlertasViewModelTest {
             radares.datos = RadaresEnMapa(listOf(radar))
             val vm = crear()
             assertEquals(
-                listOf(MarcadorRadar("r1", ClaseRadar.FIJO, 39.6, 2.9, 80)),
+                listOf(MarcadorRadar("r1", ClaseRadar.FIJO, 39.6, 2.9, 80, rumboGrados = 10.0)),
                 vm.uiState.value.radares.marcadores,
             )
             assertNull(vm.uiState.value.bocadillo)
@@ -128,21 +151,13 @@ class AlertasViewModelTest {
         runTest {
             val vm = crear()
             repositorio.estado.value = IncidenciasVigentes(listOf(incidencia("a"), incidencia("b")), null)
-            vm.onSeleccionar("a")
-            assertEquals(
-                "a",
-                vm.uiState.value.seleccionada
-                    ?.id,
-            )
-            vm.onSeleccionar("b")
-            assertEquals(
-                "b",
-                vm.uiState.value.seleccionada
-                    ?.id,
-            )
-            vm.onSeleccionar("b")
+            vm.onSeleccionar(SeleccionMapa.Incidencia("a"))
+            assertEquals(SeleccionMapa.Incidencia("a"), vm.uiState.value.seleccionada)
+            vm.onSeleccionar(SeleccionMapa.Incidencia("b"))
+            assertEquals(SeleccionMapa.Incidencia("b"), vm.uiState.value.seleccionada)
+            vm.onSeleccionar(SeleccionMapa.Incidencia("b"))
             assertNull(vm.uiState.value.seleccionada)
-            vm.onSeleccionar("a")
+            vm.onSeleccionar(SeleccionMapa.Incidencia("a"))
             vm.onSeleccionar(null)
             assertNull(vm.uiState.value.seleccionada)
         }
@@ -152,7 +167,7 @@ class AlertasViewModelTest {
         runTest {
             val vm = crear()
             repositorio.estado.value = IncidenciasVigentes(listOf(incidencia("a")), null)
-            vm.onSeleccionar("a")
+            vm.onSeleccionar(SeleccionMapa.Incidencia("a"))
             assertEquals(
                 "seleccion-a",
                 vm.uiState.value.bocadillo
@@ -170,15 +185,11 @@ class AlertasViewModelTest {
         runTest {
             val vm = crear()
             repositorio.estado.value = IncidenciasVigentes(listOf(incidencia("a"), incidencia("b")), null)
-            vm.onSeleccionar("a")
+            vm.onSeleccionar(SeleccionMapa.Incidencia("a"))
             advanceTimeBy(CIERRE_SELECCION_MS - 1_000)
-            vm.onSeleccionar("b")
+            vm.onSeleccionar(SeleccionMapa.Incidencia("b"))
             advanceTimeBy(CIERRE_SELECCION_MS - 1_000)
-            assertEquals(
-                "b",
-                vm.uiState.value.seleccionada
-                    ?.id,
-            )
+            assertEquals(SeleccionMapa.Incidencia("b"), vm.uiState.value.seleccionada)
             advanceTimeBy(1_500)
             assertNull(vm.uiState.value.seleccionada)
         }
@@ -188,7 +199,7 @@ class AlertasViewModelTest {
         runTest {
             val vm = crear()
             repositorio.estado.value = IncidenciasVigentes(listOf(incidencia("a")), null)
-            vm.onSeleccionar("a")
+            vm.onSeleccionar(SeleccionMapa.Incidencia("a"))
             assertNotNull(vm.uiState.value.seleccionada)
             repositorio.estado.value = IncidenciasVigentes(emptyList(), null)
             assertNull(vm.uiState.value.seleccionada)
@@ -203,5 +214,61 @@ class AlertasViewModelTest {
             ahoraMs += 31 * 60_000L
             advanceTimeBy(61_000L)
             assertEquals(FrescuraIncidencias(31 * 60_000L, conError = false), vm.uiState.value.frescura)
+        }
+
+    private fun idBocadillo(vm: AlertasViewModel): String? {
+        val bocadillo = vm.uiState.value.bocadillo
+        return bocadillo?.id
+    }
+
+    private val radarFijo = Radar("r1", TipoRadar.FIJO, PuntoGeo(39.6, 2.9), 10.0, 80, null, "test")
+    private val inicioTramo = Radar("t-ini", TipoRadar.TRAMO_INICIO, PuntoGeo(39.7, 2.9), 0.0, 80, "t", "test")
+    private val finTramo = Radar("t-fin", TipoRadar.TRAMO_FIN, PuntoGeo(39.71, 2.9), 0.0, 80, "t", "test")
+
+    @Test
+    fun `tocar un radar abre su bocadillo, tocarlo otra vez lo cierra y se cierra solo a los 8 segundos`() =
+        runTest {
+            radares.datos = RadaresEnMapa(listOf(radarFijo))
+            val vm = crear()
+            vm.onSeleccionar(SeleccionMapa.Radar("r1"))
+            assertEquals("seleccion-radar-r1", idBocadillo(vm))
+            vm.onSeleccionar(SeleccionMapa.Radar("r1"))
+            assertNull(vm.uiState.value.bocadillo)
+            vm.onSeleccionar(SeleccionMapa.Radar("r1"))
+            advanceTimeBy(CIERRE_SELECCION_MS + 1)
+            assertNull(vm.uiState.value.seleccionada)
+        }
+
+    @Test
+    fun `tocar la linea de un tramo en otro punto es el mismo tramo y cierra el bocadillo`() =
+        runTest {
+            val trazado = TramoEnMapa("t", 80, listOf(inicioTramo.punto, finTramo.punto))
+            radares.datos = RadaresEnMapa(listOf(inicioTramo, finTramo), listOf(trazado))
+            val vm = crear()
+            vm.onSeleccionar(SeleccionMapa.TramoRadar("t", PuntoGeo(39.705, 2.9)))
+            assertNotNull(vm.uiState.value.bocadillo)
+            vm.onSeleccionar(SeleccionMapa.TramoRadar("t", PuntoGeo(39.708, 2.9)))
+            assertNull(vm.uiState.value.seleccionada)
+        }
+
+    @Test
+    fun `la nota y la bandera tocadas salen cuando el mapa publica sus elementos`() =
+        runTest {
+            val vm = crear()
+            val bandera = BanderaMapa("tr", esMeta = true, lat = 39.7, lon = 2.8, nombre = "Sóller", mejorMs = 1_000L)
+            vm.onSeleccionar(SeleccionMapa.Bandera("tr", esMeta = true))
+            assertNull(vm.uiState.value.bocadillo)
+            vm.actualizarTocables(NotasEnMapa(), listOf(bandera))
+            assertEquals("seleccion-bandera-tr-true", idBocadillo(vm))
+            vm.actualizarTocables(NotasEnMapa(), emptyList())
+            assertNull(vm.uiState.value.bocadillo)
+        }
+
+    @Test
+    fun `los toques se anotan en el registro de diagnostico`() =
+        runTest {
+            val vm = crear()
+            vm.registrarToque("toque capa=radar resultado=bocadillo")
+            assertEquals(listOf("Mapa toque capa=radar resultado=bocadillo"), registro.lineas)
         }
 }

@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.mapa
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.TramoEnCamino
+import app.trombito.rallycopilot.ui.alertas.SeleccionMapa
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -75,5 +76,26 @@ class CapaTramosTest {
         val tramos = listOf(trozo("A", true, true), trozo("B", false, true))
         assertEquals(2, featuresLineasTramos(tramos).features().orEmpty().size)
         assertEquals(3, featuresBanderasTramos(tramos).features().orEmpty().size)
+    }
+
+    @Test
+    fun `las banderas tocables son las mismas que se pintan`() {
+        val entero = trozo("A", true, true)
+        val recortado = trozo("B", empiezaEnSalida = false, acabaEnMeta = true)
+        val banderas = banderasDe(listOf(entero, recortado))
+        assertEquals(
+            listOf(
+                SeleccionMapa.Bandera("A", esMeta = false),
+                SeleccionMapa.Bandera("A", esMeta = true),
+                SeleccionMapa.Bandera("B", esMeta = true),
+            ),
+            banderas.map { it.seleccion },
+        )
+        assertEquals(39.70, banderas.first().punto.lat, 0.0)
+        assertEquals(39.72, banderas.last().punto.lat, 0.0)
+        assertEquals(
+            featuresBanderasTramos(listOf(entero, recortado)).features().orEmpty().size,
+            banderas.size,
+        )
     }
 }

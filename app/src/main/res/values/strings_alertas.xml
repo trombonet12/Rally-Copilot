@@ -17,7 +17,7 @@
     <string name="alerta_descripcion_en_carretera">%1$s en %2$s</string>
 
     <!-- Bocadillo anclado al marcador del mapa (radar que se acerca, tramo en curso, paso por un radar) -->
-    <string name="bocadillo_radar_limite">%1$s %2$d</string>
+    <string name="bocadillo_radar_limite">%1$s · %2$d km/h</string>
     <string name="bocadillo_tramo_media">%1$s %2$d · media %3$d</string>
     <string name="bocadillo_tramo_sin_media">%1$s %2$d · media —</string>
     <string name="bocadillo_paso">Pasaste a %1$d</string>
@@ -36,6 +36,31 @@
     <string name="bocadillo_incidencia_carriles">afecta a %1$s</string>
     <string name="bocadillo_incidencia_limite">máx. %1$d</string>
     <string name="bocadillo_incidencia_hasta">hasta %1$s</string>
+
+    <!-- Última línea del bocadillo de una incidencia: de cuándo son los datos de la DGT («DGT hace 5 min») -->
+    <string name="bocadillo_incidencia_dgt">DGT %1$s</string>
+
+    <!-- Bocadillo de lo que se toca en el mapa: radares («Radar fijo · 80 km/h», «Sentido noreste»), tramos de radar,
+         banderas de tramo y notas -->
+    <string name="bocadillo_radar_ambos_sentidos">ambos sentidos</string>
+    <string name="bocadillo_radar_zona_aproximada">ubicación aproximada</string>
+    <string name="bocadillo_tramo_radar_minimo">%1$s · mínimo %2$s para ir a %3$d</string>
+    <string name="bocadillo_bandera_salida">Salida: %1$s</string>
+    <string name="bocadillo_bandera_salida_sin_nombre">Salida del tramo</string>
+    <string name="bocadillo_bandera_meta">Meta: %1$s</string>
+    <string name="bocadillo_bandera_meta_sin_nombre">Meta del tramo</string>
+    <string name="bocadillo_bandera_mejor">Tu mejor: %1$s</string>
+    <!-- Los ocho rumbos de la brújula, de norte (0°) en sentido horario -->
+    <string-array name="bocadillo_rumbos">
+        <item>norte</item>
+        <item>noreste</item>
+        <item>este</item>
+        <item>sureste</item>
+        <item>sur</item>
+        <item>suroeste</item>
+        <item>oeste</item>
+        <item>noroeste</item>
+    </string-array>
 
     <!-- Panel de velocidad: exceso y media de tramo -->
     <string name="panel_exceso_descripcion">Por encima del límite de velocidad</string>

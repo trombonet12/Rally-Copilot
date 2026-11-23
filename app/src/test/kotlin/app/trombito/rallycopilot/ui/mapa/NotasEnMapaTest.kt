@@ -7,6 +7,7 @@ import app.trombito.rallycopilot.motor.notas.Aviso
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
 import app.trombito.rallycopilot.motor.notas.HojaNotas
+import app.trombito.rallycopilot.motor.notas.Modificador
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.notas.TipoAviso
 import org.junit.Assert.assertEquals
@@ -123,5 +124,43 @@ class NotasEnMapaTest {
         assertEquals(TipoAviso.entries.size, imagenes.size)
         assertEquals("H", textoCurva(null))
         assertEquals("1", textoCurva(1))
+    }
+
+    @Test
+    fun `la curva lleva su frase con el grado en cifra y lo que lleva detras`() {
+        fun frase(nota: Nota) = fraseCurva(ElementoHoja.DeNota(nota))
+        assertEquals("Izquierda 3", frase(Nota(0.0, 40.0, Direccion.IZQUIERDA, 3)))
+        assertEquals("Derecha escuadra", frase(Nota(0.0, 40.0, Direccion.DERECHA, 3, setOf(Modificador.ESCUADRA))))
+        assertEquals("Horquilla izquierda", frase(Nota(0.0, 40.0, Direccion.IZQUIERDA, null)))
+        assertEquals(
+            "Izquierda 3 · cuidado",
+            frase(Nota(0.0, 40.0, Direccion.IZQUIERDA, 3, cuidado = true, distanciaSiguienteM = 50)),
+        )
+        assertEquals("Mi texto", frase(Nota(0.0, 40.0, Direccion.DERECHA, 4, cuidado = true, textoLibre = "mi texto")))
+    }
+
+    @Test
+    fun `la frase de la curva suma los avisos unidos y el puente o la rasante`() {
+        val nota = Nota(400.0, 440.0, Direccion.DERECHA, 4)
+        val elemento =
+            ElementoHoja.DeNota(
+                nota,
+                avisosUnidos = listOf(Aviso(390.0, TipoAviso.CRUCE), Aviso(395.0, TipoAviso.BACHE)),
+                sobrePuente = Aviso(410.0, TipoAviso.PUENTE),
+                sobreRasante = Aviso(420.0, TipoAviso.RASANTE),
+            )
+        assertEquals(
+            "Derecha 4 · cuidado · cruce · resalto · sobre puente · sobre rasante",
+            fraseCurva(elemento),
+        )
+    }
+
+    @Test
+    fun `el aviso lleva su nombre con la primera en mayuscula y la curva su frase y su icono`() {
+        val mapa = notasEnMapa(enCurso(listOf(curva(100.0, grado = 5, direccion = Direccion.IZQUIERDA), aviso(200.0))))
+        assertEquals("Izquierda 5", mapa.curvas.single().frase)
+        assertTrue(mapa.curvas.single().icono != 0)
+        assertEquals("Estrecha", mapa.avisos.single().frase)
+        assertEquals("Cuidado, resalto", fraseAviso(TipoAviso.BACHE))
     }
 }

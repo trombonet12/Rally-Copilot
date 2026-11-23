@@ -13,10 +13,12 @@ private val ZONA_MALLORCA = ZoneId.of("Europe/Madrid")
 private val FORMATO_FIN = DateTimeFormatter.ofPattern("dd/MM", LOCALE_ES)
 
 /**
- * Las líneas de detalle bajo el título del bocadillo (vacías si no hay nada que añadir). Solo las de incidencia:
- * - la que se acerca: «Ma-13 km 56,5»;
- * - la tocada ([ContenidoBocadillo.Incidencia.completo]): «Ma-13 km 56,5 · sentido Inca · afecta a carril derecho ·
- *   máx. 60 · hasta 30/11» y, en otra línea, el comentario de la DGT si lo hay.
+ * Las líneas de detalle bajo el título del bocadillo (vacías si no hay nada que añadir):
+ * - incidencia que se acerca: «Ma-13 km 56,5»;
+ * - incidencia tocada ([ContenidoBocadillo.Incidencia.completo]): «Ma-13 km 56,5 · sentido Inca · afecta a carril
+ *   derecho · máx. 60 · hasta 30/11», en otra línea el comentario de la DGT si lo hay y, al final, de cuándo son los
+ *   datos: «DGT hace 5 min»;
+ * - radares, tramos de radar y banderas: ver [detalleTocado].
  * Omite lo que falte; el rango de km sale «km 56,5–57,1» y el municipio solo si no hay km.
  */
 internal fun lineasDetalleBocadillo(
@@ -32,12 +34,15 @@ internal fun lineasDetalleBocadillo(
                 contenido.detalle.comentario
                     ?.trim()
                     ?.takeIf { it.isNotEmpty() },
+                contenido.antiguedadMs?.let {
+                    recursos.getString(R.string.bocadillo_incidencia_dgt, textoAntiguedad(recursos, it))
+                },
             )
         } else {
             listOfNotNull(lugar)
         }
     } else {
-        emptyList()
+        detalleTocado(recursos, contenido)
     }
 
 /** Sentido, carriles afectados, límite temporal y fin, en este orden y solo los que haya. */

@@ -24,7 +24,6 @@ import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
-import kotlin.math.hypot
 
 private const val ID_FUENTE = "incidencias-fuente"
 private const val ID_CAPA = "incidencias-capa"
@@ -108,12 +107,7 @@ internal fun incidenciaMasCercana(
     y: Float,
     margenPx: Float,
     proyectar: (MarcadorIncidencia) -> Pair<Float, Float>?,
-): MarcadorIncidencia? =
-    marcadores
-        .mapNotNull { m -> proyectar(m)?.let { (px, py) -> m to hypot(px - x, py - y) } }
-        .filter { it.second <= margenPx }
-        .minByOrNull { it.second }
-        ?.first
+): MarcadorIncidencia? = masCercano(marcadores, x, y, margenPx, proyectar)
 
 /** Un punto por incidencia con su `id` y el nombre de su imagen: lo que se pinta en el mapa. */
 internal fun featuresIncidencias(marcadores: List<MarcadorIncidencia>): FeatureCollection =

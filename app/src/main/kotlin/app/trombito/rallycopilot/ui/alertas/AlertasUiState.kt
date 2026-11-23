@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.alertas
 
+import androidx.annotation.DrawableRes
 import androidx.compose.runtime.Immutable
 import app.trombito.rallycopilot.motor.alertas.TipoIncidencia
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
@@ -78,7 +79,10 @@ data class MarcadorIncidencia(
     val detalle: DetalleIncidencia = DetalleIncidencia(),
 )
 
-/** Un radar (fijo, móvil o entrada de tramo) pintado siempre en el mapa. */
+/**
+ * Un radar (fijo, móvil o entrada de tramo) pintado siempre en el mapa. [rumboGrados] es el sentido de marcha que
+ * vigila (null = ambos); [tramoId] solo lo llevan los de tramo.
+ */
 @Immutable
 data class MarcadorRadar(
     val id: String,
@@ -86,14 +90,31 @@ data class MarcadorRadar(
     val lat: Double,
     val lon: Double,
     val limiteKmh: Int?,
+    val rumboGrados: Double? = null,
+    val tramoId: String? = null,
 )
 
-/** El segmento de un radar de tramo sobre el mapa: [puntos] de la entrada a la salida. */
+/** El segmento de un radar de tramo sobre el mapa: [puntos] de la entrada a la salida, de [longitudM] metros. */
 @Immutable
 data class TramoRadarMapa(
     val id: String,
     val limiteKmh: Int?,
     val puntos: List<PuntoGeo>,
+    val longitudM: Double = 0.0,
+)
+
+/**
+ * Bandera de salida o de meta de un tramo cronometrado que pasa por el camino, con lo que dice su bocadillo: [nombre]
+ * del tramo y [mejorMs] (su mejor tiempo), null si no se conocen.
+ */
+@Immutable
+data class BanderaMapa(
+    val tramoId: String,
+    val esMeta: Boolean,
+    val lat: Double,
+    val lon: Double,
+    val nombre: String?,
+    val mejorMs: Long?,
 )
 
 /** Radares y tramos que se pintan siempre en el mapa (con o sin conducción en curso). */
@@ -129,14 +150,42 @@ sealed interface ContenidoBocadillo {
     }
 
     /**
-     * Incidencia de la ruta o tocada en el mapa. Con [completo] (la tocada) lleva toda la línea de detalle y el
-     * comentario de la DGT; sin él (la que se acerca) solo «carretera km».
+     * Incidencia de la ruta o tocada en el mapa. Con [completo] (la tocada) lleva toda la línea de detalle, el
+     * comentario de la DGT y, si se sabe, cuánto hace que se descargaron los datos ([antiguedadMs], al minuto); sin él
+     * (la que se acerca) solo «carretera km».
      */
     data class Incidencia(
         val tipo: TipoIncidencia,
         val carretera: String? = null,
         val detalle: DetalleIncidencia = DetalleIncidencia(),
         val completo: Boolean = false,
+        val antiguedadMs: Long? = null,
+    ) : ContenidoBocadillo
+
+    /** Radar fijo o zona de radar móvil tocados: su [clase], el límite y el sentido que vigila ([rumboGrados]). */
+    data class RadarTocado(
+        val clase: ClaseRadar,
+        val limiteKmh: Int?,
+        val rumboGrados: Double?,
+    ) : ContenidoBocadillo
+
+    /** Radar de tramo tocado: su límite y su longitud (con ellas, el tiempo mínimo para no pasarse de la media). */
+    data class TramoRadarTocado(
+        val limiteKmh: Int?,
+        val longitudM: Double,
+    ) : ContenidoBocadillo
+
+    /** Curva o aviso de la hoja tocados: la [frase] de la nota y su [icono] de roadbook. */
+    data class NotaDelMapa(
+        val frase: String,
+        @DrawableRes val icono: Int,
+    ) : ContenidoBocadillo
+
+    /** Bandera de salida o meta de un tramo tocada: [nombre] del tramo y su mejor tiempo. */
+    data class Bandera(
+        val esMeta: Boolean,
+        val nombre: String?,
+        val mejorMs: Long?,
     ) : ContenidoBocadillo
 }
 
@@ -168,8 +217,8 @@ data class AlertasUiState(
     val frescura: FrescuraIncidencias? = null,
     /** Todos los radares y los tramos, siempre en el mapa. */
     val radares: RadaresUi = RadaresUi(),
-    /** Bocadillo de la incidencia tocada o, si no, de lo que se acerca o se acaba de pasar; null si no hay. */
+    /** Bocadillo de lo tocado en el mapa o, si no, de lo que se acerca o se acaba de pasar; null si no hay. */
     val bocadillo: BocadilloMapa? = null,
-    /** La incidencia tocada en el mapa (su bocadillo abierto); null si ninguna. */
-    val seleccionada: MarcadorIncidencia? = null,
+    /** Lo tocado en el mapa cuyo bocadillo está abierto (ya comprobado que existe); null si nada. */
+    val seleccionada: SeleccionMapa? = null,
 )

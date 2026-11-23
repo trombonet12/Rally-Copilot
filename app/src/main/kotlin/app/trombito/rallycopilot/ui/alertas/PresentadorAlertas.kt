@@ -21,33 +21,34 @@ private const val PASO_DISTANCIA_M = 10
 /**
  * Convierte lo que publica el dominio en lo que pinta la UI. Sin conducción en curso ([alertas] null) se enseñan las
  * incidencias vigentes de [vigentes] (sin las caducadas a [ahoraMs]); conduciendo, las que ya filtró la sesión (las de
- * la ruta y las del radio de 3 km). Prioridad del banner: radar antes que incidencia. [seleccionadaId] es la
- * incidencia tocada en el mapa: su bocadillo (con el detalle) manda sobre el de aproximación; si ya no está entre los
- * marcadores, no hay bocadillo.
+ * la ruta y las del radio de 3 km). Prioridad del banner: radar antes que incidencia. [seleccion] es lo tocado en el
+ * mapa: su bocadillo (con todo el detalle) manda sobre el de aproximación; si el elemento ya no existe entre los de
+ * [elementos] (y los marcadores y radares de ahora), no hay bocadillo ni selección.
  */
+@Suppress("LongParameterList") // los datos del dominio, el reloj, lo tocado y lo que hay en el mapa
 internal fun presentarAlertas(
     alertas: AlertasEnCurso?,
     vigentes: IncidenciasVigentes,
     ahoraMs: Long,
-    seleccionadaId: String? = null,
+    seleccion: SeleccionMapa? = null,
     radares: RadaresUi = RadaresUi(),
+    elementos: ElementosTocables = ElementosTocables(),
 ): AlertasUiState {
     val cercanas = alertas?.incidencias ?: incidenciasFueraDeConduccion(vigentes, ahoraMs)
     val marcadores = marcadoresDe(cercanas)
     val antiguedadMs =
         if (alertas != null) alertas.antiguedadIncidenciasMs else antiguedadDe(vigentes, ahoraMs)
     val hayError = if (alertas != null) alertas.errorIncidencias != null else vigentes.errorUltimo != null
-    val seleccionada = marcadores.firstOrNull { it.id == seleccionadaId }
+    val tocables = elementos.copy(incidencias = marcadores, radares = radares, antiguedadIncidenciasMs = antiguedadMs)
+    val bocadilloTocado = seleccion?.let { bocadilloDeSeleccion(it, tocables) }
     return AlertasUiState(
         aviso = alertas?.let { avisoDe(it, cercanas) },
         panel = alertas?.let(::panelDe) ?: AlertasPanel(),
         marcadores = marcadores,
         frescura = frescuraDe(antiguedadMs, hayError),
         radares = radares,
-        bocadillo =
-            seleccionada?.let { bocadilloDeIncidencia(it, completo = true) }
-                ?: alertas?.let { bocadilloDe(it, cercanas, marcadores, radares) },
-        seleccionada = seleccionada,
+        bocadillo = bocadilloTocado ?: alertas?.let { bocadilloDe(it, cercanas, marcadores, radares) },
+        seleccionada = seleccion.takeIf { bocadilloTocado != null },
     )
 }
 

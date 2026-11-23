@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.domain.alertas.PasoRadarEnCurso
 import app.trombito.rallycopilot.domain.alertas.RadaresEnMapa
 import app.trombito.rallycopilot.motor.alertas.IncidenciaCercana
 import app.trombito.rallycopilot.motor.alertas.TipoRadar
+import app.trombito.rallycopilot.motor.geo.longitudMetros
 import kotlin.math.roundToInt
 
 /** Los radares y tramos de los datos tal como se pintan: la entrada de cada tramo es su marcador (la salida, no). */
@@ -13,8 +14,18 @@ internal fun radaresUiDe(datos: RadaresEnMapa): RadaresUi =
         marcadores =
             datos.radares
                 .filter { it.tipo != TipoRadar.TRAMO_FIN }
-                .map { MarcadorRadar(it.id, claseDe(it.tipo), it.punto.lat, it.punto.lon, it.limiteKmh) },
-        tramos = datos.tramos.map { TramoRadarMapa(it.id, it.limiteKmh, it.trazado) },
+                .map {
+                    MarcadorRadar(
+                        id = it.id,
+                        clase = claseDe(it.tipo),
+                        lat = it.punto.lat,
+                        lon = it.punto.lon,
+                        limiteKmh = it.limiteKmh,
+                        rumboGrados = it.rumboGrados,
+                        tramoId = it.tramoId,
+                    )
+                },
+        tramos = datos.tramos.map { TramoRadarMapa(it.id, it.limiteKmh, it.trazado, it.trazado.longitudMetros()) },
     )
 
 internal fun claseDe(tipo: TipoRadar): ClaseRadar =
@@ -50,14 +61,16 @@ internal fun bocadilloDe(
             ?.let { bocadilloDeIncidencia(it, completo = false) }
 
 /**
- * Bocadillo de una incidencia anclado a su marcador. El de la tocada ([completo]) lleva el detalle entero de la DGT y
- * manda sobre cualquier otro; el de la que se acerca, solo «carretera km».
+ * Bocadillo de una incidencia anclado a su marcador. El de la tocada ([completo]) lleva el detalle entero de la DGT, la
+ * [antiguedadMs] de los datos (si se sabe) y manda sobre cualquier otro; el de la que se acerca, solo «carretera km».
  */
 internal fun bocadilloDeIncidencia(
     marcador: MarcadorIncidencia,
     completo: Boolean,
+    antiguedadMs: Long? = null,
 ): BocadilloMapa {
-    val contenido = ContenidoBocadillo.Incidencia(marcador.tipo, marcador.carretera, marcador.detalle, completo)
+    val contenido =
+        ContenidoBocadillo.Incidencia(marcador.tipo, marcador.carretera, marcador.detalle, completo, antiguedadMs)
     val prefijo = if (completo) "seleccion" else "incidencia"
     return BocadilloMapa("$prefijo-${marcador.id}", marcador.lat, marcador.lon, contenido)
 }

@@ -108,7 +108,8 @@ class BocadilloRadarTest {
     fun `la incidencia tocada saca su bocadillo completo aunque no haya conduccion`() {
         val obra = incidencia("i1", TipoIncidencia.OBRAS, listOf(PuntoGeo(39.7, 2.8)))
         val conDatos = obra.copy(pkDesde = 56.5, comentario = "Desvío")
-        val ui = presentarAlertas(null, IncidenciasVigentes(listOf(conDatos), null), AHORA_MS, "i1", radares)
+        val vigentes = IncidenciasVigentes(listOf(conDatos), null)
+        val ui = presentarAlertas(null, vigentes, AHORA_MS, SeleccionMapa.Incidencia("i1"), radares)
         val bocadillo = checkNotNull(ui.bocadillo)
         assertEquals("seleccion-i1", bocadillo.id)
         val contenido = bocadillo.contenido as ContenidoBocadillo.Incidencia
@@ -126,7 +127,7 @@ class BocadilloRadarTest {
                 radarProximo = RadarProximo(TipoRadar.FIJO, 400.0, 80, "f1"),
                 incidencias = listOf(cercana(lejana, enRuta = false, distanciaM = 2_500.0)),
             )
-        val ui = presentarAlertas(alertas, IncidenciasVigentes(), AHORA_MS, "i1", radares)
+        val ui = presentarAlertas(alertas, IncidenciasVigentes(), AHORA_MS, SeleccionMapa.Incidencia("i1"), radares)
         assertEquals("seleccion-i1", ui.bocadillo?.id)
         assertEquals(39.9, ui.bocadillo?.lat ?: 0.0, 0.0)
         // Sin selección vuelve el del radar.
