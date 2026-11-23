@@ -109,6 +109,8 @@ data class PreferenciasVistaMapa(
     val incidencias: List<MarcadorIncidencia> = emptyList(),
     /** Notas de la hoja tocables para editarlas (con el coche parado); vacío = ninguna. */
     val notas: List<MarcadorNota> = emptyList(),
+    /** Números de las curvas (en su ápice) y avisos de la hoja de los próximos ~1,5 km, a modo de vistazo. */
+    val notasMapa: NotasEnMapa = NotasEnMapa(),
     /** Estela de por dónde se ha pasado en el recorrido en curso (gris, bajo la ruta); vacía = ninguna. */
     val estela: List<List<PuntoGeo>> = emptyList(),
     /** Todos los radares y los segmentos de tramo, siempre visibles; vacío = ninguno. */
@@ -465,6 +467,7 @@ private class ControladorMapa(
         if (nuevas.radares != previas.radares) CapaRadares.actualizar(capas, nuevas.radares)
         if (nuevas.bocadillo != previas.bocadillo) CapaBocadillo.actualizar(capas, vista.context, nuevas.bocadillo)
         if (nuevas.notas != previas.notas) CapaNotas.actualizar(capas, nuevas.notas)
+        if (nuevas.notasMapa != previas.notasMapa) CapaNotasMapa.actualizar(capas, nuevas.notasMapa)
         if (nuevas.estela != previas.estela) capaEstela.actualizar(capas, nuevas.estela)
         if (nuevas.calor != previas.calor) capaCalor.actualizar(capas, nuevas.calor)
         if (nuevas.fantasma != previas.fantasma || nuevas.icono != previas.icono) {
@@ -490,6 +493,7 @@ private class ControladorMapa(
             CapaRadares.instalar(cargado, vista.context, preferencias.radares)
             CapaIncidencias.instalar(cargado, vista.context, preferencias.incidencias)
             CapaNotas.instalar(cargado, preferencias.notas)
+            CapaNotasMapa.instalar(cargado, vista.context, preferencias.notasMapa)
             // El fantasma, antes de la ubicación y del bocadillo: queda por debajo del coche real.
             capaFantasma.instalar(cargado, vista.context, preferencias.icono, preferencias.fantasma)
             CapaBocadillo.instalar(cargado, vista.context, preferencias.bocadillo)

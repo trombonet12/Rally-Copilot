@@ -74,6 +74,7 @@ fun MapaRoute(
     cronoViewModel: CronoViewModel = hiltViewModel(),
     edicionViewModel: EdicionMapaViewModel = hiltViewModel(),
     calorViewModel: CalorViewModel = hiltViewModel(),
+    notasMapaViewModel: NotasMapaViewModel = hiltViewModel(),
 ) {
     val estadoBase by viewModel.uiState.collectAsStateWithLifecycle()
     val calor by calorViewModel.estado.collectAsStateWithLifecycle()
@@ -88,6 +89,7 @@ fun MapaRoute(
     // Sin `by`: solo el mapa y la superposición leen la edición y la estela, así que sus cambios no recomponen la raíz.
     val edicion = edicionViewModel.uiState.collectAsStateWithLifecycle()
     val estela = viewModel.estela.collectAsStateWithLifecycle()
+    val notasMapa = notasMapaViewModel.notasMapa.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
     EfectosDelMapa(permiso.estado, estado, navegacion, viewModel, navegacionViewModel)
     // Sin `by`: solo el mapa lee la reserva, así que su cambio no recompone la raíz.
@@ -143,6 +145,7 @@ fun MapaRoute(
                                 reservaPuntoPx = reservaPuntoPx.intValue,
                                 fantasma = fantasmaDelCrono(crono),
                                 calor = datosCalor,
+                                notasMapa = notasMapa.value,
                             ),
                     modifier = modificador,
                 )
