@@ -7,11 +7,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,7 +44,6 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.tramos.CronoEnCurso
 import app.trombito.rallycopilot.ui.comun.FormatoEs
-import app.trombito.rallycopilot.ui.comun.HojaInferiorWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.LADO_TACTIL
 import app.trombito.rallycopilot.ui.comun.PlacaCarretera
@@ -55,6 +56,7 @@ import app.trombito.rallycopilot.ui.navegacion.guiado.proximaParada
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 import app.trombito.rallycopilot.ui.theme.Medidas
+import app.trombito.rallycopilot.ui.theme.Radios
 import app.trombito.rallycopilot.ui.tramos.CronoMiniEnPanel
 import app.trombito.rallycopilot.ui.tramos.EscalaCronoMini
 import kotlinx.coroutines.delay
@@ -122,40 +124,57 @@ internal fun HojaConduccion(
     reloj: () -> Long = System::currentTimeMillis,
 ) {
     val guiando = datos.control as? EstadoNavegacion.Guiando
-    HojaInferiorWrc(modifier.testTag(ETIQUETA_HOJA), compacta = true) {
-        Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = ALTO_FILA_HOJA),
-            horizontalArrangement = Arrangement.spacedBy(Espacio.m),
-            verticalAlignment = Alignment.CenterVertically,
+    // Sin asa de HojaInferiorWrc: esta hoja no se desliza y el asa prometía un gesto que no existe.
+    Surface(
+        modifier = modifier.testTag(ETIQUETA_HOJA).fillMaxWidth(),
+        shape = Radios.formaHoja,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .navigationBarsPadding()
+                    .padding(horizontal = Espacio.l)
+                    .padding(top = MARGEN_SUPERIOR_HOJA, bottom = Espacio.s),
         ) {
-            if (guiando != null) {
-                BotonTerminar(acciones.onTerminar, armado = datos.cierreArmado)
-            } else {
-                BotonSalirMapa(acciones.onSalir, armado = datos.cierreArmado)
-            }
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center) {
+            Row(
+                modifier = Modifier.fillMaxWidth().heightIn(min = ALTO_FILA_HOJA),
+                horizontalArrangement = Arrangement.spacedBy(Espacio.m),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 if (guiando != null) {
-                    CentroGuiado(guiando, datos, reloj)
+                    BotonTerminar(acciones.onTerminar, armado = datos.cierreArmado)
                 } else {
-                    CentroLibre(datos, reloj, acciones.onTripACero)
+                    BotonSalirMapa(acciones.onSalir, armado = datos.cierreArmado)
                 }
-            }
-            if (guiando != null) {
-                BotonBuscarGuiando(acciones.onBuscarGuiando)
-            } else if (acciones.onBuscarDestino != null) {
-                BotonBuscarGuiando(
-                    onClick = acciones.onBuscarDestino,
-                    etiqueta = ETIQUETA_BUSCAR_DESTINO,
-                    descripcion = R.string.mapa_buscar_destino,
-                )
-            } else {
-                Spacer(Modifier.size(LADO_TACTIL))
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center) {
+                    if (guiando != null) {
+                        CentroGuiado(guiando, datos, reloj)
+                    } else {
+                        CentroLibre(datos, reloj, acciones.onTripACero)
+                    }
+                }
+                if (guiando != null) {
+                    BotonBuscarGuiando(acciones.onBuscarGuiando)
+                } else if (acciones.onBuscarDestino != null) {
+                    BotonBuscarGuiando(
+                        onClick = acciones.onBuscarDestino,
+                        etiqueta = ETIQUETA_BUSCAR_DESTINO,
+                        descripcion = R.string.mapa_buscar_destino,
+                    )
+                } else {
+                    Spacer(Modifier.size(LADO_TACTIL))
+                }
             }
         }
     }
 }
 
 private val ALTO_FILA_HOJA = 72.dp
+
+/** El hueco de arriba que dejaba el asa (8 + 4 + 8 dp): la hoja conserva sus 100 dp y el contenido no se mueve. */
+private val MARGEN_SUPERIOR_HOJA = Espacio.m + Espacio.s
 
 /** Cronómetro (o LISTO / SALIDA) y, debajo, la carretera y los kilómetros recorridos. */
 @Composable

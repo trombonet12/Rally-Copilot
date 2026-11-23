@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusManager
@@ -71,7 +72,8 @@ private val ALTO_LISTA_HORIZONTAL = 144.dp
 /**
  * Campo «¿A dónde?» en píldora opaca (`surfaceContainerHigh`), con lupa y una sola ✕ al final: con [onCerrar] cierra
  * la búsqueda (siempre visible, con el campo vacío o no); sin él borra el texto (solo si lo hay). [onFoco] avisa de si
- * el campo tiene el foco (y de que lo pierde al salir de la composición).
+ * el campo tiene el foco (y de que lo pierde al salir de la composición). Con [pedirFoco] el campo toma el foco y abre
+ * el teclado al componerse; [onFocoPedido] avisa de que ya se atendió.
  */
 @Composable
 @Suppress("LongParameterList") // campo, foco y las dos acciones de la ✕ final
@@ -88,9 +90,13 @@ fun BarraDestino(
     val colores = MaterialTheme.colorScheme
     DisposableEffect(Unit) { onDispose { onFoco(false) } }
     val foco = remember { FocusRequester() }
+    val teclado = LocalSoftwareKeyboardController.current
     LaunchedEffect(pedirFoco) {
         if (pedirFoco) {
             foco.requestFocus()
+            // El foco por código no siempre abre el teclado (sobre todo si el campo ya lo tenía): se pide también.
+            withFrameNanos { }
+            teclado?.show()
             onFocoPedido()
         }
     }

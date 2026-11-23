@@ -3,11 +3,14 @@ package app.trombito.rallycopilot.ui.mapa
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_ASA_HOJA
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.navegacion.ETIQUETA_BUSCADOR
 import app.trombito.rallycopilot.ui.navegacion.NavegacionEnMapa
@@ -59,5 +62,24 @@ class MapaScreenBarraMarchaTest {
     fun `en marcha y sin notas la barra de destino no sale`() {
         poner(velocidadKmh = 63)
         assertFalse(banco.hay(ETIQUETA_BUSCADOR))
+    }
+
+    @Test
+    fun `en marcha la lupa de la hoja abre el campo ya enfocado`() {
+        poner(velocidadKmh = 63)
+        assertFalse(banco.hay(ETIQUETA_BUSCADOR))
+
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_BUSCAR_DESTINO))
+        banco.reposo()
+
+        assertTrue(banco.hay(ETIQUETA_BUSCADOR))
+        val enfocado = banco.conEtiqueta(ETIQUETA_BUSCADOR).config.getOrNull(SemanticsProperties.Focused)
+        assertTrue("el campo debe tener el foco (y con él el teclado)", enfocado == true)
+    }
+
+    @Test
+    fun `la hoja de conduccion no lleva asa de arrastre porque no se desliza`() {
+        poner(velocidadKmh = 0)
+        assertFalse(banco.hay(ETIQUETA_ASA_HOJA))
     }
 }

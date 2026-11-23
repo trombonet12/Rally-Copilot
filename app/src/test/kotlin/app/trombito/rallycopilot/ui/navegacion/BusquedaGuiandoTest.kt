@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.domain.busqueda.ResultadoBusqueda
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
@@ -108,6 +110,14 @@ abstract class BusquedaGuiandoBase {
         assertEquals(listOf(valldemossa, valldemossa), elegidos)
         banco.pulsar(banco.conEtiqueta(ETIQUETA_BUSQUEDA_GUIANDO_CERRAR))
         assertEquals(1, cerrada)
+    }
+
+    @Test
+    fun `al abrir la busqueda guiando el campo toma el foco para que salga el teclado`() {
+        poner(guiando(buscando = true))
+        banco.reposo()
+        val enfocado = banco.conEtiqueta(ETIQUETA_BUSCADOR).config.getOrNull(SemanticsProperties.Focused)
+        assertTrue("el campo debe tener el foco nada mas abrirse", enfocado == true)
     }
 
     @Test
