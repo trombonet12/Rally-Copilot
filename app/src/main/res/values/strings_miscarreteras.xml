@@ -9,16 +9,43 @@
     <string name="carreteras_error_titulo">No se han podido leer tus recorridos</string>
     <string name="carreteras_error_texto">Cierra la pantalla y vuelve a abrirla. Si sigue igual, reinicia la app.</string>
     <string name="carreteras_mapa_descripcion">Mapa de tus carreteras: cuantas más veces has pasado por una, más roja se dibuja.</string>
+    <string name="carreteras_mapa_descripcion_velocidad">Mapa de tus carreteras coloreadas por la velocidad media en marcha: del violeta, lenta, al amarillo, rápida.</string>
     <string name="carreteras_mapa_sin_vias">Faltan los datos de carreteras de Mallorca. Descárgalos con la actualización de datos para ver el mapa.</string>
     <string name="carreteras_mapa_sin_coincidencias">Tus recorridos no coinciden con ninguna carretera conocida.</string>
+
+    <!-- Conmutador y leyendas del mapa de calor -->
+    <string name="carreteras_modo_uso">Uso</string>
+    <string name="carreteras_modo_velocidad">Velocidad</string>
     <string name="carreteras_leyenda_titulo">Veces</string>
     <string name="carreteras_leyenda_una">1</string>
     <string name="carreteras_leyenda_pocas">2–4</string>
     <string name="carreteras_leyenda_varias">5–9</string>
     <string name="carreteras_leyenda_muchas">10 o más</string>
-    <string name="carreteras_distancia_titulo">Distancia total</string>
-    <string name="carreteras_recorridos_titulo">Recorridos</string>
+    <string name="carreteras_leyenda_velocidad_titulo">En marcha</string>
+    <string name="carreteras_leyenda_lenta">20 km/h</string>
+    <string name="carreteras_leyenda_rapida">110 km/h</string>
+    <string name="carreteras_leyenda_sin_dato">Sin dato</string>
+
+    <!-- Lista de carreteras -->
+    <string name="carreteras_lista_titulo">Tus carreteras</string>
+    <string name="carreteras_orden_uso">Uso</string>
+    <string name="carreteras_orden_curvas">Curvas</string>
+    <string name="carreteras_orden_reciente">Reciente</string>
+    <string name="carreteras_orden_ayuda_uso">Ordenadas por kilómetros conducidos</string>
+    <string name="carreteras_orden_ayuda_curvas">Ordenadas por curvas por kilómetro</string>
+    <string name="carreteras_orden_ayuda_reciente">Ordenadas por la última vez que pasaste</string>
+    <plurals name="carreteras_viajes">
+        <item quantity="one">%1$d viaje</item>
+        <item quantity="other">%1$d viajes</item>
+    </plurals>
+    <string name="carreteras_km_en_viajes">%1$s en %2$s</string>
+    <string name="carreteras_ritmo">%1$d km/h</string>
+    <string name="carreteras_curvas_por_km">%1$s curvas/km</string>
+    <string name="carreteras_ultima_vez">Última vez: %1$s</string>
+
+    <!-- Curvas por grado (globales y de una carretera) -->
     <string name="carreteras_curvas_titulo">Curvas por grado</string>
+    <string name="carreteras_curvas_escala">1 = la más cerrada · 6 = la más suave</string>
     <plurals name="carreteras_curvas_total">
         <item quantity="one">%1$d curva en total</item>
         <item quantity="other">%1$d curvas en total</item>
@@ -31,11 +58,35 @@
         <item quantity="other">%1$d curvas</item>
     </plurals>
     <string name="carreteras_curvas_fila">%1$s: %2$s</string>
-    <string name="carreteras_mas_curvas_titulo">Carreteras con más curvas</string>
-    <string name="carreteras_mas_curvas_vacio">Todavía no hay curvas en tus recorridos.</string>
-    <plurals name="carreteras_pasadas">
-        <item quantity="one">%1$d vez</item>
-        <item quantity="other">%1$d veces</item>
+
+    <!-- Ficha de carretera -->
+    <string name="ficha_titulo">Ficha de carretera</string>
+    <string name="ficha_cargando">Preparando la ficha…</string>
+    <string name="ficha_error_titulo">No se ha podido leer la carretera</string>
+    <string name="ficha_error_texto">Vuelve atrás y prueba otra vez. Si sigue igual, reinicia la app.</string>
+    <string name="ficha_no_encontrada_titulo">Esta carretera ya no está en tus recorridos</string>
+    <string name="ficha_no_encontrada_texto">Puede que hayas borrado los viajes que pasaban por ella.</string>
+    <string name="ficha_sentidos_titulo">Por sentido</string>
+    <string name="ficha_sentido_hacia">Hacia %1$s</string>
+    <string name="ficha_sentido_creciente">Hacia el km más alto</string>
+    <string name="ficha_sentido_decreciente">Hacia el km más bajo</string>
+    <string name="ficha_sentido_sin_orientar">Sentido sin determinar</string>
+    <string name="ficha_sentido_sin_datos">Sin tiempos en este sentido</string>
+    <string name="ficha_sentido_descripcion">%1$s: %2$s</string>
+    <string name="ficha_regla_titulo">Los tramos sobre la carretera</string>
+    <string name="ficha_regla_ayuda">Toca una franja para ver el tramo. Los kilómetros pueden ser aproximados.</string>
+    <string name="ficha_regla_sin_km">Ninguno de tus tramos de esta carretera tiene kilómetros que situar en la regla.</string>
+    <string name="ficha_franja_descripcion">%1$s, %2$s. Toca para ver el tramo.</string>
+    <string name="ficha_rango_km">km %1$s → %2$s</string>
+    <string name="ficha_tramo_abrir">Abrir tramo</string>
+    <string name="ficha_tramos_titulo">Tus tramos en esta carretera</string>
+    <string name="ficha_tramos_vacio">Aún no se ha guardado ningún tramo de esta carretera. Se crean solos al terminar un viaje de más de 1 km.</string>
+    <string name="ficha_tramo_medidas">%1$s · %2$s</string>
+    <string name="ficha_tramo_media">Media %1$s</string>
+    <string name="ficha_tramo_mejor">Mejor %1$s</string>
+    <string name="ficha_tramo_sin_tiempo">Sin tiempo</string>
+    <plurals name="ficha_pasadas">
+        <item quantity="one">%1$d pasada</item>
+        <item quantity="other">%1$d pasadas</item>
     </plurals>
-    <string name="carreteras_fila_medidas">%1$s · %2$s</string>
 </resources>

@@ -47,6 +47,15 @@ data object RutaMisTramos
 @Serializable
 data object RutaMisCarreteras
 
+/**
+ * Ficha de una carretera conducida: [ref] es su identidad estable (`FichaCarretera.id`, p. ej. `MA10`, o el nombre
+ * normalizado con prefijo `~` si no tiene ref), la misma que `DatosVia.viaRef` de sus tramos de vía.
+ */
+@Serializable
+data class RutaFichaCarretera(
+    val ref: String,
+)
+
 /** Mapa en modo dibujo: tocar puntos y guardar la ruta como tramo. */
 @Serializable
 data object RutaDibujar

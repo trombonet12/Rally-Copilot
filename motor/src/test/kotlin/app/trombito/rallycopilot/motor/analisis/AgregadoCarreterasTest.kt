@@ -167,6 +167,57 @@ class AgregadoCarreterasTest {
     }
 
     @Test
+    fun `el reparto por grado se guarda por via y recorrido`() {
+        val analisis = AgregadoCarreteras.analizar(conCurva(45.0, 120.0), viaDe)
+        val uso = analisis.usos.first { it.via.id == 1L }
+        assertEquals(1, uso.curvas)
+        assertEquals(1, uso.grados.deGrado(5))
+        assertEquals(uso.curvas, uso.grados.total)
+    }
+
+    @Test
+    fun `las carreteras con el mismo ref normalizado o varias refs se juntan`() {
+        val m1 = via(20, "Ma-13;Ma-13A", null, recta(0.0, 500.0, 100.0))
+        val m2 = via(21, "MA 13", null, recta(500.0, 1_000.0, 100.0))
+        val resumen =
+            AgregadoCarreteras.agregar(
+                listOf(
+                    AnalisisRecorrido(
+                        1_000.0,
+                        listOf(UsoVia(m1, 500.0, 1), UsoVia(m2, 500.0, 1)),
+                        CurvasPorGrado.VACIO,
+                    ),
+                ),
+            )
+        val carretera = resumen.carreteras.single()
+        assertEquals("Ma-13", carretera.ref)
+        assertEquals(2, carretera.curvas)
+    }
+
+    @Test
+    fun `las carreteras se ordenan por curvas por kilometro y no por el total`() {
+        val larga = via(30, "Ma-1", null, recta(0.0, 1_000.0, 100.0))
+        val revirada = via(31, "Ma-2", null, recta(0.0, 1_000.0, 100.0))
+        val corta = via(32, "Ma-3", null, recta(0.0, 100.0, 100.0))
+        val resumen =
+            AgregadoCarreteras.agregar(
+                listOf(
+                    AnalisisRecorrido(
+                        40_000.0,
+                        listOf(
+                            // 40 curvas en 20 km (2/km), 30 en 3 km (10/km), 2 en 200 m (10/km pero corta).
+                            UsoVia(larga, 20_000.0, 40),
+                            UsoVia(revirada, 3_000.0, 30),
+                            UsoVia(corta, 200.0, 2),
+                        ),
+                        CurvasPorGrado.VACIO,
+                    ),
+                ),
+            )
+        assertEquals(listOf("Ma-2", "Ma-1", "Ma-3"), resumen.carreteras.map { it.ref })
+    }
+
+    @Test
     fun `las carreteras se ordenan por curvas y se agrupan por ref`() {
         val b1 = via(10, "Ma-11", null, recta(0.0, 500.0, 100.0))
         val b2 = via(11, "Ma-11", null, recta(500.0, 1_000.0, 100.0))

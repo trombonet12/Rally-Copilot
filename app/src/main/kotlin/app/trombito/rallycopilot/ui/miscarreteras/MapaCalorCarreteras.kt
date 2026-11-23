@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -31,6 +32,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.ui.analisis.PaletaVelocidad
+import app.trombito.rallycopilot.ui.mapa.ANCHO_CALOR_SIN_DATO
+import app.trombito.rallycopilot.ui.mapa.ANCHO_CALOR_VELOCIDAD
+import app.trombito.rallycopilot.ui.mapa.ModoCalor
+import app.trombito.rallycopilot.ui.mapa.fraccionVelocidadCalor
 import app.trombito.rallycopilot.ui.theme.CarbonOpaco
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.Radios
@@ -39,17 +45,23 @@ import app.trombito.rallycopilot.ui.theme.TextoSecundarioSobreCarbon
 import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 const val ETIQUETA_CARRETERAS_MAPA = "carreteras-mapa"
 const val ETIQUETA_CARRETERAS_MAPA_AVISO = "carreteras-mapa-aviso"
 const val ETIQUETA_CARRETERAS_LEYENDA = "carreteras-leyenda"
+const val ETIQUETA_CARRETERAS_LEYENDA_VELOCIDAD = "carreteras-leyenda-velocidad"
 
-private val ALTO_MAPA = 300.dp
+/** Alto del mapa de calor, el mismo con mapa base y sin él. */
+internal val ALTO_MAPA_CALOR = 300.dp
 private val ALTO_MUESTRA = 4.dp
 private val ANCHO_MUESTRA = 20.dp
+private val ANCHO_DEGRADADO = 72.dp
 private const val MARGEN_MAPA_PX = 24f
 private const val SEPARACION_MIN_PX = 1.2f
 private const val GRADOS_A_RADIANES = Math.PI / 180.0
+private const val CUBOS_VELOCIDAD = 8
+private val COLOR_SIN_DATO = Color(0xFF8A8F98)
 
 /** Tramos de la escala de calor: de una pasada (ámbar apagado) a diez o más (rojo). */
 enum class NivelUso(
@@ -124,8 +136,38 @@ internal class Encuadre private constructor(
     }
 }
 
+/** Cómo se dibuja una vía en el mapa sin base: color y grosor según el modo; [orden] decide qué va encima. */
+internal data class EstiloTrazo(
+    val color: Color,
+    val grosorPx: Float,
+    val orden: Int,
+)
+
+/** El estilo de [trazo] en el [modo]: el nivel de uso o, por velocidad, un color de la paleta en ocho tramos. */
+internal fun estiloDeTrazo(
+    trazo: TrazoCarretera,
+    modo: ModoCalor,
+): EstiloTrazo =
+    when (modo) {
+        ModoCalor.USO -> {
+            val nivel = NivelUso.de(trazo.pasadas)
+            EstiloTrazo(nivel.color, nivel.grosorPx, nivel.ordinal + 1)
+        }
+
+        ModoCalor.VELOCIDAD -> {
+            val kmh = trazo.velMediaKmh
+            if (kmh == null) {
+                EstiloTrazo(COLOR_SIN_DATO, ANCHO_CALOR_SIN_DATO, 0)
+            } else {
+                val cubo = (fraccionVelocidadCalor(kmh) * CUBOS_VELOCIDAD).roundToInt()
+                EstiloTrazo(PaletaVelocidad.color(cubo.toFloat() / CUBOS_VELOCIDAD), ANCHO_CALOR_VELOCIDAD, cubo + 1)
+            }
+        }
+    }
+
 /**
- * Mapa de calor sin mapa base (robusto y sin red): cada vía conducida se dibuja con el color de su [NivelUso]; las más
+ * Mapa de calor sin mapa base (robusto y sin red; es el que se ve mientras no haya estilo de mapa instalado): cada vía
+ * conducida se dibuja con el color de su [NivelUso] o, en el [modo] velocidad, el de su velocidad media; las más
  * repetidas encima. Sobre carbón, también en tema claro. Sin trazos enseña [aviso].
  */
 @Composable
@@ -133,13 +175,21 @@ internal fun MapaCalorCarreteras(
     trazos: List<TrazoCarretera>,
     aviso: String,
     modifier: Modifier = Modifier,
+    modo: ModoCalor = ModoCalor.USO,
 ) {
     val encuadre = remember(trazos) { Encuadre.de(trazos) }
-    val descripcion = stringResource(R.string.carreteras_mapa_descripcion)
+    val descripcion =
+        stringResource(
+            if (modo == ModoCalor.USO) {
+                R.string.carreteras_mapa_descripcion
+            } else {
+                R.string.carreteras_mapa_descripcion_velocidad
+            },
+        )
     val fondo =
         Modifier
             .fillMaxWidth()
-            .height(ALTO_MAPA)
+            .height(ALTO_MAPA_CALOR)
             .clip(RoundedCornerShape(Radios.tarjeta))
             .background(CarbonOpaco)
     Box(modifier.then(fondo).testTag(ETIQUETA_CARRETERAS_MAPA), contentAlignment = Alignment.Center) {
@@ -158,13 +208,13 @@ internal fun MapaCalorCarreteras(
                     .semantics { contentDescription = descripcion }
                     .drawWithCache {
                         val proyector = encuadre.proyector(size.width, size.height, MARGEN_MAPA_PX)
-                        val caminos = NivelUso.entries.map { it to caminoDe(trazos, it, proyector) }
+                        val caminos = caminosPorEstilo(trazos, modo, proyector)
                         onDrawBehind {
-                            for ((nivel, camino) in caminos) {
+                            for ((estilo, camino) in caminos) {
                                 drawPath(
                                     camino,
-                                    nivel.color,
-                                    style = Stroke(nivel.grosorPx, cap = StrokeCap.Round, join = StrokeJoin.Round),
+                                    estilo.color,
+                                    style = Stroke(estilo.grosorPx, cap = StrokeCap.Round, join = StrokeJoin.Round),
                                 )
                             }
                         }
@@ -174,15 +224,25 @@ internal fun MapaCalorCarreteras(
     }
 }
 
-/** Un solo camino con todas las vías de [nivel], sin los puntos a menos de un píxel del anterior. */
+/** Un camino por estilo, de lo que va debajo a lo que va encima, con todas las vías de ese estilo. */
+private fun caminosPorEstilo(
+    trazos: List<TrazoCarretera>,
+    modo: ModoCalor,
+    proyector: Encuadre.Proyector,
+): List<Pair<EstiloTrazo, Path>> =
+    trazos
+        .groupBy { estiloDeTrazo(it, modo) }
+        .toList()
+        .sortedBy { it.first.orden }
+        .map { (estilo, grupo) -> estilo to caminoDe(grupo, proyector) }
+
+/** Un solo camino con todas las vías de [trazos], sin los puntos a menos de un píxel del anterior. */
 private fun caminoDe(
     trazos: List<TrazoCarretera>,
-    nivel: NivelUso,
     proyector: Encuadre.Proyector,
 ): Path {
     val camino = Path()
     for (trazo in trazos) {
-        if (NivelUso.de(trazo.pasadas) != nivel) continue
         var ultimo: Offset? = null
         for (punto in trazo.puntos) {
             val p = proyector.offset(punto)
@@ -203,9 +263,21 @@ private fun caminoDe(
     return camino
 }
 
-/** Leyenda de la escala: una muestra del color de cada [NivelUso] con su rango de veces. */
+/** Leyenda del [modo]: veces por color (uso) o la barra de velocidad con su «sin dato» (velocidad). */
 @Composable
-internal fun LeyendaCalor(modifier: Modifier = Modifier) {
+internal fun LeyendaCalor(
+    modo: ModoCalor,
+    modifier: Modifier = Modifier,
+) {
+    when (modo) {
+        ModoCalor.USO -> LeyendaUso(modifier)
+        ModoCalor.VELOCIDAD -> LeyendaVelocidad(modifier)
+    }
+}
+
+/** Leyenda de la escala de uso: una muestra del color de cada [NivelUso] con su rango de veces. */
+@Composable
+private fun LeyendaUso(modifier: Modifier = Modifier) {
     Row(
         modifier.fillMaxWidth().testTag(ETIQUETA_CARRETERAS_LEYENDA),
         horizontalArrangement = Arrangement.spacedBy(Espacio.l, Alignment.CenterHorizontally),
@@ -221,13 +293,7 @@ internal fun LeyendaCalor(modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Espacio.xs),
             ) {
-                Box(
-                    Modifier
-                        .width(ANCHO_MUESTRA)
-                        .height(ALTO_MUESTRA)
-                        .clip(RoundedCornerShape(ALTO_MUESTRA / 2))
-                        .background(nivel.color),
-                )
+                Muestra(nivel.color)
                 Text(
                     stringResource(textoNivel(nivel)),
                     style = MaterialTheme.typography.labelMedium,
@@ -236,6 +302,57 @@ internal fun LeyendaCalor(modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+/** Leyenda de la velocidad: degradado de la paleta entre 20 y 110 km/h y una muestra gris para «sin dato». */
+@Composable
+@Suppress("SpreadOperator") // una sola vez al componer la leyenda, con las paradas de la paleta
+private fun LeyendaVelocidad(modifier: Modifier = Modifier) {
+    val degradado =
+        Brush.horizontalGradient(
+            *PaletaVelocidad.paradas.map { (posicion, color) -> posicion to Color(color) }.toTypedArray(),
+        )
+    Row(
+        modifier.fillMaxWidth().testTag(ETIQUETA_CARRETERAS_LEYENDA_VELOCIDAD),
+        horizontalArrangement = Arrangement.spacedBy(Espacio.s, Alignment.CenterHorizontally),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TextoLeyenda(stringResource(R.string.carreteras_leyenda_velocidad_titulo), apagado = true)
+        TextoLeyenda(stringResource(R.string.carreteras_leyenda_lenta))
+        Box(
+            Modifier
+                .width(ANCHO_DEGRADADO)
+                .height(ALTO_MUESTRA)
+                .clip(RoundedCornerShape(ALTO_MUESTRA / 2))
+                .background(degradado),
+        )
+        TextoLeyenda(stringResource(R.string.carreteras_leyenda_rapida))
+        Muestra(COLOR_SIN_DATO)
+        TextoLeyenda(stringResource(R.string.carreteras_leyenda_sin_dato))
+    }
+}
+
+@Composable
+private fun TextoLeyenda(
+    texto: String,
+    apagado: Boolean = false,
+) {
+    Text(
+        texto,
+        style = MaterialTheme.typography.labelMedium,
+        color = if (apagado) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+    )
+}
+
+@Composable
+private fun Muestra(color: Color) {
+    Box(
+        Modifier
+            .width(ANCHO_MUESTRA)
+            .height(ALTO_MUESTRA)
+            .clip(RoundedCornerShape(ALTO_MUESTRA / 2))
+            .background(color),
+    )
 }
 
 private fun textoNivel(nivel: NivelUso): Int =

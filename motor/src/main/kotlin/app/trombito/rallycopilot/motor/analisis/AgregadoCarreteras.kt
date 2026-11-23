@@ -7,6 +7,8 @@ import app.trombito.rallycopilot.motor.notas.GeneradorNotas
 import app.trombito.rallycopilot.motor.notas.Modificador
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.vias.Via
+import app.trombito.rallycopilot.motor.vias.idDeVia
+import app.trombito.rallycopilot.motor.vias.primeraRef
 import kotlin.math.ceil
 
 /** Número de grados de nota (1 la más cerrada, 6 la más suave). */
@@ -60,11 +62,15 @@ data class CurvasPorGrado(
     }
 }
 
-/** Lo que un recorrido hizo sobre una vía: los [metros] que la recorrió y las [curvas] que tomó en ella. */
+/**
+ * Lo que un recorrido hizo sobre una vía: los [metros] que la recorrió, las [curvas] que tomó en ella y su reparto por
+ * grado ([grados], con el mismo total que [curvas]; vacío si quien lo construye no lo sabe).
+ */
 class UsoVia(
     val via: Via,
     val metros: Double,
     val curvas: Int,
+    val grados: CurvasPorGrado = CurvasPorGrado.VACIO,
 )
 
 /**
@@ -87,8 +93,8 @@ data class ViaConducida(
 )
 
 /**
- * Una carretera: las vías que comparten `ref` (o, sin ella, nombre). [pasadas] son los recorridos que pasaron por
- * alguna de sus vías.
+ * Una carretera: las vías que comparten `ref` (o, sin ella, nombre; ver [FichasCarreteras.idCarretera]). [pasadas] son
+ * los recorridos que pasaron por alguna de sus vías.
  */
 data class Carretera(
     val ref: String?,
@@ -105,8 +111,17 @@ data class ResumenCarreteras(
     val curvas: CurvasPorGrado,
     /** Las vías conducidas, las más repetidas primero. */
     val vias: List<ViaConducida>,
-    /** Las carreteras con curvas, las que más tienen primero. */
+    /**
+     * Las carreteras con curvas, la más revirada primero: por curvas por kilómetro, no por total (gana la que más
+     * serpentea, no la más larga). Las de menos de [AgregadoCarreteras.MIN_METROS_REVIRADA] van detrás: un trozo corto
+     * con una curva no es «revirado».
+     */
     val carreteras: List<Carretera>,
+    /**
+     * Una ficha por carretera con el ritmo por sentido y la fecha del último viaje. La rellena quien conoce los
+     * tiempos y las fechas de los recorridos ([FichasCarreteras.agregar]); [AgregadoCarreteras.agregar] la deja vacía.
+     */
+    val fichas: List<FichaCarretera> = emptyList(),
 )
 
 /**
@@ -127,7 +142,11 @@ object AgregadoCarreteras {
 
     /** Radio con el que conviene buscar la vía de una muestra (error del GPS más ancho de la calzada). */
     const val RADIO_VIA_M = 30.0
-    private const val MAX_CARRETERAS = 10
+
+    /** Longitud mínima de una carretera para que sus curvas por kilómetro cuenten en el orden «más revirada». */
+    const val MIN_METROS_REVIRADA = 1_000.0
+    private const val M_POR_KM = 1_000.0
+    private const val MIN_KM_DIVISOR = 0.001
     private const val MITAD = 2.0
     private const val MITAD_DE_PASO = 0.5
     private val DETECTOR = DetectorCurvas()
@@ -153,6 +172,7 @@ object AgregadoCarreteras {
     ) {
         var metros = 0.0
         var curvas = 0
+        var grados = CurvasPorGrado.VACIO
     }
 
     fun analizar(
@@ -168,7 +188,10 @@ object AgregadoCarreteras {
             val notas = analizarTrozo(trozo, largo, viaDe, usos)
             curvas += CurvasPorGrado.de(notas)
         }
-        val propios = usos.values.filter { it.metros >= MIN_PASADA_M }.map { UsoVia(it.via, it.metros, it.curvas) }
+        val propios =
+            usos.values
+                .filter { it.metros >= MIN_PASADA_M }
+                .map { UsoVia(it.via, it.metros, it.curvas, it.grados) }
         return AnalisisRecorrido(metros, propios, curvas)
     }
 
@@ -188,7 +211,12 @@ object AgregadoCarreteras {
         for (nota in notas) {
             val centro = (nota.posicionM + nota.finM) / MITAD
             val via = vias[(centro / paso).toInt().coerceIn(0, vias.lastIndex)]
-            if (via != null) usos[via.id]?.let { it.curvas++ }
+            if (via != null) {
+                usos[via.id]?.let {
+                    it.curvas++
+                    it.grados += CurvasPorGrado.de(listOf(nota))
+                }
+            }
         }
         return notas
     }
@@ -228,8 +256,11 @@ object AgregadoCarreteras {
             carreteras =
                 porCarretera.values
                     .filter { it.curvas > 0 }
-                    .sortedWith(compareByDescending<Carretera> { it.curvas }.thenByDescending { it.metros })
-                    .take(MAX_CARRETERAS),
+                    .sortedWith(
+                        compareByDescending<Carretera> { it.metros >= MIN_METROS_REVIRADA }
+                            .thenByDescending { it.curvas / (it.metros / M_POR_KM).coerceAtLeast(MIN_KM_DIVISOR) }
+                            .thenByDescending { it.metros },
+                    ),
         )
     }
 
@@ -247,7 +278,7 @@ object AgregadoCarreteras {
             val principal = grupo.maxBy { it.metros }.via
             destino[clave] =
                 Carretera(
-                    ref = previa?.ref ?: principal.ref?.trim()?.takeIf { it.isNotEmpty() },
+                    ref = previa?.ref ?: primeraRef(principal.ref),
                     nombre = previa?.nombre ?: principal.nombre?.trim()?.takeIf { it.isNotEmpty() },
                     pasadas = (previa?.pasadas ?: 0) + 1,
                     metros = (previa?.metros ?: 0.0) + grupo.sumOf { it.metros },
@@ -256,12 +287,12 @@ object AgregadoCarreteras {
         }
     }
 
-    /** Clave de agrupación: la ref si la hay, y si no el nombre; una vía anónima no es una carretera de la lista. */
-    private fun claveCarretera(via: Via): String? {
-        val ref = via.ref?.trim()?.takeIf { it.isNotEmpty() }
-        val nombre = via.nombre?.trim()?.takeIf { it.isNotEmpty() }
-        return ref?.let { "ref:${it.uppercase()}" } ?: nombre?.let { "nombre:${it.lowercase()}" }
-    }
+    /**
+     * Clave de agrupación: la primera ref normalizada si la hay y, si no, el nombre; una vía anónima no es una
+     * carretera de la lista. Es la misma identidad que la de los tramos de vía guardados
+     * ([FichasCarreteras.idCarretera]).
+     */
+    private fun claveCarretera(via: Via): String? = idDeVia(via.ref, via.nombre)
 
     /** Parte la polilínea donde dos puntos seguidos distan más de [MAX_SALTO_M]; descarta los trozos de un punto. */
     private fun partirEnSaltos(puntos: List<PuntoGeo>): List<List<PuntoGeo>> {

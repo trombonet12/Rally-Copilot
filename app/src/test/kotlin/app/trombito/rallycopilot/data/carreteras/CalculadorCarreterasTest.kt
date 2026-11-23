@@ -3,6 +3,8 @@ package app.trombito.rallycopilot.data.carreteras
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.data.recorridos.Recorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
+import app.trombito.rallycopilot.data.tramos.FuenteIndicesVias
+import app.trombito.rallycopilot.data.tramos.IndicesDeVias
 import app.trombito.rallycopilot.data.vias.DatosVias
 import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
@@ -168,5 +170,64 @@ class CalculadorCarreterasTest {
             assertTrue(calculador.velocidades().isEmpty())
             calculador.observar().first()
             assertEquals(1, repo.lecturas)
+        }
+}
+
+class CalculadorCarreterasFichasTest {
+    private val ma10 = viaFalsa(1, "Ma-10", 0, 1_000)
+
+    @Test
+    fun `las fichas juntan kilometros, viajes y ultima vez por carretera`() =
+        runTest {
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900), 2L to lineaEste(0, 900)))
+            val calculador = CalculadorCarreteras(repo, viasFalsas(listOf(ma10)), StandardTestDispatcher(testScheduler))
+            val ficha =
+                calculador
+                    .observar()
+                    .first()
+                    .resumen.fichas
+                    .single()
+            assertEquals("MA10", ficha.id)
+            assertEquals("Ma-10", ficha.ref)
+            assertEquals(2, ficha.viajes)
+            assertEquals(1_800.0, ficha.metros, 40.0)
+            assertEquals(2L, ficha.ultimaVezMs)
+            assertEquals(36.0, ficha.velMediaKmh!!, 0.5)
+            // Sin ejes de carreteras no se sabe el sentido: todo el ritmo va a «sin sentido».
+            assertEquals(2, ficha.sinSentido.viajes)
+        }
+
+    @Test
+    fun `con los ejes de las carreteras el ritmo se reparte por sentido`() =
+        runTest {
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900), 2L to lineaEste(0, 900).reversed()))
+            val indices = FuenteIndicesVias { IndicesDeVias(IndiceVias(listOf(ma10)), null) }
+            val calculador =
+                CalculadorCarreteras(repo, viasFalsas(listOf(ma10)), StandardTestDispatcher(testScheduler), indices)
+            val ficha =
+                calculador
+                    .observar()
+                    .first()
+                    .resumen.fichas
+                    .single()
+            // El eje sale hacia Palma (al oeste): ir hacia el este es el sentido de los km crecientes.
+            assertEquals(1, ficha.creciente.viajes)
+            assertEquals(1, ficha.decreciente.viajes)
+            assertEquals(0, ficha.sinSentido.viajes)
+            assertEquals(36.0, ficha.creciente.velMediaKmh!!, 0.5)
+        }
+
+    @Test
+    fun `sin vias no hay fichas`() =
+        runTest {
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)))
+            val calculador = CalculadorCarreteras(repo, viasFalsas(null), StandardTestDispatcher(testScheduler))
+            assertTrue(
+                calculador
+                    .observar()
+                    .first()
+                    .resumen.fichas
+                    .isEmpty(),
+            )
         }
 }
