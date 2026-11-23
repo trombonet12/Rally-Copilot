@@ -68,14 +68,14 @@ private const val GROSOR_PISTA = 4f
 private const val RADIO_AVISO = 9f
 private const val LADO_CURVA = 12f
 
-/** Alto de la vista previa fija de una sección (160 a 200 dp), o null si no tiene (Datos y Acerca de). */
+/** Alto de la vista previa fija de una subpantalla (160 a 200 dp): el mayor de sus grupos, o null si no tiene. */
 internal fun altoPrevista(seccion: SeccionAjustes): Dp? =
-    when (seccion) {
-        SeccionAjustes.COPILOTO -> ALTO_COPILOTO
-        SeccionAjustes.NOTAS -> ALTO_NOTAS
-        SeccionAjustes.MAPA, SeccionAjustes.VOZ -> ALTO_COPILOTO
-        SeccionAjustes.DATOS, SeccionAjustes.AYUDA, SeccionAjustes.ACERCA_DE -> null
-        else -> ALTO_ESTANDAR
+    seccion.grupos().maxOfOrNull {
+        when (it.previa) {
+            PrevistaAjustes.COPILOTO, PrevistaAjustes.MAPA, PrevistaAjustes.VOZ -> ALTO_COPILOTO
+            PrevistaAjustes.NOTAS -> ALTO_NOTAS
+            else -> ALTO_ESTANDAR
+        }
     }
 
 /**
@@ -84,7 +84,7 @@ internal fun altoPrevista(seccion: SeccionAjustes): Dp? =
  */
 @Composable
 internal fun PrevistaDeSeccion(
-    seccion: SeccionAjustes,
+    previa: PrevistaAjustes,
     ajustes: AjustesConduccion,
     acciones: AccionesAjustes,
     alto: Dp,
@@ -95,20 +95,19 @@ internal fun PrevistaDeSeccion(
             modifier
                 .fillMaxWidth()
                 .height(alto)
-                .testTag(ETIQUETA_SECCION_PREVISTA_PREFIJO + seccion.clave),
+                .testTag(ETIQUETA_SECCION_PREVISTA_PREFIJO + previa.clave),
         relleno = Espacio.m,
     ) {
         Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center) {
-            when (seccion) {
-                SeccionAjustes.COPILOTO -> PrevistaCopiloto(ajustes, acciones)
-                SeccionAjustes.NOTAS -> PrevistaNotas(ajustes)
-                SeccionAjustes.VOZ -> PrevistaVoz(ajustes, acciones)
-                SeccionAjustes.INDICACIONES -> PrevistaIndicaciones(ajustes)
-                SeccionAjustes.TRAMOS -> PrevistaTramos(ajustes)
-                SeccionAjustes.MAPA -> PrevistaMapa(ajustes)
-                SeccionAjustes.ESCUCHA -> PrevistaEscucha(ajustes.activarConCopiloto)
-                SeccionAjustes.TEMA -> PrevistaTema(ajustes.tema)
-                SeccionAjustes.DATOS, SeccionAjustes.AYUDA, SeccionAjustes.ACERCA_DE -> Unit
+            when (previa) {
+                PrevistaAjustes.COPILOTO -> PrevistaCopiloto(ajustes, acciones)
+                PrevistaAjustes.NOTAS -> PrevistaNotas(ajustes)
+                PrevistaAjustes.VOZ -> PrevistaVoz(ajustes, acciones)
+                PrevistaAjustes.INDICACIONES -> PrevistaIndicaciones(ajustes)
+                PrevistaAjustes.TRAMOS -> PrevistaTramos(ajustes)
+                PrevistaAjustes.MAPA -> PrevistaMapa(ajustes)
+                PrevistaAjustes.ESCUCHA -> PrevistaEscucha(ajustes.activarConCopiloto)
+                PrevistaAjustes.TEMA -> PrevistaTema(ajustes.tema)
             }
         }
     }

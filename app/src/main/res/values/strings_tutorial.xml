@@ -69,8 +69,8 @@
     <string name="pista_editar_tramo">Toca una nota para elegirla; el lápiz la edita.</string>
 
     <!-- Ajustes > Ayuda -->
-    <string name="ajustes_seccion_ayuda">Ayuda</string>
-    <string name="ajustes_valor_ayuda">Tutorial, notas y voz</string>
+    <string name="ajustes_seccion_ayuda">Ayuda y acerca de</string>
+    <string name="ajustes_valor_ayuda">Tutorial, notas, voz y licencias</string>
     <string name="ayuda_ver_tutorial">Ver el tutorial otra vez</string>
     <string name="ayuda_ver_tutorial_detalle">Repasa la bienvenida y las pistas.</string>
     <string name="ayuda_notas_titulo">Qué significan las notas</string>

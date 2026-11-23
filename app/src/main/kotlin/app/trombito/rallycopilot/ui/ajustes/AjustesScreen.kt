@@ -1,15 +1,10 @@
 package app.trombito.rallycopilot.ui.ajustes
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -20,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -39,6 +35,7 @@ import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.comun.BarraSuperior
 import app.trombito.rallycopilot.ui.comun.FondoWrc
+import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.theme.Ayuda
 import app.trombito.rallycopilot.ui.theme.Cuerpo
@@ -50,9 +47,8 @@ const val ETIQUETA_ICONO_PREFIJO = "ajustes-icono-"
 const val ETIQUETA_ORIENTACION_RUMBO = "ajustes-orientacion-rumbo"
 const val ETIQUETA_ORIENTACION_NORTE = "ajustes-orientacion-norte"
 
-private val ALTO_TARJETA = 104.dp
-private val ICONO_TARJETA = 32.dp
-private val ANCHO_TRES_COLUMNAS = 600.dp
+private val ALTO_FILA = 72.dp
+private val ICONO_FILA = 32.dp
 
 /** Callbacks de Ajustes. */
 data class AccionesAjustes(
@@ -94,12 +90,13 @@ data class AccionesAjustes(
     val onVerTutorial: () -> Unit = {},
     val onAyudaNotas: () -> Unit = {},
     val onAyudaVoz: () -> Unit = {},
+    val onAcercaDe: () -> Unit = {},
     val onBorrarCasa: () -> Unit = {},
 )
 
 /**
- * Portada de Ajustes: una rejilla de tarjetas (dos columnas; tres en pantallas anchas), una por sección, con el
- * valor que tiene ahora cada una. Tocar una abre su subpantalla con la vista previa en vivo.
+ * Portada de Ajustes: una sola columna de categorías, una fila a todo el ancho cada una con su icono, su título y el
+ * valor que tiene ahora. Tocar una abre su subpantalla con la vista previa en vivo.
  */
 @Composable
 fun AjustesScreen(
@@ -110,96 +107,88 @@ fun AjustesScreen(
     FondoWrc(modifier) {
         Column(Modifier.fillMaxSize().safeDrawingPadding()) {
             BarraSuperior(stringResource(R.string.ajustes_titulo), acciones.onVolver)
-            BoxWithConstraints(Modifier.weight(1f)) {
-                val columnas = if (maxWidth >= ANCHO_TRES_COLUMNAS) 3 else 2
-                Column(
-                    modifier =
-                        Modifier
-                            .verticalScroll(rememberScrollState())
-                            .padding(horizontal = Espacio.l)
-                            .padding(bottom = Espacio.l),
-                    verticalArrangement = Arrangement.spacedBy(Espacio.m),
-                ) {
-                    SeccionAjustes.entries.chunked(columnas).forEach { fila ->
-                        FilaTarjetas(fila, columnas, ajustes, acciones)
-                    }
+            Column(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = Espacio.l)
+                        .padding(bottom = Espacio.l),
+                verticalArrangement = Arrangement.spacedBy(Espacio.m),
+            ) {
+                SeccionAjustes.entries.forEach { seccion ->
+                    FilaPortada(
+                        seccion = seccion,
+                        valor = valorDeSeccion(seccion, ajustes),
+                        onClick = { acciones.onSeccion(seccion) },
+                    )
                 }
             }
         }
     }
 }
 
+/** Fila de una categoría: icono ámbar de 32 dp, título de 16 sp, el valor actual de 14 sp debajo y la flecha. */
 @Composable
-private fun FilaTarjetas(
-    secciones: List<SeccionAjustes>,
-    columnas: Int,
-    ajustes: AjustesConduccion,
-    acciones: AccionesAjustes,
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Max),
-        horizontalArrangement = Arrangement.spacedBy(Espacio.m),
-    ) {
-        secciones.forEach { seccion ->
-            TarjetaPortada(
-                seccion = seccion,
-                valor = valorDeSeccion(seccion, ajustes),
-                onClick = { acciones.onSeccion(seccion) },
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-            )
-        }
-        repeat(columnas - secciones.size) { Spacer(Modifier.weight(1f)) }
-    }
-}
-
-/** Tarjeta de una sección: icono ámbar de 32 dp arriba, título de 16 sp y el valor actual de 14 sp. */
-@Composable
-private fun TarjetaPortada(
+private fun FilaPortada(
     seccion: SeccionAjustes,
     valor: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val titulo = stringResource(seccion.titulo())
     TarjetaWrc(
         modifier =
             modifier
-                .heightIn(min = ALTO_TARJETA)
+                .fillMaxWidth()
+                .heightIn(min = ALTO_FILA)
                 .testTag(ETIQUETA_SECCION_PREFIJO + seccion.clave),
         relleno = Espacio.m,
         onClick = onClick,
     ) {
-        val recurso = seccion.iconoRecurso()
-        if (recurso != null) {
-            Icon(
-                painter = painterResource(recurso),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(ICONO_TARJETA),
-            )
-        } else {
-            Icon(
-                imageVector = seccion.icono(),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(ICONO_TARJETA),
-            )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Espacio.m),
+        ) {
+            IconoFila(seccion)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(seccion.titulo()),
+                    style = Cuerpo,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = valor,
+                    style = Ayuda,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(Iconos.Siguiente, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text(
-            text = titulo,
-            style = Cuerpo,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = Espacio.s),
+    }
+}
+
+@Composable
+private fun IconoFila(seccion: SeccionAjustes) {
+    val recurso = seccion.iconoRecurso()
+    if (recurso != null) {
+        Icon(
+            painter = painterResource(recurso),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(ICONO_FILA),
         )
-        Text(
-            text = valor,
-            style = Ayuda,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+    } else {
+        Icon(
+            imageVector = seccion.icono(),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(ICONO_FILA),
         )
     }
 }

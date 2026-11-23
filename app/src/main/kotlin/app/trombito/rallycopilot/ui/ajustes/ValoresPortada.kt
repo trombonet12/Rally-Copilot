@@ -11,25 +11,54 @@ import app.trombito.rallycopilot.domain.datos.CapaMapa
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.ui.copiloto.nombre
 
-/** El valor actual de una sección, en una línea corta, para la tarjeta de la portada. */
+/** El valor actual de una categoría, en una línea corta, para su fila de la portada. */
 @Composable
 internal fun valorDeSeccion(
     seccion: SeccionAjustes,
     ajustes: AjustesConduccion,
 ): String =
     when (seccion) {
-        SeccionAjustes.COPILOTO -> stringResource(ajustes.modoCopiloto.nombre())
-        SeccionAjustes.NOTAS -> stringResource(R.string.ajustes_valor_notas, segundosEscritos(ajustes.anticipacion))
-        SeccionAjustes.VOZ -> valorVoz(ajustes)
-        SeccionAjustes.INDICACIONES -> valorIndicaciones(ajustes.indicacionesActivas())
-        SeccionAjustes.TRAMOS -> valorTramos(ajustes)
-        SeccionAjustes.MAPA -> valorMapa(ajustes)
-        SeccionAjustes.ESCUCHA -> valorEscucha(ajustes.activarConCopiloto)
-        SeccionAjustes.TEMA -> stringResource(ajustes.tema.nombre())
-        SeccionAjustes.DATOS -> stringResource(R.string.ajustes_valor_datos)
-        SeccionAjustes.AYUDA -> stringResource(R.string.ajustes_valor_ayuda)
-        SeccionAjustes.ACERCA_DE -> stringResource(R.string.ajustes_valor_acerca)
+        SeccionAjustes.COPILOTO -> {
+            unir(
+                stringResource(ajustes.modoCopiloto.nombre()),
+                stringResource(R.string.ajustes_valor_notas, segundosEscritos(ajustes.anticipacion)),
+            )
+        }
+
+        SeccionAjustes.VOZ -> {
+            unir(valorVoz(ajustes), valorIndicaciones(ajustes.indicacionesActivas()))
+        }
+
+        SeccionAjustes.TRAMOS -> {
+            valorTramos(ajustes)
+        }
+
+        SeccionAjustes.MAPA -> {
+            valorMapa(ajustes)
+        }
+
+        SeccionAjustes.ESCUCHA -> {
+            valorEscucha(ajustes.activarConCopiloto)
+        }
+
+        SeccionAjustes.TEMA -> {
+            stringResource(ajustes.tema.nombre())
+        }
+
+        SeccionAjustes.DATOS -> {
+            stringResource(R.string.ajustes_valor_datos)
+        }
+
+        SeccionAjustes.AYUDA -> {
+            stringResource(R.string.ajustes_valor_ayuda)
+        }
     }
+
+@Composable
+private fun unir(
+    primero: String,
+    segundo: String,
+): String = stringResource(R.string.ajustes_valor_unido, primero, segundo)
 
 @Composable
 private fun valorIndicaciones(activas: Int): String =

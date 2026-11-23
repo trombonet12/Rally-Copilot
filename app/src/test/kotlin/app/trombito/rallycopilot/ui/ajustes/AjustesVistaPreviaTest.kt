@@ -52,16 +52,28 @@ class AjustesVistaPreviaTest {
         banco.reposo()
     }
 
-    private fun comprobarVistaPrevia(seccion: SeccionAjustes) {
+    /** Abre [seccion]; si [tocar] no es null lo ejecuta antes de comprobar la vista previa de clave [clave]. */
+    private fun comprobarVistaPrevia(
+        seccion: SeccionAjustes,
+        clave: String = seccion.clave,
+        tocar: (() -> Unit)? = null,
+    ) {
         banco.ponerAjustes(seccion = seccion)
-        val previa = banco.conEtiqueta(ETIQUETA_SECCION_PREVISTA_PREFIJO + seccion.clave)
+        tocar?.invoke()
+        val previa = banco.conEtiqueta(ETIQUETA_SECCION_PREVISTA_PREFIJO + clave)
         val alto = previa.size.height
-        assertTrue("$seccion mide $alto px", alto in (160 * 3)..(200 * 3))
+        assertTrue("$clave mide $alto px", alto in (160 * 3)..(200 * 3))
         val desplazable = banco.nodos().first { it.config.contains(SemanticsProperties.VerticalScrollAxisRange) }
         assertFalse(
-            "La vista previa de $seccion se desplaza",
-            contieneEtiqueta(desplazable, ETIQUETA_SECCION_PREVISTA_PREFIJO + seccion.clave),
+            "La vista previa de $clave se desplaza",
+            contieneEtiqueta(desplazable, ETIQUETA_SECCION_PREVISTA_PREFIJO + clave),
         )
+    }
+
+    /** Toca las notas grandes y las deja como estaban: el grupo Notas pasa a mandar la vista previa. */
+    private fun tocarNotas() {
+        banco.pulsarInterruptor(ETIQUETA_NOTAS_GRANDES)
+        banco.pulsarInterruptor(ETIQUETA_NOTAS_GRANDES)
     }
 
     @Test
@@ -70,14 +82,14 @@ class AjustesVistaPreviaTest {
 
     @Test
     fun `la vista previa de notas va arriba, fija y mide entre 160 y 200 dp`() =
-        comprobarVistaPrevia(SeccionAjustes.NOTAS)
+        comprobarVistaPrevia(SeccionAjustes.COPILOTO, "notas", ::tocarNotas)
 
     @Test
     fun `la vista previa de voz va arriba, fija y mide entre 160 y 200 dp`() = comprobarVistaPrevia(SeccionAjustes.VOZ)
 
     @Test
     fun `la vista previa de indicaciones va arriba, fija y mide entre 160 y 200 dp`() =
-        comprobarVistaPrevia(SeccionAjustes.INDICACIONES)
+        comprobarVistaPrevia(SeccionAjustes.VOZ, "indicaciones") { banco.pulsarInterruptor(ETIQUETA_AJUSTES_CRUCES) }
 
     @Test
     fun `la vista previa de tramos va arriba, fija y mide entre 160 y 200 dp`() =
@@ -128,14 +140,15 @@ class AjustesVistaPreviaTest {
 
     @Test
     fun `las notas grandes tambien se pueden activar desde la seccion Notas`() {
-        banco.ponerAjustes(seccion = SeccionAjustes.NOTAS)
+        banco.ponerAjustes(seccion = SeccionAjustes.COPILOTO)
         banco.pulsarInterruptor(ETIQUETA_NOTAS_GRANDES)
         assertEquals(ToggleableState.On, estadoDe(ETIQUETA_NOTAS_GRANDES))
     }
 
     @Test
     fun `la tarjeta de nota de ejemplo cambia entre derecha 4 larga y derecha media al tocar simplificadas`() {
-        banco.ponerAjustes(seccion = SeccionAjustes.NOTAS)
+        banco.ponerAjustes(seccion = SeccionAjustes.COPILOTO)
+        tocarNotas()
         val completa = banco.textoDe(ETIQUETA_PREVISTA_NOTA)
         assertTrue(completa, completa.startsWith("DERECHA 4 LARGA"))
         assertTrue(completa, "50" in completa)
@@ -147,7 +160,8 @@ class AjustesVistaPreviaTest {
 
     @Test
     fun `te la canta N s antes cambia al tocar cada nivel de anticipacion`() {
-        banco.ponerAjustes(seccion = SeccionAjustes.NOTAS)
+        banco.ponerAjustes(seccion = SeccionAjustes.COPILOTO)
+        tocarNotas()
         assertEquals("Te la canta 5 s antes (a 90 km/h, a 150 m)", banco.textoDe(ETIQUETA_PREVISTA_ANTICIPACION))
         val esperados =
             mapOf(
@@ -164,7 +178,8 @@ class AjustesVistaPreviaTest {
 
     @Test
     fun `la barra de anticipacion dice a cuantos metros suena el aviso y cambia con el nivel`() {
-        banco.ponerAjustes(seccion = SeccionAjustes.NOTAS)
+        banco.ponerAjustes(seccion = SeccionAjustes.COPILOTO)
+        tocarNotas()
         assertEquals("La nota suena a 150 metros de la curva", descripcionDe(ETIQUETA_PREVISTA_BARRA))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_ANTICIPACION_PREFIJO + "muy_tarde"))
         assertEquals("La nota suena a 90 metros de la curva", descripcionDe(ETIQUETA_PREVISTA_BARRA))
@@ -226,7 +241,9 @@ class AjustesVistaPreviaTest {
 
     @Test
     fun `la vista previa de indicaciones tacha la que se desactiva`() {
-        banco.ponerAjustes(seccion = SeccionAjustes.INDICACIONES)
+        banco.ponerAjustes(seccion = SeccionAjustes.VOZ)
+        banco.pulsarInterruptor(ETIQUETA_AJUSTES_CRUCES)
+        banco.pulsarInterruptor(ETIQUETA_AJUSTES_CRUCES)
         // De base cruces y puentes están apagados; salidas y rotondas, activas.
         listOf("cruces" to "Cruces", "puentes" to "Puentes").forEach { (clave, nombre) ->
             assertEquals("$nombre: no avisa", descripcionDe(ETIQUETA_PREVISTA_INDICACION_PREFIJO + clave))
@@ -315,7 +332,7 @@ class AjustesVistaPreviaTest {
 
     @Test
     fun `el boton de informacion despliega la explicacion y la pliega`() {
-        banco.ponerAjustes(seccion = SeccionAjustes.NOTAS)
+        banco.ponerAjustes(seccion = SeccionAjustes.COPILOTO)
         val texto = "Cuántos segundos antes de la curva te canta la nota."
         assertFalse(texto in banco.todosLosTextos())
         val info = banco.conEtiqueta(ETIQUETA_INFO_PREFIJO + "ajustes_anticipacion_titulo")

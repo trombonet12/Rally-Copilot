@@ -26,7 +26,7 @@ class AyudaAjustesTest {
     private val banco = BancoCompose()
 
     @Test
-    fun `la portada tiene la tarjeta de Ayuda y al tocarla se abre su subpantalla`() {
+    fun `la portada tiene la fila de Ayuda y acerca de y al tocarla se abre su subpantalla`() {
         val abiertas = mutableListOf<SeccionAjustes>()
         banco.ponerAjustes(acciones = AccionesAjustes(onSeccion = { abiertas += it }))
         val tarjeta = banco.conEtiqueta(ETIQUETA_SECCION_PREFIJO + SeccionAjustes.AYUDA.clave)
@@ -41,10 +41,11 @@ class AyudaAjustesTest {
     }
 
     @Test
-    fun `las tres filas de ayuda navegan`() {
+    fun `las filas de ayuda y de acerca de navegan`() {
         var tutorial = 0
         var notas = 0
         var voz = 0
+        var acerca = 0
         banco.ponerAjustes(
             seccion = SeccionAjustes.AYUDA,
             acciones =
@@ -52,16 +53,18 @@ class AyudaAjustesTest {
                     onVerTutorial = { tutorial++ },
                     onAyudaNotas = { notas++ },
                     onAyudaVoz = { voz++ },
+                    onAcercaDe = { acerca++ },
                 ),
         )
         val textos = banco.todosLosTextos()
-        listOf("Ver el tutorial otra vez", "Qué significan las notas", "Qué le puedes decir").forEach {
+        listOf("Ver el tutorial otra vez", "Qué significan las notas", "Qué le puedes decir", "Acerca de").forEach {
             assertTrue("Falta $it en $textos", it in textos)
         }
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AYUDA_TUTORIAL))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AYUDA_NOTAS))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AYUDA_VOZ))
-        assertEquals(listOf(1, 1, 1), listOf(tutorial, notas, voz))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AYUDA_ACERCA))
+        assertEquals(listOf(1, 1, 1, 1), listOf(tutorial, notas, voz, acerca))
     }
 
     @Test

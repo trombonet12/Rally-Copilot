@@ -1,22 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Portada de Ajustes: una tarjeta por sección con su valor actual -->
-    <string name="ajustes_seccion_copiloto">Copiloto</string>
-    <string name="ajustes_seccion_notas">Notas</string>
-    <string name="ajustes_seccion_voz">Voz</string>
-    <string name="ajustes_seccion_indicaciones">Indicaciones</string>
+    <!-- Portada de Ajustes: una fila por categoría con su valor actual -->
+    <string name="ajustes_seccion_copiloto">Copiloto y notas</string>
+    <string name="ajustes_grupo_copiloto">Copiloto</string>
+    <string name="ajustes_grupo_notas">Notas</string>
+    <string name="ajustes_seccion_voz">Voz y avisos</string>
+    <string name="ajustes_grupo_voz">Voz</string>
+    <string name="ajustes_grupo_indicaciones">Indicaciones</string>
     <string name="ajustes_seccion_tramos">Tramos</string>
     <string name="ajustes_seccion_mapa">Mapa</string>
     <string name="ajustes_seccion_escucha">Escucha</string>
     <string name="ajustes_seccion_tema">Tema</string>
+    <string name="ajustes_seccion_apariencia">Apariencia</string>
     <string name="ajustes_seccion_datos">Datos</string>
     <string name="ajustes_seccion_acerca">Acerca de</string>
+    <string name="ajustes_valor_unido">%1$s · %2$s</string>
     <string name="ajustes_valor_notas">Anticipación %1$s s</string>
     <string name="ajustes_valor_voz">%1$s · %2$d %%</string>
     <string name="ajustes_valor_voz_sin_elegir">Sin elegir · %1$d %%</string>
-    <string name="ajustes_valor_indicaciones_todas">Todas activas</string>
-    <string name="ajustes_valor_indicaciones_algunas">%1$d de 4 activas</string>
-    <string name="ajustes_valor_indicaciones_ninguna">Ninguna activa</string>
+    <string name="ajustes_valor_indicaciones_todas">Todas las indicaciones</string>
+    <string name="ajustes_valor_indicaciones_algunas">%1$d de 4 indicaciones</string>
+    <string name="ajustes_valor_indicaciones_ninguna">Sin indicaciones</string>
     <string name="ajustes_valor_tramos_automatica">Salida automática</string>
     <string name="ajustes_valor_tramos_manual">Salida manual</string>
     <string name="ajustes_valor_tramos_sin">Sin cronómetro</string>

@@ -42,7 +42,7 @@ fun AjustesRoute(
 
 /** Une los ViewModel con una subpantalla; la copia usa el selector de archivos del sistema. */
 @Composable
-@Suppress("LongParameterList") // sección, navegación, modificador y los dos ViewModel de Hilt
+@Suppress("LongParameterList", "LongMethod") // sección, navegación, modificador, dos ViewModel y los diálogos
 fun AjustesSeccionRoute(
     seccion: SeccionAjustes,
     onMapasOffline: () -> Unit,
@@ -80,6 +80,7 @@ fun AjustesSeccionRoute(
                     onVerTutorial = ayuda.onVerTutorial,
                     onAyudaNotas = ayuda.onNotas,
                     onAyudaVoz = ayuda.onVoz,
+                    onAcercaDe = ayuda.onAcercaDe,
                     onExportarCopia = { avisandoExportar = true },
                     onImportarCopia = { confirmando = true },
                     onCopiaAutomatica = copia::activarCopiaAutomatica,

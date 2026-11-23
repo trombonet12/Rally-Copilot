@@ -93,7 +93,7 @@ class AjustesConduccionScreenTest {
 
     @Test
     fun `la anticipacion ofrece cinco niveles con icono y los segundos debajo y marca el elegido`() {
-        poner(SeccionAjustes.NOTAS, AjustesConduccion(anticipacion = NivelAnticipacion.TARDE))
+        poner(SeccionAjustes.COPILOTO, AjustesConduccion(anticipacion = NivelAnticipacion.TARDE))
         val etiquetas = banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO)
         assertEquals(NivelAnticipacion.entries.size, etiquetas.size)
         etiquetas.forEach {
@@ -114,7 +114,7 @@ class AjustesConduccionScreenTest {
     @Test
     fun `elegir un nivel de anticipacion lo pide`() {
         val pedidos = mutableListOf<NivelAnticipacion>()
-        poner(SeccionAjustes.NOTAS, acciones = AccionesAjustes(onAnticipacion = { pedidos += it }))
+        poner(SeccionAjustes.COPILOTO, acciones = AccionesAjustes(onAnticipacion = { pedidos += it }))
         NivelAnticipacion.entries.forEach {
             banco.pulsar(banco.conEtiqueta(ETIQUETA_ANTICIPACION_PREFIJO + it.name.lowercase()))
         }
@@ -124,7 +124,7 @@ class AjustesConduccionScreenTest {
     @Test
     fun `las notas simplificadas son un interruptor que pide el cambio`() {
         val cambios = mutableListOf<Boolean>()
-        poner(SeccionAjustes.NOTAS, acciones = AccionesAjustes(onNotasSimplificadas = { cambios += it }))
+        poner(SeccionAjustes.COPILOTO, acciones = AccionesAjustes(onNotasSimplificadas = { cambios += it }))
         val fila = banco.conEtiqueta(ETIQUETA_NOTAS_SIMPLIFICADAS)
         assertTrue("Notas simples" in banco.textos(fila))
         banco.pulsar(fila.children.first { banco.esPulsable(it) })
@@ -196,7 +196,7 @@ class AjustesConduccionScreenTest {
 
     @Test
     fun `el interruptor de notas simplificadas refleja el ajuste`() {
-        poner(SeccionAjustes.NOTAS, AjustesConduccion(notasSimplificadas = true))
+        poner(SeccionAjustes.COPILOTO, AjustesConduccion(notasSimplificadas = true))
         val estados =
             banco.conEtiqueta(ETIQUETA_NOTAS_SIMPLIFICADAS).children.mapNotNull {
                 it.config.getOrNull(SemanticsProperties.ToggleableState)

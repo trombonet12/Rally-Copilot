@@ -8,15 +8,20 @@ import app.trombito.rallycopilot.ui.comun.Iconos
 const val ETIQUETA_AYUDA_TUTORIAL = "ajustes-ayuda-tutorial"
 const val ETIQUETA_AYUDA_NOTAS = "ajustes-ayuda-notas"
 const val ETIQUETA_AYUDA_VOZ = "ajustes-ayuda-voz"
+const val ETIQUETA_AYUDA_ACERCA = "ajustes-ayuda-acerca"
 
 /** Adónde lleva cada fila de Ajustes > Ayuda; los resuelve la navegación. */
 data class AccionesAyuda(
     val onVerTutorial: () -> Unit = {},
     val onNotas: () -> Unit = {},
     val onVoz: () -> Unit = {},
+    val onAcercaDe: () -> Unit = {},
 )
 
-/** Ajustes > Ayuda: repasar el tutorial, qué significan las notas y qué se le puede decir al copiloto. */
+/**
+ * Ajustes > Ayuda y acerca de: repasar el tutorial, qué significan las notas, qué se le puede decir al copiloto y el
+ * acceso a Acerca de (versión, licencias y atribuciones).
+ */
 @Composable
 internal fun ControlesAyuda(acciones: AccionesAjustes) {
     FilaAccion(
@@ -41,6 +46,14 @@ internal fun ControlesAyuda(acciones: AccionesAjustes) {
         etiqueta = ETIQUETA_AYUDA_VOZ,
         onClick = acciones.onAyudaVoz,
         icono = Iconos.Microfono,
+        navega = true,
+    )
+    FilaAccion(
+        titulo = stringResource(R.string.ajustes_seccion_acerca),
+        detalle = stringResource(R.string.ajustes_valor_acerca),
+        etiqueta = ETIQUETA_AYUDA_ACERCA,
+        onClick = acciones.onAcercaDe,
+        icono = Iconos.Informacion,
         navega = true,
     )
 }

@@ -26,7 +26,6 @@ import app.trombito.rallycopilot.ui.ajustes.AjustesRoute
 import app.trombito.rallycopilot.ui.ajustes.AjustesSeccionRoute
 import app.trombito.rallycopilot.ui.ajustes.AyudaNotasScreen
 import app.trombito.rallycopilot.ui.ajustes.AyudaVozScreen
-import app.trombito.rallycopilot.ui.ajustes.SeccionAjustes
 import app.trombito.rallycopilot.ui.analisis.AnalisisRoute
 import app.trombito.rallycopilot.ui.inicio.EntradaInicio
 import app.trombito.rallycopilot.ui.inicio.InicioRoute
@@ -178,13 +177,7 @@ private fun NavGraphBuilder.destinosAjustes(
 ) {
     composable<RutaAjustes> {
         AjustesRoute(
-            onSeccion = { seccion ->
-                if (seccion == SeccionAjustes.ACERCA_DE) {
-                    nav.navigate(RutaAcercaDe)
-                } else {
-                    nav.navigate(RutaAjustesSeccion(seccion))
-                }
-            },
+            onSeccion = { seccion -> nav.navigate(RutaAjustesSeccion(seccion)) },
             onVolver = { nav.popBackStack() },
         )
     }
@@ -203,6 +196,7 @@ private fun NavGraphBuilder.destinosAjustes(
                     },
                     onNotas = { nav.navigate(RutaAyudaNotas) },
                     onVoz = { nav.navigate(RutaAyudaVoz) },
+                    onAcercaDe = { nav.navigate(RutaAcercaDe) },
                 ),
             viewModel = hiltViewModel(portada),
             copia = hiltViewModel(portada),
