@@ -899,7 +899,7 @@ Que cualquier icono del mapa explique qué es al tocarlo: radares, incidencias, 
 ### Tests
 - Prioridad de capas, proximidad, formato de cada bocadillo y selección que sobrevive al refresco.
 ### Estado
-en curso (2026-11-23) · parche v1.7.2
+en curso (2026-11-23) · va en la v1.8.0 con H29b–H32 (Joan: sin parche aparte)
 
 ## H29b — Sistema visual común y pantallas más vistosas
 ### Objetivo
