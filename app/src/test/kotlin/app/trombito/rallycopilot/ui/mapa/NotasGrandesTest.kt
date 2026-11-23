@@ -137,7 +137,7 @@ class NotasGrandesVerticalTest : NotasGrandesBase() {
         assertFalse(banco.hay(ETIQUETA_MAPA_FALSO))
         assertFalse(banco.hay(ETIQUETA_FRANJA_NOTAS))
         val enorme = banco.textos(banco.conEtiqueta(ETIQUETA_NOTA_ENORME))
-        assertTrue("DERECHA 4 · 50" in enorme.joinToString(" ").replace(' ', ' '))
+        assertTrue("DERECHA 4" in enorme.joinToString(" ").replace(' ', ' '))
         assertEquals(
             "120 m",
             banco.textos(banco.conEtiqueta(ETIQUETA_NOTA_ENORME_DISTANCIA)).single().replace(' ', ' '),

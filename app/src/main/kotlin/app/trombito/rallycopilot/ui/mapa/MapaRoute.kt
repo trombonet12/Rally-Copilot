@@ -67,6 +67,7 @@ fun MapaRoute(
     modifier: Modifier = Modifier,
     onVerAnalisis: ((tramoId: String, pasadaId: Long) -> Unit)? = null,
     onSalir: () -> Unit = {},
+    onAyudaNotas: () -> Unit = {},
     panelGuiado: PanelGuiado? = null,
     viewModel: MapaViewModel = hiltViewModel(),
     navegacionViewModel: NavegacionViewModel = hiltViewModel(),
@@ -84,7 +85,9 @@ fun MapaRoute(
     val temaOscuro = LocalTemaOscuro.current
     val estado = remember(estadoBase, temaOscuro, calor) { estadoBase.copy(temaOscuro = temaOscuro, calor = calor) }
     val navegacion by navegacionViewModel.uiState.collectAsStateWithLifecycle()
-    val datosCalor = rememberDatosCalor(calorViewModel, calor, navegacion.control, estado.velocidadKmh)
+    // Un solo «en marcha» para toda la pantalla: la capa de calor, los botones y la barra de destino lo comparten.
+    val enMarcha = rememberMarchaRapida(estado.velocidadKmh)
+    val datosCalor = rememberDatosCalor(calorViewModel, calor, navegacion.control, enMarcha)
     val notas by notasViewModel.uiState.collectAsStateWithLifecycle()
     val copiloto by copilotoViewModel.uiState.collectAsStateWithLifecycle()
     val alertas by alertasViewModel.uiState.collectAsStateWithLifecycle()
@@ -120,6 +123,7 @@ fun MapaRoute(
             onAbrirMapasOffline,
             onSalir,
             calorViewModel,
+            onAyudaNotas,
         )
     val accionesNav = remember(navegacionViewModel) { accionesNavegacion(navegacionViewModel) }
     val accionesCop = remember(copilotoViewModel) { accionesCopiloto(copilotoViewModel) }
@@ -140,6 +144,7 @@ fun MapaRoute(
             estado = estado,
             vista = EstadoVistaMapa(permiso = permiso.estado, siguiendo = estado.siguiendo),
             acciones = accionesDelMapa,
+            enMarcha = enMarcha,
             mapa = { estiloJson, modificador ->
                 VistaMapa(
                     estiloJson = estiloJson,

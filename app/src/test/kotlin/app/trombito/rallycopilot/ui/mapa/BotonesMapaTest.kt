@@ -106,6 +106,31 @@ class BotonesMapaTest {
         banco.reposo()
     }
 
+    @Test
+    fun `el estado en marcha que llega de fuera manda sobre la velocidad de la pantalla`() {
+        banco.poner {
+            RallyCopilotTheme {
+                MapaScreen(
+                    estado =
+                        MapaUiState(
+                            cargando = false,
+                            datos = datos,
+                            estilos = EstilosMapa("{}", null),
+                            velocidadKmh = 0,
+                        ),
+                    vista = EstadoVistaMapa(),
+                    acciones = AccionesMapa(),
+                    mapa = { _, m -> Box(m.fillMaxSize().testTag(ETIQUETA_MAPA_FALSO)) },
+                    navegacion = NavegacionEnMapa(NavegacionUiState(control = EstadoNavegacion.Libre(0L, 0.0))),
+                    copiloto = CopilotoEnMapa(copiloto, AccionesCopiloto()),
+                    enMarcha = true,
+                )
+            }
+        }
+        secundarios.forEach { assertFalse("$it debería esconderse en marcha", banco.hay(it)) }
+        deConduccion.forEach { assertTrue("$it sigue a la vista", banco.hay(it)) }
+    }
+
     private val secundarios = listOf(ETIQUETA_CAPAS_BOTON)
     private val deConduccion = listOf(ETIQUETA_MICROFONO_BOTON, ETIQUETA_MODO_BOTON, ETIQUETA_SILENCIO_BOTON)
     private val fijos = deConduccion + ETIQUETA_ORIENTACION

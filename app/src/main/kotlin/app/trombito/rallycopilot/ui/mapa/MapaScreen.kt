@@ -28,11 +28,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -67,15 +65,19 @@ import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
 import app.trombito.rallycopilot.ui.comun.BandaSinGps
+import app.trombito.rallycopilot.ui.comun.CargandoWrc
 import app.trombito.rallycopilot.ui.comun.ChipIconoWrc
 import app.trombito.rallycopilot.ui.comun.DegradadoSuperiorMapa
+import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.LocalSinSenalGps
 import app.trombito.rallycopilot.ui.comun.MantenerPantallaEncendida
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.comun.VarianteTarjeta
+import app.trombito.rallycopilot.ui.comun.VarianteVacio
 import app.trombito.rallycopilot.ui.copiloto.BurbujaEscucha
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
+import app.trombito.rallycopilot.ui.navegacion.AccesosDestino
 import app.trombito.rallycopilot.ui.navegacion.AccionesNavegacion
 import app.trombito.rallycopilot.ui.navegacion.BannerParada
 import app.trombito.rallycopilot.ui.navegacion.BusquedaDestino
@@ -98,9 +100,7 @@ import kotlin.math.roundToInt
 const val ETIQUETA_CARGANDO = "mapa-cargando"
 const val ETIQUETA_IR_A_CASA = "mapa-ir-a-casa"
 const val ETIQUETA_SIN_DATOS = "mapa-sin-datos"
-const val ETIQUETA_SIN_DATOS_BOTON = "mapa-sin-datos-boton"
 const val ETIQUETA_DANADOS = "mapa-danados"
-const val ETIQUETA_DANADOS_BOTON = "mapa-danados-boton"
 const val ETIQUETA_AVISO = "mapa-aviso"
 const val ETIQUETA_AVISO_CERRAR = "mapa-aviso-cerrar"
 const val ETIQUETA_CAPA_MAPA = "mapa-capa-mapa"
@@ -110,7 +110,6 @@ const val ETIQUETA_PERMISO = "mapa-permiso"
 const val ETIQUETA_PERMISO_PEDIR = "mapa-permiso-pedir"
 const val ETIQUETA_PERMISO_AJUSTES = "mapa-permiso-ajustes"
 
-private const val OPACIDAD_SUPERFICIE_SOBRE_MAPA = 0.88f
 private val ALTO_MINIMO_TACTIL = 48.dp
 private const val DURACION_AVISO_MS = 4_000L
 internal val ANCHO_BANNER_PARADA = 520.dp
@@ -149,6 +148,8 @@ data class AccionesMapa(
     val onModoCalor: (ModoCalor) -> Unit = {},
     /** Cierra la ficha de la carretera de la capa de calor tocada en el mapa. */
     val onCerrarCalor: () -> Unit = {},
+    /** El «?» de la hoja del copiloto: abre «Qué significan las notas». */
+    val onAyudaNotas: () -> Unit = {},
     /** La ✕ de la hoja en modo libre: sale del mapa. */
     val onSalir: () -> Unit = {},
     /** Píxeles que tapa la tarjeta del punto elegido (su alto más el margen; 0 sin tarjeta): el mapa los reserva. */
@@ -167,7 +168,10 @@ data class AccionesMapa(
  * del primer uso. [alertas] trae el banner de radar o incidencia, la velocidad pasada de límite, la media del radar de
  * tramo y la tarjeta de la incidencia tocada en el mapa. [crono] trae el cronómetro: el HUD arriba si el tramo es
  * conocido y la tarjeta de meta; con un tramo nuevo o sin tramo, un cronómetro en la hoja. [superposicion] pinta encima
- * de todo lo demás (editor de notas y micrófono grande del reconocimiento).
+ * de todo lo demás (editor de notas y micrófono grande del reconocimiento). [enMarcha] es el único «en marcha» de la
+ * pantalla (más de 20 km/h con histéresis, ver [rememberMarchaRapida]): esconde los botones secundarios y la barra de
+ * destino; por defecto se calcula aquí con la velocidad, y [MapaRoute] lo pasa ya calculado porque la capa de calor,
+ * que se decide más arriba, lo comparte.
  */
 @Composable
 @Suppress("LongParameterList") // estado, vista, acciones, mapa y navegación son los bloques de la pantalla
@@ -181,6 +185,7 @@ fun MapaScreen(
     copiloto: CopilotoEnMapa = CopilotoEnMapa(),
     alertas: AlertasUiState = AlertasUiState(),
     crono: CronoEnCurso? = null,
+    enMarcha: Boolean = rememberMarchaRapida(estado.velocidadKmh),
     superposicion: @Composable BoxScope.() -> Unit = {},
 ) {
     // Solo conduciendo: en reposo la pantalla se apaga con el tiempo normal del móvil.
@@ -191,7 +196,7 @@ fun MapaScreen(
     DialogoVozSiToca(copiloto)
     val modoAnterior = rememberModoAnterior(copiloto.estado.modo)
     // Capas y notas grandes se esconden por encima de 20 km/h y vuelven al parar (con histéresis).
-    val rapido = rememberMarchaRapida(estado.velocidadKmh)
+    val rapido = enMarcha
     // Sin su botón (que se esconde en marcha) el panel de capas no se podría cerrar: se cierra al arrancar.
     LaunchedEffect(rapido) { if (rapido && abierto == MenuMapa.CAPAS) abierto = MenuMapa.NINGUNO }
     val botones =
@@ -200,7 +205,19 @@ fun MapaScreen(
         } else {
             BotonesMapa()
         }
-    val zona = ZonaMapaContenido(estado, vista, acciones, navegacion, menu, copiloto, alertas, crono, botones)
+    val zona =
+        ZonaMapaContenido(
+            estado,
+            vista,
+            acciones,
+            navegacion,
+            menu,
+            copiloto,
+            alertas,
+            crono,
+            botones,
+            enMarcha = rapido,
+        )
     val tactilesVisibles = !rapido || copiloto.estado.notasGrandes
     // El mapa coloca el coche por encima de la zona inferior; la medida baja solo si se mantiene (ver [sinRebotes]).
     val zonaInferior = remember { ZonaInferiorMedida() }
@@ -239,6 +256,8 @@ internal class ZonaMapaContenido(
     val botones: BotonesMapa,
     /** Los botones secundarios (capas, notas grandes) están a la vista: no se va deprisa. */
     val tactilesVisibles: Boolean = true,
+    /** Se va en marcha (el único estado de la pantalla; ver [rememberMarchaRapida]). */
+    val enMarcha: Boolean = false,
 ) {
     /** El mismo contenido con la zona en vertical o en apaisado. */
     fun orientada(
@@ -255,6 +274,7 @@ internal class ZonaMapaContenido(
         crono,
         botones,
         tactilesVisibles,
+        enMarcha,
     )
 }
 
@@ -306,7 +326,7 @@ private fun ZonaConMapa(
         }
         Box(Modifier.fillMaxSize().windowInsetsPadding(insetsSinTeclado().only(lados)).padding(Espacio.s)) {
             CabeceraMapa(
-                ContenidoCabecera(estado, acciones, navegacion, contenido.alertas, contenido.crono),
+                ContenidoCabecera(estado, acciones, navegacion, contenido.alertas, contenido.crono, contenido.enMarcha),
                 barra,
                 vista.horizontal,
                 Modifier.align(Alignment.TopStart),
@@ -334,7 +354,7 @@ private fun ZonaConMapa(
             }
         }
         ZonaInferior(contenido, barra)
-        MenuSobreMapa(contenido.copiloto, contenido.menu, vista.horizontal)
+        MenuSobreMapa(contenido.copiloto, contenido.menu, vista.horizontal, contenido.acciones.onAyudaNotas)
     }
 }
 
@@ -363,7 +383,7 @@ private fun RoadbookEnZona(
             modifier = Modifier.windowInsetsPadding(insetsSinTeclado().only(lados)),
         )
         ZonaInferior(contenido, barra = null)
-        MenuSobreMapa(contenido.copiloto, contenido.menu, vista.horizontal)
+        MenuSobreMapa(contenido.copiloto, contenido.menu, vista.horizontal, contenido.acciones.onAyudaNotas)
     }
 }
 
@@ -563,20 +583,15 @@ private val MARGEN_PUNTO_SOBRE_TARJETA = 24.dp
 
 @Composable
 private fun Cargando() {
-    Column(
-        modifier = Modifier.fillMaxSize().testTag(ETIQUETA_CARGANDO),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Espacio.m, Alignment.CenterVertically),
-    ) {
-        CircularProgressIndicator()
-        Text(
-            text = stringResource(R.string.mapa_cargando),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+    Box(Modifier.fillMaxSize().testTag(ETIQUETA_CARGANDO), contentAlignment = Alignment.Center) {
+        CargandoWrc(stringResource(R.string.mapa_cargando))
     }
 }
 
+/**
+ * Sin mapas (o dañados): una tarjeta de carbón, como el resto de tarjetas del mapa, con el estado vacío común
+ * (icono ámbar, título, frase y un botón de 48 dp que lleva a Mapas offline).
+ */
 @Composable
 private fun TarjetaMapas(
     danados: Boolean,
@@ -585,32 +600,24 @@ private fun TarjetaMapas(
 ) {
     val titulo = if (danados) R.string.mapa_danados_titulo else R.string.mapa_sin_datos_titulo
     val texto = if (danados) R.string.mapa_danados_texto else R.string.mapa_sin_datos_texto
-    val etiqueta = if (danados) ETIQUETA_DANADOS else ETIQUETA_SIN_DATOS
-    val etiquetaBoton = if (danados) ETIQUETA_DANADOS_BOTON else ETIQUETA_SIN_DATOS_BOTON
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.medium,
-        modifier = modifier.padding(Espacio.xl).testTag(etiqueta),
+    TarjetaWrc(
+        modifier = modifier.padding(Espacio.xl).widthIn(max = ANCHO_MAXIMO_TARJETA_MAPAS),
+        variante = VarianteTarjeta.MAPA,
+        relleno = 0.dp,
     ) {
-        Column(Modifier.padding(Espacio.xl), verticalArrangement = Arrangement.spacedBy(Espacio.m)) {
-            Text(
-                text = stringResource(titulo),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.semantics { heading() },
-            )
-            Text(
-                text = stringResource(texto),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Button(
-                onClick = onAbrirMapasOffline,
-                modifier = Modifier.heightIn(min = ALTO_MINIMO_TACTIL).testTag(etiquetaBoton),
-            ) { Text(stringResource(R.string.mapa_sin_datos_boton)) }
-        }
+        EstadoVacioWrc(
+            icono = Iconos.Descarga,
+            titulo = stringResource(titulo),
+            texto = stringResource(texto),
+            etiqueta = if (danados) ETIQUETA_DANADOS else ETIQUETA_SIN_DATOS,
+            etiquetaAccion = stringResource(R.string.mapa_sin_datos_boton),
+            onAccion = onAbrirMapasOffline,
+            variante = if (danados) VarianteVacio.ERROR else VarianteVacio.SIN_MAPAS,
+        )
     }
 }
+
+private val ANCHO_MAXIMO_TARJETA_MAPAS = 480.dp
 
 /** Lo que pinta la cabecera del mapa, agrupado. */
 private class ContenidoCabecera(
@@ -619,6 +626,7 @@ private class ContenidoCabecera(
     val navegacion: NavegacionEnMapa,
     val alertas: AlertasUiState,
     val crono: CronoEnCurso?,
+    val enMarcha: Boolean,
 )
 
 /**
@@ -641,8 +649,8 @@ private fun CabeceraMapa(
     val navegacion = contenido.navegacion
     val buscar = estado.hayDatos && navegacion.estado.enReposo
     val hayNotas = navegacion.notas.visibles.isNotEmpty()
-    // En marcha (mismo criterio que los botones secundarios) la barra no sale sola: solo al tocar el mapa.
-    val enMarcha = rememberMarchaRapida(estado.velocidadKmh)
+    // En marcha (el mismo estado que los botones secundarios) la barra no sale sola: solo al tocar el mapa.
+    val enMarcha = contenido.enMarcha
     val retenida =
         barraDestinoRetenida(
             enfocada = barra.enfocada,
@@ -663,7 +671,11 @@ private fun CabeceraMapa(
                         onFocoPedido = { barra.focoPendiente = false },
                     ) { barra.enfocada = it }
                 }
-                AccesoACasa(navegacion)
+                AccesosDestino(
+                    estado = navegacion.estado,
+                    onElegir = navegacion.acciones.onElegirDestino,
+                    inicio = { AccesoACasa(navegacion) },
+                )
             }
             ListaDestinos(
                 busqueda = navegacion.estado.busqueda,
@@ -785,6 +797,7 @@ private fun ParadasDelGuiado(
     )
 }
 
+/** La tarjeta del permiso de ubicación: carbón como el resto de tarjetas del mapa. */
 @Composable
 private fun TarjetaPermiso(
     permiso: EstadoPermisoUbicacion,
@@ -792,12 +805,11 @@ private fun TarjetaPermiso(
     onAbrirAjustes: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh.copy(OPACIDAD_SUPERFICIE_SOBRE_MAPA),
-        shape = MaterialTheme.shapes.medium,
+    TarjetaWrc(
         modifier = modifier.fillMaxWidth().testTag(ETIQUETA_PERMISO),
+        variante = VarianteTarjeta.MAPA,
     ) {
-        Column(Modifier.padding(Espacio.l), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
             Text(
                 text = stringResource(R.string.permiso_ubicacion_titulo),
                 style = MaterialTheme.typography.titleMedium,

@@ -12,6 +12,7 @@ import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
+import app.trombito.rallycopilot.domain.voz.VelocidadHabla
 import app.trombito.rallycopilot.domain.voz.VozCopiloto
 import app.trombito.rallycopilot.motor.notas.NivelAnticipacion
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
@@ -23,6 +24,7 @@ import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_PREVISTA_ANTICIPACION
 import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_PREVISTA_ESCUCHAR
 import app.trombito.rallycopilot.ui.ajustes.ETIQUETA_PREVISTA_NOTA
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_SEGMENTO
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.copiloto.AccionesCopiloto
 import app.trombito.rallycopilot.ui.copiloto.CopilotoEnMapa
@@ -53,6 +55,7 @@ abstract class AjustesRapidosBase {
     protected val banco = BancoCompose()
     protected var copiloto by mutableStateOf(CopilotoUiState(cargado = true, voz = VozCopiloto.DAVEFX))
     protected val escuchas = mutableListOf<Unit>()
+    protected var ayudas = 0
 
     private val datos = EstadoDatosMapa(instalados = DatosInstalados("2026.10.1", 1_000_000, conSatelite = false))
 
@@ -85,7 +88,7 @@ abstract class AjustesRapidosBase {
                             velocidadKmh = 0,
                         ),
                     vista = EstadoVistaMapa(),
-                    acciones = AccionesMapa(),
+                    acciones = AccionesMapa(onAyudaNotas = { ayudas++ }),
                     mapa = { _, m -> Box(m.testTag(ETIQUETA_MAPA_FALSO)) },
                     copiloto = CopilotoEnMapa(copiloto, acciones),
                 )
@@ -100,10 +103,18 @@ abstract class AjustesRapidosBase {
         assertTrue(banco.hay(ETIQUETA_RAPIDOS_PANEL))
     }
 
+    /** Las pestañas de la hoja: 0 = «Qué canta» (la de arriba al abrir), 1 = «Cómo suena». */
+    protected fun irAComoSuena() = banco.pulsar(banco.conEtiqueta(ETIQUETA_SEGMENTO + "1"))
+
+    protected fun irAQueCanta() = banco.pulsar(banco.conEtiqueta(ETIQUETA_SEGMENTO + "0"))
+
     protected fun textoDe(etiqueta: String) = banco.textos(banco.conEtiqueta(etiqueta)).joinToString(" ")
 
     /** La hoja suelta (en la pantalla real Robolectric no mide los menús): cabe y sus botones miden 48 dp. */
-    protected fun comprobarQueLaHojaEntraEnPantalla(horizontal: Boolean = false) {
+    internal fun comprobarQueLaHojaEntraEnPantalla(
+        horizontal: Boolean = false,
+        pestana: PestanaCopiloto = PestanaCopiloto.QUE_CANTA,
+    ) {
         // La hoja es una ventana aparte: la pantalla se mide con el tamaño del qualifier (411 x 891 dp a xxhdpi).
         val pantalla = if (horizontal) Rect(0f, 0f, 891 * 3f, 411 * 3f) else Rect(0f, 0f, 411 * 3f, 891 * 3f)
         banco.poner {
@@ -113,6 +124,7 @@ abstract class AjustesRapidosBase {
                     AccionesCopiloto(),
                     onCerrar = {},
                     horizontal = horizontal,
+                    pestanaInicial = pestana,
                 )
             }
         }
@@ -127,18 +139,27 @@ abstract class AjustesRapidosBase {
         )
         assertTrue("Como mucho el 60 % del alto: ${hoja.height}", hoja.height <= pantalla.height * 0.6f + 1f)
         assertEquals("A todo el ancho", pantalla.width, hoja.width, 1f)
-        assertEquals(NivelAnticipacion.entries.size, banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).size)
-        listOf(
-            ETIQUETA_AVISAR_CRUCES,
-            ETIQUETA_AVISAR_SALIDAS_AUTOPISTA,
-            ETIQUETA_AVISAR_ROTONDAS,
-            ETIQUETA_SALIDA_MANUAL,
-        ).forEach {
-            val nodo = banco.conEtiqueta(it)
-            assertTrue("$it mide ${nodo.size}", nodo.size.width >= LADO_MINIMO_PX && nodo.size.height >= LADO_MINIMO_PX)
-            assertTrue("$it sale de la hoja", nodo.boundsInRoot.right <= hoja.right)
-        }
-        banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).forEach {
+        val pestanas = listOf(ETIQUETA_SEGMENTO + "0", ETIQUETA_SEGMENTO + "1", ETIQUETA_RAPIDOS_AYUDA_NOTAS)
+        val deLaPestana =
+            when (pestana) {
+                PestanaCopiloto.QUE_CANTA -> {
+                    assertEquals(NivelAnticipacion.entries.size, banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).size)
+                    listOf(ETIQUETA_AVISAR_CRUCES, ETIQUETA_AVISAR_SALIDAS_AUTOPISTA, ETIQUETA_AVISAR_ROTONDAS) +
+                        banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO)
+                }
+
+                PestanaCopiloto.COMO_SUENA -> {
+                    listOf(ETIQUETA_SALIDA_MANUAL) + banco.etiquetas(ETIQUETA_HABLA_PREFIJO)
+                }
+            }
+        comprobarObjetivos(deLaPestana + pestanas, hoja)
+    }
+
+    private fun comprobarObjetivos(
+        etiquetas: List<String>,
+        hoja: Rect,
+    ) {
+        etiquetas.forEach {
             val nodo = banco.conEtiqueta(it)
             assertTrue("$it mide ${nodo.size}", nodo.size.width >= LADO_MINIMO_PX && nodo.size.height >= LADO_MINIMO_PX)
             assertTrue("$it sale de la hoja", nodo.boundsInRoot.right <= hoja.right)
@@ -162,14 +183,41 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
     }
 
     @Test
-    fun `la hoja trae los cuatro modos, anticipacion de cinco niveles, simplificadas, volumen y la vista previa`() {
+    fun `la hoja abre en Que canta con los cuatro modos, la anticipacion, simplificadas y la vista previa`() {
         abrir()
         assertEquals(ModoCopiloto.entries.size, banco.etiquetas(ETIQUETA_MODO_PREFIJO).size)
         assertEquals(NivelAnticipacion.entries.size, banco.etiquetas(ETIQUETA_ANTICIPACION_PREFIJO).size)
         assertTrue(banco.hay(ETIQUETA_NOTAS_SIMPLIFICADAS))
-        assertTrue(banco.hay(ETIQUETA_AJUSTES_VOLUMEN))
         assertTrue(banco.hay(ETIQUETA_PREVISTA_NOTA))
         assertEquals("Te la canta 5 s antes (a 90 km/h, a 150 m)", textoDe(ETIQUETA_PREVISTA_ANTICIPACION))
+        assertFalse("el volumen es de la otra pestaña", banco.hay(ETIQUETA_AJUSTES_VOLUMEN))
+        assertEquals(true, banco.conEtiqueta(ETIQUETA_SEGMENTO + "0").config.getOrNull(SemanticsProperties.Selected))
+        assertEquals("Qué canta", textoDe(ETIQUETA_SEGMENTO + "0"))
+    }
+
+    @Test
+    fun `la pestana Como suena trae volumen, velocidad de habla y salida, y no los modos`() {
+        abrir()
+        irAComoSuena()
+        assertEquals(true, banco.conEtiqueta(ETIQUETA_SEGMENTO + "1").config.getOrNull(SemanticsProperties.Selected))
+        assertEquals("Cómo suena", textoDe(ETIQUETA_SEGMENTO + "1"))
+        assertTrue(banco.hay(ETIQUETA_AJUSTES_VOLUMEN))
+        assertEquals(2, banco.etiquetas(ETIQUETA_HABLA_PREFIJO).size)
+        assertTrue(banco.hay(ETIQUETA_SALIDA_MANUAL))
+        assertFalse(banco.hay(ETIQUETA_MODO_PREFIJO + "silencio"))
+        irAQueCanta()
+        assertTrue(banco.hay(ETIQUETA_MODO_PREFIJO + "silencio"))
+        assertFalse(banco.hay(ETIQUETA_AJUSTES_VOLUMEN))
+    }
+
+    @Test
+    fun `el signo de ayuda pide Que significan las notas y cierra la hoja`() {
+        abrir()
+        val ayuda = banco.conEtiqueta(ETIQUETA_RAPIDOS_AYUDA_NOTAS)
+        assertEquals("Qué significan las notas", banco.descripcion(ayuda))
+        banco.pulsar(ayuda)
+        assertEquals(1, ayudas)
+        assertFalse("la hoja se cierra al ir a la ayuda", banco.hay(ETIQUETA_RAPIDOS_PANEL))
     }
 
     @Test
@@ -260,7 +308,6 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
         listOf(ETIQUETA_AVISAR_RADARES, ETIQUETA_AVISAR_INCIDENCIAS, ETIQUETA_AVISAR_VELOCIDAD).forEach {
             assertTrue("falta $it", banco.hay(it))
         }
-        assertEquals(2, banco.etiquetas(ETIQUETA_HABLA_PREFIJO).size)
         banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISAR_RADARES))
         assertFalse(copiloto.avisarRadares)
         assertTrue(copiloto.avisarIncidencias && copiloto.avisarVelocidad)
@@ -271,8 +318,26 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
     }
 
     @Test
+    fun `elegir la velocidad de habla rapida la aplica desde Como suena`() {
+        var elegida: VelocidadHabla? = null
+        banco.poner {
+            RallyCopilotTheme {
+                PanelAjustesRapidos(
+                    copiloto,
+                    AccionesCopiloto(onVelocidadHabla = { elegida = it }),
+                    onCerrar = {},
+                )
+            }
+        }
+        irAComoSuena()
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_HABLA_PREFIJO + "rapida"))
+        assertEquals(VelocidadHabla.RAPIDA, elegida)
+    }
+
+    @Test
     fun `el interruptor de salida del cronometro alterna entre automatica y manual en vivo`() {
         abrir()
+        irAComoSuena()
         val nodo = banco.conEtiqueta(ETIQUETA_SALIDA_MANUAL)
         assertTrue(banco.esPulsable(nodo))
         assertEquals(false, marcado(ETIQUETA_SALIDA_MANUAL))
@@ -293,6 +358,7 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
     @Test
     fun `el volumen se cambia con el deslizador y la cifra sigue al valor`() {
         abrir()
+        irAComoSuena()
         assertEquals("100 %", textoDe(ETIQUETA_AJUSTES_VOLUMEN_VALOR))
         val progreso =
             checkNotNull(banco.conEtiqueta(ETIQUETA_AJUSTES_VOLUMEN).config.getOrNull(SemanticsActions.SetProgress))
@@ -315,6 +381,11 @@ class AjustesRapidosVerticalTest : AjustesRapidosBase() {
     }
 
     @Test
+    fun `en vertical la pestana Como suena entra en pantalla con objetivos de 48 dp`() {
+        comprobarQueLaHojaEntraEnPantalla(pestana = PestanaCopiloto.COMO_SUENA)
+    }
+
+    @Test
     fun `la hoja de ajustes rapidos y las de capas y modo no estan abiertas a la vez`() {
         abrir()
         banco.pulsar(banco.conEtiqueta(ETIQUETA_CAPAS_BOTON))
@@ -329,5 +400,10 @@ class AjustesRapidosHorizontalTest : AjustesRapidosBase() {
     @Test
     fun `en horizontal la hoja entra en pantalla con objetivos de 48 dp`() {
         comprobarQueLaHojaEntraEnPantalla(horizontal = true)
+    }
+
+    @Test
+    fun `en horizontal la pestana Como suena entra en pantalla con objetivos de 48 dp`() {
+        comprobarQueLaHojaEntraEnPantalla(horizontal = true, pestana = PestanaCopiloto.COMO_SUENA)
     }
 }

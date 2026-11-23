@@ -37,6 +37,7 @@ internal fun MenuSobreMapa(
     copiloto: CopilotoEnMapa,
     menu: MenuAbierto,
     horizontal: Boolean,
+    onAyudaNotas: () -> Unit = {},
 ) {
     if (menu.actual == MenuMapa.COPILOTO) {
         PanelAjustesRapidos(
@@ -44,6 +45,11 @@ internal fun MenuSobreMapa(
             acciones = copiloto.acciones,
             onCerrar = { menu.cambiar(MenuMapa.NINGUNO) },
             horizontal = horizontal,
+            onAyudaNotas = {
+                // La hoja es modal: al ir a la ayuda se cierra, para no encontrarla abierta al volver.
+                menu.cambiar(MenuMapa.NINGUNO)
+                onAyudaNotas()
+            },
         )
     }
 }

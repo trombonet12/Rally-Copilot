@@ -87,7 +87,7 @@
     <string name="zona_titulo">Descargar zona</string>
     <string name="zona_ayuda_vista">Se descarga lo que ves. Toca dos esquinas para elegir otra zona.</string>
     <string name="zona_ayuda_esquinas">Zona elegida con las esquinas. Toca otra vez para cambiarla.</string>
-    <string name="zona_estimacion">%1$d zonas · unos %2$s</string>
+    <string name="zona_unidad_teselas">teselas</string>
     <string name="zona_no_cabe">No cabe en el límite de espacio. Súbelo en Mapas offline o elige una zona menor.</string>
     <string name="zona_zoom">Zoom %1$d</string>
     <string name="zona_limpiar">Quitar las esquinas y usar lo que se ve</string>
@@ -140,6 +140,8 @@
     <string name="hoja_trip_accion">Poner el trip a cero</string>
     <string name="hoja_crono_en_pausa">Cronómetro en pausa: sin señal GPS</string>
     <!-- Hoja del copiloto -->
+    <string name="rapidos_pestana_canta">Qué canta</string>
+    <string name="rapidos_pestana_suena">Cómo suena</string>
     <string name="rapidos_seccion_modo">Modo</string>
     <string name="rapidos_seccion_anticipacion">Anticipación: %1$s s</string>
     <string name="rapidos_seccion_indicaciones">Indicaciones</string>

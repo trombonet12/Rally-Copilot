@@ -297,9 +297,9 @@ internal fun rememberDatosCalor(
     viewModel: CalorViewModel,
     calor: CalorUi,
     control: EstadoNavegacion,
-    velocidadKmh: Int?,
+    enMarcha: Boolean,
 ): DatosCalor? {
-    val visible = calorVisible(calor.activo, control, rememberMarchaRapida(velocidadKmh))
+    val visible = calorVisible(calor.activo, control, enMarcha)
     val geoJson by viewModel.geoJson.collectAsStateWithLifecycle()
     LaunchedEffect(visible) { if (!visible) viewModel.onCerrarFicha() }
     return remember(visible, geoJson) { if (visible) DatosCalor(geoJson) else null }

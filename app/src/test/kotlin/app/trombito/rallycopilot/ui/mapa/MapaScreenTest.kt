@@ -18,6 +18,7 @@ import app.trombito.rallycopilot.domain.datos.EstilosMapa
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.vias.ViaActual
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_ACCION_VACIO
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_SENAL_LIMITE_DESCONOCIDO
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
@@ -236,7 +237,7 @@ class MapaScreenTest {
         poner(MapaUiState(cargando = false), acciones = AccionesMapa(onAbrirMapasOffline = { abierto++ }))
         assertFalse(banco.hay(ETIQUETA_MAPA_FALSO))
         assertTrue("Descarga los mapas de Mallorca" in banco.textos(banco.conEtiqueta(ETIQUETA_SIN_DATOS)))
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_SIN_DATOS_BOTON))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_ACCION_VACIO))
         assertEquals(1, abierto)
     }
 
@@ -250,7 +251,7 @@ class MapaScreenTest {
         assertFalse(banco.hay(ETIQUETA_MAPA_FALSO))
         assertFalse(banco.hay(ETIQUETA_SIN_DATOS))
         assertTrue("Los mapas instalados están dañados" in banco.textos(banco.conEtiqueta(ETIQUETA_DANADOS)))
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_DANADOS_BOTON))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_ACCION_VACIO))
         assertEquals(1, abierto)
     }
 

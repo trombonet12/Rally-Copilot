@@ -123,12 +123,23 @@ internal fun rememberAccionesDelMapa(
     onAbrirMapasOffline: () -> Unit,
     onSalir: () -> Unit,
     calor: CalorViewModel,
+    onAyudaNotas: () -> Unit,
 ): AccionesMapa =
-    remember(viewModel, alertas, permiso.pedir, permiso.abrirAjustes, onAbrirMapasOffline, onSalir, calor) {
+    remember(
+        viewModel,
+        alertas,
+        permiso.pedir,
+        permiso.abrirAjustes,
+        onAbrirMapasOffline,
+        onSalir,
+        calor,
+        onAyudaNotas,
+    ) {
         accionesMapa(viewModel, permiso, alertas, reservaPuntoPx)
             .copy(
                 onAbrirMapasOffline = onAbrirMapasOffline,
                 onSalir = onSalir,
+                onAyudaNotas = onAyudaNotas,
                 onCalor = calor::onActivo,
                 onModoCalor = calor::onModo,
                 onCerrarCalor = calor::onCerrarFicha,
