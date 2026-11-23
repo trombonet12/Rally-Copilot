@@ -9,6 +9,7 @@ import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
 import app.trombito.rallycopilot.domain.ruta.ViasConocidas
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.ruta.ComparadorRutas
 import app.trombito.rallycopilot.motor.ruta.CorrectorRotondas
 import app.trombito.rallycopilot.motor.ruta.LectorRutaValhalla
 import app.trombito.rallycopilot.motor.ruta.PuntuacionCurvas
@@ -161,7 +162,10 @@ class EnrutadorValhalla internal constructor(
                 }
             }
 
-        /** Las variantes que han dado ruta, sin la rápida y sin repetir rutas iguales entre sí ni a la rápida. */
+        /**
+         * Las variantes que han dado ruta, sin la rápida y sin repetir rutas iguales entre sí ni a la rápida; iguales
+         * por geometría ([ComparadorRutas]), no solo por tener los mismos puntos.
+         */
         suspend fun otras(): List<Ruta> =
             cerrojoOtras.withLock {
                 otrasRutas ?: calcularOtras().also { otrasRutas = it }
@@ -176,7 +180,12 @@ class EnrutadorValhalla internal constructor(
                     calcular(s.origen, s.destino, VarianteRuta.MUY_SINUOSA, excluirTuneles = false, s.paradas),
                 ).filterIsInstance<ResultadoRuta.Ok>()
             totalMs.addAndGet(resultados.sumOf { it.calculoMs })
-            return resultados.map { it.ruta }.filter { it != rutaRapida }.distinct()
+            val distintas = ArrayList<Ruta>()
+            for (ruta in resultados.map { it.ruta }) {
+                val repetida = rutaRapida?.let { ComparadorRutas.sonIguales(ruta, it) } == true
+                if (!repetida && distintas.none { ComparadorRutas.sonIguales(ruta, it) }) distintas += ruta
+            }
+            return distintas
         }
 
         /** [ruta] con sus metros de curvas y de vías ya conducidas. */

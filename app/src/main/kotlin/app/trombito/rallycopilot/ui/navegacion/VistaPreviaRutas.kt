@@ -44,7 +44,6 @@ const val ETIQUETA_VISTA_PREVIA = "nav-vista-previa"
 const val ETIQUETA_RUTA_RAPIDA = "nav-ruta-rapida"
 const val ETIQUETA_RUTA_EQUILIBRADA = "nav-ruta-equilibrada"
 const val ETIQUETA_RUTA_SINUOSA = "nav-ruta-sinuosa"
-const val ETIQUETA_RUTA_IGUAL = "nav-ruta-igual"
 const val ETIQUETA_SIN_POSICION = "nav-sin-posicion"
 const val ETIQUETA_SIN_RUTA = "nav-sin-ruta"
 const val ETIQUETA_REINTENTAR_RUTA = "nav-reintentar-ruta"
@@ -58,8 +57,9 @@ private val ANCHO_MAXIMO_PANEL = 520.dp
 private val GROSOR_SELECCION = 2.dp
 
 /**
- * Panel inferior de la vista previa: los tres chips de ruta (rayo = rápida, carretera suave = equilibrada, carretera
- * con curvas = curvas) con tiempo, distancia y km de curvas, cancelar y empezar. En apaisado todo va en una sola
+ * Panel inferior de la vista previa: los chips de ruta (rayo = rápida, carretera suave = equilibrada, carretera con
+ * curvas = curvas) con tiempo, distancia y km de curvas, cancelar y empezar. Un chip cuya ruta es la misma (por
+ * geometría) que la de uno anterior no se muestra: queda uno solo si todas coinciden. En apaisado todo va en una sola
  * fila para ocupar poca altura.
  */
 @Composable
@@ -140,14 +140,13 @@ private fun Opciones(
         return
     }
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
-        PerfilRuta.entries.forEach { perfil ->
+        vista.perfilesVisibles.forEach { perfil ->
             OpcionRutaTarjeta(
                 chip =
                     ChipRuta(
                         perfil = perfil,
                         opcion = vista.opciones[perfil] ?: OpcionRuta.Cargando,
                         seleccionada = vista.perfil == perfil,
-                        igualA = vista.igualA(perfil),
                     ),
                 onClick = { acciones.onPerfil(perfil) },
                 modifier = Modifier.weight(1f),
@@ -184,12 +183,11 @@ private fun SinRutaPosible(
     }
 }
 
-/** Lo que pinta un chip: su perfil, el resultado, si es el elegido y, si repite la ruta de otro, de cuál. */
+/** Lo que pinta un chip: su perfil, el resultado y si es el elegido. */
 private data class ChipRuta(
     val perfil: PerfilRuta,
     val opcion: OpcionRuta,
     val seleccionada: Boolean,
-    val igualA: PerfilRuta?,
 )
 
 @Composable
@@ -201,13 +199,9 @@ private fun OpcionRutaTarjeta(
     val perfil = chip.perfil
     val opcion = chip.opcion
     val seleccionada = chip.seleccionada
-    val igualA = chip.igualA
     val colores = MaterialTheme.colorScheme
     val nombre = stringResource(nombreRuta(perfil))
-    val igual =
-        igualA?.let { stringResource(R.string.navegacion_ui_ruta_igual_descripcion, stringResource(tituloRuta(it))) }
-    val resumen = listOfNotNull(resumenOpcion(opcion), igual).joinToString(", ")
-    val descripcion = stringResource(R.string.navegacion_ui_ruta_descripcion, nombre, resumen)
+    val descripcion = stringResource(R.string.navegacion_ui_ruta_descripcion, nombre, resumenOpcion(opcion))
     val estado = if (seleccionada) stringResource(R.string.navegacion_ui_ruta_seleccionada) else null
     val disponible = opcion is OpcionRuta.Lista || opcion is OpcionRuta.Cargando
     Surface(
@@ -239,16 +233,13 @@ private fun OpcionRutaTarjeta(
                 color = if (seleccionada) colores.primary else colores.onSurface,
                 maxLines = 1,
             )
-            ContenidoOpcion(opcion, igualA != null)
+            ContenidoOpcion(opcion)
         }
     }
 }
 
 @Composable
-private fun ContenidoOpcion(
-    opcion: OpcionRuta,
-    mismaRuta: Boolean,
-) {
+private fun ContenidoOpcion(opcion: OpcionRuta) {
     when (opcion) {
         OpcionRuta.Cargando -> {
             CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
@@ -268,17 +259,7 @@ private fun ContenidoOpcion(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                 )
-                if (mismaRuta) {
-                    Text(
-                        text = stringResource(R.string.navegacion_ui_ruta_igual),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        modifier = Modifier.testTag(ETIQUETA_RUTA_IGUAL),
-                    )
-                } else {
-                    opcion.curvasM?.let { TextoCurvas(it) }
-                }
+                opcion.curvasM?.let { TextoCurvas(it) }
             }
         }
 

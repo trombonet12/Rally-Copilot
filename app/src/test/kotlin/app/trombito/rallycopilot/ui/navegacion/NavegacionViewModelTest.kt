@@ -326,12 +326,13 @@ class NavegacionViewModelTest {
         }
 
     @Test
-    fun `dos perfiles con la misma ruta se marcan como iguales al anterior`() =
+    fun `dos perfiles con la misma ruta se marcan como iguales al anterior y se ocultan`() =
         runTest {
             val misma = ResultadoRuta.Ok(rutaDePrueba(18_400.0, 1_380.0), 10)
             enrutador.respuestas[PerfilRuta.MAS_RAPIDA] = misma
             enrutador.respuestas[PerfilRuta.EQUILIBRADA] = misma
-            enrutador.respuestas[PerfilRuta.SINUOSA] = ResultadoRuta.Ok(rutaDePrueba(24_000.0, 2_100.0), 10)
+            enrutador.respuestas[PerfilRuta.SINUOSA] =
+                ResultadoRuta.Ok(rutaDePruebaDistinta(24_000.0, 2_100.0, 0.05), 10)
             val vm = crear()
             recoger(vm)
             vm.onPosicion(PALMA)
@@ -340,6 +341,7 @@ class NavegacionViewModelTest {
             assertEquals(null, previa.igualA(PerfilRuta.MAS_RAPIDA))
             assertEquals(PerfilRuta.MAS_RAPIDA, previa.igualA(PerfilRuta.EQUILIBRADA))
             assertEquals(null, previa.igualA(PerfilRuta.SINUOSA))
+            assertEquals(listOf(PerfilRuta.MAS_RAPIDA, PerfilRuta.SINUOSA), previa.perfilesVisibles)
         }
 
     @Test

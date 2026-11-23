@@ -6,6 +6,7 @@ import app.trombito.rallycopilot.domain.navegacion.EdicionParadas
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.ruta.ComparadorRutas
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import java.util.Locale
 
@@ -101,15 +102,33 @@ data class VistaPrevia(
     val puedeEmpezar: Boolean get() = rutaElegida != null
 
     /**
-     * El perfil anterior (en el orden de los chips) cuya ruta es exactamente la de [perfil], o null si es distinta o
-     * aún no hay ruta: el chip dice «Misma ruta» en vez de repetir las cifras.
+     * Por cada perfil con ruta, el perfil anterior (en el orden de los chips) cuya ruta es la misma por geometría
+     * ([ComparadorRutas]); se calcula una sola vez por vista previa, que es inmutable.
      */
-    fun igualA(perfil: PerfilRuta): PerfilRuta? {
-        val propia = (opciones[perfil] as? OpcionRuta.Lista)?.ruta ?: return null
-        return PerfilRuta.entries
-            .takeWhile { it != perfil }
-            .firstOrNull { (opciones[it] as? OpcionRuta.Lista)?.ruta == propia }
+    private val repetidas: Map<PerfilRuta, PerfilRuta> by lazy {
+        val resultado = LinkedHashMap<PerfilRuta, PerfilRuta>()
+        PerfilRuta.entries.forEach { perfil ->
+            val propia = (opciones[perfil] as? OpcionRuta.Lista)?.ruta ?: return@forEach
+            val anterior =
+                PerfilRuta.entries
+                    .takeWhile { it != perfil }
+                    .firstOrNull { previo ->
+                        val ruta = (opciones[previo] as? OpcionRuta.Lista)?.ruta
+                        ruta != null && ComparadorRutas.sonIguales(ruta, propia)
+                    }
+            if (anterior != null) resultado[perfil] = anterior
+        }
+        resultado
     }
+
+    /**
+     * El perfil anterior (en el orden de los chips) cuya ruta es la de [perfil] (misma geometría), o null si es
+     * distinta o aún no hay ruta. Esos chips no se muestran: nunca se enseña la misma ruta dos veces.
+     */
+    fun igualA(perfil: PerfilRuta): PerfilRuta? = repetidas[perfil]
+
+    /** Los perfiles que se muestran como chip: todos menos los que repiten la ruta de uno anterior. */
+    val perfilesVisibles: List<PerfilRuta> get() = PerfilRuta.entries.filter { it !in repetidas }
 
     /**
      * Guarda el resultado de [de]. Si la ruta elegida no existe (sin datos o con error) y otra sí, se elige esa: el

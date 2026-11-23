@@ -63,8 +63,6 @@
     <string name="navegacion_ui_ruta_sinuosa_titulo">Curvas</string>
     <string name="navegacion_ui_ruta_curvas">%1$s de curvas</string>
     <string name="navegacion_ui_ruta_sin_curvas">Sin curvas</string>
-    <string name="navegacion_ui_ruta_igual">Misma ruta</string>
-    <string name="navegacion_ui_ruta_igual_descripcion">misma ruta que %1$s</string>
     <string name="navegacion_ui_ir">IR</string>
     <string name="navegacion_ui_sin_ruta">No hay una ruta posible hasta ese punto con los mapas instalados.</string>
     <string name="navegacion_ui_probar_otra_vez">Probar otra vez</string>

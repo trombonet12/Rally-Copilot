@@ -120,8 +120,9 @@ abstract class NavegacionEnMapaBase {
     protected val tresRutas =
         arrayOf(
             PerfilRuta.MAS_RAPIDA to OpcionRuta.Lista(rutaDePrueba(18_400.0, 1_380.0), curvasM = 2_000.0),
-            PerfilRuta.EQUILIBRADA to OpcionRuta.Lista(rutaDePrueba(20_100.0, 1_700.0), curvasM = 5_200.0),
-            PerfilRuta.SINUOSA to OpcionRuta.Lista(rutaDePrueba(24_000.0, 4_500.0), curvasM = 9_800.0),
+            PerfilRuta.EQUILIBRADA to
+                OpcionRuta.Lista(rutaDePruebaDistinta(20_100.0, 1_700.0, 0.03), curvasM = 5_200.0),
+            PerfilRuta.SINUOSA to OpcionRuta.Lista(rutaDePruebaDistinta(24_000.0, 4_500.0, 0.06), curvasM = 9_800.0),
         )
 
     protected val sinRutas =
@@ -257,7 +258,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         poner(
             vistaPrevia(
                 PerfilRuta.MAS_RAPIDA to OpcionRuta.Lista(rutaDePrueba(18_400.0, 1_380.0), curvasM = 40.0),
-                PerfilRuta.EQUILIBRADA to OpcionRuta.Lista(rutaDePrueba(20_100.0, 1_700.0)),
+                PerfilRuta.EQUILIBRADA to OpcionRuta.Lista(rutaDePruebaDistinta(20_100.0, 1_700.0, 0.03)),
             ),
         )
         assertEquals(
@@ -271,25 +272,30 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     }
 
     @Test
-    fun `si dos perfiles tienen la misma ruta el chip lo indica en vez de repetir las curvas`() {
+    fun `un chip con la misma ruta que uno anterior no se muestra`() {
         val misma = OpcionRuta.Lista(rutaDePrueba(18_400.0, 1_380.0), curvasM = 2_000.0)
         poner(
             vistaPrevia(
                 PerfilRuta.MAS_RAPIDA to misma,
-                PerfilRuta.EQUILIBRADA to misma,
-                PerfilRuta.SINUOSA to OpcionRuta.Lista(rutaDePrueba(24_000.0, 4_500.0), curvasM = 9_800.0),
+                PerfilRuta.EQUILIBRADA to OpcionRuta.Lista(rutaDePrueba(18_450.0, 1_390.0), curvasM = 2_100.0),
+                PerfilRuta.SINUOSA to
+                    OpcionRuta.Lista(rutaDePruebaDistinta(24_000.0, 4_500.0, 0.06), curvasM = 9_800.0),
             ),
         )
-        assertEquals(
-            listOf("Equilibrada", "23 min", "18,4 km", "Misma ruta"),
-            banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA)),
-        )
-        assertEquals(
-            "Ruta equilibrada: 23 min, 18,4 km, 2,0 km de curvas, misma ruta que Rápida",
-            banco.descripcion(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA)),
-        )
-        assertFalse("Misma ruta" in banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA)))
-        assertFalse("Misma ruta" in banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA)))
+        assertTrue(banco.hay(ETIQUETA_RUTA_RAPIDA))
+        assertFalse(banco.hay(ETIQUETA_RUTA_EQUILIBRADA))
+        assertTrue(banco.hay(ETIQUETA_RUTA_SINUOSA))
+        assertFalse("Misma ruta" in banco.todosLosTextos())
+    }
+
+    @Test
+    fun `si todas las rutas coinciden queda un solo chip`() {
+        val misma = OpcionRuta.Lista(rutaDePrueba(18_400.0, 1_380.0), curvasM = 2_000.0)
+        poner(vistaPrevia(PerfilRuta.MAS_RAPIDA to misma, PerfilRuta.EQUILIBRADA to misma, PerfilRuta.SINUOSA to misma))
+        assertTrue(banco.hay(ETIQUETA_RUTA_RAPIDA))
+        assertFalse(banco.hay(ETIQUETA_RUTA_EQUILIBRADA))
+        assertFalse(banco.hay(ETIQUETA_RUTA_SINUOSA))
+        assertTrue(banco.estaHabilitado(banco.conEtiqueta(ETIQUETA_EMPEZAR)))
     }
 
     @Test

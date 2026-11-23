@@ -2,12 +2,16 @@ package app.trombito.rallycopilot.data.ruta
 
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.motor.ruta.ComparadorRutas
 import app.trombito.rallycopilot.motor.ruta.Ruta
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SelectorPerfilesTest {
+    /** Cada [marca] distinta es una geometría distinta (0,001° de latitud ≈ 111 m); la misma [marca], la misma ruta. */
     private fun cand(
         tiempoMin: Double,
         curvasKm: Double,
@@ -15,7 +19,7 @@ class SelectorPerfilesTest {
         conocidosKm: Double = 0.0,
     ) = Candidata(
         Ruta(
-            puntos = listOf(PuntoGeo(39.5, 2.6), PuntoGeo(39.6, 2.7)),
+            puntos = listOf(PuntoGeo(39.5 + marca * 0.001, 2.6), PuntoGeo(39.6 + marca * 0.001, 2.7)),
             maniobras = emptyList(),
             longitudM = 10_000.0 + marca,
             tiempoS = tiempoMin * 60.0,
@@ -53,7 +57,7 @@ class SelectorPerfilesTest {
 
     @Test
     fun `curvas sin ninguna candidata mejor devuelve la rapida`() {
-        assertSame(rapida, elegir(PerfilRuta.SINUOSA, cand(40.0, 20.0), cand(22.0, 1.0)))
+        assertSame(rapida, elegir(PerfilRuta.SINUOSA, cand(41.0, 20.0), cand(22.0, 1.0)))
         assertSame(rapida, elegir(PerfilRuta.SINUOSA))
     }
 
@@ -162,8 +166,13 @@ class SelectorPerfilesTest {
         val menos = cand(21.5, 4.0, marca = 2.0, conocidosKm = 3.0)
         val mas = cand(22.0, 4.0, marca = 3.0, conocidosKm = 6.0)
         val empate = cand(21.2, 4.0, marca = 4.0, conocidosKm = 4.0)
-        assertSame(mas, elegir(PerfilRuta.EQUILIBRADA, hoy, menos, mas, empate))
-        assertSame(hoy, elegir(PerfilRuta.EQUILIBRADA, hoy, menos, empate))
+        // La rápida lleva muchos metros conocidos para que no ceda su sitio a `hoy` (Equilibrada no puede repetirla).
+        val rapidaConocida = Candidata(rapida.ruta, rapida.curvasM, 9_000.0)
+
+        fun equilibrada(vararg otras: Candidata) =
+            SelectorPerfiles.elegir(PerfilRuta.EQUILIBRADA, rapidaConocida, otras.toList())
+        assertSame(mas, equilibrada(hoy, menos, mas, empate))
+        assertSame(hoy, equilibrada(hoy, menos, empate))
     }
 
     @Test
@@ -194,5 +203,77 @@ class SelectorPerfilesTest {
         val conocidaRapida = cand(22.0, 8.0, marca = 2.0, conocidosKm = 5.0)
         val rapidaConocida = Candidata(rapida.ruta, rapida.curvasM, 9_000.0)
         assertSame(hoy, SelectorPerfiles.elegir(PerfilRuta.SINUOSA, rapidaConocida, listOf(hoy, conocidaRapida)))
+    }
+
+    // --- Nunca la misma ruta dos veces (2026-11-23) ---
+
+    private fun mismaRuta(
+        a: Candidata,
+        b: Candidata,
+    ) = ComparadorRutas.sonIguales(a.ruta, b.ruta)
+
+    private fun todas(vararg otras: Candidata) =
+        PerfilRuta.entries.map { SelectorPerfiles.elegir(it, rapida, otras.toList()) }
+
+    @Test
+    fun `equilibrada que solo encuentra la misma geometria que la rapida se queda sin ruta distinta`() {
+        val copia = cand(21.0, 5.0, marca = 20.0) // la geometría de la rápida con otra longitud y otro tiempo
+        assertTrue(mismaRuta(rapida, elegir(PerfilRuta.EQUILIBRADA, copia)))
+        assertTrue(mismaRuta(rapida, elegir(PerfilRuta.SINUOSA, copia)))
+    }
+
+    @Test
+    fun `equilibrada repetida de la rapida se reintenta con hasta 1,6 veces la duracion`() {
+        val copia = cand(21.0, 5.0, marca = 20.0)
+        val distinta = cand(27.0, 9.0, marca = 1.0) // pasa de 1,25 × 20 = 25 min, no de 1,6 × 20 = 32 min
+        assertSame(distinta, elegir(PerfilRuta.EQUILIBRADA, copia, distinta))
+        val demasiado = cand(32.5, 12.0, marca = 2.0)
+        assertTrue(mismaRuta(rapida, elegir(PerfilRuta.EQUILIBRADA, copia, demasiado)))
+    }
+
+    @Test
+    fun `curvas igual a la rapida se reintenta hasta 2,0 veces y se queda con la de mas curvas`() {
+        val menos = cand(36.0, 10.0, marca = 1.0)
+        val mas = cand(39.0, 14.0, marca = 2.0)
+        val fuera = cand(40.5, 20.0, marca = 3.0) // pasa de 2,0 × 20 = 40 min
+        assertSame(mas, elegir(PerfilRuta.SINUOSA, menos, mas, fuera))
+    }
+
+    @Test
+    fun `equilibrada y curvas reintentadas dan rutas distintas entre si y de la rapida`() {
+        val copia = cand(21.0, 5.0, marca = 20.0) // la elegida hoy repite la rápida
+        val cabe = cand(31.0, 4.0, marca = 1.0)
+        val lejana = cand(38.0, 14.0, marca = 2.0)
+        assertSame(cabe, elegir(PerfilRuta.EQUILIBRADA, copia, cabe, lejana))
+        assertSame(lejana, elegir(PerfilRuta.SINUOSA, copia, cabe, lejana))
+    }
+
+    @Test
+    fun `curvas repetida de equilibrada busca otra con al menos sus curvas`() {
+        val comun = cand(24.0, 8.0, marca = 1.0)
+        val masCurvosa = cand(38.0, 12.0, marca = 2.0)
+        val menosCurvosa = cand(39.0, 5.0, marca = 3.0)
+        assertSame(comun, elegir(PerfilRuta.EQUILIBRADA, comun))
+        assertSame(masCurvosa, elegir(PerfilRuta.SINUOSA, comun, masCurvosa, menosCurvosa))
+        // Sin una más curvosa, Curvas queda repetida (la vista previa la oculta) en vez de ser una con menos curvas.
+        assertSame(comun, elegir(PerfilRuta.SINUOSA, comun, menosCurvosa))
+    }
+
+    @Test
+    fun `no se fuerza una ruta distinta con menos curvas que la rapida`() {
+        assertSame(rapida, elegir(PerfilRuta.SINUOSA, cand(25.0, 1.0)))
+    }
+
+    @Test
+    fun `con una sola candidata distinta salen dos rutas distintas y con varias salen las que dan sus margenes`() {
+        val rutas = todas(cand(40.0, 20.0, marca = 1.0))
+        assertEquals(2, rutas.indices.count { i -> (0 until i).none { j -> mismaRuta(rutas[i], rutas[j]) } })
+        val varias = todas(cand(21.0, 3.0), cand(24.0, 8.0), cand(30.0, 12.0))
+        assertEquals(3, varias.indices.count { i -> (0 until i).none { j -> mismaRuta(varias[i], varias[j]) } })
+    }
+
+    @Test
+    fun `una candidata con otra geometria nunca cuenta como repetida`() {
+        assertFalse(mismaRuta(cand(21.0, 3.0, marca = 1.0), cand(21.0, 3.0, marca = 2.0)))
     }
 }

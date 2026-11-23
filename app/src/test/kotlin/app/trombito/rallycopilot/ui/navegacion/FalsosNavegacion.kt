@@ -34,6 +34,18 @@ fun rutaDePrueba(
     tiempoS = tiempoS,
 )
 
+/**
+ * Como [rutaDePrueba] pero con el punto intermedio desplazado [desvioGrados] de latitud: otra geometría, para que la
+ * vista previa no la cuente como la misma ruta (dos rutas con los mismos puntos se enseñan una sola vez).
+ */
+fun rutaDePruebaDistinta(
+    longitudM: Double,
+    tiempoS: Double,
+    desvioGrados: Double,
+) = rutaDePrueba(longitudM, tiempoS).let {
+    it.copy(puntos = listOf(PALMA, PuntoGeo(39.65 + desvioGrados, 2.68), SOLLER))
+}
+
 /** Responde con [respuesta]; con [espera] queda suspendido hasta completarla. [canceladas] cuenta las cancelaciones. */
 class FalsoResolvedor(
     var respuesta: ResultadoResolucion = ResultadoResolucion.Error,
