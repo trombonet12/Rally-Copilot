@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -33,6 +34,7 @@ class MapasOfflineViewModel
         private var ultimoProgreso: ProgresoDescarga? = null
 
         private val bytesSatelite = MutableStateFlow<Long?>(null)
+        private val bytesComplementos = MutableStateFlow<Map<Complemento, Long>>(emptyMap())
 
         init {
             // Lo que falta de satélite cambia al instalar o borrar (también el z16 ya puesto con el z17 por bajar).
@@ -42,6 +44,18 @@ class MapasOfflineViewModel
                     .distinctUntilChanged()
                     .collectLatest { bytesSatelite.value = repositorio.tamanoSatelite() }
             }
+            // Lo que se bajaría con datos de lo que espera WiFi: se pregunta al manifest una vez por complemento.
+            viewModelScope.launch {
+                repositorio.estado
+                    .map { estado -> Complemento.entries.filter { estado.complemento(it).descarga?.soloWifi == true } }
+                    .distinctUntilChanged()
+                    .collectLatest { esperando ->
+                        esperando.forEach { complemento ->
+                            val bytes = repositorio.tamanoPendiente(complemento) ?: return@forEach
+                            bytesComplementos.update { it + (complemento to bytes) }
+                        }
+                    }
+            }
         }
 
         val uiState: StateFlow<MapasOfflineUiState> =
@@ -50,7 +64,8 @@ class MapasOfflineViewModel
                 repositorio.ajustes,
                 bytesSatelite,
                 precarga.estado,
-            ) { datos, ajustes, tamanoSatelite, detalle ->
+                bytesComplementos,
+            ) { datos, ajustes, tamanoSatelite, detalle, tamanosComplementos ->
                 val descarga = datos.descarga
                 ultimoProgreso =
                     when {
@@ -65,6 +80,7 @@ class MapasOfflineViewModel
                     ultimoProgreso = ultimoProgreso,
                     bytesSatelite = tamanoSatelite,
                     detalle = detalle,
+                    bytesComplementos = tamanosComplementos,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), MapasOfflineUiState())
 
@@ -72,7 +88,10 @@ class MapasOfflineViewModel
 
         fun onCancelar() = repositorio.cancelar()
 
-        /** Relieve o voz Sharvard: se bajan con la red que haya (el usuario ve el tamaño en la tarjeta). */
+        /**
+         * Relieve o voz Sharvard: se bajan con la red que haya (el usuario ve el tamaño en la tarjeta). Si ya esperaba
+         * WiFi («Descargar ahora»), el repositorio lo vuelve a encolar sin esa restricción.
+         */
         fun onDescargarComplemento(complemento: Complemento) = repositorio.descargar(complemento)
 
         /** Borra un complemento y libera su espacio; se puede volver a descargar. */

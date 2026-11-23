@@ -12,7 +12,7 @@
     <string name="voz_descarga_error">No se pudo descargar la voz. Toca para reintentar.</string>
     <string name="voz_probar_primero">Descarga la voz para poder oírla.</string>
 
-    <string name="complementos_titulo">Más datos (se descargan al usarlos)</string>
+    <string name="complementos_titulo">Datos al usarlos</string>
     <string name="complementos_relieve">Relieve y curvas de nivel</string>
     <string name="complementos_voz_sharvard">Voz Sharvard</string>
     <string name="complementos_instalado">Instalado · ocupa %1$s</string>
@@ -21,6 +21,7 @@
     <string name="complementos_descargando">Descargando… %1$d %%</string>
     <string name="complementos_esperando">Esperando conexión</string>
     <string name="complementos_esperando_wifi">Se descargará con WiFi</string>
+    <string name="complementos_descargar_ahora">Descargar ahora (%1$s con datos)</string>
     <string name="complementos_borrar_descripcion">Borrar %1$s</string>
     <string name="complementos_borrar_titulo">¿Borrar %1$s?</string>
     <string name="complementos_borrar_texto">Se liberan %1$s. Podrás volver a descargarlo cuando quieras.</string>

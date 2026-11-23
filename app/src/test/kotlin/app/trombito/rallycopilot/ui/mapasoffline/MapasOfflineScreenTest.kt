@@ -1,14 +1,19 @@
 package app.trombito.rallycopilot.ui.mapasoffline
 
 import android.content.Context
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
+import app.trombito.rallycopilot.domain.datos.EstadoComplemento
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstadoDetalle
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_SEGMENTO
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
@@ -79,7 +84,7 @@ class MapasOfflineScreenTest {
         poner(EstadoDatosMapa(instalados = instalados), acciones = AccionesMapasOffline(onBorrar = { borrados++ }))
         assertTrue(banco.hay("mapas-fase-instalado"))
         assertTrue("Versión 2026.10.1" in textos())
-        assertTrue("Incluye satélite" in textos())
+        assertTrue("Satélite" in banco.textos(banco.conEtiqueta(ETIQUETA_CAPAS)))
         assertTrue(textos().any { it.startsWith("1,4 GB de ") && it.endsWith(" GB") })
         assertFalse(banco.hay(ETIQUETA_DESCARGAR))
         banco.pulsar(banco.conEtiqueta(ETIQUETA_BORRAR))
@@ -347,11 +352,32 @@ class MapasOfflineScreenTest {
     fun `el limite elegido es el de los ajustes y se puede cambiar`() {
         val elegidos = mutableListOf<Int>()
         poner(acciones = AccionesMapasOffline(onLimiteGb = { elegidos += it }))
-        val ofrecidos =
-            banco.etiquetas(ETIQUETA_LIMITE_PREFIJO).map { it.removePrefix(ETIQUETA_LIMITE_PREFIJO).toInt() }
-        assertEquals(LIMITES_GB, ofrecidos.sorted())
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_LIMITE_PREFIJO + 4))
-        assertEquals(listOf(4), elegidos)
+        LIMITES_GB.forEachIndexed { indice, gb ->
+            assertTrue("$gb GB" in banco.textos(banco.conEtiqueta(ETIQUETA_SEGMENTO + indice)))
+        }
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_SEGMENTO + LIMITES_GB.indexOf(8)))
+        assertEquals(listOf(8), elegidos)
+    }
+
+    @Test
+    fun `las capas instaladas se marcan y el titulo de los complementos no lleva parentesis`() {
+        val estado =
+            MapasOfflineUiState(
+                cargando = false,
+                datos =
+                    EstadoDatosMapa(
+                        instalados = instalados.copy(conSatelite = false),
+                        complementos = mapOf(Complemento.RELIEVE to EstadoComplemento(instalado = true, bytes = 1_000)),
+                    ),
+                detalle = EstadoDetalle(bytes = 50_000_000, teselas = 1_200),
+            )
+        ponerEstado(estado)
+        val capas = banco.conEtiqueta(ETIQUETA_CAPAS)
+        assertEquals(listOf("Mapa", "Relieve", "Satélite", "Detalle", "Voz"), banco.textos(capas))
+        val marcas = capas.children.mapNotNull { it.config.getOrNull(SemanticsProperties.StateDescription) }
+        assertEquals(listOf("Instalado", "Instalado", "Sin instalar", "Instalado", "Sin instalar"), marcas)
+        assertTrue("Datos al usarlos" in textos())
+        assertFalse(textos().any { it.contains("(se descargan") })
     }
 
     @Test

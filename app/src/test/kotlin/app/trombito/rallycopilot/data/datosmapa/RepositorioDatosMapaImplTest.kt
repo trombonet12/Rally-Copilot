@@ -633,6 +633,22 @@ class RepositorioDatosMapaImplTest {
     }
 
     @Test
+    fun `descargar ahora el relieve que espera WiFi lo vuelve a encolar con cualquier red`() {
+        instalarArchivo(conSatelite = false)
+        repositorioConElegidos(Complemento.RELIEVE).comprobarActualizacion()
+        esperarEstado { it.complemento(Complemento.RELIEVE).descarga?.soloWifi == true }
+
+        repositorio.descargar(Complemento.RELIEVE)
+
+        val estado = esperarEstado { it.complemento(Complemento.RELIEVE).descarga?.soloWifi == false }
+        assertFalse("ya no espera WiFi a propósito", estado.complemento(Complemento.RELIEVE).descarga?.soloWifi == true)
+        val pendientes = trabajosComplementos().filter { !it.state.isFinished }
+        assertEquals("sustituye al trabajo con WiFi, no lo duplica", 1, pendientes.size)
+        assertEquals(NetworkType.CONNECTED, pendientes.single().constraints.requiredNetworkType)
+        assertTrue("complemento:RELIEVE" in pendientes.single().tags)
+    }
+
+    @Test
     fun `una descarga pedida por el usuario espera red sin exigir WiFi`() {
         instalarArchivo(conSatelite = false)
         repositorio.descargar(Complemento.RELIEVE)

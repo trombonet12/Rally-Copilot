@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -29,13 +30,15 @@ const val ETIQUETA_DETALLE_BORRAR_CONFIRMAR = "mapas-detalle-borrar-confirmar"
 const val ETIQUETA_DETALLE_PROGRESO = "mapas-detalle-progreso"
 
 /**
- * Detalle z18-19 de Mapas offline: lo bajado, el progreso y «Descargar zona» como acción principal; «Borrar detalle»
+ * Detalle z18-19 de Mapas offline: lo bajado, el progreso y «Descargar zona» (rellena solo si es el [principal] de la
+ * pantalla; si no, con contorno); «Borrar detalle»
  * (papelera, pide confirmar mediante [onPedirBorrado]) solo si hay algo descargado.
  */
 @Composable
 internal fun SeccionDetalle(
     detalle: EstadoDetalle,
     acciones: AccionesMapasOffline,
+    principal: Boolean,
     onPedirBorrado: () -> Unit,
 ) {
     TarjetaWrc(Modifier.fillMaxWidth().testTag(ETIQUETA_DETALLE)) {
@@ -53,10 +56,17 @@ internal fun SeccionDetalle(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             detalle.descarga?.let { ProgresoDetalleFila(it, acciones.onCancelarDetalle) }
-            Button(
-                onClick = acciones.onDescargarZona,
-                modifier = Modifier.fillMaxWidth().heightIn(min = Medidas.zonaTactil).testTag(ETIQUETA_DETALLE_ZONA),
-            ) { Text(stringResource(R.string.mapas_detalle_zona)) }
+            val modificadorZona =
+                Modifier.fillMaxWidth().heightIn(min = Medidas.zonaTactil).testTag(ETIQUETA_DETALLE_ZONA)
+            if (principal) {
+                Button(onClick = acciones.onDescargarZona, modifier = modificadorZona) {
+                    Text(stringResource(R.string.mapas_detalle_zona))
+                }
+            } else {
+                OutlinedButton(onClick = acciones.onDescargarZona, modifier = modificadorZona) {
+                    Text(stringResource(R.string.mapas_detalle_zona))
+                }
+            }
             if (detalle.bytes > 0) {
                 BotonBorrar(R.string.mapas_detalle_borrar, ETIQUETA_DETALLE_BORRAR, onPedirBorrado)
             }

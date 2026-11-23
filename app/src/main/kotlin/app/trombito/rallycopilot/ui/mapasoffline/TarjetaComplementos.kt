@@ -5,11 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,16 +26,16 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.datos.EstadoComplemento
 import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.ui.comun.BotonIcono
+import app.trombito.rallycopilot.ui.comun.FilaWrc
 import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
-import app.trombito.rallycopilot.ui.theme.Ayuda
-import app.trombito.rallycopilot.ui.theme.Cuerpo
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.Medidas
 
 const val ETIQUETA_COMPLEMENTOS = "mapas-complementos"
 const val ETIQUETA_COMPLEMENTO_DESCARGAR_PREFIJO = "mapas-complemento-descargar-"
+const val ETIQUETA_COMPLEMENTO_AHORA_PREFIJO = "mapas-complemento-ahora-"
 const val ETIQUETA_COMPLEMENTO_BORRAR_PREFIJO = "mapas-complemento-borrar-"
 const val ETIQUETA_COMPLEMENTO_BORRAR_CONFIRMAR = "mapas-complemento-borrar-confirmar"
 
@@ -48,7 +49,9 @@ private fun Complemento.nombre(): Int =
 
 /**
  * Relieve con curvas de nivel y voz Sharvard: cada uno dice si está instalado (y cuánto ocupa) o su tamaño, con el
- * botón de descargar, el progreso o la papelera. Borrar libera el espacio y se puede volver a descargar.
+ * botón de descargar, el progreso o la papelera. Si el relieve elegido espera WiFi, «Descargar ahora» lo baja ya con
+ * datos móviles. Borrar libera el espacio y se puede volver a descargar. Ningún botón de aquí es el principal de la
+ * pantalla: todos van con contorno.
  */
 @Composable
 internal fun TarjetaComplementos(
@@ -56,13 +59,14 @@ internal fun TarjetaComplementos(
     acciones: AccionesMapasOffline,
 ) {
     var borrando by rememberSaveable { mutableStateOf<String?>(null) }
-    TarjetaWrc(Modifier.fillMaxWidth().testTag(ETIQUETA_COMPLEMENTOS)) {
-        Column(verticalArrangement = Arrangement.spacedBy(Espacio.m)) {
-            TituloTarjeta(stringResource(R.string.complementos_titulo))
+    TarjetaWrc(Modifier.fillMaxWidth().testTag(ETIQUETA_COMPLEMENTOS), relleno = Espacio.s) {
+        Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+            TituloTarjeta(stringResource(R.string.complementos_titulo), Modifier.padding(horizontal = Espacio.m))
             COMPLEMENTOS_MOSTRADOS.forEach { complemento ->
                 FilaComplemento(
                     complemento = complemento,
                     estado = estado.datos.complemento(complemento),
+                    bytesParaBajar = estado.bytesParaBajar(complemento),
                     onDescargar = { acciones.onDescargarComplemento(complemento) },
                     onBorrar = { borrando = complemento.name },
                 )
@@ -87,68 +91,98 @@ internal fun TarjetaComplementos(
 private fun FilaComplemento(
     complemento: Complemento,
     estado: EstadoComplemento,
+    bytesParaBajar: Long,
     onDescargar: () -> Unit,
     onBorrar: () -> Unit,
 ) {
     val nombre = stringResource(complemento.nombre())
     val clave = complemento.name.lowercase()
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Espacio.m)) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
-            Text(nombre, style = Cuerpo)
-            EstadoDeComplemento(complemento, estado)
+    val descarga = estado.descarga
+    val bajando = descarga != null && !descarga.esperandoRed
+    val esperaWifi = descarga != null && descarga.esperandoRed && descarga.soloWifi
+    Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            FilaWrc(
+                titulo = nombre,
+                detalle = textoEstado(complemento, estado),
+                icono = if (complemento == Complemento.RELIEVE) Iconos.Relieve else Iconos.Microfono,
+                modifier = Modifier.weight(1f),
+            )
+            if (estado.instalado) {
+                BotonIcono(
+                    descripcion = stringResource(R.string.complementos_borrar_descripcion, nombre),
+                    onClick = onBorrar,
+                    modifier = Modifier.testTag(ETIQUETA_COMPLEMENTO_BORRAR_PREFIJO + clave),
+                ) { Icon(Iconos.Borrar, contentDescription = null, tint = MaterialTheme.colorScheme.error) }
+            }
         }
-        if (estado.instalado) {
-            BotonIcono(
-                descripcion = stringResource(R.string.complementos_borrar_descripcion, nombre),
-                onClick = onBorrar,
-                modifier = Modifier.testTag(ETIQUETA_COMPLEMENTO_BORRAR_PREFIJO + clave),
-            ) { Icon(Iconos.Borrar, contentDescription = null, tint = MaterialTheme.colorScheme.error) }
-        } else if (estado.descarga == null) {
-            Button(
+        if (descarga != null && bajando) {
+            val total = descarga.bytesTotales
+            val fraccion = if (total > 0) (descarga.bytesHechos.toFloat() / total).coerceIn(0f, 1f) else 0f
+            LinearProgressIndicator(
+                progress = { fraccion },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Espacio.m),
+            )
+        }
+        if (!estado.instalado && descarga == null) {
+            BotonComplemento(
+                texto = stringResource(R.string.complementos_descargar),
+                etiqueta = ETIQUETA_COMPLEMENTO_DESCARGAR_PREFIJO + clave,
                 onClick = onDescargar,
-                modifier =
-                    Modifier
-                        .heightIn(min = Medidas.zonaTactil)
-                        .testTag(ETIQUETA_COMPLEMENTO_DESCARGAR_PREFIJO + clave),
-            ) { Text(stringResource(R.string.complementos_descargar)) }
+            )
+        } else if (esperaWifi) {
+            BotonComplemento(
+                texto = stringResource(R.string.complementos_descargar_ahora, FormatoEs.tamano(bytesParaBajar)),
+                etiqueta = ETIQUETA_COMPLEMENTO_AHORA_PREFIJO + clave,
+                onClick = onDescargar,
+            )
         }
     }
 }
 
-/** La línea de estado: ocupa X, descargando con barra, esperando red o el tamaño a bajar. */
 @Composable
-private fun EstadoDeComplemento(
+private fun BotonComplemento(
+    texto: String,
+    etiqueta: String,
+    onClick: () -> Unit,
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Espacio.m)
+                .heightIn(min = Medidas.zonaTactil)
+                .testTag(etiqueta),
+    ) { Text(texto) }
+}
+
+/** La línea de estado: ocupa X, descargando con %, esperando red (o WiFi a propósito) o el tamaño a bajar. */
+@Composable
+private fun textoEstado(
     complemento: Complemento,
     estado: EstadoComplemento,
-) {
+): String {
     val descarga = estado.descarga
-    val color = MaterialTheme.colorScheme.onSurfaceVariant
-    when {
+    return when {
         estado.instalado -> {
-            Text(
-                stringResource(R.string.complementos_instalado, FormatoEs.tamano(estado.bytes)),
-                Modifier,
-                color,
-                style = Ayuda,
-            )
+            stringResource(R.string.complementos_instalado, FormatoEs.tamano(estado.bytes))
         }
 
         descarga != null && !descarga.esperandoRed -> {
             val total = descarga.bytesTotales
             val fraccion = if (total > 0) (descarga.bytesHechos.toFloat() / total).coerceIn(0f, 1f) else 0f
-            val porcentaje = (fraccion * PORCIENTO).toInt()
-            Text(stringResource(R.string.complementos_descargando, porcentaje), Modifier, color, style = Ayuda)
-            LinearProgressIndicator(progress = { fraccion }, modifier = Modifier.fillMaxWidth())
+            stringResource(R.string.complementos_descargando, (fraccion * PORCIENTO).toInt())
         }
 
         descarga != null -> {
-            val texto = if (descarga.soloWifi) R.string.complementos_esperando_wifi else R.string.complementos_esperando
-            Text(stringResource(texto), Modifier, color, style = Ayuda)
+            stringResource(
+                if (descarga.soloWifi) R.string.complementos_esperando_wifi else R.string.complementos_esperando,
+            )
         }
 
         else -> {
-            val tamano = FormatoEs.tamano(complemento.bytesAproximados)
-            Text(stringResource(R.string.complementos_no_instalado, tamano), Modifier, color, style = Ayuda)
+            stringResource(R.string.complementos_no_instalado, FormatoEs.tamano(complemento.bytesAproximados))
         }
     }
 }

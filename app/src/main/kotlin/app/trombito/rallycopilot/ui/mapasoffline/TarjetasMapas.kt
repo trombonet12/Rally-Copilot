@@ -13,9 +13,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -30,6 +27,8 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.OpcionSegmento
+import app.trombito.rallycopilot.ui.comun.SelectorSegmentadoWrc
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.theme.Ayuda
 import app.trombito.rallycopilot.ui.theme.Cuerpo
@@ -55,10 +54,13 @@ internal fun TituloTarjeta(
     )
 }
 
-/** Lo instalado: versión, barra de uso («1,6 GB de 8 GB» del límite elegido) y si incluye satélite. */
+/**
+ * Cabecera con lo instalado: versión, barra de uso («1,6 GB de 8 GB» del límite elegido) y las capas que hay en el
+ * móvil (mapa, relieve, satélite, detalle, voz) como chips: ámbar con marca si están, apagados si faltan.
+ */
 @Composable
 internal fun TarjetaUso(estado: MapasOfflineUiState) {
-    TarjetaWrc(Modifier.fillMaxWidth().testTag(ETIQUETA_INSTALADOS)) {
+    TarjetaWrc(Modifier.fillMaxWidth().testTag(ETIQUETA_INSTALADOS), biselada = true) {
         TituloTarjeta(stringResource(R.string.mapas_instalados_titulo))
         val instalados = estado.datos.instalados
         if (instalados == null) {
@@ -68,17 +70,10 @@ internal fun TarjetaUso(estado: MapasOfflineUiState) {
                 modifier = Modifier.padding(top = Espacio.xs),
             )
         } else {
-            Column(Modifier.padding(top = Espacio.xs), verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+            Column(Modifier.padding(top = Espacio.xs), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
                 Text(stringResource(R.string.mapas_version, instalados.version), style = Cuerpo)
                 BarraUso(usados = instalados.bytes + estado.detalle.bytes, limite = estado.ajustes.limiteBytes)
-                Text(
-                    text =
-                        stringResource(
-                            if (instalados.conSatelite) R.string.mapas_con_satelite else R.string.mapas_sin_satelite,
-                        ),
-                    style = Ayuda,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                CapasInstaladas(estado, instalados)
             }
         }
     }
@@ -242,7 +237,7 @@ private fun Error(motivo: MotivoError) {
     )
 }
 
-/** Solo con WiFi y límite de espacio, en una tarjeta de ajustes. */
+/** Solo con WiFi y límite de espacio (selector segmentado del sistema), en una tarjeta de ajustes. */
 @Composable
 internal fun TarjetaAjustesDescarga(
     estado: MapasOfflineUiState,
@@ -252,22 +247,13 @@ internal fun TarjetaAjustesDescarga(
         FilaSoloWifi(estado, acciones)
         Column(Modifier.padding(top = Espacio.s), verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
             TituloTarjeta(stringResource(R.string.mapas_limite_titulo))
-            val actualGb = estado.ajustes.limiteBytes / BYTES_POR_GB
-            SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                LIMITES_GB.forEachIndexed { indice, gb ->
-                    val descripcion = stringResource(R.string.mapas_limite_descripcion, gb)
-                    SegmentedButton(
-                        selected = actualGb == gb.toLong(),
-                        onClick = { acciones.onLimiteGb(gb) },
-                        shape = SegmentedButtonDefaults.itemShape(index = indice, count = LIMITES_GB.size),
-                        modifier =
-                            Modifier
-                                .heightIn(min = Medidas.zonaTactil)
-                                .testTag(ETIQUETA_LIMITE_PREFIJO + gb)
-                                .semantics { contentDescription = descripcion },
-                    ) { Text(stringResource(R.string.mapas_limite_opcion, gb)) }
-                }
-            }
+            val opciones = LIMITES_GB.map { OpcionSegmento(it, stringResource(R.string.mapas_limite_opcion, it)) }
+            SelectorSegmentadoWrc(
+                opciones = opciones,
+                seleccionada = (estado.ajustes.limiteBytes / BYTES_POR_GB).toInt(),
+                onSeleccion = acciones.onLimiteGb,
+                modifier = Modifier.testTag(ETIQUETA_LIMITE),
+            )
         }
     }
 }

@@ -104,6 +104,64 @@ class TarjetaComplementosTest {
     }
 
     @Test
+    fun `esperando WiFi a proposito ofrece descargar ahora con datos y el tamano real`() {
+        val pedidos = mutableListOf<Complemento>()
+        val conWifi = ProgresoDescarga(0, 0, esperandoRed = true, soloWifi = true)
+        val datos =
+            EstadoDatosMapa(
+                instalados = base,
+                complementos = mapOf(Complemento.RELIEVE to EstadoComplemento(descarga = conWifi)),
+            )
+        banco.poner {
+            RallyCopilotTheme {
+                MapasOfflineScreen(
+                    MapasOfflineUiState(false, datos, bytesComplementos = mapOf(Complemento.RELIEVE to 40_000_000L)),
+                    AccionesMapasOffline(onDescargarComplemento = { pedidos += it }),
+                )
+            }
+        }
+
+        val boton = banco.textos(banco.conEtiqueta(ETIQUETA_COMPLEMENTO_AHORA_PREFIJO + "relieve")).single()
+        assertTrue(boton, boton.startsWith("Descargar ahora (") && boton.endsWith(" con datos)") && "38" in boton)
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_COMPLEMENTO_AHORA_PREFIJO + "relieve"))
+        assertEquals(listOf(Complemento.RELIEVE), pedidos)
+        assertFalse("la voz no espera WiFi", banco.hay(ETIQUETA_COMPLEMENTO_AHORA_PREFIJO + "voz_sharvard"))
+    }
+
+    @Test
+    fun `sin tamano leido el boton de descargar ahora usa el orientativo`() {
+        val conWifi = ProgresoDescarga(0, 0, esperandoRed = true, soloWifi = true)
+        poner(
+            EstadoDatosMapa(
+                instalados = base,
+                complementos = mapOf(Complemento.RELIEVE to EstadoComplemento(descarga = conWifi)),
+            ),
+        )
+
+        val boton = banco.textos(banco.conEtiqueta(ETIQUETA_COMPLEMENTO_AHORA_PREFIJO + "relieve")).single()
+        assertTrue(boton, "66" in boton)
+    }
+
+    @Test
+    fun `esperando conexion sin WiFi a proposito y descargando no ofrecen descargar ahora`() {
+        val esperando = ProgresoDescarga(0, 0, esperandoRed = true)
+        val bajando = ProgresoDescarga(10, 100, esperandoRed = false, soloWifi = true)
+        poner(
+            EstadoDatosMapa(
+                instalados = base,
+                complementos =
+                    mapOf(
+                        Complemento.RELIEVE to EstadoComplemento(descarga = esperando),
+                        Complemento.VOZ_SHARVARD to EstadoComplemento(descarga = bajando),
+                    ),
+            ),
+        )
+
+        assertFalse(banco.hay(ETIQUETA_COMPLEMENTO_AHORA_PREFIJO + "relieve"))
+        assertFalse(banco.hay(ETIQUETA_COMPLEMENTO_AHORA_PREFIJO + "voz_sharvard"))
+    }
+
+    @Test
     fun `sin los mapas base instalados no se ofrecen los complementos`() {
         poner(EstadoDatosMapa())
 

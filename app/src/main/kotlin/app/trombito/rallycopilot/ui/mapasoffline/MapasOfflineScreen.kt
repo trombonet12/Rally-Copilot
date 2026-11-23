@@ -4,11 +4,9 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -26,9 +24,8 @@ import androidx.compose.ui.res.stringResource
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.motor.datos.Complemento
-import app.trombito.rallycopilot.ui.comun.BarraSuperior
 import app.trombito.rallycopilot.ui.comun.CargandoWrc
-import app.trombito.rallycopilot.ui.comun.FondoWrc
+import app.trombito.rallycopilot.ui.comun.PantallaWrc
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.Medidas
 
@@ -44,7 +41,8 @@ const val ETIQUETA_CANCELAR = "mapas-cancelar"
 const val ETIQUETA_BORRAR = "mapas-borrar"
 const val ETIQUETA_BORRAR_CONFIRMAR = "mapas-borrar-confirmar"
 const val ETIQUETA_BORRAR_CANCELAR = "mapas-borrar-cancelar"
-const val ETIQUETA_LIMITE_PREFIJO = "mapas-limite-"
+const val ETIQUETA_LIMITE = "mapas-limite"
+const val ETIQUETA_CAPAS = "mapas-capas"
 
 /** Callbacks de Mapas offline. */
 data class AccionesMapasOffline(
@@ -76,9 +74,10 @@ internal fun textoError(motivo: MotivoError): Int =
 private enum class Borrado { SATELITE, DETALLE }
 
 /**
- * Mapas offline en tarjetas, una acción principal por tarjeta: lo instalado con la barra de uso («1,6 GB de 8 GB»),
- * la descarga (progreso, error o el botón de descargar), el detalle z18-19 y los ajustes de descarga. Los borrados
- * llevan icono de papelera y piden confirmación.
+ * Mapas offline sobre [PantallaWrc]: cabecera con lo instalado (barra de uso y capas con marca), la descarga
+ * (progreso, error o el botón de descargar), el detalle z18-19, los datos al usarlos y los ajustes de descarga.
+ * Solo hay un botón principal por estado; el resto va con contorno. Los borrados llevan papelera y piden
+ * confirmación.
  */
 @Composable
 fun MapasOfflineScreen(
@@ -87,35 +86,36 @@ fun MapasOfflineScreen(
     modifier: Modifier = Modifier,
 ) {
     var confirmar by rememberSaveable { mutableStateOf<Borrado?>(null) }
-    FondoWrc(modifier) {
+    PantallaWrc(
+        titulo = stringResource(R.string.mapas_titulo),
+        onVolver = acciones.onVolver,
+        modifier = modifier,
+    ) {
         Column(
-            Modifier
-                .fillMaxSize()
-                .safeDrawingPadding()
-                .testTag(ETIQUETA_FASE + "-" + estado.fase.name.lowercase()),
+            modifier =
+                Modifier
+                    .weight(1f)
+                    .testTag(ETIQUETA_FASE + "-" + estado.fase.name.lowercase())
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Espacio.l),
+            verticalArrangement = Arrangement.spacedBy(Espacio.m),
         ) {
-            BarraSuperior(stringResource(R.string.mapas_titulo), acciones.onVolver)
-            Column(
-                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = Espacio.l),
-                verticalArrangement = Arrangement.spacedBy(Espacio.m),
-            ) {
-                when (estado.fase) {
-                    FaseMapas.CARGANDO -> {
-                        CargandoWrc(stringResource(R.string.mapas_cargando))
-                    }
+            when (estado.fase) {
+                FaseMapas.CARGANDO -> {
+                    CargandoWrc(stringResource(R.string.mapas_cargando))
+                }
 
-                    FaseMapas.PREPARANDO -> {
-                        Preparando()
-                    }
+                FaseMapas.PREPARANDO -> {
+                    Preparando()
+                }
 
-                    else -> {
-                        ContenidoMapas(estado, acciones, onBorrarSatelite = { confirmar = Borrado.SATELITE }) {
-                            confirmar = Borrado.DETALLE
-                        }
+                else -> {
+                    ContenidoMapas(estado, acciones, onBorrarSatelite = { confirmar = Borrado.SATELITE }) {
+                        confirmar = Borrado.DETALLE
                     }
                 }
-                Spacer(Modifier.height(Espacio.l))
             }
+            Spacer(Modifier.height(Espacio.l))
         }
     }
     confirmar?.let { borrado ->
@@ -140,7 +140,7 @@ private fun ContenidoMapas(
     TarjetaUso(estado)
     TarjetaDescarga(estado, acciones)
     if (estado.datos.instalados != null && estado.fase != FaseMapas.DESCARGANDO) {
-        SeccionDetalle(estado.detalle, acciones, onBorrarDetalle)
+        SeccionDetalle(estado.detalle, acciones, !estado.descargaTraePrincipal, onBorrarDetalle)
     }
     if (estado.datos.instalados != null) TarjetaComplementos(estado, acciones)
     TarjetaAjustesDescarga(estado, acciones)

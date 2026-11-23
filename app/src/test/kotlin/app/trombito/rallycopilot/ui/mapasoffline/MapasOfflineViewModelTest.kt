@@ -2,9 +2,11 @@ package app.trombito.rallycopilot.ui.mapasoffline
 
 import app.trombito.rallycopilot.domain.datos.AjustesMapas
 import app.trombito.rallycopilot.domain.datos.DatosInstalados
+import app.trombito.rallycopilot.domain.datos.EstadoComplemento
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.MotivoError
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
+import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.datos.LIMITE_POR_DEFECTO
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import kotlinx.coroutines.Dispatchers
@@ -191,6 +193,50 @@ class MapasOfflineViewModelTest {
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
 
             assertFalse(vm.uiState.value.ofreceSatelite)
+        }
+
+    @Test
+    fun `el complemento que espera WiFi pide su tamano al manifest y el resto no`() =
+        runTest {
+            val repo = FalsoRepositorioDatosMapa(sembradoSinSatelite)
+            repo.bytesComplementos = 40_000_000L
+            val vm = MapasOfflineViewModel(repo)
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+            assertEquals(Complemento.RELIEVE.bytesAproximados, vm.uiState.value.bytesParaBajar(Complemento.RELIEVE))
+
+            val conWifi = ProgresoDescarga(0, 0, esperandoRed = true, soloWifi = true)
+            repo.estadoMutable.value =
+                sembradoSinSatelite.copy(
+                    complementos = mapOf(Complemento.RELIEVE to EstadoComplemento(descarga = conWifi)),
+                )
+
+            assertEquals(40_000_000L, vm.uiState.value.bytesParaBajar(Complemento.RELIEVE))
+            assertEquals(
+                "la voz no esperaba WiFi: tamaño orientativo",
+                Complemento.VOZ_SHARVARD.bytesAproximados,
+                vm.uiState.value.bytesParaBajar(Complemento.VOZ_SHARVARD),
+            )
+        }
+
+    @Test
+    fun `descargar ahora llega al repositorio como una descarga normal del complemento`() =
+        runTest {
+            val vm = MapasOfflineViewModel(repositorio)
+            vm.onDescargarComplemento(Complemento.RELIEVE)
+            assertEquals(listOf(Complemento.RELIEVE), repositorio.complementosDescargados)
+        }
+
+    @Test
+    fun `solo hay un boton principal por estado`() =
+        runTest {
+            val vm = MapasOfflineViewModel(FalsoRepositorioDatosMapa(sembradoSinSatelite, bytesSatelite = 1_000))
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+            assertTrue("ofrece el satélite: él es el principal", vm.uiState.value.descargaTraePrincipal)
+
+            val completo = EstadoDatosMapa(instalados = DatosInstalados("v", 900, true))
+            val vm2 = MapasOfflineViewModel(FalsoRepositorioDatosMapa(completo, bytesSatelite = 0))
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm2.uiState.collect {} }
+            assertFalse("sin nada: «Descargar zona» pasa a principal", vm2.uiState.value.descargaTraePrincipal)
         }
 
     @Test

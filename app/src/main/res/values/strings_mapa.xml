@@ -48,8 +48,13 @@
     <string name="mapas_preparando">Preparando los mapas…</string>
     <string name="mapas_instalados_titulo">Mapas instalados</string>
     <string name="mapas_version">Versión %1$s</string>
-    <string name="mapas_con_satelite">Incluye satélite</string>
-    <string name="mapas_sin_satelite">Sin satélite (se descarga aparte)</string>
+    <string name="mapas_capa_mapa">Mapa</string>
+    <string name="mapas_capa_relieve">Relieve</string>
+    <string name="mapas_capa_satelite">Satélite</string>
+    <string name="mapas_capa_detalle">Detalle</string>
+    <string name="mapas_capa_voz">Voz</string>
+    <string name="mapas_capa_instalada">Instalado</string>
+    <string name="mapas_capa_falta">Sin instalar</string>
     <string name="mapas_no_instalados">Todavía no hay mapas de Mallorca en este móvil.</string>
     <string name="mapas_descargar">Descargar mapas de Mallorca</string>
     <string name="mapas_descargar_satelite">Descargar satélite</string>
@@ -66,7 +71,6 @@
     <string name="mapas_solo_wifi_detalle">No gastar datos móviles en la descarga</string>
     <string name="mapas_limite_titulo">Límite de espacio</string>
     <string name="mapas_limite_opcion">%1$d GB</string>
-    <string name="mapas_limite_descripcion">Límite de %1$d gigabytes</string>
     <string name="mapas_datos_titulo">¿Usar datos móviles?</string>
     <string name="mapas_datos_texto">Se pueden gastar unos %1$s de datos móviles en la descarga.</string>
     <string name="mapas_datos_texto_sin_tamano">La descarga puede gastar muchos datos móviles.</string>

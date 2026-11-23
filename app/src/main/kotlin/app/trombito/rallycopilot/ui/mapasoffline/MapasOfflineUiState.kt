@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.domain.datos.DatosInstalados
 import app.trombito.rallycopilot.domain.datos.EstadoDatosMapa
 import app.trombito.rallycopilot.domain.datos.EstadoDetalle
 import app.trombito.rallycopilot.domain.datos.ProgresoDescarga
+import app.trombito.rallycopilot.motor.datos.Complemento
 
 /** Lo que muestra la pantalla de Mapas offline, deducido de [EstadoDatosMapa]. */
 enum class FaseMapas {
@@ -29,6 +30,8 @@ data class MapasOfflineUiState(
     val bytesSatelite: Long? = null,
     /** Detalle z18-19 del IGN descargado (corredores y zonas) y su descarga en curso. */
     val detalle: EstadoDetalle = EstadoDetalle(),
+    /** Lo que falta por bajar de los complementos que esperan WiFi, según el manifest (para «Descargar ahora»). */
+    val bytesComplementos: Map<Complemento, Long> = emptyMap(),
 ) {
     val fase: FaseMapas
         get() =
@@ -69,6 +72,16 @@ data class MapasOfflineUiState(
                 else -> datos.instalados?.let { if (faltaSatelite(it)) bytesSatelite else it.bytes }
             }
         }
+
+    /**
+     * La tarjeta de descarga trae el botón principal de la pantalla (descargar todo, reintentar o el satélite).
+     * Si no, el principal es «Descargar zona»: nunca hay dos botones rellenos seguidos.
+     */
+    val descargaTraePrincipal: Boolean
+        get() = fase == FaseMapas.SIN_DATOS || datos.error != null || ofreceSatelite
+
+    /** Tamaño a mostrar en «Descargar ahora»: el real si se pudo leer el manifest; si no, el orientativo. */
+    fun bytesParaBajar(complemento: Complemento): Long = bytesComplementos[complemento] ?: complemento.bytesAproximados
 
     /** Porcentaje entero de la descarga, o null si aún no se conoce el total. */
     val porcentaje: Int? get() = progreso?.porcentaje()
