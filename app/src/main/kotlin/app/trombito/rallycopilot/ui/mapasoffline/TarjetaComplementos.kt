@@ -142,7 +142,8 @@ private fun EstadoDeComplemento(
         }
 
         descarga != null -> {
-            Text(stringResource(R.string.complementos_esperando), Modifier, color, style = Ayuda)
+            val texto = if (descarga.soloWifi) R.string.complementos_esperando_wifi else R.string.complementos_esperando
+            Text(stringResource(texto), Modifier, color, style = Ayuda)
         }
 
         else -> {

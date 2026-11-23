@@ -621,6 +621,28 @@ class RepositorioDatosMapaImplTest {
     }
 
     @Test
+    fun `el relieve elegido y sin instalar espera WiFi y el estado lo dice`() {
+        instalarArchivo(conSatelite = false)
+
+        repositorioConElegidos(Complemento.RELIEVE).comprobarActualizacion()
+        val estado = esperarEstado { it.complemento(Complemento.RELIEVE).descarga != null }
+
+        val descarga = estado.complemento(Complemento.RELIEVE).descarga
+        assertTrue(descarga?.esperandoRed == true)
+        assertTrue("espera WiFi a propósito", descarga?.soloWifi == true)
+    }
+
+    @Test
+    fun `una descarga pedida por el usuario espera red sin exigir WiFi`() {
+        instalarArchivo(conSatelite = false)
+        repositorio.descargar(Complemento.RELIEVE)
+
+        val estado = esperarEstado { it.complemento(Complemento.RELIEVE).descarga != null }
+
+        assertFalse(estado.complemento(Complemento.RELIEVE).descarga?.soloWifi == true)
+    }
+
+    @Test
     fun `con la voz elegida ya instalada no se vuelve a bajar`() {
         instalarArchivo(conSatelite = false)
         instalarComplementos("voz-sharvard", "voz-sharvard-tokens")

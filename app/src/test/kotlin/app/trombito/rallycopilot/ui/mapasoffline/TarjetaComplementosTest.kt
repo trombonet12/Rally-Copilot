@@ -90,6 +90,20 @@ class TarjetaComplementosTest {
     }
 
     @Test
+    fun `esperando WiFi a proposito lo dice con claridad`() {
+        val conWifi = ProgresoDescarga(0, 0, esperandoRed = true, soloWifi = true)
+        poner(
+            EstadoDatosMapa(
+                instalados = base,
+                complementos = mapOf(Complemento.RELIEVE to EstadoComplemento(descarga = conWifi)),
+            ),
+        )
+
+        assertTrue(textos().any { it.contains("Se descargará con WiFi") })
+        assertFalse(textos().any { it.contains("Esperando conexión") })
+    }
+
+    @Test
     fun `sin los mapas base instalados no se ofrecen los complementos`() {
         poner(EstadoDatosMapa())
 

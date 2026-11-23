@@ -30,6 +30,8 @@ data class ProgresoDescarga(
     val bytesTotales: Long,
     /** La descarga espera red (o WiFi si «solo WiFi» está activado). */
     val esperandoRed: Boolean,
+    /** La espera es de WiFi a propósito (descarga automática de algo elegido, sin que el usuario la pida ahora). */
+    val soloWifi: Boolean = false,
 )
 
 /**

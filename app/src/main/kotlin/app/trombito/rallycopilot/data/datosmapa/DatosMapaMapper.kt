@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.data.datosmapa
 
+import androidx.work.NetworkType
 import androidx.work.WorkInfo
 import app.trombito.rallycopilot.data.db.AjustesMapasEntity
 import app.trombito.rallycopilot.data.db.ArchivoInstaladoEntity
@@ -95,7 +96,12 @@ private fun WorkInfo.aProgreso(): ProgresoDescarga? =
         }
 
         WorkInfo.State.ENQUEUED, WorkInfo.State.BLOCKED -> {
-            ProgresoDescarga(bytesHechos = 0, bytesTotales = 0, esperandoRed = true)
+            ProgresoDescarga(
+                bytesHechos = 0,
+                bytesTotales = 0,
+                esperandoRed = true,
+                soloWifi = constraints.requiredNetworkType == NetworkType.UNMETERED,
+            )
         }
 
         else -> {

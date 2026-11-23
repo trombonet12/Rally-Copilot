@@ -38,9 +38,24 @@ class AvisoRelieveTest {
     }
 
     @Test
-    fun `esperando red lo dice en vez de descargando`() {
+    fun `esperando red o WiFi no se pinta nada en el mapa`() {
         poner(ProgresoDescarga(0, 0, true))
-        assertTrue("Esperando conexión" in banco.textos(banco.conEtiqueta(ETIQUETA_AVISO_RELIEVE)))
+        assertFalse(banco.hay(ETIQUETA_AVISO_RELIEVE))
+        assertFalse("Esperando conexión" in banco.todosLosTextos())
+    }
+
+    @Test
+    fun `esperando WiFi a proposito tampoco se pinta en el mapa`() {
+        poner(ProgresoDescarga(0, 0, esperandoRed = true, soloWifi = true))
+        assertFalse(banco.hay(ETIQUETA_AVISO_RELIEVE))
+    }
+
+    @Test
+    fun `la descarga en marcha se puede cerrar con la x`() {
+        poner(ProgresoDescarga(25, 100, false))
+        assertTrue(banco.hay(ETIQUETA_AVISO_RELIEVE))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_AVISO_RELIEVE_CERRAR))
+        assertFalse(banco.hay(ETIQUETA_AVISO_RELIEVE))
     }
 
     @Test
