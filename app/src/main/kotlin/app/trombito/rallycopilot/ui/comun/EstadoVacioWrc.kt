@@ -40,6 +40,9 @@ const val ETIQUETA_ACCION_VACIO = "accion-vacio"
 /** Etiqueta de prueba del hueco de ilustración de un estado vacío. */
 const val ETIQUETA_ILUSTRACION_VACIO = "ilustracion-vacio"
 
+/** Etiqueta de prueba de Trombito dormido, la ilustración por defecto de [VarianteVacio.VACIO]. */
+const val ETIQUETA_MASCOTA_VACIO = "mascota-vacio"
+
 /**
  * Qué estado cuenta la pantalla: [VACIO] (aún no hay nada: icono ámbar tenue), [ERROR] (algo falló: icono en el color
  * de error y aviso a TalkBack al aparecer) o [SIN_MAPAS] (falta el mapa offline: icono ámbar pleno).
@@ -49,6 +52,9 @@ enum class VarianteVacio { VACIO, ERROR, SIN_MAPAS }
 /**
  * Estado vacío del sistema WRC: ilustración (o icono de 48 dp si no hay), título de 18 sp, una frase que dice qué hacer
  * y, si hay [etiquetaAccion], un botón de 48 dp de alto. [etiqueta] es la etiqueta de prueba del conjunto.
+ *
+ * En la variante [VarianteVacio.VACIO] sin [ilustracion] ni [painter], la ilustración por defecto es Trombito dormido
+ * ([PoseMascota.DORMIDO]); con [mascota] en false vuelve al icono. ERROR y SIN_MAPAS nunca la llevan.
  *
  * La ilustración es un hueco opcional: un [ilustracion] composable (p. ej. Trombito o un dibujo en lienzo) o un
  * [painter]; si hay las dos manda [ilustracion]. Es decorativa (TalkBack la salta). [variante] cambia el color del
@@ -67,6 +73,7 @@ fun EstadoVacioWrc(
     variante: VarianteVacio = VarianteVacio.VACIO,
     ilustracion: (@Composable () -> Unit)? = null,
     painter: Painter? = null,
+    mascota: Boolean = true,
 ) {
     val avisoError =
         if (variante == VarianteVacio.ERROR) {
@@ -84,7 +91,7 @@ fun EstadoVacioWrc(
         verticalArrangement = Arrangement.spacedBy(Espacio.m, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        CabezaVacio(icono, variante, ilustracion, painter)
+        CabezaVacio(icono, variante, ilustracion, painter, mascota)
         Text(
             text = titulo,
             style = TituloVacio,
@@ -124,8 +131,13 @@ private fun CabezaVacio(
     variante: VarianteVacio,
     ilustracion: (@Composable () -> Unit)?,
     painter: Painter?,
+    mascota: Boolean,
 ) {
     if (ilustracion == null && painter == null) {
+        if (mascota && variante == VarianteVacio.VACIO) {
+            MascotaPose(PoseMascota.DORMIDO, Modifier.testTag(ETIQUETA_MASCOTA_VACIO))
+            return
+        }
         Icon(
             imageVector = icono,
             contentDescription = null,

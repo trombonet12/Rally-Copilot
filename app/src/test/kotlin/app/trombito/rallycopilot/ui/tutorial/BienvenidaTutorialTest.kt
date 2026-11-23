@@ -105,4 +105,19 @@ class BienvenidaTutorialTest {
         banco.pulsar(banco.conEtiqueta(ETIQUETA_PERMISO_BOTON_PREFIJO + TipoPermiso.MICROFONO.clave))
         assertEquals(listOf(TipoPermiso.MICROFONO), pedidos)
     }
+
+    @Test
+    fun `la primera pagina lleva a trombito saludando y las demas no`() {
+        poner()
+        assertTrue(banco.hay(ETIQUETA_BIENVENIDA_MASCOTA))
+        banco.esperar(MS_PASO_PAGINA)
+        assertTrue("Trombito sigue visible tras el gesto de entrada", banco.hay(ETIQUETA_BIENVENIDA_MASCOTA))
+        siguiente()
+        assertFalse(banco.hay(ETIQUETA_BIENVENIDA_MASCOTA))
+    }
+
+    @Test
+    fun `el gesto de entrada de trombito dura menos de 400 ms`() {
+        assertTrue(DURACION_SALUDO_MS <= 400)
+    }
 }

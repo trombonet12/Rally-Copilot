@@ -50,6 +50,7 @@ const val ETIQUETA_BIENVENIDA_SALTAR = "bienvenida-saltar"
 const val ETIQUETA_BIENVENIDA_SIGUIENTE = "bienvenida-siguiente"
 const val ETIQUETA_BIENVENIDA_INDICADOR = "bienvenida-indicador"
 const val ETIQUETA_BIENVENIDA_PAGINA_PREFIJO = "bienvenida-pagina-"
+const val ETIQUETA_BIENVENIDA_MASCOTA = "bienvenida-mascota"
 
 /** Las páginas de la bienvenida, en orden; cada una con su título y sus dos líneas. */
 enum class PaginaBienvenida(
@@ -69,6 +70,8 @@ private val ALTO_BARRA_SUPERIOR = 56.dp
 private val PUNTO = 8.dp
 private val PUNTO_ACTIVO = 24.dp
 private const val OPACIDAD_PUNTO = 0.4f
+private val LADO_MASCOTA_VERTICAL = 96.dp
+private val LADO_MASCOTA_HORIZONTAL = 72.dp
 
 /**
  * Bienvenida del primer arranque: [PaginaBienvenida] deslizables con ilustración animada, indicador de página,
@@ -190,7 +193,13 @@ private fun PaginaDeBienvenida(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.weight(1f).verticalScroll(rememberScrollState())) { Ilustracion(pagina, permisos) }
-                Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) { TextoDePagina(pagina) }
+                Column(
+                    modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(Espacio.s),
+                ) {
+                    if (pagina == PaginaBienvenida.NOTAS) MascotaSaluda(LADO_MASCOTA_HORIZONTAL)
+                    TextoDePagina(pagina)
+                }
             }
         } else {
             // Centrada en vertical: las páginas cortas no se quedan pegadas arriba con un hueco debajo.
@@ -202,6 +211,9 @@ private fun PaginaDeBienvenida(
                         .padding(horizontal = Espacio.l),
                 verticalArrangement = Arrangement.spacedBy(Espacio.xl),
             ) {
+                if (pagina == PaginaBienvenida.NOTAS) {
+                    MascotaSaluda(LADO_MASCOTA_VERTICAL, Modifier.align(Alignment.CenterHorizontally))
+                }
                 Ilustracion(pagina, permisos)
                 TextoDePagina(pagina)
             }

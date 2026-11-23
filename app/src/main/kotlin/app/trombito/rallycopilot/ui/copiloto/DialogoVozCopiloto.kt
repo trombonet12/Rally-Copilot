@@ -33,22 +33,26 @@ import app.trombito.rallycopilot.ui.ajustes.EstadoDescargaVoz
 import app.trombito.rallycopilot.ui.ajustes.EstadoVozDescarga
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.MascotaPose
+import app.trombito.rallycopilot.ui.comun.PoseMascota
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_VOZ_DIALOGO = "copiloto-voz-dialogo"
 const val ETIQUETA_VOZ_ELEGIR = "copiloto-voz-elegir"
 const val ETIQUETA_VOZ_OPCION_PREFIJO = "copiloto-voz-opcion-"
 const val ETIQUETA_VOZ_PROBAR_PREFIJO = "copiloto-voz-probar-"
+const val ETIQUETA_VOZ_MASCOTA = "copiloto-voz-mascota"
 
 private val ALTO_MINIMO_TACTIL = 48.dp
 private val ALTO_FILA = 56.dp
+private val LADO_MASCOTA_DIALOGO = 72.dp
 
 /**
- * Diálogo del primer uso: «Elige la voz del copiloto». Cada voz se puede probar con ▶ antes de elegirla. No se cierra
- * tocando fuera ni sin elegir: solo «Elegir» guarda la voz y atrás ([onPosponer]) lo deja para la próxima apertura.
- * Sharvard no va en el APK: al marcarla se lanza su descarga ([onDescargar]) y debajo se ve el mismo estado que en
- * Ajustes ([sharvard]: tamaño y «Descargar», progreso o «lista»); mientras no esté, su ▶ pide descargarla en vez de
- * sonar con Dave.
+ * Diálogo del primer uso: «Elige la voz del copiloto», con Trombito saludando arriba. Cada voz se puede probar con
+ * ▶ antes de elegirla. No se cierra tocando fuera ni sin elegir: solo «Elegir» guarda la voz y atrás
+ * ([onPosponer]) lo deja para la próxima apertura. Sharvard no va en el APK: al marcarla se lanza su descarga
+ * ([onDescargar]) y debajo se ve el mismo estado que en Ajustes ([sharvard]: tamaño y «Descargar», progreso o
+ * «lista»); mientras no esté, su ▶ pide descargarla en vez de sonar con Dave.
  */
 @Composable
 @Suppress("LongParameterList") // las dos acciones del primer uso, el estado de Sharvard y su descarga
@@ -65,6 +69,13 @@ fun DialogoVozCopiloto(
         onDismissRequest = onPosponer,
         properties = DialogProperties(dismissOnClickOutside = false),
         modifier = modifier.testTag(ETIQUETA_VOZ_DIALOGO),
+        icon = {
+            MascotaPose(
+                pose = PoseMascota.SALUDANDO,
+                modifier = Modifier.testTag(ETIQUETA_VOZ_MASCOTA),
+                lado = LADO_MASCOTA_DIALOGO,
+            )
+        },
         title = { Text(stringResource(R.string.copiloto_voz_dialogo_titulo)) },
         text = {
             Column(

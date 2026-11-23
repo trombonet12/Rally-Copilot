@@ -153,6 +153,22 @@ class PiezasWrcTest {
     }
 
     @Test
+    fun `estado vacio pone a trombito dormido por defecto solo en la variante vacio y se puede quitar`() {
+        poner { EstadoVacioWrc(Iconos.Bandera, "Sin tramos", "Nada", "vacio") }
+        assertTrue(banco.hay(ETIQUETA_MASCOTA_VACIO))
+        poner { EstadoVacioWrc(Iconos.Bandera, "Sin tramos", "Nada", "vacio", mascota = false) }
+        assertFalse(banco.hay(ETIQUETA_MASCOTA_VACIO))
+        listOf(VarianteVacio.ERROR, VarianteVacio.SIN_MAPAS).forEach { variante ->
+            poner { EstadoVacioWrc(Iconos.Bandera, "T", "X", "v", variante = variante) }
+            assertFalse("$variante no lleva mascota", banco.hay(ETIQUETA_MASCOTA_VACIO))
+        }
+        poner {
+            EstadoVacioWrc(Iconos.Bandera, "T", "X", "v", ilustracion = { Box(Modifier.size(80.dp).testTag("dibujo")) })
+        }
+        assertFalse("La ilustración propia manda sobre la mascota", banco.hay(ETIQUETA_MASCOTA_VACIO))
+    }
+
+    @Test
     fun `estado vacio sin ilustracion no deja hueco y las variantes componen con accion`() {
         var pulsaciones = 0
         poner { EstadoVacioWrc(Iconos.Bandera, "Sin tramos", "Nada", "vacio") }
