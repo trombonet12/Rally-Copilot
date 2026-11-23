@@ -108,6 +108,7 @@ fun PlacaCarretera(
             fontWeight = FontWeight.Black,
             textAlign = TextAlign.Center,
             maxLines = 1,
+            softWrap = false,
         )
     }
 }

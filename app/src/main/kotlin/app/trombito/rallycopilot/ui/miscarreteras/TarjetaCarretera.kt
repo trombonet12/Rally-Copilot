@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -88,7 +89,7 @@ internal fun TarjetaCarretera(
 
 @Composable
 internal fun PlacaOIcono(ficha: FichaCarretera) {
-    Box(Modifier.width(ANCHO_PLACA), contentAlignment = Alignment.CenterStart) {
+    Box(Modifier.widthIn(min = ANCHO_PLACA), contentAlignment = Alignment.CenterStart) {
         val ref = ficha.ref
         if (ref != null) {
             PlacaCarretera(ref)
