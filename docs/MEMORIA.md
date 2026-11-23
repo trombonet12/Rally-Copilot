@@ -33,6 +33,7 @@ las contradicciones se reescriben, no se acumulan. Se mantiene con la skill `rec
 - 2026-10-28 · mapa · No quiere el copyright de OpenStreetMap ni ninguna atribución sobre el mapa; las atribuciones van solo en Ajustes > Acerca de · decisión suya aun sabiendo que las licencias piden atribuir en el mapa.
 - 2026-10-28 · marca · Logo = mascota Trombito con casco de rally, mismo estilo y paleta que los hermanos · elegido por el usuario frente a «solo casco».
 - 2026-10-28 · marca · El primer casco (blanco tipo capucha con visera negra) le pareció «muy muy feo»; el aceptado es un jet rojo con franja blanca, ribetes latón, brillo y micrófono · en diseños gráficos, comparar variantes renderizadas y elegir la que se lea mejor a tamaño de icono antes de enseñarla.
+- 2026-11-23 · marca · Poses de Trombito sin brazos: la mano, si la hay, flotante y en la paleta dorada del trombón; el guante blanco le pareció «tétrico» · elegidas saludando (manopla dorada), bandera y dormido (`docs/assets/poses/`).
 - 2026-10-28 · marca · El casco jet le gusta pero lo quería «un poquito más cuadradito», no alargado en vertical · cúpula más baja y ancha (variante S2); no volver a la forma de huevo.
 
 - 2026-11-01 · interfaz · Los ajustes tienen que ser claros y enseñar en vivo cómo cambia cada cosa (vista previa al tocar), y lo que se toca conduciendo debe poder cambiarse desde el mapa · la pantalla de Ajustes de H4 le pareció «tétrica y poco intuitiva»; aplicarlo a cualquier ajuste nuevo.
