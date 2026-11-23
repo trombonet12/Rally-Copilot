@@ -24,6 +24,12 @@ enum class GravedadIncidencia {
  * Incidencia de tráfico vigente. [puntos] son WGS84: uno si es puntual o, si es un tramo, desde y hasta (en el orden
  * en que se indican, que no tiene por qué ser el de la marcha). [descripcion] es una frase corta en español ya hecha
  * («Obras en Ma-15, calzada cortada»); [fin] es `null` si no tiene fecha de fin prevista.
+ *
+ * Datos extra para el bocadillo del mapa, todos `null` si el feed no los trae: [pkDesde]/[pkHasta] son el punto
+ * kilométrico menor y mayor (`pkHasta` solo si hay dos distintos); [sentido] es el destino de la vía o, si no hay, el
+ * sentido de la marcha en español («este», «suroeste», «ambos sentidos»); [municipio] el o los municipios;
+ * [carrilesAfectados] un resumen («carril derecho», «arcén», «todos los carriles»); [limiteTemporalKmh] el límite
+ * temporal de velocidad y [comentario] el comentario público de la DGT.
  */
 data class Incidencia(
     val id: String,
@@ -34,6 +40,13 @@ data class Incidencia(
     val inicio: Instant?,
     val fin: Instant?,
     val gravedad: GravedadIncidencia?,
+    val pkDesde: Double? = null,
+    val pkHasta: Double? = null,
+    val sentido: String? = null,
+    val municipio: String? = null,
+    val carrilesAfectados: String? = null,
+    val limiteTemporalKmh: Int? = null,
+    val comentario: String? = null,
 ) {
     /** `true` si tiene fecha de fin y [ahora] ya la alcanzó (el feed puede tardar en retirarla). */
     fun caducadaEn(ahora: Instant): Boolean = fin != null && !ahora.isBefore(fin)

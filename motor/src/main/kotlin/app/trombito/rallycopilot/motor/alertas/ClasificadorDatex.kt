@@ -12,6 +12,12 @@ internal class RegistroDatex(
     val xsiTipo: String?,
 ) {
     val hojas = HashMap<String, String>()
+
+    /** Valores de las hojas que pueden repetirse en un registro ([MULTIPLES]), en orden de aparición. */
+    val listas = HashMap<String, MutableList<String>>()
+
+    /** Comentarios públicos por idioma (`null` si no se indica); solo el primero de cada idioma. */
+    val comentarios = LinkedHashMap<String?, String>()
     private val desde = ArrayList<PuntoGeo>()
     private val puntuales = ArrayList<PuntoGeo>()
     private val hasta = ArrayList<PuntoGeo>()
@@ -23,9 +29,21 @@ internal class RegistroDatex(
         nombre: String,
         texto: String,
     ) {
-        if (nombre !in HOJAS || texto.isEmpty()) return
+        if (texto.isEmpty()) return
+        if (nombre in MULTIPLES) {
+            listas.getOrPut(nombre) { ArrayList() }.add(texto)
+            return
+        }
+        if (nombre !in HOJAS) return
         // `roadOrCarriagewayOrLaneManagementType` sale dos veces: «other» en la causa y el real en el registro.
         if (nombre !in hojas || hojas[nombre] == "other") hojas[nombre] = texto
+    }
+
+    fun comentario(
+        idioma: String?,
+        texto: String,
+    ) {
+        if (texto.isNotEmpty()) comentarios.putIfAbsent(idioma, texto)
     }
 
     fun punto(
@@ -70,7 +88,13 @@ internal class RegistroDatex(
                 "nonWeatherRelatedRoadConditionType",
                 "generalInstructionToRoadUsersType",
                 "roadName",
+                "tpegDirection",
+                "carriageway",
+                "temporarySpeedLimit",
             )
+
+        /** Hojas que pueden salir varias veces (un registro lineal trae un punto kilométrico por extremo). */
+        val MULTIPLES = setOf("kilometerPoint", "municipality", "laneUsage", "roadDestination")
     }
 }
 

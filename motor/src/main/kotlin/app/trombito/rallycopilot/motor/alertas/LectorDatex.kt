@@ -52,6 +52,8 @@ object LectorDatex {
         private var registro: RegistroDatex? = null
         private var enLocalizacion = false
         private var rol: String? = null
+        private var enComentario = false
+        private var idiomaValor: String? = null
         private var lat: Double? = null
         private var lon: Double? = null
         private val texto = StringBuilder()
@@ -119,6 +121,14 @@ object LectorDatex {
                     lat = null
                     lon = null
                 }
+
+                "generalPublicComment" -> {
+                    enComentario = true
+                }
+
+                "value" -> {
+                    idiomaValor = xml.atributo("lang")
+                }
             }
         }
 
@@ -135,6 +145,8 @@ object LectorDatex {
                 "locationReference" -> enLocalizacion = false
                 "informationStatus" -> situacion?.prueba = valor == "test"
                 "overallSeverity" -> if (registro == null) situacion?.gravedad = valor
+                "generalPublicComment" -> enComentario = false
+                "value", "comment" -> if (enComentario) registro?.comentario(idiomaValor, valor)
                 "situationRecord" -> cerrarRegistro()
                 "situation" -> cerrarSituacion()
                 else -> registro?.hoja(nombre, valor)
@@ -177,6 +189,7 @@ object LectorDatex {
             val fines = vigentes.map { ClasificadorDatex.instante(it.hojas["overallEndTime"]) }
             val gravedades =
                 (vigentes.map { it.hojas["severity"] } + gravedad).mapNotNull(ClasificadorDatex::gravedad)
+            val extra = DetallesDatex.de(vigentes)
             return Incidencia(
                 id = id,
                 tipo = tipo,
@@ -186,6 +199,13 @@ object LectorDatex {
                 inicio = inicios.minOrNull(),
                 fin = if (fines.all { it != null }) fines.filterNotNull().maxOrNull() else null,
                 gravedad = gravedades.maxOrNull(),
+                pkDesde = extra.pkDesde,
+                pkHasta = extra.pkHasta,
+                sentido = extra.sentido,
+                municipio = extra.municipio,
+                carrilesAfectados = extra.carrilesAfectados,
+                limiteTemporalKmh = extra.limiteTemporalKmh,
+                comentario = extra.comentario,
             )
         }
     }
