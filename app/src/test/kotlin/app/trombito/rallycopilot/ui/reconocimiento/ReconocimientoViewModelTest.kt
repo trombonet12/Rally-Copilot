@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.reconocimiento
 
+import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
@@ -139,6 +140,11 @@ class ReconocimientoViewModelTest {
         assertTrue(primero.cambios[0] is CambioNota.Cambiada)
         assertEquals(100.0, primero.cambios[0].posicionM, 0.0)
         assertTrue(primero.cambios[1] is CambioNota.Anadida)
+        // Cada frase del cambio trae su icono de roadbook para pintar la fila.
+        val cambiada = primero.cambios[0] as CambioNota.Cambiada
+        assertEquals(R.drawable.ic_nota_der_4, primero.iconos[cambiada.antes])
+        assertEquals(R.drawable.ic_nota_der_3, primero.iconos[cambiada.despues])
+        assertEquals(R.drawable.ic_nota_der_2, primero.iconos[(primero.cambios[1] as CambioNota.Anadida).despues])
 
         vm.onHacerSegundaPasada()
         assertNull(vm.resumen.value)

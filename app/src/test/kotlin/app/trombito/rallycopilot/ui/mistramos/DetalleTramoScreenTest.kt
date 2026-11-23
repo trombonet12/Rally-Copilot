@@ -15,6 +15,9 @@ import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.comun.resumenFalso
 import app.trombito.rallycopilot.ui.comun.tramoFalso
 import app.trombito.rallycopilot.ui.perfil.ETIQUETA_GRAFICO
+import app.trombito.rallycopilot.ui.reconocimiento.ETIQUETA_HOJA_RECONOCER
+import app.trombito.rallycopilot.ui.reconocimiento.ETIQUETA_HOJA_RECONOCER_CANCELAR
+import app.trombito.rallycopilot.ui.reconocimiento.ETIQUETA_HOJA_RECONOCER_EMPEZAR
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -178,7 +181,7 @@ class DetalleTramoScreenTest {
     }
 
     @Test
-    fun `reconocer esta junto a editar notas, lo pide y se explica`() {
+    fun `reconocer esta junto a editar notas, enseña la hoja explicativa y solo con Empezar lo pide`() {
         var reconocer = 0
         var editar = 0
         banco.poner {
@@ -196,21 +199,25 @@ class DetalleTramoScreenTest {
         assertTrue("misma fila", reconocerNodo.boundsInRoot.top == editarNodo.boundsInRoot.top)
         assertTrue("a la izquierda", reconocerNodo.boundsInRoot.right <= editarNodo.boundsInRoot.left)
         assertTrue(reconocerNodo.size.height >= 48 * 3)
+        assertFalse(banco.hay(ETIQUETA_HOJA_RECONOCER))
+
+        // Reconocer ya no salta al mapa: primero explica las dos pasadas.
         banco.pulsar(reconocerNodo)
-        banco.pulsar(editarNodo)
+        assertEquals(0, reconocer)
+        assertTrue(banco.hay(ETIQUETA_HOJA_RECONOCER))
+        assertTrue("2.ª pasada: repásalo" in banco.todosLosTextos())
+
+        // Cancelar cierra la hoja sin pedir nada; Empezar la cierra y lo pide.
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_HOJA_RECONOCER_CANCELAR))
+        assertEquals(0, reconocer)
+        assertFalse(banco.hay(ETIQUETA_HOJA_RECONOCER))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_DETALLE_RECONOCER))
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_HOJA_RECONOCER_EMPEZAR))
         assertEquals(1, reconocer)
+        assertFalse(banco.hay(ETIQUETA_HOJA_RECONOCER))
+
+        banco.pulsar(banco.conEtiqueta(ETIQUETA_DETALLE_EDITAR))
         assertEquals(1, editar)
-        // La explicación de Reconocer no ocupa pantalla: sale al tocar el icono de información.
-        val ayuda = {
-            banco.todosLosTextos().any {
-                it.startsWith(
-                    "Reconocer: el copiloto lee las notas de este tramo",
-                )
-            }
-        }
-        assertFalse(ayuda())
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_DETALLE_AYUDA))
-        assertTrue(ayuda())
     }
 
     @Test

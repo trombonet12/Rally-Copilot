@@ -56,5 +56,4 @@
 
     <!-- Reconocimiento -->
     <string name="detalle_reconocer">Reconocer</string>
-    <string name="detalle_reconocer_ayuda">Reconocer: el copiloto lee las notas de este tramo en dos pasadas. En la 1.ª puedes dictar o corregir las que falten y al acabar verás qué ha cambiado; en la 2.ª repasas el tramo con tus correcciones. Ninguna cuenta para tiempos.</string>
 </resources>

@@ -12,4 +12,17 @@
     <string name="reconocimiento_cambio_quitada">A %1$s: nota quitada «%2$s»</string>
     <string name="reconocimiento_segunda_pasada">Hacer 2.ª pasada</string>
     <string name="reconocimiento_terminar">Terminar</string>
+
+    <!-- Hoja que explica el reconocimiento antes de empezar -->
+    <string name="reconocer_titulo">Reconocer el tramo</string>
+    <string name="reconocer_paso1_titulo">1.ª pasada: recórrelo con el copiloto</string>
+    <string name="reconocer_paso1_texto">El copiloto lee las notas del tramo mientras conduces. Dicta las que falten o corrige las que no te cuadren.</string>
+    <string name="reconocer_paso2_titulo">Lo que corriges se graba</string>
+    <string name="reconocer_paso2_texto">Lo que dictes o cambies con el editor se guarda en las notas de este tramo.</string>
+    <string name="reconocer_paso3_titulo">2.ª pasada: repásalo</string>
+    <string name="reconocer_paso3_texto">Al llegar a meta verás qué ha cambiado, nota a nota. Después repasas el tramo con tus correcciones.</string>
+    <string name="reconocer_paso4_titulo">Sin tiempos</string>
+    <string name="reconocer_paso4_texto">Ninguna de las dos pasadas cuenta para tus tiempos.</string>
+    <string name="reconocer_empezar">Empezar</string>
+    <string name="reconocer_cancelar">Cancelar</string>
 </resources>

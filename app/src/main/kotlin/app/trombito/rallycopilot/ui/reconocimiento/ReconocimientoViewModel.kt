@@ -13,6 +13,7 @@ import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.notas.HojaNotas
 import app.trombito.rallycopilot.motor.notas.RutaMedida
 import app.trombito.rallycopilot.ui.edicion.estaParado
+import app.trombito.rallycopilot.ui.navegacion.notas.iconoElemento
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,6 +35,8 @@ data class ResumenPasada(
     val numero: Int,
     val cambios: List<CambioNota>,
     val terminada: Boolean,
+    /** Icono de roadbook (recurso) de cada frase de [cambios]; la que no esté se enseña como texto. */
+    val iconos: Map<String, Int> = emptyMap(),
 ) {
     /** Queda la 2.ª pasada por hacer. */
     val hayOtraPasada: Boolean get() = numero < PasadaReconocimiento.SEGUNDA
@@ -152,8 +155,20 @@ class ReconocimientoViewModel
             val antes = inicio ?: return
             val despues = ultima ?: return
             _resumen.value =
-                ResumenPasada(pasada.tramoId, pasada.numero, DiferenciasNotas.entre(antes, despues), terminada)
+                ResumenPasada(
+                    tramoId = pasada.tramoId,
+                    numero = pasada.numero,
+                    cambios = DiferenciasNotas.entre(antes, despues),
+                    terminada = terminada,
+                    iconos = iconosPorFrase(antes, despues),
+                )
         }
+
+        /** Icono de cada elemento de las hojas por su frase: es la clave con la que [DiferenciasNotas] los nombra. */
+        private fun iconosPorFrase(vararg hojas: HojaNotas): Map<String, Int> =
+            hojas
+                .flatMap { it.elementos }
+                .associate { it.frase to iconoElemento(it, simplificada = false) }
 
         private fun enMeta(enCurso: NotasEnCurso): Boolean {
             val traza = enCurso.traza?.takeIf { it.size >= 2 } ?: return false
