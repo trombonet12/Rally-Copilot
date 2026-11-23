@@ -122,7 +122,7 @@ class CopilotoVozTest {
 
         repeat(4) { copiloto.fijar(ruta, 920.0) }
 
-        assertEquals(listOf("cruce, izquierda", "derecha tres"), locutor.dichas)
+        assertEquals(listOf("izquierda", "derecha tres"), locutor.dichas)
     }
 
     @Test
@@ -136,7 +136,7 @@ class CopilotoVozTest {
 
         repeat(4) { copiloto.fijar(ruta, 920.0) }
 
-        assertEquals(listOf("cruce, izquierda", "derecha tres"), locutor.dichas)
+        assertEquals(listOf("izquierda", "derecha tres"), locutor.dichas)
         assertEquals(listOf("derecha tres"), notasDichas.map { it.texto })
         assertEquals(listOf(960.0), notasDichas.map { it.puntoM })
     }
@@ -149,7 +149,7 @@ class CopilotoVozTest {
 
         repeat(3) { copiloto.fijar(ruta, 920.0) }
 
-        assertEquals(listOf("cruce, izquierda", "derecha tres"), locutor.dichas)
+        assertEquals(listOf("izquierda", "derecha tres"), locutor.dichas)
     }
 
     @Test
@@ -172,7 +172,7 @@ class CopilotoVozTest {
 
         repeat(3) { copiloto.fijar(ruta, 920.0) }
 
-        assertEquals(listOf("cruce, izquierda"), locutor.dichas)
+        assertEquals(listOf("izquierda"), locutor.dichas)
     }
 
     @Test
@@ -199,7 +199,7 @@ class CopilotoVozTest {
 
         escuchando = false
         copiloto.fijar(ruta, 924.0)
-        assertEquals(listOf("cruce, izquierda"), locutor.dichas)
+        assertEquals(listOf("izquierda"), locutor.dichas)
     }
 
     @Test
@@ -214,7 +214,7 @@ class CopilotoVozTest {
 
         locutor.estaHablando.value = false
         copiloto.fijar(ruta, 921.0)
-        assertEquals(listOf("cruce, izquierda"), locutor.dichas)
+        assertEquals(listOf("izquierda"), locutor.dichas)
     }
 
     @Test
@@ -249,7 +249,7 @@ class CopilotoVozTest {
         // A 600 m la curva y el cruce aun quedan lejos (ni activas ni vigentes), pero ya se sintetizan.
         copiloto.fijar(ruta(), 600.0)
 
-        assertEquals(listOf("derecha tres", "cruce, izquierda"), locutor.preparadas.last().take(2))
+        assertEquals(listOf("derecha tres", "izquierda"), locutor.preparadas.last().take(2))
         assertEquals(emptyList<String>(), locutor.dichas)
     }
 
@@ -262,7 +262,7 @@ class CopilotoVozTest {
         // A 20 m/s el preaviso va de «trescientos» (300 m) a «cien» (justo antes del inminente, a 100 m).
         copiloto.fijar(ruta, 500.0)
         val preparadas = locutor.preparadas.last()
-        val variantes = listOf("cien", "doscientos", "trescientos").map { "a $it, cruce, izquierda" }
+        val variantes = listOf("cien", "doscientos", "trescientos").map { "a $it, izquierda" }
         assertTrue("$preparadas", preparadas.containsAll(variantes))
 
         // Todo lo que se dice al acercarse (sin que lo avise el copiloto de otra forma) ya estaba preparado.
@@ -291,7 +291,7 @@ class CopilotoVozTest {
         // Nota a 960 m desde 920 m a 20 m/s: 2 s.
         repeat(2) { copiloto.fijar(ruta(), 920.0) }
 
-        assertEquals(listOf("cruce, izquierda", "derecha tres"), locutor.dichas)
+        assertEquals(listOf("izquierda", "derecha tres"), locutor.dichas)
         assertEquals(listOf(null, 7_000L), locutor.caducas)
     }
 
@@ -334,7 +334,7 @@ class CopilotoVozTest {
         val primera = ruta()
         copiloto.fijar(primera, 920.0)
         copiloto.fijar(primera, 921.0)
-        assertEquals(listOf("cruce, izquierda"), locutor.dichas)
+        assertEquals(listOf("izquierda"), locutor.dichas)
 
         // Recálculo en el progreso 921: la nueva ruta empieza en 0 y el mismo cruce queda a 79 m.
         val nueva = rutaRecalculada(921.0)
@@ -342,7 +342,7 @@ class CopilotoVozTest {
         copiloto.alFijar(null, nueva, 2.0, 20.0)
         copiloto.alFijar(null, nueva, 3.0, 20.0)
 
-        assertEquals(listOf("cruce, izquierda"), locutor.dichas)
+        assertEquals(listOf("izquierda"), locutor.dichas)
     }
 
     @Test
@@ -351,13 +351,13 @@ class CopilotoVozTest {
         val copiloto = copiloto(locutor, con(ModoCopiloto.SOLO_ALERTAS))
 
         copiloto.fijar(ruta(), 720.0) // a 280 m: preaviso
-        assertEquals(listOf("a trescientos, cruce, izquierda"), locutor.dichas)
+        assertEquals(listOf("a trescientos, izquierda"), locutor.dichas)
 
         val nueva = rutaRecalculada(721.0)
         copiloto.alFijar(null, nueva, 1.0, 20.0) // el preaviso sigue vigente (279 m) pero heredado como dicho
-        assertEquals(listOf("a trescientos, cruce, izquierda"), locutor.dichas)
+        assertEquals(listOf("a trescientos, izquierda"), locutor.dichas)
         copiloto.alFijar(null, nueva, 200.0, 20.0) // a 79 m: inminente
-        assertEquals(listOf("a trescientos, cruce, izquierda", "cruce, izquierda"), locutor.dichas)
+        assertEquals(listOf("a trescientos, izquierda", "izquierda"), locutor.dichas)
     }
 
     @Test
@@ -373,7 +373,7 @@ class CopilotoVozTest {
         copiloto.alFijar(null, otroTipo, 1.0, 20.0)
         copiloto.alFijar(null, otroTipo, 2.0, 20.0)
 
-        assertEquals(listOf("cruce, izquierda", "cruce, derecha"), locutor.dichas)
+        assertEquals(listOf("izquierda", "derecha"), locutor.dichas)
     }
 
     @Test
@@ -389,7 +389,7 @@ class CopilotoVozTest {
         copiloto.alFijar(null, masLejos, 1.0, 20.0)
         copiloto.alFijar(null, masLejos, 50.0, 20.0)
 
-        assertEquals("cruce, izquierda", locutor.dichas.last())
+        assertEquals("izquierda", locutor.dichas.last())
         assertEquals(3, locutor.dichas.size)
     }
 
@@ -521,7 +521,7 @@ class CopilotoVozTest {
 
         repeat(4) { copiloto.alFijar(notas(920.0), ruta, 920.0, 20.0, listOf(radar(puntoM = 1000.0))) }
 
-        assertEquals(listOf("radar a quinientos, ochenta", "cruce, izquierda", "derecha tres"), locutor.dichas)
+        assertEquals(listOf("radar a quinientos, ochenta", "izquierda", "derecha tres"), locutor.dichas)
     }
 
     @Test
@@ -542,7 +542,7 @@ class CopilotoVozTest {
 
         repeat(6) { copiloto.alFijar(notas(920.0), ruta, 920.0, 20.0, listOf(exceso)) }
 
-        assertEquals(listOf("cruce, izquierda", "derecha tres", "límite ochenta"), locutor.dichas)
+        assertEquals(listOf("izquierda", "derecha tres", "límite ochenta"), locutor.dichas)
     }
 
     @Test
@@ -794,7 +794,7 @@ class CopilotoVozTest {
 
         repeat(6) { copiloto.alFijar(notas(920.0), ruta, 920.0, 20.0, todasLasAlertas.toList()) }
 
-        assertEquals(listOf("cruce, izquierda", "derecha tres"), locutor.dichas)
+        assertEquals(listOf("izquierda", "derecha tres"), locutor.dichas)
     }
 
     @Test
@@ -872,7 +872,8 @@ class CopilotoVozIndicacionesTest {
     private val avisoRotonda = "rotonda"
     private val maniobraRotonda = "rotonda, segunda salida"
     private val maniobraSalida = "salida"
-    private val giro = "cruce, izquierda"
+    private val giroConCruce = "cruce, izquierda" // con `avisarCruces` activado
+    private val giro = "izquierda" // con `avisarCruces` desactivado (el valor por defecto): sin la palabra «cruce»
     private val nota = "derecha tres"
 
     private fun dicho(ajustes: AjustesConduccion): Set<String> {
@@ -897,7 +898,7 @@ class CopilotoVozIndicacionesTest {
         avisarRotondas = rotondas,
     )
 
-    private val todo = setOf(avisoCruce, avisoRotonda, maniobraRotonda, maniobraSalida, giro, nota)
+    private val todo = setOf(avisoCruce, avisoRotonda, maniobraRotonda, maniobraSalida, giroConCruce, nota)
 
     @Test
     fun `con todo activo se dice todo`() {
@@ -906,8 +907,19 @@ class CopilotoVozIndicacionesTest {
 
     @Test
     fun `sin cruces solo se calla el aviso de cruce y el giro de la ruta se dice`() {
-        assertEquals(todo - avisoCruce, dicho(con(cruces = false)))
+        assertEquals(todo - avisoCruce - giroConCruce + giro, dicho(con(cruces = false)))
         assertTrue(giro in dicho(con(cruces = false)))
+    }
+
+    @Test
+    fun `con cruces activados el giro dice cruce y sin ellos no`() {
+        val activados = dicho(con(cruces = true))
+        assertTrue(giroConCruce in activados)
+        assertTrue(giro !in activados)
+
+        val desactivados = dicho(con(cruces = false))
+        assertTrue(giro in desactivados)
+        assertTrue(giroConCruce !in desactivados)
     }
 
     @Test
@@ -1033,7 +1045,7 @@ class CopilotoVozLlamadasTest {
             3,
         ) { copiloto.alFijar(NotasEnCurso(hoja, 920.0, 20.0, OrigenNotas.GUIADO), ruta, 920.0, 20.0, calidad = mala) }
 
-        assertEquals(listOf("cruce, izquierda"), locutor.dichas)
+        assertEquals(listOf("izquierda"), locutor.dichas)
         assertTrue(copiloto.notasEnPausa.value)
     }
 
