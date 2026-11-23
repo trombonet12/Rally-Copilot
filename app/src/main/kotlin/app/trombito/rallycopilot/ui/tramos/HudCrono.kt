@@ -17,10 +17,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -68,6 +70,16 @@ const val ETIQUETA_CRONO_ROTULO = "crono-rotulo"
 /** Parcial ya cerrado: `crono-parcial-S1`, `crono-parcial-M2`. */
 const val ETIQUETA_CRONO_PARCIAL_PREFIJO = "crono-parcial-"
 
+/** «Fin de tramo en 800 m» / «Meta». */
+const val ETIQUETA_CRONO_FIN_TRAMO = "crono-fin-tramo"
+
+/**
+ * Metros hasta la meta más próxima por delante en el camino (la que da `TramosEnCamino`); null si no hay o donde no
+ * se da. Es el estado, no el valor: lo lee solo el HUD y la raíz de la pantalla no se recompone con él. El HUD lo usa
+ * solo si el propio cronómetro no conoce lo que falta (subtramo sin referencia).
+ */
+val LocalFinDeTramoM = staticCompositionLocalOf<State<Double?>?> { null }
+
 /** Envuelve al parcial recién cortado mientras está destacado. */
 const val ETIQUETA_CRONO_DESTACADO = "crono-destacado"
 
@@ -112,7 +124,7 @@ private val COMPACTO =
         compacto = true,
     )
 
-private fun estiloCifras(tamano: TextUnit) =
+internal fun estiloCifras(tamano: TextUnit) =
     TextStyle(
         fontSize = tamano,
         fontWeight = FontWeight.Black,
@@ -185,16 +197,7 @@ private fun ContenidoHud(
                 .padding(horizontal = medidas.sesgo + 8.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        if (rotulo != null) {
-            Text(
-                text = rotulo,
-                style = estiloCifras(medidas.rotulo),
-                color = ColoresGuiado.Laton,
-                maxLines = if (compacto) 1 else LINEAS_ROTULO_HUD,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag(ETIQUETA_CRONO_ROTULO),
-            )
-        }
+        RotuloYFin(rotulo, segmento.restanteM ?: LocalFinDeTramoM.current?.value, medidas.rotulo, compacto)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             TiempoYDelta(
                 transcurrido,

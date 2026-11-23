@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.data.tramos.GuardadorTramoArchivo
 import app.trombito.rallycopilot.data.tramos.GuardadorTramos
 import app.trombito.rallycopilot.data.tramos.NombradorTramos
 import app.trombito.rallycopilot.data.tramos.RepositorioTramosRoom
+import app.trombito.rallycopilot.data.tramos.TramosPorDelanteEnVivo
 import app.trombito.rallycopilot.domain.datos.PrecargaDetalle
 import app.trombito.rallycopilot.domain.tramos.ControlSalidaCrono
 import app.trombito.rallycopilot.domain.tramos.ExportaTramo
@@ -17,6 +18,7 @@ import app.trombito.rallycopilot.domain.tramos.GuardaTramoArchivo
 import app.trombito.rallycopilot.domain.tramos.GuardaTraza
 import app.trombito.rallycopilot.domain.tramos.NombraTraza
 import app.trombito.rallycopilot.domain.tramos.ProveedorCrono
+import app.trombito.rallycopilot.domain.tramos.ProveedorTramosPorDelante
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import dagger.Binds
 import dagger.Module
@@ -48,6 +50,9 @@ abstract class TramosModule {
 
     @Binds
     abstract fun fuenteIndicesVias(implementacion: FuenteIndicesViasOsm): FuenteIndicesVias
+
+    @Binds
+    abstract fun proveedorTramosPorDelante(implementacion: TramosPorDelanteEnVivo): ProveedorTramosPorDelante
 
     @Binds
     abstract fun repositorioTramos(implementacion: RepositorioTramosRoom): RepositorioTramos

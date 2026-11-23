@@ -28,6 +28,7 @@ import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
 import app.trombito.rallycopilot.domain.ajustes.Orientacion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.PosicionFantasma
+import app.trombito.rallycopilot.motor.tramos.TramoEnCamino
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.ui.alertas.BocadilloMapa
 import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
@@ -132,6 +133,8 @@ data class PreferenciasVistaMapa(
     val fantasma: PosicionFantasma? = null,
     /** Capa de calor de las carreteras conducidas (vías y modo); null = oculta (en marcha, guiando o apagada). */
     val calor: DatosCalor? = null,
+    /** Tramos conocidos por delante en el camino (guiado o libre): línea ámbar y banderas; vacío = ninguno. */
+    val tramos: List<TramoEnCamino> = emptyList(),
 )
 
 /**
@@ -469,6 +472,7 @@ private class ControladorMapa(
         if (nuevas.notas != previas.notas) CapaNotas.actualizar(capas, nuevas.notas)
         if (nuevas.notasMapa != previas.notasMapa) CapaNotasMapa.actualizar(capas, nuevas.notasMapa)
         if (nuevas.estela != previas.estela) capaEstela.actualizar(capas, nuevas.estela)
+        if (nuevas.tramos != previas.tramos) CapaTramos.actualizar(capas, nuevas.tramos)
         if (nuevas.calor != previas.calor) capaCalor.actualizar(capas, nuevas.calor)
         if (nuevas.fantasma != previas.fantasma || nuevas.icono != previas.icono) {
             capaFantasma.actualizar(capas, vista.context, nuevas.icono, nuevas.fantasma)
@@ -489,6 +493,8 @@ private class ControladorMapa(
             // (que se instala antes) debajo de la ruta.
             capaCalor.instalar(cargado, preferencias.calor)
             capaEstela.instalar(cargado, preferencias.estela)
+            // Los tramos, antes que la ruta: su línea ámbar queda debajo de la línea roja.
+            CapaTramos.instalar(cargado, vista.context, preferencias.tramos)
             CapaRuta.instalar(cargado, vista.context, preferencias.ruta)
             CapaRadares.instalar(cargado, vista.context, preferencias.radares)
             CapaIncidencias.instalar(cargado, vista.context, preferencias.incidencias)

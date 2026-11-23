@@ -16,6 +16,9 @@
 
     <string name="crono_hud_descripcion">Cronómetro del tramo: %1$s. Respecto a tu mejor tiempo: %2$s</string>
     <string name="crono_hud_descripcion_sin_delta">Cronómetro del tramo: %1$s</string>
+    <!-- Lo que falta para la meta del tramo o subtramo en marcha (a pasos de 50 m; «Meta» a menos de 50 m) -->
+    <string name="crono_hud_fin_tramo">Fin de tramo en %1$s</string>
+    <string name="crono_hud_meta">Meta</string>
     <string name="crono_barra_descripcion">Progreso del tramo: %1$d por ciento</string>
     <string name="crono_sector_descripcion">Sector %1$d: %2$s</string>
     <string name="crono_micro_descripcion">Microsector %1$d: %2$s</string>

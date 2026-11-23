@@ -79,5 +79,4 @@ private fun lugarIncidencia(
 }
 
 /** Punto kilométrico con coma decimal y sin «,0» de relleno: «56,5», «57». */
-internal fun textoKm(pk: Double): String =
-    String.format(LOCALE_ES, "%.1f", pk).removeSuffix(",0")
+internal fun textoKm(pk: Double): String = String.format(LOCALE_ES, "%.1f", pk).removeSuffix(",0")

@@ -50,6 +50,7 @@ import app.trombito.rallycopilot.ui.tramos.CronoViewModel
 import app.trombito.rallycopilot.ui.tramos.CuentaAtrasPorVoz
 import app.trombito.rallycopilot.ui.tramos.LocalAbrirAnalisis
 import app.trombito.rallycopilot.ui.tramos.LocalAccionesSalidaCrono
+import app.trombito.rallycopilot.ui.tramos.LocalFinDeTramoM
 import kotlin.math.floor
 
 /**
@@ -75,6 +76,7 @@ fun MapaRoute(
     edicionViewModel: EdicionMapaViewModel = hiltViewModel(),
     calorViewModel: CalorViewModel = hiltViewModel(),
     notasMapaViewModel: NotasMapaViewModel = hiltViewModel(),
+    tramosViewModel: TramosMapaViewModel = hiltViewModel(),
 ) {
     val estadoBase by viewModel.uiState.collectAsStateWithLifecycle()
     val calor by calorViewModel.estado.collectAsStateWithLifecycle()
@@ -90,6 +92,9 @@ fun MapaRoute(
     val edicion = edicionViewModel.uiState.collectAsStateWithLifecycle()
     val estela = viewModel.estela.collectAsStateWithLifecycle()
     val notasMapa = notasMapaViewModel.notasMapa.collectAsStateWithLifecycle()
+    val tramosCamino = tramosViewModel.tramos.collectAsStateWithLifecycle()
+    // Sin `by`: solo el HUD lo lee (con el estado, no el valor) y la raíz no se recompone cada 10 m.
+    val finDeTramoM = tramosViewModel.finDeTramoM.collectAsStateWithLifecycle()
     val permiso = rememberPermisoUbicacion()
     EfectosDelMapa(permiso.estado, estado, navegacion, viewModel, navegacionViewModel)
     // Sin `by`: solo el mapa lee la reserva, así que su cambio no recompone la raíz.
@@ -122,6 +127,7 @@ fun MapaRoute(
         LocalAbrirAnalisis provides onVerAnalisis,
         LocalAccionesSalidaCrono provides salida,
         LocalAccionNotaMal provides accionNotaMal,
+        LocalFinDeTramoM provides finDeTramoM,
     ) {
         MapaScreen(
             estado = estado,
@@ -146,6 +152,8 @@ fun MapaRoute(
                                 fantasma = fantasmaDelCrono(crono),
                                 calor = datosCalor,
                                 notasMapa = notasMapa.value,
+                                // Con la capa de calor (mapa de reposo) los tramos no se pintan.
+                                tramos = if (datosCalor == null) tramosCamino.value else emptyList(),
                             ),
                     modifier = modificador,
                 )

@@ -90,7 +90,10 @@ data class SegmentoVivo(
     val ultimaMarca: ParcialCrono?,
     val hayReferencia: Boolean,
     val fantasma: PosicionFantasma?,
-)
+) {
+    /** Metros que faltan hasta la meta del trozo si se conoce ([longitudM] > 0); null si no (el HUD usa otra). */
+    val restanteM: Double? get() = if (longitudM > 0.0) (longitudM - progresoM).coerceAtLeast(0.0) else null
+}
 
 /**
  * Subtramo recién cerrado, para la tarjeta de unos segundos: [longitudM] recorridos en [tiempoMs] frente a [mejorMs]
