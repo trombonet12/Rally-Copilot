@@ -8,11 +8,14 @@ import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.TextUnit
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.comun.BancoCompose
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_ESQUELETO
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_FONDO_WRC
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.comun.resumenFalso
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
@@ -37,7 +40,7 @@ class MisTramosScreenTest {
             "a",
             "Ma-2141 · Escorca",
             pasadas = 3,
-            mejorMs = 252_300L,
+            mejorMs = 700_000L,
             favorito = true,
             longitudM = 12_400.0,
         )
@@ -46,25 +49,48 @@ class MisTramosScreenTest {
     private fun estado(vararg tramos: ResumenTramo) = MisTramosUiState(cargando = false, tramos = tramos.toList())
 
     @Test
-    fun `cada fila muestra nombre, longitud, pasadas y mejor tiempo`() {
+    fun `cada fila muestra solo nombre, kilometros con velocidad media y tiempo`() {
         banco.poner { RallyCopilotTheme { MisTramosScreen(estado(escorca, valldemossa), AccionesMisTramos()) } }
         val fila = banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${escorca.id}"))
         assertTrue("Ma-2141 · Escorca" in fila)
-        assertTrue("12,4 km · 3 pasadas" in fila)
-        assertTrue("04:12,3" in fila)
+        // 12,4 km en 11:40,0 son 63,8 km/h; ya no se cuentan las pasadas en la fila.
+        assertTrue("12,4 km · 64 km/h" in fila)
+        assertTrue("11:40,0" in fila)
+        assertFalse(fila.any { "pasada" in it })
+        // Sin ninguna pasada no hay velocidad: solo la distancia y un guion en lugar del tiempo.
         val otra = banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${valldemossa.id}"))
-        assertTrue("850 m · 1 pasada" in otra)
+        assertTrue("850 m" in otra)
         assertTrue("—" in otra)
     }
 
     @Test
-    fun `el nombre es Origen a Destino y las carreteras salen de subtitulo en la fila`() {
-        val nuevo = resumenFalso("c", "Palma → Montuïri", longitudM = 21_000.0).copy(subtitulo = "Ma-13 / Ma-15")
+    fun `el tiempo pasa a segundo plano mientras solo hay una pasada`() {
+        val una = resumenFalso("u", "Ma-10 · Deià", pasadas = 1, mejorMs = 600_000L, longitudM = 10_000.0)
+        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(escorca, una), AccionesMisTramos()) } }
+        val variasPasadas = banco.conEtiqueta("$ETIQUETA_TIEMPO_PREFIJO${escorca.id}")
+        val unaPasada = banco.conEtiqueta("$ETIQUETA_TIEMPO_PREFIJO${una.id}")
+        assertEquals(listOf("10:00,0"), banco.textos(unaPasada))
+        assertTrue(tamanoDeTexto(unaPasada).value < tamanoDeTexto(variasPasadas).value)
+    }
+
+    @Test
+    fun `el nombre es Origen a Destino y las carreteras del nombre automatico ya no salen en la fila`() {
+        val nuevo =
+            resumenFalso("c", "Palma → Montuïri", longitudM = 21_000.0, mejorMs = 1_200_000L)
+                .copy(subtitulo = "Ma-13 / Ma-15")
         banco.poner { RallyCopilotTheme { MisTramosScreen(estado(nuevo, escorca), AccionesMisTramos()) } }
         val fila = banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${nuevo.id}"))
         assertTrue("Palma → Montuïri" in fila)
-        assertTrue("Ma-13 / Ma-15" in fila)
-        assertTrue("Los antiguos no llevan subtítulo", !banco.hay("$ETIQUETA_SUBTITULO_PREFIJO${escorca.id}"))
+        assertTrue("21,0 km · 63 km/h" in fila)
+        assertFalse("Ma-13 / Ma-15" in fila)
+    }
+
+    @Test
+    fun `no hay pestanas ni icono de Mis carreteras porque es otra entrada`() {
+        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(escorca), AccionesMisTramos()) } }
+        assertTrue(banco.etiquetas("tramos-pestana-").isEmpty())
+        assertFalse(banco.nodos().any { banco.descripcion(it) == "Mis carreteras" })
+        assertTrue(banco.hay(ETIQUETA_FONDO_WRC))
     }
 
     @Test
@@ -118,17 +144,17 @@ class MisTramosScreenTest {
     }
 
     @Test
-    fun `los tres filtros estan y el actual va seleccionado`() {
+    fun `hay dos filtros, sin Repetidos, y el actual va seleccionado`() {
         banco.poner {
             RallyCopilotTheme {
-                MisTramosScreen(estado(escorca).copy(filtro = FiltroTramos.REPETIDOS), AccionesMisTramos())
+                MisTramosScreen(estado(escorca).copy(filtro = FiltroTramos.FAVORITOS), AccionesMisTramos())
             }
         }
         assertEquals(
-            listOf("tramos-filtro-todos", "tramos-filtro-repetidos", "tramos-filtro-favoritos"),
+            listOf("tramos-filtro-todos", "tramos-filtro-favoritos"),
             banco.etiquetas(ETIQUETA_FILTRO_PREFIJO),
         )
-        val seleccionado = banco.conEtiqueta("tramos-filtro-repetidos").config.getOrNull(SemanticsProperties.Selected)
+        val seleccionado = banco.conEtiqueta("tramos-filtro-favoritos").config.getOrNull(SemanticsProperties.Selected)
         assertEquals(true, seleccionado)
         val otro = banco.conEtiqueta("tramos-filtro-todos").config.getOrNull(SemanticsProperties.Selected)
         assertEquals(false, otro)
@@ -141,8 +167,8 @@ class MisTramosScreenTest {
             RallyCopilotTheme { MisTramosScreen(estado(escorca), AccionesMisTramos(onFiltro = { filtros += it })) }
         }
         banco.pulsar(banco.conEtiqueta("tramos-filtro-favoritos"))
-        banco.pulsar(banco.conEtiqueta("tramos-filtro-repetidos"))
-        assertEquals(listOf(FiltroTramos.FAVORITOS, FiltroTramos.REPETIDOS), filtros)
+        banco.pulsar(banco.conEtiqueta("tramos-filtro-todos"))
+        assertEquals(listOf(FiltroTramos.FAVORITOS, FiltroTramos.TODOS), filtros)
     }
 
     @Test
@@ -203,10 +229,7 @@ class MisTramosScreenTest {
                 )
             }
         }
-        assertTrue("Aún no tienes tramos" in banco.todosLosTextos())
-        filtro = FiltroTramos.REPETIDOS
-        banco.reposo()
-        assertTrue("Ningún tramo repetido" in banco.todosLosTextos())
+        assertTrue("Aún no tienes viajes" in banco.todosLosTextos())
         filtro = FiltroTramos.FAVORITOS
         banco.reposo()
         assertTrue("Sin favoritos" in banco.todosLosTextos())
@@ -225,7 +248,8 @@ class MisTramosScreenTest {
     fun `los chips de filtro llevan la mayuscula inicial y ya no hay lapiz en la fila`() {
         banco.poner { RallyCopilotTheme { MisTramosScreen(estado(escorca), AccionesMisTramos()) } }
         val textos = banco.todosLosTextos()
-        listOf("Todos", "Repetidos", "Favoritos").forEach { assertTrue("Falta $it en $textos", it in textos) }
+        listOf("Todos", "Favoritos").forEach { assertTrue("Falta $it en $textos", it in textos) }
+        assertFalse("Repetidos" in textos)
         assertFalse("TODOS" in textos)
         assertTrue(banco.etiquetas("tramo-renombrar-").isEmpty())
     }
@@ -273,7 +297,7 @@ class MisTramosScreenTest {
             }
         }
         banco.esperar(300)
-        val aviso = "No se pudo borrar «Ma-10 · Valldemossa». El tramo sigue en tu lista; inténtalo de nuevo."
+        val aviso = "No se pudo borrar «Ma-10 · Valldemossa». Sigue en tu lista; inténtalo de nuevo."
         assertTrue(aviso in banco.todosLosTextos())
         assertTrue(banco.hay("$ETIQUETA_FILA_PREFIJO${valldemossa.id}"))
     }
@@ -329,6 +353,14 @@ class MisTramosScreenTest {
             val tamano = banco.conEtiqueta(it).size
             assertTrue("$it mide $tamano", tamano.width >= minimo - 1 && tamano.height >= minimo - 1)
         }
+    }
+
+    private fun tamanoDeTexto(nodo: SemanticsNode): TextUnit {
+        val resultados = mutableListOf<TextLayoutResult>()
+        nodo.config[SemanticsActions.GetTextLayoutResult].action?.invoke(resultados)
+        return resultados
+            .first()
+            .layoutInput.style.fontSize
     }
 
     private fun descripcionDeHijo(nodo: SemanticsNode): String? =

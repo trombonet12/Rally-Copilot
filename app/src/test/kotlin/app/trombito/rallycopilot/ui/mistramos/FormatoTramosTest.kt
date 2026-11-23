@@ -1,7 +1,9 @@
 package app.trombito.rallycopilot.ui.mistramos
 
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import app.trombito.rallycopilot.ui.comun.resumenFalso
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.ZoneOffset
@@ -13,6 +15,29 @@ class FormatoTramosTest {
         assertEquals("12,4 km", formatearDistanciaTramo(12_400.0))
         assertEquals("1,0 km", formatearDistanciaTramo(1_000.0))
         assertEquals("0 m", formatearDistanciaTramo(-5.0))
+    }
+
+    @Test
+    fun `la velocidad media sale de la mejor pasada, o de la media si falta`() {
+        val mejor = resumenFalso("a", mejorMs = 360_000L, mediaMs = 720_000L, longitudM = 10_000.0)
+        assertEquals(100.0, mejor.velocidadMediaKmh()!!, 1e-9)
+        val soloMedia = resumenFalso("b", mejorMs = null, mediaMs = 720_000L, longitudM = 10_000.0)
+        assertEquals(50.0, soloMedia.velocidadMediaKmh()!!, 1e-9)
+        assertNull(resumenFalso("c", mejorMs = null).velocidadMediaKmh())
+        assertNull(resumenFalso("d", mejorMs = 0L).velocidadMediaKmh())
+    }
+
+    @Test
+    fun `la evolucion ordena por fecha y la primera pasada no es record`() {
+        val filas =
+            listOf(
+                FilaPasada(3, 3_000L, 100_000L, 0L, esMejor = true),
+                FilaPasada(2, 2_000L, 120_000L, 20_000L, esMejor = false),
+                FilaPasada(1, 1_000L, 110_000L, 10_000L, esMejor = false),
+            )
+        val puntos = evolucionDe(filas)
+        assertEquals(listOf("1", "2", "3"), puntos.map { it.pasadaId })
+        assertEquals(listOf(false, false, true), puntos.map { it.esRecord })
     }
 
     @Test

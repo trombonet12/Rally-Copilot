@@ -2,11 +2,20 @@ package app.trombito.rallycopilot.ui.mistramos
 
 import androidx.lifecycle.SavedStateHandle
 import app.trombito.rallycopilot.domain.datos.EstilosMapa
+import app.trombito.rallycopilot.domain.edicion.EditorTramo
 import app.trombito.rallycopilot.domain.edicion.ListaNotasPorRevisar
 import app.trombito.rallycopilot.domain.edicion.NotaPorRevisar
+import app.trombito.rallycopilot.domain.edicion.TramoEditable
+import app.trombito.rallycopilot.domain.tramos.DatosVia
 import app.trombito.rallycopilot.domain.tramos.ExportaTramo
 import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
 import app.trombito.rallycopilot.domain.tramos.TramoExportado
+import app.trombito.rallycopilot.motor.edicion.AccionEdicion
+import app.trombito.rallycopilot.motor.notas.Direccion
+import app.trombito.rallycopilot.motor.notas.ElementoHoja
+import app.trombito.rallycopilot.motor.notas.HojaNotas
+import app.trombito.rallycopilot.motor.notas.Nota
+import app.trombito.rallycopilot.motor.vias.SentidoVia
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioDatosMapa
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
 import app.trombito.rallycopilot.ui.comun.detalladaFalsa
@@ -14,6 +23,8 @@ import app.trombito.rallycopilot.ui.comun.resumenFalso
 import app.trombito.rallycopilot.ui.comun.tramoFalso
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -68,6 +79,35 @@ class DetalleTramoViewModelTest {
     private val revisadas = mutableMapOf<String, List<NotaPorRevisar>>()
     private val revisar = ListaNotasPorRevisar { revisadas[it].orEmpty() }
 
+    private val curvasPorTramo = mutableMapOf<String, Int>()
+    private val editor =
+        object : EditorTramo {
+            override fun observar(tramoId: String): Flow<TramoEditable?> =
+                flowOf(
+                    curvasPorTramo[tramoId]?.let { n ->
+                        val notas =
+                            List(
+                                n,
+                            ) { i -> ElementoHoja.DeNota(Nota(i * 100.0, i * 100.0 + 30.0, Direccion.DERECHA, 4)) }
+                        TramoEditable(tramoFalso(tramoId), HojaNotas(notas), emptyList(), 0)
+                    },
+                )
+
+            override suspend fun editar(
+                tramoId: String,
+                posicionM: Double,
+                accion: AccionEdicion,
+            ) = Unit
+
+            override suspend fun restaurar(tramoId: String) = Unit
+
+            override suspend fun guardarCortes(
+                tramoId: String,
+                sectores: List<Double>,
+                microsectores: List<Double>,
+            ) = Unit
+        }
+
     @Before
     fun preparar() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -86,6 +126,7 @@ class DetalleTramoViewModelTest {
                 datosMapa,
                 exportador,
                 revisar,
+                editor,
             )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
@@ -120,6 +161,42 @@ class DetalleTramoViewModelTest {
             val deNadie = crear("fantasma").uiState.value.subtramos
             assertEquals(1, deT2.size)
             assertEquals(0, deNadie.size)
+        }
+
+    @Test
+    fun `las curvas son las notas de curva de la hoja del tramo`() =
+        runTest {
+            curvasPorTramo["t1"] = 7
+            assertEquals(7, crear().uiState.value.curvas)
+            assertNull(crear("t2").uiState.value.curvas)
+        }
+
+    @Test
+    fun `los subtramos de un tramo de via salen en kilometros de la carretera`() =
+        runTest {
+            val via = DatosVia("MA15", 20.0, 30.0, SentidoVia.CRECIENTE, "Manacor", null)
+            val deVia = resumenFalso("t1", "Ma-15", pasadas = 1, longitudM = 10_000.0, via = via)
+            val repo =
+                FalsoRepositorioTramos(
+                    resumenes = listOf(deVia),
+                    trazas = mapOf("t1" to tramoFalso("t1")),
+                    subtramos = listOf(SubtramoGuardado("t1", 1_000.0, 3_000.0, 2_000.0, 5_000L, 100_000L, null)),
+                )
+            val vm =
+                DetalleTramoViewModel(
+                    SavedStateHandle(mapOf("tramoId" to "t1")),
+                    repo,
+                    datosMapa,
+                    exportador,
+                    revisar,
+                    editor,
+                )
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+            val fila =
+                vm.uiState.value.subtramos
+                    .single()
+            assertEquals(21.0, fila.desdeKm!!, 1e-9)
+            assertEquals(23.0, fila.hastaKm!!, 1e-9)
         }
 
     @Test

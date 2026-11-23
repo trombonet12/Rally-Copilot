@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import app.trombito.rallycopilot.domain.datos.RepositorioDatosMapa
+import app.trombito.rallycopilot.domain.edicion.EditorTramo
 import app.trombito.rallycopilot.domain.edicion.ListaNotasPorRevisar
 import app.trombito.rallycopilot.domain.tramos.ExportaTramo
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
@@ -28,6 +29,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -47,6 +49,7 @@ class DetalleTramoViewModel
         private val datosMapa: RepositorioDatosMapa,
         private val exportador: ExportaTramo,
         private val notasPorRevisar: ListaNotasPorRevisar,
+        private val editor: EditorTramo,
     ) : ViewModel() {
         private val tramoId = guardado.toRoute<RutaTramo>().tramoId
         private val renombrando = MutableStateFlow(false)
@@ -62,6 +65,7 @@ class DetalleTramoViewModel
             val pasadas: List<FilaPasada>,
             val subtramos: List<FilaSubtramo> = emptyList(),
             val porRevisar: List<FilaNotaPorRevisar> = emptyList(),
+            val curvas: Int? = null,
         )
 
         private val resumen: Flow<ResumenTramo?> =
@@ -87,9 +91,12 @@ class DetalleTramoViewModel
         private val porRevisar: Flow<List<FilaNotaPorRevisar>> =
             flow { emit(notasPorRevisar.de(tramoId).map { FilaNotaPorRevisar(it.posicionM, it.texto) }) }
 
+        // Las curvas son las notas de curva de la hoja del tramo, con sus ediciones; la hoja tarda en generarse.
+        private val curvas: Flow<Int?> = editor.observar(tramoId).map { it?.hoja?.notas?.size }.onStart { emit(null) }
+
         private val datos: Flow<Carga> =
-            combine(carga, subtramos, porRevisar) { cargada, filas, revisar ->
-                Carga(cargada.traza, cargada.pasadas, filas, revisar)
+            combine(carga, subtramos, porRevisar, curvas) { cargada, filas, revisar, nCurvas ->
+                Carga(cargada.traza, cargada.pasadas, filas, revisar, nCurvas)
             }
 
         val uiState: StateFlow<DetalleTramoUiState> =
@@ -106,7 +113,8 @@ class DetalleTramoViewModel
                     traza = datos.traza,
                     estiloMapaJson = estilo,
                     pasadas = datos.pasadas,
-                    subtramos = datos.subtramos,
+                    curvas = datos.curvas,
+                    subtramos = datos.subtramos.map { it.enKmDeCarretera(tramo) },
                     notasPorRevisar = datos.porRevisar,
                     renombrando = editando && tramo != null,
                     compartir = estadoCompartir,

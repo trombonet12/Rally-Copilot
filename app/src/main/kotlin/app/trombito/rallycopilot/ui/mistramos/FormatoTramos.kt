@@ -1,5 +1,6 @@
 package app.trombito.rallycopilot.ui.mistramos
 
+import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.ui.comun.FormatoEs
 import java.time.Instant
 import java.time.ZoneId
@@ -36,4 +37,16 @@ fun formatearFechaCorta(
 ): String {
     val f = Instant.ofEpochMilli(epochMs).atZone(zona)
     return "${f.dayOfMonth} ${MESES[f.monthValue - 1]}"
+}
+
+private const val MS_POR_HORA = 3_600_000.0
+
+/** Velocidad media (km/h) de la mejor pasada, o de la media si falta; null sin pasadas o con un tiempo no válido. */
+fun ResumenTramo.velocidadMediaKmh(): Double? {
+    val tiempoMs = mejorTotalMs ?: mediaMs
+    return if (tiempoMs == null || tiempoMs <= 0L || longitudM <= 0.0) {
+        null
+    } else {
+        longitudM / 1_000.0 / (tiempoMs / MS_POR_HORA)
+    }
 }

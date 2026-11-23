@@ -9,9 +9,12 @@ import app.trombito.rallycopilot.domain.tramos.DatosVia
 import app.trombito.rallycopilot.domain.tramos.TipoTramo
 import app.trombito.rallycopilot.motor.vias.SentidoVia
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_FONDO_WRC
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_SUBTITULO_CABECERA
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.comun.resumenFalso
 import app.trombito.rallycopilot.ui.comun.tramoFalso
+import app.trombito.rallycopilot.ui.perfil.ETIQUETA_GRAFICO
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,7 +33,7 @@ class DetalleTramoScreenTest {
     private val banco = BancoCompose()
 
     private val tramo =
-        resumenFalso("t1", "Ma-2141 · Escorca", pasadas = 3, mejorMs = 252_300L, longitudM = 12_400.0, favorito = true)
+        resumenFalso("t1", "Ma-2141 · Escorca", pasadas = 3, mejorMs = 700_000L, longitudM = 12_400.0, favorito = true)
     private val pasadas =
         listOf(
             FilaPasada(3, 1_762_000_000_000L, 257_300L, 5_000L, esMejor = false),
@@ -41,17 +44,58 @@ class DetalleTramoScreenTest {
         DetalleTramoUiState(cargando = false, tramo = tramo, traza = tramoFalso("t1").traza, pasadas = pasadas)
 
     @Test
-    fun `muestra el nombre, las medidas y el trazado`() {
-        banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado, AccionesDetalleTramo()) } }
+    fun `muestra el nombre, la media, las curvas y el trazado`() {
+        banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado.copy(curvas = 31), AccionesDetalleTramo()) } }
         val textos = banco.todosLosTextos()
-        assertTrue("Ma-2141 · Escorca" in textos)
-        assertTrue("12,4 km" in textos)
-        assertTrue("3" in textos)
+        // El nombre va en la cabecera común, en mayúsculas.
+        assertTrue("MA-2141 · ESCORCA" in textos)
         assertTrue("Pasadas" in textos)
-        assertFalse("3 pasadas" in textos)
-        assertTrue("04:12,3" in textos)
         assertTrue(banco.hay(ETIQUETA_TRAZA))
         assertTrue(banco.descripcion(banco.conEtiqueta(ETIQUETA_TRAZA))!!.contains("salida"))
+        assertTrue(banco.hay(ETIQUETA_FONDO_WRC))
+        // Los tres recuadros ya no repiten la fila (longitud, pasadas, mejor): media, curvas y curvas/km.
+        assertEquals(setOf("Media", "64", "km/h"), banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_MEDIA)).toSet())
+        assertEquals(setOf("Curvas", "31"), banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_CURVAS)).toSet())
+        // 31 curvas en 12,4 km son 2,5 por km.
+        assertEquals(setOf("Curvas/km", "2,5"), banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_CURVAS_KM)).toSet())
+        assertFalse("Longitud" in textos)
+        assertFalse("12,4 km" in textos)
+    }
+
+    @Test
+    fun `sin hoja de notas las curvas salen con un guion`() {
+        banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado, AccionesDetalleTramo()) } }
+        assertTrue("—" in banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_CURVAS)))
+        assertTrue("—" in banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_CURVAS_KM)))
+    }
+
+    @Test
+    fun `la evolucion sale con tres pasadas y no con menos`() {
+        banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado, AccionesDetalleTramo()) } }
+        assertTrue(banco.hay(ETIQUETA_DETALLE_EVOLUCION))
+        assertTrue(banco.hay(ETIQUETA_GRAFICO))
+        assertTrue("Evolución" in banco.todosLosTextos())
+    }
+
+    @Test
+    fun `con dos pasadas no hay evolucion`() {
+        banco.poner {
+            RallyCopilotTheme {
+                DetalleTramoScreen(estado.copy(pasadas = pasadas.take(2)), AccionesDetalleTramo())
+            }
+        }
+        assertFalse(banco.hay(ETIQUETA_DETALLE_EVOLUCION))
+        assertFalse(banco.hay(ETIQUETA_GRAFICO))
+    }
+
+    @Test
+    fun `una sola pasada no lleva estrella ni Mejor`() {
+        val sola = listOf(pasadas[1])
+        banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado.copy(pasadas = sola), AccionesDetalleTramo()) } }
+        val fila = banco.textos(banco.conEtiqueta("${ETIQUETA_PASADA_PREFIJO}2"))
+        assertTrue("04:12,3" in fila)
+        assertFalse("Mejor" in fila)
+        assertFalse("Récord" in banco.todosLosTextos())
     }
 
     @Test
@@ -222,12 +266,13 @@ class DetalleTramoScreenTest {
         banco.poner {
             RallyCopilotTheme { DetalleTramoScreen(estado.copy(tramo = conCarreteras), AccionesDetalleTramo()) }
         }
-        assertEquals(listOf("Palma → Valldemossa"), banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_TITULO)))
-        assertEquals(listOf("Ma-1110 / Ma-10"), banco.textos(banco.conEtiqueta(ETIQUETA_DETALLE_SUBTITULO)))
+        val textos = banco.todosLosTextos()
+        assertTrue("PALMA → VALLDEMOSSA" in textos)
+        assertEquals(listOf("Ma-1110 / Ma-10"), banco.textos(banco.conEtiqueta(ETIQUETA_SUBTITULO_CABECERA)))
     }
 
     @Test
-    fun `el nombre largo de un tramo de via llega entero al titulo y el detalle es el de siempre`() {
+    fun `el nombre largo de un tramo de via llega entero a la cabecera y el detalle es el de siempre`() {
         val nombre = "Ma-15 · km 20,1→32,4 · hacia Manacor"
         val deVia =
             tramo.copy(
@@ -236,8 +281,7 @@ class DetalleTramoScreenTest {
                 via = DatosVia("MA15", 20.1, 32.4, SentidoVia.CRECIENTE, "Manacor", null),
             )
         banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado.copy(tramo = deVia), AccionesDetalleTramo()) } }
-        val titulo = banco.conEtiqueta(ETIQUETA_DETALLE_TITULO)
-        assertEquals(listOf(nombre), banco.textos(titulo))
+        assertTrue(nombre.uppercase() in banco.todosLosTextos())
         // Las pasadas, los sectores y el resto del detalle son los de siempre.
         assertTrue("Pasadas" in banco.todosLosTextos())
     }
@@ -245,7 +289,7 @@ class DetalleTramoScreenTest {
     @Test
     fun `sin carreteras no hay subtitulo`() {
         banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado, AccionesDetalleTramo()) } }
-        assertFalse(banco.hay(ETIQUETA_DETALLE_SUBTITULO))
+        assertFalse(banco.hay(ETIQUETA_SUBTITULO_CABECERA))
     }
 
     @Test
@@ -285,7 +329,11 @@ class DetalleTramoScreenTest {
     @Test
     fun `el titulo es un encabezado para TalkBack`() {
         banco.poner { RallyCopilotTheme { DetalleTramoScreen(estado, AccionesDetalleTramo()) } }
-        val titulo = banco.conEtiqueta(ETIQUETA_DETALLE_TITULO)
-        assertTrue(titulo.config.getOrNull(SemanticsProperties.Heading) != null)
+        val encabezados =
+            banco
+                .nodos()
+                .filter { it.config.getOrNull(SemanticsProperties.Heading) != null }
+                .flatMap { banco.textos(it) }
+        assertTrue("MA-2141 · ESCORCA" in encabezados)
     }
 }

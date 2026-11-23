@@ -1,9 +1,6 @@
 package app.trombito.rallycopilot.ui.mistramos
 
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.semantics.getOrNull
 import app.trombito.rallycopilot.domain.tramos.DatosVia
-import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.motor.vias.SentidoVia
 import app.trombito.rallycopilot.ui.comun.BancoCompose
@@ -40,8 +37,8 @@ class MisTramosCarreterasTest {
             "v1",
             "Ma-15 · km 20,1→32,4 · hacia Manacor",
             pasadas = 3,
-            mejorMs = 252_300L,
-            mediaMs = 260_000L,
+            mejorMs = 700_000L,
+            mediaMs = 720_000L,
             longitudM = 12_300.0,
             via = via("MA15", 20.1, 32.4, destino = "Manacor"),
             carretera = "Ma-15",
@@ -51,8 +48,8 @@ class MisTramosCarreterasTest {
             "v0",
             "Ma-15 · km 5,0→8,2 · hacia Manacor",
             pasadas = 1,
-            mejorMs = 120_000L,
-            mediaMs = 120_000L,
+            mejorMs = 240_000L,
+            mediaMs = 240_000L,
             longitudM = 3_200.0,
             via = via("MA15", 5.0, 8.2, destino = "Manacor"),
             carretera = "Ma-15",
@@ -80,46 +77,59 @@ class MisTramosCarreterasTest {
         )
     private val viaje = resumenFalso("j1", "Palma → Manacor", pasadas = 1)
 
-    private fun estado(
-        vararg tramos: ResumenTramo,
-        pestana: PestanaTramos = PestanaTramos.CARRETERAS,
-    ) = MisTramosUiState(cargando = false, pestana = pestana, tramos = tramos.toList())
-
-    private fun seleccionada(etiqueta: String) =
-        banco.conEtiqueta(etiqueta).config.getOrNull(SemanticsProperties.Selected)
+    private fun estado(vararg tramos: ResumenTramo) = MisTramosUiState(cargando = false, tramos = tramos.toList())
 
     @Test
-    fun `las dos pestanas estan con texto y la actual va seleccionada`() {
-        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(manacor), AccionesMisTramos()) } }
+    fun `Mis tramos junta viajes y tramos de carretera sin pestanas y con el nombre completo`() {
+        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(viaje, manacor, palma), AccionesMisTramos()) } }
+        // Ningún tramo queda sin acceso: salen los tres, en el orden que trae la lista.
         assertEquals(
-            listOf("tramos-pestana-viajes", "tramos-pestana-carreteras"),
-            banco.etiquetas(ETIQUETA_PESTANA_PREFIJO),
+            listOf("j1", "v1", "v2"),
+            banco.etiquetas(ETIQUETA_FILA_PREFIJO).map { it.removePrefix(ETIQUETA_FILA_PREFIJO) },
         )
-        val textos = banco.todosLosTextos()
-        assertTrue("Viajes" in textos && "Carreteras" in textos)
-        assertEquals(true, seleccionada("tramos-pestana-carreteras"))
-        assertEquals(false, seleccionada("tramos-pestana-viajes"))
+        assertTrue(banco.etiquetas("tramos-pestana-").isEmpty())
+        assertTrue(banco.etiquetas(ETIQUETA_CABECERA_PREFIJO).isEmpty())
+        val fila = banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${manacor.id}"))
+        assertTrue("Ma-15 · km 20,1→32,4 · hacia Manacor" in fila)
+        // 12,3 km en 11:40,0 son 63,3 km/h (la mejor pasada).
+        assertTrue("12,3 km · 63 km/h" in fila)
+        assertTrue("11:40,0" in fila)
     }
 
     @Test
-    fun `tocar una pestana la notifica`() {
-        val elegidas = mutableListOf<PestanaTramos>()
+    fun `bajo la cabecera de su carretera la fila se titula por sus kilometros`() {
         banco.poner {
             RallyCopilotTheme {
-                MisTramosScreen(
-                    estado(viaje, pestana = PestanaTramos.VIAJES),
-                    AccionesMisTramos(onPestana = { elegidas += it }),
+                ListaCarreteras(
+                    agruparCarreteras(listOf(manacor, manacorCorto)),
+                    emptyMap(),
+                    AccionesMisTramos(),
+                    false,
                 )
             }
         }
-        banco.pulsar(banco.conEtiqueta("tramos-pestana-carreteras"))
-        assertEquals(listOf(PestanaTramos.CARRETERAS), elegidas)
+        assertTrue("Ma-15 · hacia Manacor" in banco.todosLosTextos())
+        val fila = banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${manacor.id}"))
+        assertTrue("km 20,1→32,4" in fila)
+        assertTrue("12,3 km · 63 km/h" in fila)
+        // Dentro del grupo, por kilómetro de salida: el km 5 antes que el km 20.
+        assertEquals(
+            listOf("v0", "v1"),
+            banco.etiquetas(ETIQUETA_FILA_PREFIJO).map { it.removePrefix(ETIQUETA_FILA_PREFIJO) },
+        )
     }
 
     @Test
-    fun `carreteras se agrupan por carretera y sentido con su cabecera`() {
+    fun `las carreteras se agrupan por carretera y sentido con su cabecera`() {
         banco.poner {
-            RallyCopilotTheme { MisTramosScreen(estado(palma, manacor, ma2, manacorCorto), AccionesMisTramos()) }
+            RallyCopilotTheme {
+                ListaCarreteras(
+                    agruparCarreteras(listOf(palma, manacor, ma2, manacorCorto)),
+                    emptyMap(),
+                    AccionesMisTramos(),
+                    false,
+                )
+            }
         }
         val textos = banco.todosLosTextos()
         assertTrue("Ma-15 · hacia Manacor" in textos)
@@ -135,48 +145,14 @@ class MisTramosCarreterasTest {
     }
 
     @Test
-    fun `cada fila de carretera muestra km, pasadas, mejor tiempo y media`() {
-        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(manacor, manacorCorto), AccionesMisTramos()) } }
-        val fila = banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${manacor.id}"))
-        assertTrue("km 20,1→32,4" in fila)
-        assertTrue("12,3 km · 3 pasadas" in fila)
-        assertTrue("04:12,3" in fila)
-        assertTrue("Media 04:20,0" in fila)
-        // Con una sola pasada la media sería el mismo tiempo: no se repite.
-        assertFalse(banco.hay("$ETIQUETA_MEDIA_PREFIJO${manacorCorto.id}"))
-        // Dentro del grupo, por kilómetro de salida: el km 5 antes que el km 20.
-        val filas = banco.etiquetas(ETIQUETA_FILA_PREFIJO)
-        assertEquals(listOf("v0", "v1"), filas.map { it.removePrefix(ETIQUETA_FILA_PREFIJO) })
-    }
-
-    @Test
-    fun `un tramo de carretera con nombre propio lo muestra y deja los km debajo`() {
+    fun `un tramo de carretera con nombre propio lo muestra tambien bajo su cabecera`() {
         val propio = manacor.copy(nombrePropio = "Mi subida", nombre = "Mi subida")
-        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(propio), AccionesMisTramos()) } }
-        val fila = banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${propio.id}"))
-        assertTrue("Mi subida" in fila)
-        assertTrue("km 20,1→32,4" in fila)
-    }
-
-    @Test
-    fun `sin carreteras explica que se crean solas al conducir`() {
-        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(), AccionesMisTramos()) } }
-        val textos = banco.todosLosTextos()
-        assertTrue("Aún no hay carreteras" in textos)
-        assertTrue(textos.any { "Se crean solas al conducir" in it })
-        assertTrue(banco.hay(ETIQUETA_TRAMOS_VACIO))
-        assertFalse(banco.hay(ETIQUETA_TRAMOS_LISTA))
-    }
-
-    @Test
-    fun `los filtros siguen en la pestana de carreteras y su vacio es el del filtro`() {
         banco.poner {
             RallyCopilotTheme {
-                MisTramosScreen(estado().copy(filtro = FiltroTramos.FAVORITOS), AccionesMisTramos())
+                ListaCarreteras(agruparCarreteras(listOf(propio)), emptyMap(), AccionesMisTramos(), false)
             }
         }
-        assertEquals(3, banco.etiquetas(ETIQUETA_FILTRO_PREFIJO).size)
-        assertTrue("Sin favoritos" in banco.todosLosTextos())
+        assertTrue("Mi subida" in banco.textos(banco.conEtiqueta("$ETIQUETA_FILA_PREFIJO${propio.id}")))
     }
 
     @Test
@@ -186,7 +162,7 @@ class MisTramosCarreterasTest {
         val grupos = agruparCarreteras(listOf(suelto, sinDestino))
         assertEquals(listOf("MA15|DECRECIENTE", "|DESCONOCIDO"), grupos.map { it.clave })
         assertNull(grupos.first().destino)
-        banco.poner { RallyCopilotTheme { MisTramosScreen(estado(sinDestino, suelto), AccionesMisTramos()) } }
+        banco.poner { RallyCopilotTheme { ListaCarreteras(grupos, emptyMap(), AccionesMisTramos(), false) } }
         val textos = banco.todosLosTextos()
         assertTrue("Ma-15" in textos)
         assertFalse(textos.any { "decrecientes" in it })

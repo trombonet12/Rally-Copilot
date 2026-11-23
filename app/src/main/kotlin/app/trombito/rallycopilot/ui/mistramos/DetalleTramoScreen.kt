@@ -1,6 +1,5 @@
 package app.trombito.rallycopilot.ui.mistramos
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -34,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -42,23 +39,19 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
-import app.trombito.rallycopilot.domain.tramos.TipoTramo
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.analisis.MapaTramo
-import app.trombito.rallycopilot.ui.comun.BotonVolver
 import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.ListaEsqueletoWrc
+import app.trombito.rallycopilot.ui.comun.PantallaWrc
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.theme.Ayuda
-import app.trombito.rallycopilot.ui.theme.Cuerpo
 import app.trombito.rallycopilot.ui.theme.Espacio
-import app.trombito.rallycopilot.ui.theme.EtiquetaIcono
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
 import app.trombito.rallycopilot.ui.theme.Radios
 import app.trombito.rallycopilot.ui.theme.Rotulo
@@ -72,25 +65,20 @@ const val ETIQUETA_DETALLE_NO_ENCONTRADO = "detalle-no-encontrado"
 const val ETIQUETA_DETALLE_EDITAR = "detalle-editar-notas"
 const val ETIQUETA_DETALLE_RECONOCER = "detalle-reconocer"
 const val ETIQUETA_DETALLE_AYUDA = "detalle-ayuda-reconocer"
-const val ETIQUETA_DETALLE_TITULO = "detalle-titulo"
 const val ETIQUETA_DETALLE_FAVORITO = "detalle-favorito"
 const val ETIQUETA_DETALLE_RENOMBRAR = "detalle-renombrar"
 const val ETIQUETA_DETALLE_COMPARTIR = "detalle-compartir"
-const val ETIQUETA_DETALLE_SUBTITULO = "detalle-subtitulo"
 const val ETIQUETA_PASADA_PREFIJO = "pasada-"
 const val ETIQUETA_ANALISIS_PREFIJO = "pasada-analisis-"
 const val ETIQUETA_RESUMEN_PASADA_PREFIJO = "pasada-resumen-"
 const val ETIQUETA_PASADAS_VACIAS = "detalle-sin-pasadas"
 const val ETIQUETA_MAPA_TRAMO = "detalle-mapa"
 
-private val ALTO_CABECERA = 56.dp
 private val ALTO_MAPA = 240.dp
 private val ALTO_FILA_PASADA = 56.dp
-private val TAMANO_TITULO = 20.sp
-private val ALTO_LINEA_TITULO = 26.sp
-private val TAMANO_TITULO_VIA = 17.sp
-private val ALTO_LINEA_TITULO_VIA = 22.sp
-private const val LINEAS_TITULO_VIA = 3
+
+/** Con menos pasadas, ser la «mejor» no dice nada: no hay con qué compararla. */
+private const val PASADAS_PARA_MEJOR = 2
 
 /** Cifra de un tile o de una pasada: 22 sp, cursiva Black, sin el apretado de las cifras grandes. */
 private val CifraTile = Rotulo.copy(fontSize = 22.sp, lineHeight = 26.sp, letterSpacing = 0.sp)
@@ -132,13 +120,23 @@ fun DetalleTramoScreen(
 ) {
     val avisos = remember { SnackbarHostState() }
     AvisoCompartir(estado.compartir, avisos, acciones.onCompartirVisto)
-    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
-        CuerpoDetalle(estado, acciones, mapa)
-        SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).padding(Espacio.l))
+    val tramo = estado.tramo
+    PantallaWrc(
+        titulo = tramo?.nombre.orEmpty(),
+        onVolver = acciones.onVolver,
+        modifier = modifier,
+        subtitulo = tramo?.subtitulo,
+        acciones = {
+            if (tramo != null) AccionesCabecera(tramo, estado.compartir == EstadoCompartir.PREPARANDO, acciones)
+        },
+    ) {
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            CuerpoDetalle(estado, acciones, mapa)
+            SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).padding(Espacio.l))
+        }
     }
-    val editando = estado.tramo
-    if (estado.renombrando && editando != null) {
-        DialogoRenombrarTramo(editando, acciones.onRenombrar, acciones.onCancelarRenombrar)
+    if (estado.renombrando && tramo != null) {
+        DialogoRenombrarTramo(tramo, acciones.onRenombrar, acciones.onCancelarRenombrar)
     }
 }
 
@@ -148,27 +146,24 @@ private fun CuerpoDetalle(
     acciones: AccionesDetalleTramo,
     mapa: MapaDelTramo?,
 ) {
-    Column(Modifier.fillMaxSize()) {
-        CabeceraDetalle(estado.tramo, estado.compartir == EstadoCompartir.PREPARANDO, acciones)
-        val tramo = estado.tramo
-        when {
-            estado.cargando -> {
-                CargandoDetalle()
-            }
+    val tramo = estado.tramo
+    when {
+        estado.cargando -> {
+            CargandoDetalle()
+        }
 
-            tramo == null -> {
-                EstadoVacioWrc(
-                    icono = Iconos.Bandera,
-                    titulo = stringResource(R.string.detalle_no_existe_titulo),
-                    texto = stringResource(R.string.detalle_no_existe_texto),
-                    etiqueta = ETIQUETA_DETALLE_NO_ENCONTRADO,
-                    modifier = Modifier.fillMaxSize(),
-                )
-            }
+        tramo == null -> {
+            EstadoVacioWrc(
+                icono = Iconos.Bandera,
+                titulo = stringResource(R.string.detalle_no_existe_titulo),
+                texto = stringResource(R.string.detalle_no_existe_texto),
+                etiqueta = ETIQUETA_DETALLE_NO_ENCONTRADO,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
 
-            else -> {
-                ContenidoDetalle(tramo, estado, acciones, mapa)
-            }
+        else -> {
+            ContenidoDetalle(tramo, estado, acciones, mapa)
         }
     }
 }
@@ -178,68 +173,31 @@ private fun CargandoDetalle() {
     Box(Modifier.fillMaxSize().testTag(ETIQUETA_DETALLE_CARGANDO)) { ListaEsqueletoWrc(filas = 3) }
 }
 
+/** Favorito, compartir y cambiar el nombre: las acciones de la cabecera de un tramo que existe. */
 @Composable
-private fun CabeceraDetalle(
-    tramo: ResumenTramo?,
+private fun AccionesCabecera(
+    tramo: ResumenTramo,
     compartiendo: Boolean,
     acciones: AccionesDetalleTramo,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().heightIn(min = ALTO_CABECERA).padding(horizontal = Espacio.xs),
-        verticalAlignment = Alignment.CenterVertically,
+    BotonFavorito(tramo.favorito, acciones.onFavorito, Modifier.testTag(ETIQUETA_DETALLE_FAVORITO))
+    IconButton(
+        onClick = acciones.onCompartir,
+        enabled = !compartiendo,
+        modifier = Modifier.testTag(ETIQUETA_DETALLE_COMPARTIR),
     ) {
-        BotonVolver(acciones.onVolver)
-        Column(Modifier.weight(1f).padding(horizontal = Espacio.xs)) {
-            // El nombre de un tramo de vía («Ma-15 · km 20,1→32,4 · hacia Manacor») es largo: se parte, no se corta.
-            val deVia = tramo?.tipo == TipoTramo.VIA
-            Text(
-                text = tramo?.nombre.orEmpty(),
-                style =
-                    if (deVia) {
-                        Titulo.copy(fontSize = TAMANO_TITULO_VIA, lineHeight = ALTO_LINEA_TITULO_VIA)
-                    } else {
-                        Titulo.copy(fontSize = TAMANO_TITULO, lineHeight = ALTO_LINEA_TITULO)
-                    },
-                color = MaterialTheme.colorScheme.primary,
-                maxLines = if (deVia) LINEAS_TITULO_VIA else 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag(ETIQUETA_DETALLE_TITULO).semantics { heading() },
-            )
-            tramo?.subtitulo?.let {
-                Text(
-                    text = it,
-                    style = Ayuda,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.testTag(ETIQUETA_DETALLE_SUBTITULO),
-                )
-            }
-        }
-        if (tramo != null) {
-            BotonFavorito(tramo.favorito, acciones.onFavorito, Modifier.testTag(ETIQUETA_DETALLE_FAVORITO))
-            IconButton(
-                onClick = acciones.onCompartir,
-                enabled = !compartiendo,
-                modifier = Modifier.testTag(ETIQUETA_DETALLE_COMPARTIR),
-            ) {
-                Icon(
-                    imageVector = IconoCompartir,
-                    contentDescription = stringResource(R.string.detalle_compartir),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            IconButton(
-                onClick = acciones.onPedirRenombrar,
-                modifier = Modifier.testTag(ETIQUETA_DETALLE_RENOMBRAR),
-            ) {
-                Icon(
-                    imageVector = Iconos.Editar,
-                    contentDescription = stringResource(R.string.mistramos_renombrar),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+        Icon(
+            imageVector = IconoCompartir,
+            contentDescription = stringResource(R.string.detalle_compartir),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    IconButton(onClick = acciones.onPedirRenombrar, modifier = Modifier.testTag(ETIQUETA_DETALLE_RENOMBRAR)) {
+        Icon(
+            imageVector = Iconos.Editar,
+            contentDescription = stringResource(R.string.mistramos_renombrar),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -256,7 +214,8 @@ private fun ContenidoDetalle(
         verticalArrangement = Arrangement.spacedBy(Espacio.m),
     ) {
         item { TrazaOMapa(estado, mapa) }
-        item { MedidasTramo(tramo) }
+        item { MedidasTramo(tramo, estado.curvas) }
+        seccionEvolucion(estado.pasadas)
         item { AccionesNotasTramo(acciones) }
         item {
             Text(
@@ -276,9 +235,11 @@ private fun ContenidoDetalle(
                 )
             }
         }
+        val variasPasadas = estado.pasadas.size >= PASADAS_PARA_MEJOR
         items(estado.pasadas, key = { it.id }) { pasada ->
             TarjetaPasada(
                 pasada = pasada,
+                marcarMejor = variasPasadas,
                 onVerAnalisis = { acciones.onVerAnalisis(pasada.id) },
                 onVerResumen = pasada.recorridoId?.let { id -> { acciones.onVerResumen(id) } },
             )
@@ -310,53 +271,6 @@ private fun TrazaOMapa(
     }
 }
 
-/** Tres tiles con icono: longitud, número de pasadas (sin repetir la palabra) y mejor tiempo. */
-@Composable
-private fun MedidasTramo(tramo: ResumenTramo) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
-        Medida(
-            icono = Iconos.Curvas,
-            etiqueta = stringResource(R.string.detalle_longitud),
-            valor = formatearDistanciaTramo(tramo.longitudM),
-            modifier = Modifier.weight(1f),
-        )
-        Medida(
-            icono = Iconos.Bandera,
-            etiqueta = stringResource(R.string.detalle_pasadas),
-            valor = tramo.pasadas.toString(),
-            modifier = Modifier.weight(1f),
-        )
-        Medida(
-            icono = Iconos.Cronometro,
-            etiqueta = stringResource(R.string.mistramos_mejor),
-            valor = tramo.mejorTotalMs?.let { formatearTiempo(it) } ?: stringResource(R.string.mistramos_sin_tiempo),
-            modifier = Modifier.weight(1f),
-            destacado = tramo.mejorTotalMs != null,
-        )
-    }
-}
-
-@Composable
-private fun Medida(
-    icono: ImageVector,
-    etiqueta: String,
-    valor: String,
-    modifier: Modifier = Modifier,
-    destacado: Boolean = false,
-) {
-    TarjetaWrc(modifier.semantics(mergeDescendants = true) {}, relleno = Espacio.m) {
-        Icon(icono, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        Text(
-            text = valor,
-            style = CifraTile,
-            color = if (destacado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            modifier = Modifier.padding(top = Espacio.xs),
-        )
-        Text(text = etiqueta, style = EtiquetaIcono, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-}
-
 /**
  * La pasada entera es pulsable (56 dp como mínimo) y lleva al análisis; el chevron lo anuncia. Si la grabó un viaje
  * que sigue guardado ([onVerResumen] no es null), un botón aparte abre el resumen de ese viaje (y TalkBack lo ofrece
@@ -365,6 +279,7 @@ private fun Medida(
 @Composable
 private fun TarjetaPasada(
     pasada: FilaPasada,
+    marcarMejor: Boolean,
     onVerAnalisis: () -> Unit,
     onVerResumen: (() -> Unit)?,
 ) {
@@ -398,7 +313,7 @@ private fun TarjetaPasada(
                     style = Ayuda,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                TiempoYDiferencia(pasada)
+                TiempoYDiferencia(pasada, marcarMejor)
             }
             if (onVerResumen != null) {
                 IconButton(
@@ -423,7 +338,10 @@ private fun TarjetaPasada(
 }
 
 @Composable
-private fun TiempoYDiferencia(pasada: FilaPasada) {
+private fun TiempoYDiferencia(
+    pasada: FilaPasada,
+    marcarMejor: Boolean,
+) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Espacio.s)) {
         Text(
             text = formatearTiempo(pasada.totalMs),
@@ -431,12 +349,7 @@ private fun TiempoYDiferencia(pasada: FilaPasada) {
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (pasada.esMejor) {
-            Icon(Iconos.Estrella, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Text(
-                text = stringResource(R.string.mistramos_mejor),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
+            if (marcarMejor) MarcaMejor()
         } else {
             Text(
                 text = formatearDelta(pasada.deltaMejorMs),
@@ -445,4 +358,15 @@ private fun TiempoYDiferencia(pasada: FilaPasada) {
             )
         }
     }
+}
+
+/** Estrella y «Mejor»: la pasada más rápida del tramo (no es un récord: la primera pasada tampoco lo sería). */
+@Composable
+private fun MarcaMejor() {
+    Icon(Iconos.Estrella, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+    Text(
+        text = stringResource(R.string.mistramos_mejor),
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+    )
 }

@@ -27,7 +27,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
@@ -55,14 +54,19 @@ import app.trombito.rallycopilot.ui.tutorial.Pista
 
 const val ETIQUETA_FILA_PREFIJO = "tramo-fila-"
 const val ETIQUETA_FAVORITO_PREFIJO = "tramo-favorito-"
-const val ETIQUETA_SUBTITULO_PREFIJO = "tramo-subtitulo-"
-const val ETIQUETA_MEDIA_PREFIJO = "tramo-media-"
+const val ETIQUETA_TIEMPO_PREFIJO = "tramo-tiempo-"
 
 private val LADO_TACTIL = 48.dp
 private val ANCHO_BARRA_FAVORITO = 3.dp
 private val LADO_MINIATURA = 56.dp
+private const val LINEAS_NOMBRE = 2
 
-/** Fila que se borra deslizando hacia la izquierda; también por la acción de accesibilidad «Borrar». */
+/**
+ * Fila que se borra deslizando hacia la izquierda; también por la acción de accesibilidad «Borrar». Con
+ * [conCarretera] el tramo de vía se titula con su nombre completo («Ma-15 · km 20,1→32,4 · hacia Manacor»); sin ella
+ * (bajo la cabecera de su carretera) solo con sus kilómetros.
+ */
+@Suppress("LongParameterList") // API de componente: la traza y la pista son opcionales
 @Composable
 fun FilaTramoDeslizable(
     tramo: ResumenTramo,
@@ -70,6 +74,7 @@ fun FilaTramoDeslizable(
     modifier: Modifier = Modifier,
     traza: List<PuntoGeo>? = null,
     conPista: Boolean = false,
+    conCarretera: Boolean = false,
 ) {
     val estado =
         rememberSwipeToDismissBoxState(
@@ -85,7 +90,7 @@ fun FilaTramoDeslizable(
         enableDismissFromStartToEnd = false,
         backgroundContent = { FondoBorrar() },
     ) {
-        FilaTramo(tramo, traza, acciones, conPista)
+        FilaTramo(tramo, traza, acciones, conPista, conCarretera)
     }
 }
 
@@ -109,6 +114,7 @@ private fun FilaTramo(
     traza: List<PuntoGeo>?,
     acciones: AccionesMisTramos,
     conPista: Boolean,
+    conCarretera: Boolean,
 ) {
     val borrarTexto = stringResource(R.string.mistramos_borrar)
     val renombrarTexto = stringResource(R.string.mistramos_renombrar)
@@ -142,8 +148,8 @@ private fun FilaTramo(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Espacio.m)) {
             Miniatura(traza)
-            DatosTramo(tramo, Modifier.weight(1f))
-            TiemposTramo(tramo)
+            DatosTramo(tramo, conCarretera, Modifier.weight(1f))
+            TiempoTramo(tramo)
             ConPista(Pista.MIS_TRAMOS, stringResource(R.string.pista_mis_tramos), activa = conPista) {
                 BotonFavorito(
                     favorito = tramo.favorito,
@@ -176,42 +182,24 @@ private fun Miniatura(traza: List<PuntoGeo>?) {
     }
 }
 
+/** Nombre y, debajo, «12,3 km · 68 km/h»: lo que se ve de un vistazo; el resto está en el detalle. */
 @Composable
 private fun DatosTramo(
     tramo: ResumenTramo,
+    conCarretera: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val esVia = tramo.tipo == TipoTramo.VIA
-    // Un tramo de vía sin nombre propio se titula por sus kilómetros: la carretera ya va en la cabecera del grupo.
-    val rango = if (esVia) textoRangoVia(tramo) else null
+    // Bajo la cabecera de su carretera, un tramo de vía sin nombre propio se titula por sus kilómetros.
+    val rango = if (tramo.tipo == TipoTramo.VIA && !conCarretera) textoRangoVia(tramo) else null
     val titulo = if (rango != null && tramo.nombrePropio == null) rango else tramo.nombre
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
         Text(
             text = titulo,
             style = Cuerpo.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
+            maxLines = LINEAS_NOMBRE,
             overflow = TextOverflow.Ellipsis,
         )
-        if (rango != null && titulo != rango) {
-            Text(
-                text = rango,
-                style = Ayuda,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-        }
-        tramo.subtitulo?.let {
-            Text(
-                text = it,
-                style = Ayuda,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag(ETIQUETA_SUBTITULO_PREFIJO + tramo.id),
-            )
-        }
         Text(
             text = textoMedidas(tramo),
             style = Ayuda,
@@ -222,14 +210,13 @@ private fun DatosTramo(
     }
 }
 
-/** Km y pasadas: el nombre automático ya dice por dónde va, así que el origen y el destino no se derivan de él. */
+/** «12,3 km · 68 km/h»; sin ninguna pasada aún no hay velocidad y solo sale la distancia. */
 @Composable
-private fun textoMedidas(tramo: ResumenTramo): String =
-    stringResource(
-        R.string.mistramos_medidas,
-        formatearDistanciaTramo(tramo.longitudM),
-        pluralStringResource(R.plurals.mistramos_pasadas, tramo.pasadas, tramo.pasadas),
-    )
+private fun textoMedidas(tramo: ResumenTramo): String {
+    val distancia = formatearDistanciaTramo(tramo.longitudM)
+    val velocidad = tramo.velocidadMediaKmh()?.let { formatearVelocidadKmh(it) } ?: return distancia
+    return stringResource(R.string.mistramos_medidas, distancia, velocidad)
+}
 
 /** «km 20,1→32,4» de un tramo de vía con hitos; sin ellos, null (el título es el nombre). */
 @Composable
@@ -243,38 +230,26 @@ private fun textoRangoVia(tramo: ResumenTramo): String? {
     }
 }
 
-/** El mejor tiempo y, en un tramo de vía con varias pasadas, debajo el tiempo medio. */
+/**
+ * El tiempo, en segundo plano. Con una sola pasada es un dato suelto que no compara con nada: va apagado y pequeño.
+ * Desde dos, el mejor tiempo sí cuenta y va en ámbar y más grande.
+ */
 @Composable
-private fun TiemposTramo(tramo: ResumenTramo) {
-    val media = tramo.mediaMs?.takeIf { tramo.tipo == TipoTramo.VIA && tramo.pasadas >= 2 }
-    Column(horizontalAlignment = Alignment.End) {
-        MejorTiempo(tramo.mejorTotalMs)
-        if (media != null) {
-            Text(
-                text = stringResource(R.string.mistramos_media, formatearTiempo(media)),
-                style = Ayuda,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                modifier = Modifier.testTag(ETIQUETA_MEDIA_PREFIJO + tramo.id),
-            )
-        }
-    }
-}
-
-/** Mejor tiempo en 20 sp, ámbar y cursiva; sin pasadas, un guion apagado. */
-@Composable
-private fun MejorTiempo(
-    mejorMs: Long?,
-    modifier: Modifier = Modifier,
-) {
+private fun TiempoTramo(tramo: ResumenTramo) {
+    val mejorMs = tramo.mejorTotalMs
     val tiempo = mejorMs?.let { formatearTiempo(it) } ?: stringResource(R.string.mistramos_sin_tiempo)
-    val color = if (mejorMs != null) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    val destacado = mejorMs != null && tramo.pasadas >= 2
     Text(
         text = tiempo,
-        style = Rotulo.copy(fontSize = 20.sp, lineHeight = 24.sp, letterSpacing = 0.sp),
-        color = color,
+        style =
+            if (destacado) {
+                Rotulo.copy(fontSize = 20.sp, lineHeight = 24.sp, letterSpacing = 0.sp)
+            } else {
+                Ayuda
+            },
+        color = if (destacado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
-        modifier = modifier,
+        modifier = Modifier.testTag(ETIQUETA_TIEMPO_PREFIJO + tramo.id),
     )
 }
 

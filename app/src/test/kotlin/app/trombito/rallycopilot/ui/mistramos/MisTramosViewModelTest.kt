@@ -293,7 +293,7 @@ class MisTramosViewModelTest {
         }
 
     @Test
-    fun `las pestanas separan viajes y carreteras, se recuerdan y respetan el filtro`() =
+    fun `viajes y tramos de via conviven en una lista y respetan el filtro`() =
         runTest {
             val via = DatosVia("MA15", 1.0, 9.0, SentidoVia.CRECIENTE, "Manacor", null)
             val v1 = resumenFalso("v1", "Ma-15 · km 1,0→9,0", pasadas = 3, via = via, favorito = true)
@@ -301,32 +301,18 @@ class MisTramosViewModelTest {
             val repo = FalsoRepositorioTramos(listOf(a, b, v1, v2))
             val vm = MisTramosViewModel(repo)
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
-            assertEquals(PestanaTramos.VIAJES, vm.uiState.value.pestana)
+            // Ningún tramo se pierde: los viajes y los tramos de vía salen juntos, sin pestañas.
             assertEquals(
-                listOf("a", "b"),
+                setOf("a", "b", "v1", "v2"),
                 vm.uiState.value.tramos
-                    .map { it.id },
-            )
-            vm.onPestana(PestanaTramos.CARRETERAS)
-            assertEquals(PestanaTramos.CARRETERAS, vm.uiState.value.pestana)
-            assertEquals(
-                listOf("v1", "v2"),
-                vm.uiState.value.tramos
-                    .map { it.id },
+                    .map { it.id }
+                    .toSet(),
             )
             vm.onFiltro(FiltroTramos.FAVORITOS)
             assertEquals(
-                listOf("v1"),
+                listOf("a", "v1"),
                 vm.uiState.value.tramos
                     .map { it.id },
             )
-            vm.onPestana(PestanaTramos.VIAJES)
-            assertEquals(
-                listOf("a"),
-                vm.uiState.value.tramos
-                    .map { it.id },
-            )
-            // Solo se leen las siluetas de lo que se ve: los tramos de carretera no se cargan estando en Viajes.
-            assertTrue("v1" !in vm.uiState.value.trazas.keys)
         }
 }

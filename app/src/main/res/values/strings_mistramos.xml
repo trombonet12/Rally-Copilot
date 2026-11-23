@@ -2,13 +2,8 @@
 <resources>
     <!-- Mis tramos -->
     <string name="mistramos_filtro_todos">Todos</string>
-    <string name="mistramos_filtro_repetidos">Repetidos</string>
     <string name="mistramos_filtro_favoritos">Favoritos</string>
     <string name="mistramos_medidas">%1$s · %2$s</string>
-    <plurals name="mistramos_pasadas">
-        <item quantity="one">%1$d pasada</item>
-        <item quantity="other">%1$d pasadas</item>
-    </plurals>
     <string name="mistramos_mejor">Mejor</string>
     <string name="mistramos_sin_tiempo">—</string>
     <string name="mistramos_marcar_favorito">Marcar como favorito</string>
@@ -17,7 +12,7 @@
     <string name="mistramos_borrar">Borrar</string>
     <string name="mistramos_borrado_aviso">«%1$s» borrado</string>
     <string name="mistramos_deshacer">Deshacer</string>
-    <string name="mistramos_borrado_error">No se pudo borrar «%1$s». El tramo sigue en tu lista; inténtalo de nuevo.</string>
+    <string name="mistramos_borrado_error">No se pudo borrar «%1$s». Sigue en tu lista; inténtalo de nuevo.</string>
 
     <!-- Importar y dibujar -->
     <string name="mistramos_importar">Importar un archivo GPX o KML</string>
@@ -52,22 +47,15 @@
     <string name="dibujar_sin_estilo">Descarga el mapa de Mallorca para dibujar una ruta.</string>
 
     <!-- Estados vacíos -->
-    <string name="mistramos_vacio_titulo">Aún no tienes tramos</string>
-    <string name="mistramos_vacio_texto">Conduce al menos un kilómetro y el trayecto quedará guardado como tu primer tramo.</string>
-    <string name="mistramos_vacio_repetidos_titulo">Ningún tramo repetido</string>
-    <string name="mistramos_vacio_repetidos_texto">Cuando pases dos veces por el mismo tramo aparecerá aquí para que lo compares.</string>
+    <string name="mistramos_vacio_titulo">Aún no tienes viajes</string>
+    <string name="mistramos_vacio_texto">Conduce al menos un kilómetro y el viaje quedará guardado aquí, con los tramos de carretera que recorras.</string>
     <string name="mistramos_vacio_favoritos_titulo">Sin favoritos</string>
     <string name="mistramos_vacio_favoritos_texto">Toca la estrella de un tramo para tenerlo siempre a mano.</string>
 
-    <!-- Pestañas: viajes enteros y tramos de carretera -->
-    <string name="mistramos_pestana_viajes">Viajes</string>
-    <string name="mistramos_pestana_carreteras">Carreteras</string>
+    <!-- Tramos de carretera: cabeceras de grupo (Mis carreteras) -->
     <string name="mistramos_via_cabecera_destino">%1$s · hacia %2$s</string>
     <string name="mistramos_via_cabecera_otras">Otras carreteras</string>
     <string name="mistramos_via_rango">km %1$s→%2$s</string>
-    <string name="mistramos_media">Media %1$s</string>
-    <string name="mistramos_vacio_carreteras_titulo">Aún no hay carreteras</string>
-    <string name="mistramos_vacio_carreteras_texto">Se crean solas al conducir: cada carretera que recorras un kilómetro o más aparecerá aquí.</string>
 
     <!-- Renombrar -->
     <string name="mistramos_renombrar_titulo">Nombre del tramo</string>
@@ -82,10 +70,14 @@
     <string name="detalle_ayuda_reconocer">Qué hace Reconocer</string>
     <string name="detalle_ayuda_reconocer_titulo">Reconocer</string>
     <string name="detalle_ayuda_cerrar">Entendido</string>
-    <string name="detalle_longitud">Longitud</string>
-    <string name="detalle_pasadas">Pasadas</string>
+    <string name="detalle_media">Media</string>
+    <string name="detalle_unidad_kmh">km/h</string>
+    <string name="detalle_curvas">Curvas</string>
+    <string name="detalle_curvas_km">Curvas/km</string>
+    <string name="detalle_evolucion_titulo">Evolución</string>
+    <string name="detalle_evolucion_leyenda">El punto grande marca una pasada que mejoró el mejor tiempo hasta entonces.</string>
     <string name="detalle_pasadas_titulo">Pasadas</string>
-    <string name="detalle_sin_pasadas">Este tramo aún no tiene pasadas.</string>
+    <string name="detalle_sin_pasadas">Este tramo aún no tiene ninguna pasada cronometrada.</string>
     <string name="detalle_ver_analisis">Ver análisis</string>
     <string name="detalle_compartir">Compartir el tramo con sus notas</string>
     <string name="detalle_compartir_selector">Compartir tramo</string>

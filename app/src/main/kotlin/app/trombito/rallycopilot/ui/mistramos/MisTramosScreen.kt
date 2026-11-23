@@ -1,7 +1,6 @@
 package app.trombito.rallycopilot.ui.mistramos
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,13 +10,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -33,17 +28,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.importar.MotivoFalloImportar
 import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import app.trombito.rallycopilot.ui.comun.BarraSuperior
 import app.trombito.rallycopilot.ui.comun.ChipIconoWrc
 import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.ListaEsqueletoWrc
+import app.trombito.rallycopilot.ui.comun.PantallaWrc
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_TRAMOS_LISTA = "tramos-lista"
@@ -51,7 +45,6 @@ const val ETIQUETA_TRAMOS_CARGANDO = "tramos-cargando"
 const val ETIQUETA_TRAMOS_VACIO = "tramos-vacio"
 const val ETIQUETA_TRAMOS_IMPORTAR = "tramos-importar"
 const val ETIQUETA_TRAMOS_DIBUJAR = "tramos-dibujar"
-const val ETIQUETA_TRAMOS_CARRETERAS = "tramos-carreteras"
 const val ETIQUETA_TRAMOS_IMPORTANDO = "tramos-importando"
 const val ETIQUETA_FILTRO_PREFIJO = "tramos-filtro-"
 
@@ -60,7 +53,6 @@ data class AccionesMisTramos(
     val onVolver: () -> Unit = {},
     val onAbrir: (ResumenTramo) -> Unit = {},
     val onFiltro: (FiltroTramos) -> Unit = {},
-    val onPestana: (PestanaTramos) -> Unit = {},
     val onFavorito: (ResumenTramo) -> Unit = {},
     val onBorrar: (ResumenTramo) -> Unit = {},
     val onDeshacer: () -> Unit = {},
@@ -73,8 +65,6 @@ data class AccionesMisTramos(
     val onImportar: (() -> Unit)? = null,
     /** Abre el mapa en modo dibujo; null = sin botón. */
     val onDibujar: (() -> Unit)? = null,
-    /** Abre «Mis carreteras»; null = sin icono (p. ej. al elegir tramo a reconocer). */
-    val onMisCarreteras: (() -> Unit)? = null,
     val onImportacionVista: () -> Unit = {},
     /** El usuario confirma importar el archivo que llegó de otra app. */
     val onConfirmarImportacion: () -> Unit = {},
@@ -82,7 +72,7 @@ data class AccionesMisTramos(
     val onCancelarImportacion: () -> Unit = {},
 )
 
-/** «Mis tramos»: filtros, lista por último uso, borrar deslizando con deshacer y renombrar. */
+/** «Mis tramos»: viajes y tramos por último uso, filtro Todos/Favoritos, borrar deslizando con deshacer y renombrar. */
 @Composable
 fun MisTramosScreen(
     estado: MisTramosUiState,
@@ -97,49 +87,28 @@ fun MisTramosScreen(
     AvisoImportacion(importacion, avisos, acciones.onImportacionVista)
     // La ayuda de la estrella no sale con un diálogo abierto: quedaría detrás, en su propia ventana.
     val pistaLibre = estado.renombrando == null && importacion !is EstadoImportacion.Pendiente
-    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
-        Column(Modifier.fillMaxSize()) {
-            BarraSuperior(titulo = stringResource(titulo), onVolver = acciones.onVolver) {
-                BotonMisCarreteras(acciones.onMisCarreteras)
-                BotonesCrear(acciones)
-            }
-            if (importacion == EstadoImportacion.Importando) {
-                LinearProgressIndicator(Modifier.fillMaxWidth().testTag(ETIQUETA_TRAMOS_IMPORTANDO))
-            }
-            PestanasTramos(estado.pestana, acciones.onPestana)
-            FiltrosTramos(estado.filtro, acciones.onFiltro)
-            when {
-                estado.cargando -> {
-                    Cargando()
-                }
-
-                estado.tramos.isEmpty() -> {
-                    VacioTramos(estado.filtro, estado.pestana)
-                }
-
-                estado.pestana == PestanaTramos.CARRETERAS -> {
-                    ListaCarreteras(agruparCarreteras(estado.tramos), estado.trazas, acciones, pistaLibre)
-                }
-
-                else -> {
-                    ListaTramos(estado.tramos, estado.trazas, acciones, pistaLibre)
-                }
-            }
+    PantallaWrc(
+        titulo = stringResource(titulo),
+        onVolver = acciones.onVolver,
+        modifier = modifier,
+        acciones = { BotonesCrear(acciones) },
+    ) {
+        if (importacion == EstadoImportacion.Importando) {
+            LinearProgressIndicator(Modifier.fillMaxWidth().testTag(ETIQUETA_TRAMOS_IMPORTANDO))
         }
-        SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).padding(Espacio.l))
+        FiltrosTramos(estado.filtro, acciones.onFiltro)
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            when {
+                estado.cargando -> Cargando()
+                estado.tramos.isEmpty() -> VacioTramos(estado.filtro)
+                else -> ListaTramos(estado.tramos, estado.trazas, acciones, pistaLibre)
+            }
+            SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).padding(Espacio.l))
+        }
     }
     estado.renombrando?.let { DialogoRenombrarTramo(it, acciones.onRenombrar, acciones.onCancelarRenombrar) }
     if (importacion is EstadoImportacion.Pendiente) {
         DialogoConfirmarImportacion(importacion, acciones.onConfirmarImportacion, acciones.onCancelarImportacion)
-    }
-}
-
-/** Icono de la barra que abre «Mis carreteras» (solo si la pantalla lo ofrece). */
-@Composable
-private fun BotonMisCarreteras(onClick: (() -> Unit)?) {
-    if (onClick == null) return
-    IconButton(onClick = onClick, modifier = Modifier.size(48.dp).testTag(ETIQUETA_TRAMOS_CARRETERAS)) {
-        Icon(Iconos.Curvas, stringResource(R.string.carreteras_acceso), tint = MaterialTheme.colorScheme.onSurface)
     }
 }
 
@@ -189,7 +158,7 @@ private fun FiltrosTramos(
                 .padding(horizontal = Espacio.l, vertical = Espacio.xs),
         horizontalArrangement = Arrangement.spacedBy(Espacio.s),
     ) {
-        FiltroTramos.entries.forEach { filtro ->
+        FILTROS_VISIBLES.forEach { filtro ->
             ChipIconoWrc(
                 icono = iconoFiltro(filtro),
                 texto = stringResource(textoFiltro(filtro)),
@@ -201,18 +170,19 @@ private fun FiltrosTramos(
     }
 }
 
+/** «Repetidos» no se enseña: casi ningún tramo tiene dos pasadas todavía. */
+private val FILTROS_VISIBLES = listOf(FiltroTramos.TODOS, FiltroTramos.FAVORITOS)
+
 private fun textoFiltro(filtro: FiltroTramos): Int =
     when (filtro) {
-        FiltroTramos.TODOS -> R.string.mistramos_filtro_todos
-        FiltroTramos.REPETIDOS -> R.string.mistramos_filtro_repetidos
         FiltroTramos.FAVORITOS -> R.string.mistramos_filtro_favoritos
+        else -> R.string.mistramos_filtro_todos
     }
 
 private fun iconoFiltro(filtro: FiltroTramos): ImageVector =
     when (filtro) {
-        FiltroTramos.TODOS -> Iconos.Capas
-        FiltroTramos.REPETIDOS -> Iconos.Grafico
         FiltroTramos.FAVORITOS -> Iconos.Estrella
+        else -> Iconos.Capas
     }
 
 /** Carga: esqueletos con la silueta de las filas. */
@@ -222,35 +192,15 @@ private fun Cargando() {
 }
 
 @Composable
-private fun VacioTramos(
-    filtro: FiltroTramos,
-    pestana: PestanaTramos,
-) {
+private fun VacioTramos(filtro: FiltroTramos) {
     val (titulo, texto) =
-        when (filtro) {
-            FiltroTramos.TODOS -> {
-                if (pestana == PestanaTramos.CARRETERAS) {
-                    R.string.mistramos_vacio_carreteras_titulo to R.string.mistramos_vacio_carreteras_texto
-                } else {
-                    R.string.mistramos_vacio_titulo to R.string.mistramos_vacio_texto
-                }
-            }
-
-            FiltroTramos.REPETIDOS -> {
-                R.string.mistramos_vacio_repetidos_titulo to R.string.mistramos_vacio_repetidos_texto
-            }
-
-            FiltroTramos.FAVORITOS -> {
-                R.string.mistramos_vacio_favoritos_titulo to R.string.mistramos_vacio_favoritos_texto
-            }
+        if (filtro == FiltroTramos.FAVORITOS) {
+            R.string.mistramos_vacio_favoritos_titulo to R.string.mistramos_vacio_favoritos_texto
+        } else {
+            R.string.mistramos_vacio_titulo to R.string.mistramos_vacio_texto
         }
     EstadoVacioWrc(
-        icono =
-            when {
-                filtro == FiltroTramos.FAVORITOS -> Iconos.EstrellaVacia
-                pestana == PestanaTramos.CARRETERAS -> Iconos.Curvas
-                else -> Iconos.Bandera
-            },
+        icono = if (filtro == FiltroTramos.FAVORITOS) Iconos.EstrellaVacia else Iconos.Bandera,
         titulo = stringResource(titulo),
         texto = stringResource(texto),
         etiqueta = ETIQUETA_TRAMOS_VACIO,
@@ -273,7 +223,14 @@ private fun ListaTramos(
         items(tramos, key = { it.id }) { tramo ->
             // La pista de la estrella solo señala la primera fila.
             val conPista = pistaLibre && tramo.id == tramos.first().id
-            FilaTramoDeslizable(tramo, acciones, Modifier.animateItem(), trazas[tramo.id], conPista)
+            FilaTramoDeslizable(
+                tramo,
+                acciones,
+                Modifier.animateItem(),
+                trazas[tramo.id],
+                conPista,
+                conCarretera = true,
+            )
         }
     }
 }

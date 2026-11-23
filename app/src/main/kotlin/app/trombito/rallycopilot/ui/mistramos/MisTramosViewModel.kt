@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * «Mis tramos»: la lista por último uso con su filtro y su pestaña (viajes o carreteras). Borrar es diferido: la fila
+ * «Mis tramos»: viajes y tramos de carretera por último uso, con su filtro. Borrar es diferido: la fila
  * se oculta al momento y el tramo se borra de verdad al terminar el aviso de deshacer (o al borrar otro, o al salir
  * de la pantalla).
  */
@@ -37,7 +37,6 @@ class MisTramosViewModel
         private val repositorio: RepositorioTramos,
     ) : ViewModel() {
         private val filtro = MutableStateFlow(FiltroTramos.TODOS)
-        private val pestana = MutableStateFlow(PestanaTramos.VIAJES)
         private val ocultos = MutableStateFlow<Set<String>>(emptySet())
         private val renombrando = MutableStateFlow<String?>(null)
         private val pendiente = MutableStateFlow<BorradoPendiente?>(null)
@@ -47,10 +46,8 @@ class MisTramosViewModel
 
         @OptIn(ExperimentalCoroutinesApi::class)
         private val lista =
-            combine(
-                filtro.flatMapLatest { f -> repositorio.observarResumenes(f).map { f to it } },
-                pestana,
-            ) { (f, todos), p -> ListaDePestana(f, p, todos.filter { it.tipo == p.tipo }) }
+            filtro
+                .flatMapLatest { f -> repositorio.observarResumenes(f).map { ListaConFiltro(f, it) } }
                 .onEach { cargarTrazas(it.tramos) }
 
         private val base =
@@ -60,11 +57,10 @@ class MisTramosViewModel
                 renombrando,
                 pendiente,
                 fallo,
-            ) { (f, p, tramos), ocultosAhora, id, borrado, error ->
+            ) { (f, tramos), ocultosAhora, id, borrado, error ->
                 MisTramosUiState(
                     cargando = false,
                     filtro = f,
-                    pestana = p,
                     tramos = tramos.filter { it.id !in ocultosAhora },
                     renombrando = tramos.firstOrNull { it.id == id },
                     borradoPendiente = borrado,
@@ -90,11 +86,6 @@ class MisTramosViewModel
 
         fun onFiltro(nuevo: FiltroTramos) {
             filtro.value = nuevo
-        }
-
-        /** Cambia de pestaña (viajes o carreteras); el filtro se mantiene y se recuerda mientras viva la pantalla. */
-        fun onPestana(nueva: PestanaTramos) {
-            pestana.value = nueva
         }
 
         fun onFavorito(tramo: ResumenTramo) {
@@ -166,10 +157,9 @@ class MisTramosViewModel
             }
         }
 
-        /** Los tramos de la [pestana] con el [filtro] con el que se pidieron. */
-        private data class ListaDePestana(
+        /** Los tramos con el [filtro] con el que se pidieron. */
+        private data class ListaConFiltro(
             val filtro: FiltroTramos,
-            val pestana: PestanaTramos,
             val tramos: List<ResumenTramo>,
         )
 

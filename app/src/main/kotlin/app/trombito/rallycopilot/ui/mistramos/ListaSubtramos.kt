@@ -59,12 +59,12 @@ fun LazyListScope.seccionSubtramos(subtramos: List<FilaSubtramo>) {
     items(subtramos, key = { "subtramo-${it.indice}" }) { fila -> TarjetaSubtramoGuardado(fila) }
 }
 
-/** Fecha, «km 1,2 → 3,6», tiempo y delta frente al mejor de entonces («Primera vez» si no lo había). */
+/** Fecha, «km 20,1 → 22,5» (de la carretera si es de vía), tiempo y delta frente al mejor de entonces. */
 @Composable
 private fun TarjetaSubtramoGuardado(fila: FilaSubtramo) {
     val recursos = LocalContext.current.resources
-    val desde = FormatoEs.decimal(fila.desdeM / METROS_KM)
-    val hasta = FormatoEs.decimal(fila.hastaM / METROS_KM)
+    val desde = FormatoEs.decimal(fila.desdeKm ?: (fila.desdeM / METROS_KM))
+    val hasta = FormatoEs.decimal(fila.hastaKm ?: (fila.hastaM / METROS_KM))
     val rango = stringResource(R.string.detalle_subtramo_rango, desde, hasta)
     val fecha = formatearFechaHora(fila.inicioMs)
     val cierre =
