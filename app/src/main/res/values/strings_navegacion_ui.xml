@@ -38,6 +38,7 @@
     <string name="navegacion_ui_casa_guardada">Casa guardada</string>
     <string name="navegacion_ui_ir_a_casa">Ir a casa</string>
     <string name="navegacion_ui_casa_nombre">Casa</string>
+    <string name="navegacion_ui_reciente_descripcion">Ir a %1$s, destino reciente</string>
     <string name="navegacion_ui_punto_cerrar">Cerrar la tarjeta del punto</string>
 
     <!-- Paradas -->
@@ -63,6 +64,8 @@
     <string name="navegacion_ui_ruta_sinuosa_titulo">Curvas</string>
     <string name="navegacion_ui_ruta_curvas">%1$s de curvas</string>
     <string name="navegacion_ui_ruta_sin_curvas">Sin curvas</string>
+    <string name="navegacion_ui_ruta_curvas_de">%1$s de %2$s km</string>
+    <string name="navegacion_ui_ruta_llegada">Llegada %1$s</string>
     <string name="navegacion_ui_ir">IR</string>
     <string name="navegacion_ui_sin_ruta">No hay una ruta posible hasta ese punto con los mapas instalados.</string>
     <string name="navegacion_ui_probar_otra_vez">Probar otra vez</string>

@@ -6,7 +6,6 @@
     <string name="notas_mal_anotada">Nota anotada</string>
     <string name="notas_mal_sin_nota">No hay nota</string>
     <string name="notas_mal_accion">Marcar esta nota como mal cantada</string>
-    <string name="notas_distancia_siguiente">·&#160;%1$d&#160;m</string>
     <string name="notas_distancia_nota">%1$d&#160;m</string>
     <string name="notas_insignia_cuidado">!</string>
     <string name="notas_en_pausa">Notas en pausa</string>

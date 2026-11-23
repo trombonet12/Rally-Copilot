@@ -83,7 +83,7 @@ const val ETIQUETA_NOTAS_EN_PAUSA = "notas-en-pausa"
 private val SEPARACION_ETIQUETA = 4.dp
 private const val FRACCION_TEXTO_MINIMO = 0.55f
 private const val HOLGURA = 0.97f
-private const val FRACCION_DISTANCIA = 0.6f
+private const val FRACCION_DISTANCIA = 0.85f
 private const val FRACCION_INSIGNIA = 0.62f
 
 private val SEPARACION_SIGUIENTE = 8.dp
@@ -263,7 +263,7 @@ private fun ContenidoActual(
     ) {
         IconosDeLaNota(elemento, 0, simplificadas, color, medidas)
         TextoRotulo(
-            texto = textoNota(recursos, elemento, simplificadas, color, medidas.abreviar),
+            texto = textoNota(elemento, simplificadas, medidas.abreviar),
             color = color,
             medidas = medidas,
             modifier = Modifier.weight(1f),
@@ -312,7 +312,7 @@ private fun TarjetaSiguiente(
         ) {
             IconosDeLaNota(elemento, 1, simplificadas, color, medidas)
             TextoRotulo(
-                texto = textoNota(recursos, elemento, simplificadas, color, medidas.abreviar),
+                texto = textoNota(elemento, simplificadas, medidas.abreviar),
                 color = color,
                 medidas = medidas,
                 modifier = Modifier.weight(1f),

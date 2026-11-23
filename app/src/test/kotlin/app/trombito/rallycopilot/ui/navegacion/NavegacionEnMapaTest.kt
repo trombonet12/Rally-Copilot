@@ -47,6 +47,7 @@ import org.robolectric.annotation.Config
 
 private const val ETIQUETA_MAPA_FALSO = "mapa-falso"
 private const val ETIQUETA_PANEL_GUIADO = "panel-guiado-de-prueba"
+private val REGEX_LLEGADA = Regex("""Llegada \d{2}:\d{2}""")
 
 /** Prueba la navegación (búsqueda, vista previa, terminar y hueco del panel) montada en [MapaScreen]. */
 abstract class NavegacionEnMapaBase {
@@ -136,6 +137,8 @@ abstract class NavegacionEnMapaBase {
 @RunWith(RobolectricTestRunner::class)
 @Config(qualifiers = "w411dp-h891dp-xxhdpi")
 class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
+    private fun sinHoraLlegada(textos: List<String>) = textos.filterNot { REGEX_LLEGADA.matches(it) }
+
     @Test
     fun `en reposo hay barra de destino y ningun boton de terminar ni de volante`() {
         poner(NavegacionUiState())
@@ -248,9 +251,12 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         val rapida = banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA))
         val equilibrada = banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA))
         val sinuosa = banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA))
-        assertEquals(listOf("Rápida", "23 min", "18,4 km", "2,0 km de curvas"), rapida)
-        assertEquals(listOf("Equilibrada", "28 min", "20,1 km", "5,2 km de curvas"), equilibrada)
-        assertEquals(listOf("Curvas", "1 h 15 min", "24,0 km", "9,8 km de curvas"), sinuosa)
+        assertEquals(listOf("Rápida", "23 min", "2,0 de 18,4 km"), sinHoraLlegada(rapida))
+        assertEquals(listOf("Equilibrada", "28 min", "5,2 de 20,1 km"), sinHoraLlegada(equilibrada))
+        assertEquals(listOf("Curvas", "1 h 15 min", "9,8 de 24,0 km"), sinHoraLlegada(sinuosa))
+        listOf(rapida, equilibrada, sinuosa).forEach { textos ->
+            assertTrue("hora de llegada en $textos", textos.any { REGEX_LLEGADA.matches(it) })
+        }
     }
 
     @Test
@@ -263,11 +269,11 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         )
         assertEquals(
             listOf("Rápida", "23 min", "18,4 km", "Sin curvas"),
-            banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA)),
+            sinHoraLlegada(banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA))),
         )
         assertEquals(
             listOf("Equilibrada", "28 min", "20,1 km"),
-            banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA)),
+            sinHoraLlegada(banco.textos(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA))),
         )
     }
 
@@ -302,7 +308,10 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
     fun `las opciones llevan icono sin rotulos y se describen para TalkBack`() {
         poner(vistaPrevia(*tresRutas))
         val rapida = banco.descripcion(banco.conEtiqueta(ETIQUETA_RUTA_RAPIDA))
-        assertEquals("Ruta más rápida: 23 min, 18,4 km, 2,0 km de curvas", rapida)
+        assertTrue(
+            "descripción: $rapida",
+            Regex("""Ruta más rápida: 23 min, 18,4 km, 2,0 km de curvas, Llegada \d{2}:\d{2}""").matches(rapida!!),
+        )
         assertTrue(banco.descripcion(banco.conEtiqueta(ETIQUETA_RUTA_EQUILIBRADA))!!.startsWith("Ruta equilibrada"))
         assertTrue(banco.descripcion(banco.conEtiqueta(ETIQUETA_RUTA_SINUOSA))!!.startsWith("Ruta con más curvas"))
         listOf(ETIQUETA_EMPEZAR, ETIQUETA_CANCELAR).forEach {
@@ -438,7 +447,7 @@ class NavegacionEnMapaVerticalTest : NavegacionEnMapaBase() {
         val franja = banco.conEtiqueta(ETIQUETA_FRANJA_NOTAS).boundsInRoot
         assertFalse("la barra se esconde mientras hay notas", banco.hay(ETIQUETA_BUSCADOR))
         assertEquals(
-            listOf("DERECHA 4 LARGA · 50 m", "120\u00A0m"),
+            listOf("DERECHA 4 LARGA", "120\u00A0m"),
             banco.textos(banco.conEtiqueta(ETIQUETA_NOTA_PREFIJO + 0)),
         )
         assertTrue("la franja sube al sitio de la barra: $franja", franja.top < 24 * 3f)

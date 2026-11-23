@@ -290,7 +290,15 @@ class SesionNavegacionRitmoTest {
 
             // 3 000 s de Valhalla por el factor personal 1,3 del perfil.
             assertEquals(listOf(RecorridosQueGuardan.ID), e.recorridos.llegadasEstimadas.map { it.first })
-            assertEquals(3_900.0, checkNotNull(e.recorridos.llegadasEstimadas.single().second), 1.0)
+            assertEquals(
+                3_900.0,
+                checkNotNull(
+                    e.recorridos.llegadasEstimadas
+                        .single()
+                        .second,
+                ),
+                1.0,
+            )
             assertEquals(listOf(RecorridosQueGuardan.ID to ruta.tiempoS), e.recorridos.previstos)
             trabajo.cancel()
         }

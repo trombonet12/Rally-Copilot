@@ -8,9 +8,11 @@ import app.trombito.rallycopilot.domain.enlaces.ResolvedorEnlaces
 import app.trombito.rallycopilot.domain.enlaces.ResultadoResolucion
 import app.trombito.rallycopilot.domain.navegacion.ControlNavegacion
 import app.trombito.rallycopilot.domain.navegacion.Destino
+import app.trombito.rallycopilot.domain.navegacion.DestinosRecientes
 import app.trombito.rallycopilot.domain.navegacion.EdicionParadas
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
 import app.trombito.rallycopilot.domain.navegacion.RepositorioGuiadoPendiente
+import app.trombito.rallycopilot.domain.navegacion.SinDestinosRecientes
 import app.trombito.rallycopilot.domain.ritmo.ProveedorPerfilRitmo
 import app.trombito.rallycopilot.domain.ritmo.SinPerfilRitmo
 import app.trombito.rallycopilot.domain.ritmo.tiempoEstimadoS
@@ -72,6 +74,7 @@ class NavegacionViewModel
         private val guiadoPendiente: RepositorioGuiadoPendiente,
         private val ajustes: RepositorioAjustesConduccion,
         private val perfilRitmo: ProveedorPerfilRitmo = SinPerfilRitmo,
+        private val destinosRecientes: DestinosRecientes = SinDestinosRecientes,
         private val reloj: () -> Long = System::currentTimeMillis,
     ) : ViewModel() {
         @Inject
@@ -84,6 +87,7 @@ class NavegacionViewModel
             guiadoPendiente: RepositorioGuiadoPendiente,
             ajustes: RepositorioAjustesConduccion,
             perfilRitmo: ProveedorPerfilRitmo,
+            destinosRecientes: DestinosRecientes,
         ) : this(
             buscador,
             enrutador,
@@ -92,6 +96,7 @@ class NavegacionViewModel
             guiadoPendiente,
             ajustes,
             perfilRitmo,
+            destinosRecientes,
             System::currentTimeMillis,
         )
 
@@ -122,16 +127,21 @@ class NavegacionViewModel
         /** Un aviso cada vez que la tarjeta del punto fija la casa («Casa guardada»). */
         val casaGuardada: SharedFlow<Unit> = _casaGuardada.asSharedFlow()
 
+        /** Los últimos destinos con los que se empezó una ruta, sin «Casa» (ya tiene su propio chip). */
+        private val recientes: Flow<List<Destino>> =
+            combine(destinosRecientes.recientes, casa) { lista, casa -> lista.filter { it.punto != casa } }
+
         private data class Extras(
             val oferta: OfertaSeguir?,
             val punto: PuntoElegido?,
             val resumen: ResumenTrayecto?,
             val casa: PuntoGeo?,
+            val recientes: List<Destino>,
         )
 
         private val seguirYPunto: Flow<Extras> =
-            combine(ofertaSeguir, puntoElegido, resumenLlegada, casa) { oferta, punto, resumen, casa ->
-                Extras(oferta, punto, resumen, casa)
+            combine(ofertaSeguir, puntoElegido, resumenLlegada, casa, recientes) { oferta, punto, resumen, casa, rec ->
+                Extras(oferta, punto, resumen, casa, rec)
             }
 
         /** La búsqueda abierta con la lupa del panel mientras se guía. */
@@ -160,6 +170,7 @@ class NavegacionViewModel
                     puntoElegido = extra.punto.takeIf { reposo || c is EstadoNavegacion.Guiando },
                     resumenLlegada = extra.resumen.takeIf { c is EstadoNavegacion.Llegada },
                     casa = extra.casa,
+                    recientes = extra.recientes,
                 )
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), NavegacionUiState())
 
@@ -363,6 +374,7 @@ class NavegacionViewModel
             val previa = vistaPrevia.value ?: return
             val ruta = previa.rutaElegida ?: return
             cancelar()
+            destinosRecientes.registrar(previa.destino)
             control.empezar(previa.destino, previa.perfil, ruta, previa.paradas)
         }
 

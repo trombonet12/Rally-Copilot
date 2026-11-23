@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,9 +19,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
@@ -30,6 +31,7 @@ import app.trombito.rallycopilot.domain.navegacion.Destino
 import app.trombito.rallycopilot.ui.comun.BotonIcono
 import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.maniobras.ParalelogramoShape
 import app.trombito.rallycopilot.ui.navegacion.ResumenTrayecto
 
 const val ETIQUETA_TARJETA_LLEGADA = "tarjeta_llegada"
@@ -40,7 +42,9 @@ const val ETIQUETA_LLEGADA_RESUMEN = "tarjeta_llegada_resumen"
 
 private val COORDENADAS = Regex("""^-?\d+[.,]\d+\s*,\s*-?\d+[.,]\d+$""")
 
-private val FORMA = RoundedCornerShape(14.dp)
+/** La misma forma que la tarjeta de meta: paralelogramo de sesgo 10 dp con borde latón. */
+private val SESGO = 10.dp
+private val FORMA = ParalelogramoShape(SESGO)
 private const val OPACIDAD_RESUMEN = 0.8f
 
 /** El nombre del destino, o null si está vacío o es solo un par de coordenadas. */
@@ -66,8 +70,8 @@ fun TarjetaLlegada(
                 .testTag(ETIQUETA_TARJETA_LLEGADA)
                 .widthIn(max = 420.dp)
                 .background(ColoresGuiado.Carbon, FORMA)
-                .border(2.dp, ColoresGuiado.Laton, FORMA)
-                .padding(16.dp)
+                .border(3.dp, ColoresGuiado.Laton, FORMA)
+                .padding(horizontal = SESGO + 16.dp, vertical = 12.dp)
                 .semantics { liveRegion = LiveRegionMode.Polite },
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -83,12 +87,7 @@ fun TarjetaLlegada(
                 text = titulo,
                 modifier = Modifier.testTag(ETIQUETA_LLEGADA_TITULO),
                 color = ColoresGuiado.Laton,
-                style =
-                    MaterialTheme.typography.headlineSmall.copy(
-                        fontSize = 28.sp,
-                        fontWeight = FontWeight.Black,
-                        fontStyle = FontStyle.Italic,
-                    ),
+                style = estiloCifra(28.sp),
             )
             Text(
                 text = nombre,
@@ -122,6 +121,16 @@ private fun ResumenLlegada(resumen: ResumenTrayecto) {
             ),
         modifier = Modifier.testTag(ETIQUETA_LLEGADA_RESUMEN),
         color = ColoresGuiado.Texto.copy(alpha = OPACIDAD_RESUMEN),
-        style = MaterialTheme.typography.bodyLarge,
+        style = estiloCifra(24.sp),
+        maxLines = 1,
     )
 }
+
+/** Cursiva Black de cifras de ancho fijo, como la tarjeta de meta. */
+private fun estiloCifra(tamano: TextUnit) =
+    TextStyle(
+        fontSize = tamano,
+        fontWeight = FontWeight.Black,
+        fontStyle = FontStyle.Italic,
+        fontFeatureSettings = "tnum",
+    )

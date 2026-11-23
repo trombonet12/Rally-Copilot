@@ -191,6 +191,8 @@ data class NavegacionUiState(
     val resumenLlegada: ResumenTrayecto? = null,
     /** La casa fijada en los ajustes (null sin fijar): «Ir a casa» bajo la barra «¿A dónde?». */
     val casa: PuntoGeo? = null,
+    /** Últimos destinos con los que se empezó una ruta (el más reciente primero, sin la casa): chips bajo la barra. */
+    val recientes: List<Destino> = emptyList(),
 ) {
     /** Sin destino en marcha (parado o en modo libre): se puede buscar destino y ver rutas. */
     val enReposo: Boolean get() = control is EstadoNavegacion.Inactiva || control is EstadoNavegacion.Libre

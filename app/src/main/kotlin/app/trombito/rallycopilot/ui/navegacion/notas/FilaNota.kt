@@ -115,7 +115,7 @@ internal fun FilaNota(
     ) {
         IconosDeLaNota(elemento, indice, simplificadas, color, medidas)
         TextoAjustado(
-            texto = textoNota(recursos, elemento, simplificadas, color, medidas.abreviar),
+            texto = textoNota(elemento, simplificadas, medidas.abreviar),
             color = color,
             medidas = medidas,
             modifier = Modifier.weight(1f),

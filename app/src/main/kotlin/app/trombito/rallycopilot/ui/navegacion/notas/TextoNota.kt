@@ -1,11 +1,7 @@
 package app.trombito.rallycopilot.ui.navegacion.notas
 
 import android.content.res.Resources
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.withStyle
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.notas.Direccion
 import app.trombito.rallycopilot.motor.notas.ElementoHoja
@@ -15,7 +11,6 @@ import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.notas.NotaVisible
 import kotlin.math.roundToInt
 
-private const val ALFA_DISTANCIA_SIGUIENTE = 0.6f
 private const val PASO_DISTANCIA_M = 10
 private const val PASO_DISTANCIA_LEJOS_M = 50
 private const val UMBRAL_DISTANCIA_LEJOS_M = 200
@@ -31,32 +26,20 @@ internal fun distanciaRedondeadaM(distanciaM: Double): Int {
 }
 
 /**
- * Texto visible en mayúsculas: solo la curva con el grado en cifra y, aparte y atenuada con el [color] de la nota al
- * 60 %, la distancia a la siguiente nota con su unidad («HORQUILLA DERECHA MUY LARGA · 40 m», «IZQUIERDA 3 CIERRA»):
- * solo la distancia a la curva (la cifra grande de la tarjeta) destaca. El cuidado, los avisos unidos y el puente de la
- * curva van como iconos, no en el texto. Un aviso suelto lleva su palabra («PUENTE», «CEDA EL PASO»). Con [abreviar]
- * (tarjetas pequeñas): IZQ, DER, HORQ y «MUY CERR.».
+ * Texto visible en mayúsculas: solo la curva con el grado en cifra («IZQUIERDA 3 CIERRA», «HORQUILLA DERECHA MUY
+ * LARGA»). La distancia a la siguiente nota ya solo se canta por voz; en pantalla queda únicamente lo que falta para
+ * la curva (la cifra de la tarjeta). El cuidado, los avisos unidos y el puente de la curva van como iconos, no en el
+ * texto. Un aviso suelto lleva su palabra («PUENTE», «CEDA EL PASO»). Con [abreviar] (tarjetas pequeñas): IZQ, DER,
+ * HORQ y «MUY CERR.».
  */
 internal fun textoNota(
-    recursos: Resources,
     elemento: ElementoHoja,
     simplificada: Boolean,
-    color: Color,
     abreviar: Boolean = false,
 ): AnnotatedString {
     val frase = fraseVisible(elemento, simplificada).uppercase()
     val texto = if (abreviar && elemento is ElementoHoja.DeNota) abreviaturas(frase) else frase
-    val siguiente =
-        (elemento as? ElementoHoja.DeNota)?.nota?.distanciaSiguienteM?.let {
-            recursos.getString(R.string.notas_distancia_siguiente, it)
-        }
-    return buildAnnotatedString {
-        append(texto)
-        if (siguiente != null) {
-            append(' ')
-            withStyle(SpanStyle(color = color.copy(alpha = ALFA_DISTANCIA_SIGUIENTE))) { append(siguiente) }
-        }
-    }
+    return AnnotatedString(texto)
 }
 
 /** Abreviaturas de roadbook para las tarjetas pequeñas. */
