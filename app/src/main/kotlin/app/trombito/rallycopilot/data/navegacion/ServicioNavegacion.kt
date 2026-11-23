@@ -115,6 +115,11 @@ class ServicioNavegacion : Service() {
     private var vigilanteTipo: Job? = null
     private var ultimoStartId = 0
 
+    /** Tras `onDestroy` ninguna tarea pendiente debe tocar el primer plano del servicio. */
+    @Volatile
+    internal var destruido = false
+        private set
+
     /** Tipos con los que se declaró el primer plano por última vez (0 = aún no está en primer plano). */
     private var tipoActual = 0
 
@@ -132,7 +137,7 @@ class ServicioNavegacion : Service() {
             CoroutineExceptionHandler { _, causa ->
                 Log.w(ETIQUETA, "La conducción ha fallado: ${causa.javaClass.simpleName}")
                 publicarFalloDeArranque(idSesion)
-                ContextCompat.getMainExecutor(this).execute { detener() }
+                alHiloPrincipal { detener() }
             }
         // Un solo hilo: SesionNavegacion no es concurrente y los recálculos no deben pisar a las posiciones.
         scope = CoroutineScope(SupervisorJob() + dispatcherDefault.limitedParallelism(1) + alFallar)
@@ -225,7 +230,7 @@ class ServicioNavegacion : Service() {
             }
         nuevo.invokeOnCompletion { causa ->
             // Solo la sesión vigente para el servicio: si otra la sustituyó entre medias, `trabajo` ya es la nueva.
-            if (causa == null) ContextCompat.getMainExecutor(this).execute { if (trabajo === nuevo) detener() }
+            if (causa == null) alHiloPrincipal { if (trabajo === nuevo) detener() }
         }
         trabajo = nuevo
     }
@@ -255,6 +260,7 @@ class ServicioNavegacion : Service() {
     }
 
     private fun detener() {
+        if (destruido) return
         avisos?.cancel()
         avisos = null
         vigilanteTipo?.cancel()
@@ -265,6 +271,11 @@ class ServicioNavegacion : Service() {
     }
 
     override fun onDestroy() {
+        if (destruido) {
+            super.onDestroy()
+            return
+        }
+        destruido = true
         // Acabada la conducción, Piper y Vosk no deben quedarse en memoria (con un margen por la última frase).
         liberadorModelos.programar()
         avisos?.cancel()
@@ -294,6 +305,11 @@ class ServicioNavegacion : Service() {
 }
 
 private const val ETIQUETA = "ServicioNavegacion"
+
+/** Ejecuta [accion] en el hilo principal salvo que el servicio ya se haya destruido cuando le toque. */
+private fun ServicioNavegacion.alHiloPrincipal(accion: () -> Unit) {
+    ContextCompat.getMainExecutor(this).execute { if (!destruido) accion() }
+}
 
 private fun ServicioNavegacion.crearSesion(id: Long) =
     SesionNavegacion(

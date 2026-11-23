@@ -48,15 +48,26 @@ class ServicioNavegacionTest {
         shadowOf(app).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
     }
 
-    /** El scope de proceso del grafo Hilt no se cancela solo: sus colectores no deben sobrevivir al test. */
+    private val controladores = mutableListOf<ServiceController<ServicioNavegacion>>()
+
+    private fun crearServicio(): ServiceController<ServicioNavegacion> =
+        Robolectric.buildService(ServicioNavegacion::class.java).create().also { controladores += it }
+
+    /**
+     * Un servicio que el test no destruye seguiría con su scope vivo: al acabar su sesión posaría tareas en el hilo
+     * principal de un test posterior (o ya sin aplicación) y fallaría allí. `onDestroy` es idempotente. Después, el
+     * scope de proceso del grafo Hilt, que no se cancela solo: sus colectores no deben sobrevivir al test.
+     */
     @After
-    fun cancelarAlcanceDeProceso() {
+    fun limpiar() {
+        controladores.forEach { it.destroy() }
+        controladores.clear()
         (app as RallyCopilotApplication).segundoPlano.cancel()
     }
 
     @Test
     fun `empezar arranca el servicio y este pasa a primer plano con la notificacion del canal Conduccion`() {
-        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val controlador = crearServicio()
         val servicio = controlador.get()
 
         servicio.control.empezarLibre()
@@ -81,7 +92,7 @@ class ServicioNavegacionTest {
 
     @Test
     fun `la accion Terminar de la notificacion para la conduccion`() {
-        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val controlador = crearServicio()
         val servicio = controlador.get()
         servicio.control.empezarLibre()
         controlador.withIntent(shadowOf(app).nextStartedService).startCommand(0, 1)
@@ -95,7 +106,7 @@ class ServicioNavegacionTest {
 
     @Test
     fun `tras Terminar no queda notificacion fantasma de Iniciando`() {
-        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val controlador = crearServicio()
         val servicio = controlador.get()
         servicio.control.empezarLibre()
         controlador.withIntent(shadowOf(app).nextStartedService).startCommand(0, 1)
@@ -116,7 +127,7 @@ class ServicioNavegacionTest {
     @Test
     fun `sin permiso de ubicacion empezar publica Error y no arranca el servicio`() {
         shadowOf(app).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION)
-        val servicio = Robolectric.buildService(ServicioNavegacion::class.java).create().get()
+        val servicio = crearServicio().get()
 
         servicio.control.empezarLibre()
 
@@ -128,7 +139,7 @@ class ServicioNavegacionTest {
         copiloto: Boolean,
     ): Pair<ServiceController<ServicioNavegacion>, ServicioNavegacion> {
         shadowOf(app).grantPermissions(Manifest.permission.RECORD_AUDIO)
-        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val controlador = crearServicio()
         val servicio = controlador.get()
         runBlocking { servicio.ajustes.elegirActivarConCopiloto(copiloto) }
         esperarAjusteCopiloto(servicio, copiloto)
@@ -186,7 +197,7 @@ class ServicioNavegacionTest {
 
     @Test
     fun `con Copiloto activado pero sin permiso de microfono solo pide ubicacion`() {
-        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val controlador = crearServicio()
         val servicio = controlador.get()
         runBlocking { servicio.ajustes.elegirActivarConCopiloto(true) }
         esperarAjusteCopiloto(servicio, true)
@@ -199,7 +210,7 @@ class ServicioNavegacionTest {
 
     @Test
     fun `al cambiar Copiloto en marcha se vuelve a declarar el primer plano con el tipo nuevo`() {
-        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val controlador = crearServicio()
         val servicio = controlador.get()
         servicio.fuente = FuenteSinPosiciones
         // Ajustes falsos solo para el servicio: sin la base real no hay carreras con la escucha de Vosk, que no
@@ -238,7 +249,7 @@ class ServicioNavegacionTest {
 
     @Test
     fun `un reinicio sin solicitud pendiente se detiene a si mismo`() {
-        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val controlador = crearServicio()
         val servicio = controlador.get()
 
         // El sistema relanza el servicio (o llega un segundo arranque) sin que haya nada que recoger.
@@ -252,7 +263,7 @@ class ServicioNavegacionTest {
 
     @Test
     fun `si la conduccion falla con una excepcion publica el error de arranque y se detiene`() {
-        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val controlador = crearServicio()
         val servicio = controlador.get()
         servicio.fuente = FuenteQueFalla
         servicio.control.empezarLibre()
@@ -290,7 +301,7 @@ class ServicioNavegacionTest {
         assertTrue(huerfano > 0)
         previa.close()
 
-        val controlador = Robolectric.buildService(ServicioNavegacion::class.java).create()
+        val controlador = crearServicio()
         val servicio = controlador.get()
 
         val pendientes =
