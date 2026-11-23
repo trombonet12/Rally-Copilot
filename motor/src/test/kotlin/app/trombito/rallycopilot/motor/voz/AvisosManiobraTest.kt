@@ -200,6 +200,29 @@ class AvisosManiobraTest {
     }
 
     @Test
+    fun `con avisar cruces desactivado los giros se anuncian sin la palabra cruce`() {
+        val sinCruces = FiltroIndicaciones(avisarCruces = false)
+        // Preaviso (a 280 m a 20 m/s) e inminente (a 80 m).
+        assertEquals("a trescientos, derecha, Ma-10", avisos.candidatas(1720.0, 20.0, sinCruces).single().texto)
+        assertEquals("derecha", avisos.candidatas(1920.0, 20.0, sinCruces).single().texto)
+        // Las variantes precalculadas salen ya sin «cruce».
+        val textos = avisos.textosPreaviso(1000.0, 40.0, sinCruces, maximo = 1)
+        assertEquals(
+            listOf(
+                "doscientos",
+                "trescientos",
+                "cuatrocientos",
+                "quinientos",
+                "seiscientos",
+            ).map { "a $it, derecha, Ma-10" },
+            textos,
+        )
+        // Con el ajuste activo (por defecto) sigue igual.
+        assertEquals("a trescientos, cruce, derecha, Ma-10", avisos.candidatas(1720.0, 20.0).single().texto)
+        assertEquals("cruce, derecha", avisos.candidatas(1920.0, 20.0).single().texto)
+    }
+
+    @Test
     fun `las maniobras de la ruta se pueden consultar`() {
         assertEquals(3, avisos.maniobras.size)
     }

@@ -33,6 +33,23 @@ class FrasesParadaTest {
     }
 
     @Test
+    fun `sin cruce la siguiente maniobra se dice sin la palabra cruce`() {
+        val r =
+            ruta(
+                listOf(
+                    m(TipoManiobra.SALIDA, 0),
+                    m(TipoManiobra.DESTINO, 3),
+                    m(TipoManiobra.SALIDA, 3),
+                    m(TipoManiobra.DERECHA, 5, listOf("Ma-10")),
+                    m(TipoManiobra.DESTINO, 7),
+                ),
+                listOf(3),
+            )
+        assertEquals("parada alcanzada, siguiente derecha, Ma-10", FrasesParada.alcanzada(r, 0, conCruce = false))
+        assertEquals("parada alcanzada, siguiente cruce, derecha, Ma-10", FrasesParada.alcanzada(r, 0))
+    }
+
+    @Test
     fun `si lo siguiente es el destino lo dice, y si es otra parada dice parada`() {
         val r =
             ruta(

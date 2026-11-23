@@ -26,6 +26,29 @@ class FrasesManiobraTest {
     }
 
     @Test
+    fun `sin cruce los giros se dicen igual pero sin la palabra cruce`() {
+        val vias = listOf("Ma-10")
+        assertEquals("derecha, Ma-10", FrasesManiobra.frase(m(TipoManiobra.DERECHA, vias), conCruce = false))
+        assertEquals(
+            "izquierda",
+            FrasesManiobra.frase(m(TipoManiobra.IZQUIERDA, vias), conVia = false, conCruce = false),
+        )
+        assertEquals(
+            "cerrada derecha, Ma-10",
+            FrasesManiobra.frase(m(TipoManiobra.CERRADA_DERECHA, vias), conCruce = false),
+        )
+        assertEquals(
+            "cerrada izquierda",
+            FrasesManiobra.frase(m(TipoManiobra.CERRADA_IZQUIERDA), conCruce = false),
+        )
+        // Lo que no era un cruce no cambia.
+        assertEquals(
+            "ligera derecha, Ma-10",
+            FrasesManiobra.frase(m(TipoManiobra.LIGERA_DERECHA, vias), conCruce = false),
+        )
+    }
+
+    @Test
     fun `giros sin via`() {
         assertEquals("cruce, derecha", FrasesManiobra.frase(m(TipoManiobra.DERECHA)))
         assertEquals("cruce, izquierda", FrasesManiobra.frase(m(TipoManiobra.IZQUIERDA)))

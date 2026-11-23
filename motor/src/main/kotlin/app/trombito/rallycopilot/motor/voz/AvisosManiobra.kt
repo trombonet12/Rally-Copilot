@@ -30,7 +30,8 @@ class AvisosManiobra(
 
     /**
      * Frases de maniobra vigentes en [posicionM] yendo a [vMs] (m/s), en orden de ruta. Las maniobras que el [filtro]
-     * calla (rotondas, salidas de autopista) no dan ninguna de sus dos fases.
+     * calla (rotondas, salidas de autopista) no dan ninguna de sus dos fases; con `avisarCruces` desactivado los giros
+     * se dicen sin la palabra «cruce».
      */
     fun candidatas(
         posicionM: Double,
@@ -50,11 +51,16 @@ class AvisosManiobra(
                 }
 
                 distancia <= inminenteM -> {
-                    Frase("maniobra-$i-inminente", texto(i, conVia = false), TipoFrase.MANIOBRA, punto)
+                    Frase(
+                        "maniobra-$i-inminente",
+                        texto(i, conVia = false, conCruce = filtro.avisarCruces),
+                        TipoFrase.MANIOBRA,
+                        punto,
+                    )
                 }
 
                 distancia <= preavisoM -> {
-                    preaviso(i, punto, distancia)
+                    preaviso(i, punto, distancia, filtro.avisarCruces)
                 }
 
                 else -> {
@@ -83,7 +89,7 @@ class AvisosManiobra(
             .filter { posicionesM[it] > posicionM && maniobras[it].tipo != TipoManiobra.SALIDA }
             .filter { filtro.permite(maniobras[it].tipo) }
             .take(maximo)
-            .flatMap { i -> (desde..hasta).map { textoPreaviso(i, it) } }
+            .flatMap { i -> (desde..hasta).map { textoPreaviso(i, it, filtro.avisarCruces) } }
     }
 
     private fun ventanaInminenteM(v: Double) = (v * INMINENTE_S).coerceIn(INMINENTE_MIN_M, INMINENTE_MAX_M)
@@ -93,30 +99,33 @@ class AvisosManiobra(
     private fun texto(
         indice: Int,
         conVia: Boolean,
+        conCruce: Boolean,
     ): String {
         val maniobra = maniobras[indice]
         val intermedio = maniobra.tipo == TipoManiobra.DESTINO && indice < maniobras.lastIndex
-        return if (intermedio) FrasesParada.PARADA else FrasesManiobra.frase(maniobra, conVia)
+        return if (intermedio) FrasesParada.PARADA else FrasesManiobra.frase(maniobra, conVia, conCruce)
     }
 
     private fun preaviso(
         indice: Int,
         punto: Double,
         distanciaM: Double,
+        conCruce: Boolean,
     ): Frase? {
         val cientos = (distanciaM / CIENTO_M).roundToInt()
         if (cientos < 1) return null
-        return Frase("maniobra-$indice-preaviso", textoPreaviso(indice, cientos), TipoFrase.MANIOBRA, punto)
+        return Frase("maniobra-$indice-preaviso", textoPreaviso(indice, cientos, conCruce), TipoFrase.MANIOBRA, punto)
     }
 
     /** «a trescientos, cruce, derecha, Ma-10» para [cientos] centenares de metros. */
     private fun textoPreaviso(
         indice: Int,
         cientos: Int,
+        conCruce: Boolean,
     ): String {
         val metros = cientos * CIENTO_M.toInt()
         val palabras = if (metros >= MIL_M) "mil" else FrasesNota.enPalabras(metros)
-        return "a $palabras, ${texto(indice, conVia = true)}"
+        return "a $palabras, ${texto(indice, conVia = true, conCruce = conCruce)}"
     }
 
     private companion object {

@@ -8,16 +8,18 @@ object FrasesParada {
     /**
      * Frase al alcanzar la parada [n] (0 = la primera) de [ruta]: «parada alcanzada, siguiente cruce, derecha, Ma-10».
      * Si lo siguiente es otra parada o el destino lo dice así; sin maniobras por delante, solo «parada alcanzada».
+     * Con [conCruce] `false` la maniobra se dice sin la palabra «cruce».
      */
     fun alcanzada(
         ruta: Ruta,
         n: Int,
+        conCruce: Boolean = true,
     ): String {
         val siguiente = ruta.maniobraTrasParada(n) ?: return "parada alcanzada"
         val texto =
             when {
-                siguiente.tipo != TipoManiobra.DESTINO -> FrasesManiobra.frase(siguiente)
-                siguiente === ruta.maniobras.lastOrNull() -> FrasesManiobra.frase(siguiente)
+                siguiente.tipo != TipoManiobra.DESTINO -> FrasesManiobra.frase(siguiente, conCruce = conCruce)
+                siguiente === ruta.maniobras.lastOrNull() -> FrasesManiobra.frase(siguiente, conCruce = conCruce)
                 else -> PARADA
             }
         return "parada alcanzada, siguiente $texto"

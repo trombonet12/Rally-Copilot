@@ -111,6 +111,9 @@ class CopilotoVoz(
      * (como una maniobra, sin posición: no caduca por distancia) y, si no cabe en [VIGENCIA_PARADA_FIJACIONES]
      * fijaciones, se pierde.
      */
+    /** Si el ajuste vigente quiere la palabra «cruce» en los giros (para las frases que se arman fuera). */
+    val conCruce: Boolean get() = actuales.avisarCruces
+
     fun anunciarParada(
         numero: Int,
         texto: String,

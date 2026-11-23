@@ -45,22 +45,26 @@ object FrasesManiobra {
             TipoManiobra.FERRY to "ferri",
         )
 
+    private const val PREFIJO_CRUCE = "cruce, "
+
     /** Lo que dice el copiloto al empezar a recalcular la ruta (si la salida de ruta dura más de 5 s). */
     const val RECALCULANDO = "recalculando"
 
     /**
      * Si el tipo es [TipoManiobra.OTRA] o falta información, devuelve la instrucción de Valhalla. Con [conVia] `false`
-     * (el aviso inminente, que repite al preaviso) no lleva el nombre de la vía: «cruce, derecha».
+     * (el aviso inminente, que repite al preaviso) no lleva el nombre de la vía: «cruce, derecha». Con [conCruce]
+     * `false` (el ajuste «avisar cruces» desactivado) el giro se dice igual pero sin la palabra: «derecha».
      */
     fun frase(
         m: Maniobra,
         conVia: Boolean = true,
+        conCruce: Boolean = true,
     ): String {
         FIJAS[m.tipo]?.let { return it }
         val via = if (conVia) viaPrincipal(m.vias) else null
         return when (val base = BASES[m.tipo]) {
             null -> if (m.tipo == TipoManiobra.ROTONDA_ENTRADA) rotonda(m, via) else m.instruccionValhalla
-            else -> con(base, via)
+            else -> con(if (conCruce) base else base.removePrefix(PREFIJO_CRUCE), via)
         }
     }
 

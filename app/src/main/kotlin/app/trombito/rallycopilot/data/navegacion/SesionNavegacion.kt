@@ -442,7 +442,10 @@ class SesionNavegacion(
                 val numero = guia.alcanzadasEnRuta
                 guia.alcanzadasEnRuta++
                 guia.paradaAlcanzada()
-                copiloto?.anunciarParada(guia.paradasHechas, FrasesParada.alcanzada(guia.ruta, numero))
+                copiloto?.let {
+                    val frase = FrasesParada.alcanzada(guia.ruta, numero, conCruce = it.conCruce)
+                    it.anunciarParada(guia.paradasHechas, frase)
+                }
             }
             if (alcance != null && guia.recalculo?.isActive == true) relanzarRecalculo(guia, alcance)
         }
