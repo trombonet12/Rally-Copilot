@@ -830,6 +830,64 @@ Una pasada completa con ojos nuevos antes de la siguiente prueba en coche.
 ### Estado
 completado (2026-11-14, v1.6.0, H22–H25 juntos) · ver docs/ESTADO.md
 
+## H26 — Arreglos de conducción
+### Objetivo
+Corregir lo que molestó conduciendo la v1.6.0.
+### Alcance
+- Cruces desactivados: giros guiados sin la palabra «cruce».
+- Hoja de conducción: la lupa abre la búsqueda con el teclado; la hoja no aparenta deslizarse si no se despliega.
+- Opciones de ruta: igualdad por geometría, al menos dos rutas distintas y chips repetidos ocultos.
+### Criterios de aceptación
+- [ ] Con cruces desactivados no se oye «cruce»; los giros se siguen anunciando.
+- [ ] La vista previa no muestra «Misma ruta».
+### Tests
+- Frases sin «cruce»; rutas iguales por geometría y alternativa forzada.
+### Estado
+en curso (2026-11-23)
+
+## H27 — Incidencias con detalle y notas en el mapa
+### Objetivo
+Saber qué es cada incidencia y ver las notas sobre el mapa de un vistazo.
+### Alcance
+- DATEX: km, sentido, carriles, municipio, límite temporal y comentario.
+- Al tocar una incidencia, el mismo bocadillo que al acercarse, con detalle.
+- Grado de la curva en el ápice y mini icono en las advertencias próximas, en libre y guiado.
+### Criterios de aceptación
+- [ ] El bocadillo al tocar muestra km y sentido cuando la DGT los manda.
+- [ ] Las notas de los siguientes ~1,5 km se ven en el mapa sin saturarlo.
+### Tests
+- Parser DATEX sobre el fixture real; ápice de las notas.
+### Estado
+en curso (2026-11-23)
+
+## H28 — Tramos en ruta y resumen del viaje
+### Objetivo
+Ver dónde empieza y acaba cada tramo y entender el viaje al terminar.
+### Alcance
+- Tramos y subtramos conocidos en el mapa (línea, salida y meta) y «Fin de tramo en X m» en el HUD.
+- Pantalla de viaje al terminar un recorrido de más de 1 km, reabrible desde el historial.
+### Criterios de aceptación
+- [ ] En una ruta con tramos conocidos se ven la línea y las banderas.
+- [ ] Al terminar sale el resumen con km, tiempo, media, llegada y tramos.
+### Tests
+- Tramos que solapan una ruta; `ResumenViaje`.
+### Estado
+en curso (2026-11-23)
+
+## H29 — Ajustes en una columna y auditoría del perfil
+### Objetivo
+Ajustes fáciles de recorrer y un perfil que aporte conclusiones.
+### Alcance
+- Ajustes en una columna con categorías reagrupadas.
+- Auditoría de Mis tramos y Perfil con Fable (`docs/auditoria/2026-11c-perfil.md`); Joan elige la propuesta antes de implementarla.
+### Criterios de aceptación
+- [ ] Ajustes en una sola columna, con vista previa en cada categoría.
+- [ ] Propuestas de Fable presentadas a Joan.
+### Tests
+- Los de Ajustes ajustados.
+### Estado
+en curso (2026-11-23)
+
 ## Más adelante
 - Pendientes de hitos anteriores: prueba en coche (H14), topónimos que Vosk no reconoce, condiciones del NAP de la DGT y del CNIG, «Abrir con» desde gestores de archivos reales, H11 (voz de Moya) y H12 (Play).
 

@@ -344,3 +344,13 @@ Contexto y opciones en [docs/auditoria/2026-11.md](docs/auditoria/2026-11.md). T
   - La ruta sigue roja, como eligió Joan.
   - La pérdida de GPS se avisa en pantalla y una vez por voz.
   - Ajustes pasa a subpantallas con vista previa fija.
+- **Tras usar la v1.6.0 (respondidas 2026-11-23):**
+  - **Cruces desactivados:** el giro de la ruta guiada se sigue anunciando, pero sin la palabra «cruce» («a quinientos, derecha, Ma-10»).
+  - **Incidencias:** al tocarlas sale el mismo bocadillo que al acercarse, con el detalle de la DGT (km, sentido, carriles, límite y fechas).
+  - **Tramos en la ruta:** línea resaltada con bandera de salida y de meta, y «Fin de tramo en X m» en el HUD.
+  - **Opciones de ruta:** forzar al menos dos rutas distintas (más margen y el perfil más sinuoso); los chips repetidos se ocultan.
+  - **Resumen al cerrar:** pantalla de viaje (km, tiempo, media, llegada real frente a prevista, tramos con delta, mapa por velocidad y vías frente a la media histórica), que se puede reabrir desde el historial.
+  - **Ajustes:** lista de categorías reagrupadas en una sola columna; cada una abre su subpantalla con vista previa.
+  - **Mis tramos y perfil:** Fable audita y propone; Joan elige antes de implementar.
+  - **Notas en el mapa (sin pregunta):** número de la curva en el ápice y mini icono en las advertencias, solo las próximas.
+  - **Hoja de conducción (sin pregunta):** la lupa abre la búsqueda con el teclado; la hoja no aparenta deslizarse si no se despliega.

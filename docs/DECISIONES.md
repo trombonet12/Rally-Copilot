@@ -248,3 +248,8 @@ considera decidido hasta que Joan responda.
 - 2026-11-14 · auditoría · Fable (modelo `fable`) cuenta como 1 punto del presupuesto de subagentes, igual que opus.
 - 2026-11-14 · búsqueda · Direcciones pegadas de Google («calle, número, piso, barrio, CP municipio, región»): se quedan calle + municipio; abreviaturas de vía, número final y equivalencias ES↔CA de nombres propios; si el AND no da nada, se relaja a todas las palabras menos una.
 - 2026-11-14 · coordenadas · Se acepta la coma decimal de Google Maps en español («39,5789682, 2,6515765»: coma pegada a dígitos + separador con espacio), validando rango; espacios Unicode, marcas invisibles, `º`/`˚`/comillas tipográficas, URLs sin esquema, cualquier `google.<tld>` en redirecciones y Plus Codes offline (cortos con referencia en Mallorca).
+
+## H26–H29: tras usar la v1.6.0 (2026-11-23)
+- 2026-11-23 · voz · `avisarCruces=false` quita la palabra «cruce» de las frases de giro guiado (`FrasesManiobra`, `FrasesParada`) pero el giro se sigue cantando; la notificación de texto no cambia · el ajuste solo afectaba a los avisos de la hoja y Joan esperaba no oír «cruce».
+- 2026-11-23 · rutas · Dos rutas son iguales si su longitud difiere menos del 1 % y su distancia de Hausdorff muestreada es menor de 30 m (no `==` de `Ruta`); si Curvas o Equilibrada coinciden con Rápida se reintenta con más margen (factor hasta 2,0 y MUY_SINUOSA); si siguen iguales, el chip se oculta.
+- 2026-11-23 · delegación · Modelo explícito en todo subagente, también en los Explore de análisis (haiku para inventarios, sonnet para razonar causas) · Joan, al ver que se lanzaron sin modelo y heredaron Opus.
