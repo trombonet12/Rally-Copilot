@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,15 +40,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.ui.comun.FondoWrc
-import app.trombito.rallycopilot.ui.comun.FormatoEs
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
-import app.trombito.rallycopilot.ui.mistramos.MiniaturaTraza
 import app.trombito.rallycopilot.ui.theme.Ayuda
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.EtiquetaIcono
@@ -56,10 +54,10 @@ import app.trombito.rallycopilot.ui.theme.Movimiento
 import app.trombito.rallycopilot.ui.theme.RojoAcento
 import kotlinx.coroutines.delay
 
-/** Etiqueta de prueba de la línea «Última salida». */
+/** Etiqueta de prueba de la tarjeta de la última salida (pulsable: abre el tramo). */
 const val ETIQUETA_ULTIMA_SALIDA = "ultima-salida-inicio"
 
-/** Etiqueta de prueba de la frase de bienvenida (aún sin salidas). */
+/** Etiqueta de prueba de la tarjeta «Tu primer tramo saldrá aquí» (aún sin salidas). */
 const val ETIQUETA_BIENVENIDA = "bienvenida-inicio"
 
 private val ALTO_CONDUCIR = 120.dp
@@ -67,22 +65,23 @@ private val ALTO_TARJETA_MENU = 96.dp
 private val ICONO_CONDUCIR = 56.dp
 private val ICONO_MENU = 32.dp
 private val LADO_MASCOTA = 120.dp
-private val LADO_MINIATURA = 48.dp
 private val ANCHO_FRANJA = 96.dp
 private const val RETARDO_ESCALON_MS = 70L
 private const val DESPLAZAMIENTO_ENTRADA_DP = 24f
 private const val ESCALONES_MAX = 6
 
 /**
- * Pantalla de inicio sobre el fondo WRC: la mascota y el nombre, CONDUCIR como tarjeta protagonista con la última
- * salida debajo y el resto del menú en una rejilla. En apaisado, la mascota a la izquierda y el menú a la derecha.
- * Los elementos entran uno tras otro (fundido y subida corta).
+ * Pantalla de inicio sobre el fondo WRC. En vertical se reparte el alto: la mascota arriba, CONDUCIR con la última
+ * salida en el centro y el menú abajo, al alcance del pulgar. En apaisado, la mascota a la izquierda y todo el menú a
+ * la derecha. Los elementos entran uno tras otro (fundido y subida corta).
  */
 @Composable
 fun InicioScreen(
     modifier: Modifier = Modifier,
     estado: InicioUiState = InicioUiState(),
     onEntrada: (EntradaInicio) -> Unit = {},
+    onAbrirUltima: (String) -> Unit = {},
+    onRepetirUltima: () -> Unit = {},
 ) {
     FondoWrc(modifier) {
         BoxWithConstraints(Modifier.fillMaxSize().safeDrawingPadding()) {
@@ -98,9 +97,14 @@ fun InicioScreen(
                     Column(
                         Modifier.weight(1f).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(Espacio.m),
-                    ) { MenuInicio(estado, onEntrada) }
+                    ) {
+                        BloqueConducir(estado, onEntrada, onAbrirUltima, onRepetirUltima)
+                        FilaMenu(onEntrada)
+                    }
                 }
             } else {
+                // `heightIn(min)` + pesos: dentro del desplazable los pesos reparten el alto sobrante; en pantallas
+                // bajas el contenido manda y se desplaza.
                 Column(
                     modifier =
                         Modifier
@@ -109,13 +113,14 @@ fun InicioScreen(
                             .verticalScroll(rememberScrollState())
                             .padding(horizontal = Espacio.xl, vertical = Espacio.xl),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(Espacio.l, Alignment.CenterVertically),
+                    verticalArrangement = Arrangement.spacedBy(Espacio.l),
                 ) {
                     Aparece(0) { CabeceraInicio() }
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(Espacio.m),
-                    ) { MenuInicio(estado, onEntrada) }
+                    Spacer(Modifier.weight(1f))
+                    BloqueConducir(estado, onEntrada, onAbrirUltima, onRepetirUltima)
+                    HuecoTemporada()
+                    Spacer(Modifier.weight(1f))
+                    FilaMenu(onEntrada)
                 }
             }
         }
@@ -147,17 +152,32 @@ private fun Aparece(
     ) { contenido() }
 }
 
+/** CONDUCIR, protagonista, con la tarjeta de la última salida pegada debajo. */
 @Composable
-private fun MenuInicio(
+private fun BloqueConducir(
     estado: InicioUiState,
     onEntrada: (EntradaInicio) -> Unit,
+    onAbrirUltima: (String) -> Unit,
+    onRepetirUltima: () -> Unit,
 ) {
     Aparece(1) {
-        Column(verticalArrangement = Arrangement.spacedBy(Espacio.s)) {
+        Column(verticalArrangement = Arrangement.spacedBy(Espacio.m)) {
             TarjetaConducir { onEntrada(EntradaInicio.CONDUCIR) }
-            UltimaSalidaInicio(estado.ultimaSalida)
+            TarjetaUltimaSalida(estado.ultimaSalida, onAbrirUltima, onRepetirUltima)
         }
     }
+}
+
+/**
+ * Sitio reservado, entre la última salida y el menú, para la futura tarjeta de temporada. Aún no se dibuja nada:
+ * cuando exista, ocupará este hueco sin mover el resto de la pantalla.
+ */
+@Composable
+private fun HuecoTemporada() = Unit
+
+/** El resto del menú (Mis tramos, Mis carreteras, Perfil, Ajustes) en una fila de tarjetas iguales. */
+@Composable
+private fun FilaMenu(onEntrada: (EntradaInicio) -> Unit) {
     Aparece(2) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Espacio.m)) {
             EntradaInicio.entries
@@ -197,12 +217,14 @@ private fun ColumnScope.CabeceraInicio() {
     )
 }
 
-/** CONDUCIR: tarjeta de 120 dp con el icono de navegación grande, en ámbar y cursiva. */
+/** CONDUCIR: tarjeta de 120 dp, biselada como un rótulo de retransmisión y con barra roja de acento. */
 @Composable
 private fun TarjetaConducir(onClick: () -> Unit) {
     TarjetaWrc(
         modifier = Modifier.fillMaxWidth().height(ALTO_CONDUCIR).testTag("inicio-conducir"),
         activa = true,
+        biselada = true,
+        acentoRojo = true,
         onClick = onClick,
     ) {
         Row(
@@ -233,47 +255,11 @@ private fun TarjetaConducir(onClick: () -> Unit) {
     }
 }
 
-/** «Última salida: tramo · tiempo · mejor tiempo» con la silueta del tramo; sin salidas, una frase de bienvenida. */
-@Composable
-private fun UltimaSalidaInicio(salida: UltimaSalida?) {
-    if (salida == null) {
-        Text(
-            text = stringResource(R.string.inicio_bienvenida),
-            style = Ayuda,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = Espacio.s).testTag(ETIQUETA_BIENVENIDA),
-        )
-        return
-    }
-    val texto =
-        stringResource(
-            R.string.inicio_ultima_salida,
-            salida.nombre,
-            FormatoEs.tiempo(salida.tiempoMs),
-            FormatoEs.tiempo(salida.mejorMs),
-        )
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Espacio.xs).testTag(ETIQUETA_ULTIMA_SALIDA),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Espacio.m),
-    ) {
-        MiniaturaTraza(salida.traza, LADO_MINIATURA)
-        Text(
-            text = texto,
-            style = Ayuda,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-    }
-}
-
 private fun EntradaInicio.icono(): ImageVector =
     when (this) {
         EntradaInicio.CONDUCIR -> Iconos.Rumbo
         EntradaInicio.MIS_TRAMOS -> Iconos.Bandera
+        EntradaInicio.MIS_CARRETERAS -> Iconos.Curvas
         EntradaInicio.PERFIL -> Iconos.Piloto
         EntradaInicio.AJUSTES -> Iconos.Deslizadores
     }

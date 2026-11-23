@@ -6,13 +6,24 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-/** Conecta el inicio con su ViewModel (la última salida). */
+/**
+ * Conecta el inicio con su ViewModel (la última salida). [onAbrirUltima] recibe el id del tramo para abrir su detalle y
+ * [onRepetirUltima] pide el atajo «Repetir último tramo».
+ */
 @Composable
 fun InicioRoute(
     onEntrada: (EntradaInicio) -> Unit,
+    onAbrirUltima: (String) -> Unit,
+    onRepetirUltima: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: InicioViewModel = hiltViewModel(),
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
-    InicioScreen(modifier = modifier, estado = estado, onEntrada = onEntrada)
+    InicioScreen(
+        modifier = modifier,
+        estado = estado,
+        onEntrada = onEntrada,
+        onAbrirUltima = onAbrirUltima,
+        onRepetirUltima = onRepetirUltima,
+    )
 }

@@ -12,6 +12,7 @@ enum class EntradaInicio(
 ) {
     CONDUCIR(R.string.inicio_conducir),
     MIS_TRAMOS(R.string.inicio_mis_tramos),
+    MIS_CARRETERAS(R.string.carreteras_acceso),
     PERFIL(R.string.inicio_perfil),
     AJUSTES(R.string.inicio_ajustes),
 }
