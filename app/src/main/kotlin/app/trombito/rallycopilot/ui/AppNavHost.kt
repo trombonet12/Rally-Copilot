@@ -29,12 +29,13 @@ import app.trombito.rallycopilot.ui.ajustes.AjustesSeccionRoute
 import app.trombito.rallycopilot.ui.ajustes.AyudaNotasScreen
 import app.trombito.rallycopilot.ui.ajustes.AyudaVozScreen
 import app.trombito.rallycopilot.ui.analisis.AnalisisRoute
-import app.trombito.rallycopilot.ui.inicio.EntradaInicio
-import app.trombito.rallycopilot.ui.inicio.InicioRoute
+import app.trombito.rallycopilot.ui.comun.TransicionesWrc
+import app.trombito.rallycopilot.ui.comun.rememberReducirMovimiento
 import app.trombito.rallycopilot.ui.mapa.MapaRoute
 import app.trombito.rallycopilot.ui.mapa.MapaViewModel
 import app.trombito.rallycopilot.ui.mapasoffline.MapasOfflineRoute
 import app.trombito.rallycopilot.ui.mapasoffline.ZonaDetalleRoute
+import app.trombito.rallycopilot.ui.miscarreteras.FichaCarreteraRoute
 import app.trombito.rallycopilot.ui.miscarreteras.MisCarreterasRoute
 import app.trombito.rallycopilot.ui.mistramos.DetalleTramoRoute
 import app.trombito.rallycopilot.ui.mistramos.DibujarRoute
@@ -62,7 +63,7 @@ import app.trombito.rallycopilot.ui.widget.pasoDeAtajo
  * está parado; conduciendo no se interrumpe.
  */
 @Composable
-private fun DestinoMapa(
+internal fun DestinoMapa(
     nav: NavHostController,
     atajoPendiente: Destino?,
     onAtajoAplicado: () -> Unit,
@@ -80,6 +81,7 @@ private fun DestinoMapa(
         onAbrirMapasOffline = { nav.navigate(RutaMapasOffline) },
         onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
         onSalir = { nav.popBackStack() },
+        onAyudaNotas = { nav.navigate(RutaAyudaNotas) },
     )
 }
 
@@ -145,8 +147,16 @@ fun AppNavHost(
     // La bienvenida va antes de Inicio solo la primera vez; sin parpadeo porque el flag se lee al crear el ViewModel.
     val arranque: Any = if (tutorial.bienvenidaVista) RutaInicio else RutaBienvenida
     CompositionLocalProvider(LocalPistas provides pistas) {
-        NavHost(navController = nav, startDestination = arranque) {
-            destinos(nav, importacion, tutorial, atajoPendiente, resumenes) { atajoPendiente = null }
+        val reducir = rememberReducirMovimiento()
+        NavHost(
+            navController = nav,
+            startDestination = arranque,
+            enterTransition = { TransicionesWrc.entrada(reducir) },
+            exitTransition = { TransicionesWrc.salida(reducir) },
+            popEnterTransition = { TransicionesWrc.entradaAtras(reducir) },
+            popExitTransition = { TransicionesWrc.salidaAtras(reducir) },
+        ) {
+            destinos(nav, importacion, tutorial, atajos, atajoPendiente, resumenes, reducir) { atajoPendiente = null }
         }
     }
 }
@@ -156,12 +166,13 @@ private fun NavGraphBuilder.destinos(
     nav: NavHostController,
     importacion: ImportarViewModel,
     tutorial: TutorialViewModel,
+    atajos: AtajosViewModel,
     atajoPendiente: Destino?,
     resumenes: ResumenPendienteViewModel,
+    reducirMovimiento: Boolean,
     onAtajoAplicado: () -> Unit,
 ) {
-    composable<RutaInicio> { InicioRoute(onEntrada = { abrirEntrada(nav, it) }) }
-    composable<RutaMapa> { DestinoMapa(nav, atajoPendiente, onAtajoAplicado, resumenes) }
+    destinosInicioMapa(nav, atajos, atajoPendiente, resumenes, reducirMovimiento, onAtajoAplicado)
     composable<RutaMapasOffline> {
         MapasOfflineRoute(onVolver = { nav.popBackStack() }, onDescargarZona = { nav.navigate(RutaZonaDetalle) })
     }
@@ -175,10 +186,9 @@ private fun NavGraphBuilder.destinos(
             onAbrirTramo = { nav.navigate(RutaTramo(it)) },
             importacion = importacion,
             onDibujar = { nav.navigate(RutaDibujar) },
-            onMisCarreteras = { nav.navigate(RutaMisCarreteras) },
         )
     }
-    composable<RutaMisCarreteras> { MisCarreterasRoute(onVolver = { nav.popBackStack() }) }
+    destinosCarreteras(nav)
     composable<RutaDibujar> {
         DibujarRoute(
             onVolver = { nav.popBackStack() },
@@ -199,12 +209,32 @@ private fun NavGraphBuilder.destinos(
         )
     }
     composable<RutaResumenViaje> { ResumenViajeRoute(onVolver = { nav.popBackStack() }) }
-    composable<RutaEditarTramo> { EditarTramoRoute(onVolver = { nav.popBackStack() }) }
+    composable<RutaEditarTramo> {
+        EditarTramoRoute(onVolver = { nav.popBackStack() }, onAyudaNotas = { nav.navigate(RutaAyudaNotas) })
+    }
     composable<RutaAnalisis> { AnalisisRoute(onVolver = { nav.popBackStack() }) }
     composable<RutaPerfil> {
         PerfilRoute(
             onVolver = { nav.popBackStack() },
-            onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
+            onVerViaje = { nav.navigate(RutaResumenViaje(it)) },
+            onVerViajes = { nav.navigate(RutaMisTramos) },
+            onVerCarreteras = { nav.navigate(RutaMisCarreteras) },
+        )
+    }
+}
+
+/** «Mis carreteras» y la ficha de cada carretera, desde la que se abre cada tramo. */
+private fun NavGraphBuilder.destinosCarreteras(nav: NavHostController) {
+    composable<RutaMisCarreteras> {
+        MisCarreterasRoute(
+            onVolver = { nav.popBackStack() },
+            onFicha = { ref -> nav.navigate(RutaFichaCarretera(ref)) },
+        )
+    }
+    composable<RutaFichaCarretera> {
+        FichaCarreteraRoute(
+            onVolver = { nav.popBackStack() },
+            onAbrirTramo = { id -> nav.navigate(RutaTramo(id)) },
         )
     }
 }
@@ -298,18 +328,5 @@ private fun NavegarAlAtajo(
             if (paso.abrirMapa) nav.navigate(RutaMapa) { popUpTo<RutaInicio>() }
             if (paso.avisarSinTramos) Toast.makeText(contexto, R.string.atajo_sin_tramos, Toast.LENGTH_LONG).show()
         }
-    }
-}
-
-/** Las entradas desactivadas no llegan aquí (la fila no es pulsable). */
-private fun abrirEntrada(
-    nav: NavHostController,
-    entrada: EntradaInicio,
-) {
-    when (entrada) {
-        EntradaInicio.CONDUCIR -> nav.navigate(RutaMapa)
-        EntradaInicio.AJUSTES -> nav.navigate(RutaAjustes)
-        EntradaInicio.MIS_TRAMOS -> nav.navigate(RutaMisTramos)
-        EntradaInicio.PERFIL -> nav.navigate(RutaPerfil)
     }
 }

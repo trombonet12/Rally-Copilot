@@ -899,7 +899,7 @@ Que cualquier icono del mapa explique qué es al tocarlo: radares, incidencias, 
 ### Tests
 - Prioridad de capas, proximidad, formato de cada bocadillo y selección que sobrevive al refresco.
 ### Estado
-en curso (2026-11-23) · va en la v1.8.0 con H29b–H32 (Joan: sin parche aparte)
+completado (2026-11-23, v1.8.0, H29a–H32 juntos) · ver docs/ESTADO.md
 
 ## H29b — Sistema visual común y pantallas más vistosas
 ### Objetivo
@@ -935,7 +935,7 @@ Un solo lenguaje WRC en toda la app, no solo en el HUD (`docs/auditoria/2026-11d
 ### Tests
 - Los de cada pantalla tocada; destinos recientes (datos).
 ### Estado
-en curso: piezas comunes, tokens y poses de Trombito hechos (2026-11-23); falta migrar las pantallas
+completado (2026-11-23, v1.8.0, H29a–H32 juntos) · ver docs/ESTADO.md
 
 ## H30 — Tablero del piloto
 ### Objetivo
@@ -961,7 +961,7 @@ Que el Perfil dé conclusiones y no listas (propuesta A de `docs/auditoria/2026-
 ### Tests
 - `ConclusionesPiloto` y velocidad por grado (motor, TDD).
 ### Estado
-pendiente
+completado (2026-11-23, v1.8.0, H29a–H32 juntos) · ver docs/ESTADO.md
 
 ## H31 — Carreteras como protagonistas
 ### Objetivo
@@ -979,7 +979,7 @@ Una ficha por carretera (propuesta B).
 ### Tests
 - Agregado por carretera y sentido; nombre por pueblo.
 ### Estado
-pendiente
+completado (2026-11-23, v1.8.0, H29a–H32 juntos) · ver docs/ESTADO.md
 
 ## H32 — Temporada
 ### Objetivo
@@ -998,9 +998,10 @@ Progresión tipo juego WRC (propuesta C).
 ### Tests
 - Hitos, racha y nivel (motor, TDD).
 ### Estado
-pendiente
+completado (2026-11-23, v1.8.0, H29a–H32 juntos) · ver docs/ESTADO.md
 
 ## Más adelante
+- Retoques de H29b aplazados para no retrasar la v1.8.0: iconos por categoría en la búsqueda, Dibujar ruta con la plantilla «mapa con panel» y un solo snackbar en toda la app.
 - Pendientes de hitos anteriores: prueba en coche (H14), topónimos que Vosk no reconoce, condiciones del NAP de la DGT y del CNIG, «Abrir con» desde gestores de archivos reales, H11 (voz de Moya) y H12 (Play).
 
 ## Cambios respecto a la propuesta inicial
