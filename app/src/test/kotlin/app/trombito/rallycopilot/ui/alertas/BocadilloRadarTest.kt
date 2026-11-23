@@ -98,9 +98,39 @@ class BocadilloRadarTest {
         val obra = incidencia("i1", TipoIncidencia.OBRAS, listOf(PuntoGeo(39.7, 2.8)))
         val alertas = AlertasEnCurso(incidencias = listOf(cercana(obra, enRuta = true, distanciaM = 500.0)))
         val bocadillo = checkNotNull(presentar(alertas).bocadillo)
-        assertEquals(ContenidoBocadillo.Incidencia(TipoIncidencia.OBRAS), bocadillo.contenido)
+        assertEquals(ContenidoBocadillo.Incidencia(TipoIncidencia.OBRAS, "Ma-10"), bocadillo.contenido)
         assertEquals(39.7, bocadillo.lat, 0.0)
         val lejos = AlertasEnCurso(incidencias = listOf(cercana(obra, enRuta = true, distanciaM = 900.0)))
         assertNull(presentar(lejos).bocadillo)
+    }
+
+    @Test
+    fun `la incidencia tocada saca su bocadillo completo aunque no haya conduccion`() {
+        val obra = incidencia("i1", TipoIncidencia.OBRAS, listOf(PuntoGeo(39.7, 2.8)))
+        val conDatos = obra.copy(pkDesde = 56.5, comentario = "Desvío")
+        val ui = presentarAlertas(null, IncidenciasVigentes(listOf(conDatos), null), AHORA_MS, "i1", radares)
+        val bocadillo = checkNotNull(ui.bocadillo)
+        assertEquals("seleccion-i1", bocadillo.id)
+        val contenido = bocadillo.contenido as ContenidoBocadillo.Incidencia
+        assertEquals(true, contenido.completo)
+        assertEquals(56.5, contenido.detalle.pkDesde)
+        assertEquals("Desvío", contenido.detalle.comentario)
+        assertEquals(39.7, bocadillo.lat, 0.0)
+    }
+
+    @Test
+    fun `la incidencia tocada manda sobre el radar que se acerca y la lejana tambien se ancla`() {
+        val lejana = incidencia("i1", TipoIncidencia.ACCIDENTE, listOf(PuntoGeo(39.9, 2.7)))
+        val alertas =
+            AlertasEnCurso(
+                radarProximo = RadarProximo(TipoRadar.FIJO, 400.0, 80, "f1"),
+                incidencias = listOf(cercana(lejana, enRuta = false, distanciaM = 2_500.0)),
+            )
+        val ui = presentarAlertas(alertas, IncidenciasVigentes(), AHORA_MS, "i1", radares)
+        assertEquals("seleccion-i1", ui.bocadillo?.id)
+        assertEquals(39.9, ui.bocadillo?.lat ?: 0.0, 0.0)
+        // Sin selección vuelve el del radar.
+        val sinSeleccion = presentarAlertas(alertas, IncidenciasVigentes(), AHORA_MS, null, radares)
+        assertEquals("proximo-f1", sinSeleccion.bocadillo?.id)
     }
 }

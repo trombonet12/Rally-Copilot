@@ -3,6 +3,7 @@ package app.trombito.rallycopilot.ui.alertas
 import androidx.compose.runtime.Immutable
 import app.trombito.rallycopilot.motor.alertas.TipoIncidencia
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
+import java.time.Instant
 
 /** Clase de radar tal como la ve el conductor (el tramo cuenta una sola vez, entrada o salida). */
 enum class ClaseRadar { FIJO, MOVIL, TRAMO }
@@ -46,6 +47,24 @@ data class AlertasPanel(
     val tramo: MediaTramoUi? = null,
 )
 
+/**
+ * Los datos de la DGT que enriquecen el bocadillo de una incidencia; todos `null` si el feed no los trae. [pkDesde] y
+ * [pkHasta] son los puntos kilométricos (el segundo solo si es un tramo), [sentido] el destino o sentido de la marcha,
+ * [carriles] un resumen de lo afectado, [limiteKmh] el límite temporal de velocidad, [fin] cuándo acaba y [comentario]
+ * el comentario público.
+ */
+@Immutable
+data class DetalleIncidencia(
+    val pkDesde: Double? = null,
+    val pkHasta: Double? = null,
+    val sentido: String? = null,
+    val municipio: String? = null,
+    val carriles: String? = null,
+    val limiteKmh: Int? = null,
+    val fin: Instant? = null,
+    val comentario: String? = null,
+)
+
 /** Un marcador de incidencia en el mapa. [lat]/[lon] es el punto (el inicio si es un tramo). */
 @Immutable
 data class MarcadorIncidencia(
@@ -56,6 +75,7 @@ data class MarcadorIncidencia(
     val descripcion: String,
     val carretera: String?,
     val enRuta: Boolean,
+    val detalle: DetalleIncidencia = DetalleIncidencia(),
 )
 
 /** Un radar (fijo, móvil o entrada de tramo) pintado siempre en el mapa. */
@@ -108,8 +128,15 @@ sealed interface ContenidoBocadillo {
         val supera: Boolean? get() = limiteKmh?.let { velocidadKmh > it }
     }
 
+    /**
+     * Incidencia de la ruta o tocada en el mapa. Con [completo] (la tocada) lleva toda la línea de detalle y el
+     * comentario de la DGT; sin él (la que se acerca) solo «carretera km».
+     */
     data class Incidencia(
         val tipo: TipoIncidencia,
+        val carretera: String? = null,
+        val detalle: DetalleIncidencia = DetalleIncidencia(),
+        val completo: Boolean = false,
     ) : ContenidoBocadillo
 }
 
@@ -141,8 +168,8 @@ data class AlertasUiState(
     val frescura: FrescuraIncidencias? = null,
     /** Todos los radares y los tramos, siempre en el mapa. */
     val radares: RadaresUi = RadaresUi(),
-    /** Bocadillo de lo que se acerca o se acaba de pasar (radar, tramo o incidencia); null si no hay. */
+    /** Bocadillo de la incidencia tocada o, si no, de lo que se acerca o se acaba de pasar; null si no hay. */
     val bocadillo: BocadilloMapa? = null,
-    /** La incidencia tocada en el mapa (tarjeta abierta); null si ninguna. */
+    /** La incidencia tocada en el mapa (su bocadillo abierto); null si ninguna. */
     val seleccionada: MarcadorIncidencia? = null,
 )

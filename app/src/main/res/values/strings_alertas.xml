@@ -29,8 +29,13 @@
     <string name="alerta_datos_antiguos">Datos de incidencias de %1$s</string>
     <string name="alerta_datos_sin_conexion">Sin conexión, datos de incidencias de %1$s</string>
 
-    <!-- Tarjeta de una incidencia del mapa -->
-    <string name="alerta_tarjeta_cerrar">Cerrar incidencia</string>
+    <!-- Línea de detalle del bocadillo de una incidencia: «Ma-13 km 56,5 · sentido Inca · afecta a carril derecho · máx. 60 · hasta 30/11» -->
+    <string name="bocadillo_incidencia_km">km %1$s</string>
+    <string name="bocadillo_incidencia_km_rango">km %1$s–%2$s</string>
+    <string name="bocadillo_incidencia_sentido">sentido %1$s</string>
+    <string name="bocadillo_incidencia_carriles">afecta a %1$s</string>
+    <string name="bocadillo_incidencia_limite">máx. %1$d</string>
+    <string name="bocadillo_incidencia_hasta">hasta %1$s</string>
 
     <!-- Panel de velocidad: exceso y media de tramo -->
     <string name="panel_exceso_descripcion">Por encima del límite de velocidad</string>

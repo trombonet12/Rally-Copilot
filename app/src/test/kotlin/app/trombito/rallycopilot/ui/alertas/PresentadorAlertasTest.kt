@@ -165,6 +165,27 @@ class PresentadorAlertasTest {
     }
 
     @Test
+    fun `el marcador lleva los datos extra de la DGT`() {
+        val fin = Instant.ofEpochMilli(AHORA_MS + 3_600_000L)
+        val i =
+            incidencia("x").copy(
+                pkDesde = 56.5,
+                pkHasta = 57.1,
+                sentido = "Inca",
+                municipio = "Alcúdia",
+                carrilesAfectados = "carril derecho",
+                limiteTemporalKmh = 60,
+                fin = fin,
+                comentario = "Obras de asfaltado",
+            )
+        val m = presentar(null, IncidenciasVigentes(listOf(i), null)).marcadores.single()
+        assertEquals(
+            DetalleIncidencia(56.5, 57.1, "Inca", "Alcúdia", "carril derecho", 60, fin, "Obras de asfaltado"),
+            m.detalle,
+        )
+    }
+
+    @Test
     fun `una incidencia sin puntos no se pinta`() {
         val ui = presentar(null, IncidenciasVigentes(listOf(incidencia("sin", puntos = emptyList())), null))
         assertTrue(ui.marcadores.isEmpty())

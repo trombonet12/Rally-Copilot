@@ -14,4 +14,16 @@ private fun Incidencia.aMarcador(
     lat: Double,
     lon: Double,
     enRuta: Boolean,
-) = MarcadorIncidencia(id, tipo, lat, lon, descripcion, carretera, enRuta)
+) = MarcadorIncidencia(id, tipo, lat, lon, descripcion, carretera, enRuta, detalleDe(this))
+
+private fun detalleDe(i: Incidencia) =
+    DetalleIncidencia(
+        pkDesde = i.pkDesde,
+        pkHasta = i.pkHasta,
+        sentido = i.sentido,
+        municipio = i.municipio,
+        carriles = i.carrilesAfectados,
+        limiteKmh = i.limiteTemporalKmh,
+        fin = i.fin,
+        comentario = i.comentario,
+    )

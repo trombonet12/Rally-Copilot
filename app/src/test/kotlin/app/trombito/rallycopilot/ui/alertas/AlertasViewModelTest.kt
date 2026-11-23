@@ -148,6 +148,42 @@ class AlertasViewModelTest {
         }
 
     @Test
+    fun `el bocadillo de la incidencia tocada se cierra solo a los 8 segundos`() =
+        runTest {
+            val vm = crear()
+            repositorio.estado.value = IncidenciasVigentes(listOf(incidencia("a")), null)
+            vm.onSeleccionar("a")
+            assertEquals(
+                "seleccion-a",
+                vm.uiState.value.bocadillo
+                    ?.id,
+            )
+            advanceTimeBy(CIERRE_SELECCION_MS - 1)
+            assertNotNull(vm.uiState.value.seleccionada)
+            advanceTimeBy(2)
+            assertNull(vm.uiState.value.seleccionada)
+            assertNull(vm.uiState.value.bocadillo)
+        }
+
+    @Test
+    fun `tocar otra incidencia reinicia los 8 segundos`() =
+        runTest {
+            val vm = crear()
+            repositorio.estado.value = IncidenciasVigentes(listOf(incidencia("a"), incidencia("b")), null)
+            vm.onSeleccionar("a")
+            advanceTimeBy(CIERRE_SELECCION_MS - 1_000)
+            vm.onSeleccionar("b")
+            advanceTimeBy(CIERRE_SELECCION_MS - 1_000)
+            assertEquals(
+                "b",
+                vm.uiState.value.seleccionada
+                    ?.id,
+            )
+            advanceTimeBy(1_500)
+            assertNull(vm.uiState.value.seleccionada)
+        }
+
+    @Test
     fun `la tarjeta desaparece si la incidencia ya no esta`() =
         runTest {
             val vm = crear()

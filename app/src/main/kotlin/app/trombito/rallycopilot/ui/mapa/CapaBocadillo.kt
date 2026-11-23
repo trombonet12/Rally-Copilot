@@ -8,12 +8,16 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.text.StaticLayout
+import android.text.TextPaint
+import android.text.TextUtils
 import android.util.TypedValue
 import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.ui.alertas.BocadilloMapa
 import app.trombito.rallycopilot.ui.alertas.ContenidoBocadillo
 import app.trombito.rallycopilot.ui.alertas.iconoBocadillo
+import app.trombito.rallycopilot.ui.alertas.lineasDetalleBocadillo
 import app.trombito.rallycopilot.ui.alertas.textoBocadillo
 import app.trombito.rallycopilot.ui.theme.RallyOscuro
 import org.maplibre.android.maps.Style
@@ -40,13 +44,21 @@ private const val PICO_DP = 9f
 private const val BORDE_DP = 2f
 private const val RADIO_DP = 8f
 private const val TEXTO_SP = 16f
+private const val DETALLE_SP = 13f
+private const val ANCHO_DETALLE_DP = 290f
+private const val HUECO_LINEAS_DP = 2f
+private const val HUECO_TITULO_DP = 4f
+private const val BASE_DETALLE_DP = 8f
+private const val LINEAS_DETALLE = 2
+private const val COLOR_DETALLE = 0xFFE6E6E6.toInt()
 private const val FONDO = 0xEB101114.toInt()
 
 /**
  * Bocadillo anclado al marcador de un radar o incidencia: un único punto en una `SymbolLayer` cuya imagen (rectángulo
  * carbón translúcido con borde ámbar, icono, texto y un piquito hacia el marcador) se dibuja con Canvas al cambiar el
  * contenido. Así queda pegado a la coordenada al mover el mapa sin proyectar nada. Va sobre todo lo demás del estilo.
- * La velocidad de paso lleva el texto en verde (dentro del límite) o rojo (por encima).
+ * La velocidad de paso lleva el texto en verde (dentro del límite) o rojo (por encima). Las incidencias añaden bajo el
+ * título una línea de detalle (la tocada, con el comentario de la DGT).
  */
 internal object CapaBocadillo {
     private var imagenActual: String? = null
@@ -102,7 +114,7 @@ private fun colorTexto(contenido: ContenidoBocadillo): Int =
         else -> Color.WHITE
     }
 
-/** Dibuja el bocadillo: fondo, borde ámbar, icono ámbar, texto y piquito hacia abajo. */
+/** Dibuja el bocadillo: fondo, borde ámbar, icono ámbar, título, líneas de detalle (si hay) y piquito hacia abajo. */
 private fun imagenDe(
     contexto: Context,
     contenido: ContenidoBocadillo,
@@ -110,19 +122,62 @@ private fun imagenDe(
     val metricas = contexto.resources.displayMetrics
     val dp = metricas.density
     val texto = textoBocadillo(contexto.resources, contenido)
-    val ambar = RallyOscuro.aviso.toArgb()
     val pincelTexto =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = colorTexto(contenido)
             typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, TEXTO_SP, metricas)
         }
-    val ancho = (RELLENO_DP * 2 + ICONO_DP + HUECO_DP) * dp + pincelTexto.measureText(texto)
-    val alto = ALTO_DP * dp
+    val detalle = capasDeDetalle(contexto, contenido, (ANCHO_DETALLE_DP * dp).toInt())
+    val anchoTitulo = (RELLENO_DP * 2 + ICONO_DP + HUECO_DP) * dp + pincelTexto.measureText(texto)
+    val anchoDetalle = RELLENO_DP * 2 * dp + (detalle.maxOfOrNull { it.anchoUtil() } ?: 0f)
+    val ancho = maxOf(anchoTitulo, anchoDetalle)
+    val altoTitulo = ALTO_DP * dp
+    val inicioDetalle = altoTitulo - HUECO_TITULO_DP * dp
+    val alto = if (detalle.isEmpty()) altoTitulo else inicioDetalle + altoDetalle(detalle, dp)
     val pico = PICO_DP * dp
-    val borde = BORDE_DP * dp
     val bitmap = Bitmap.createBitmap(ancho.toInt() + 1, (alto + pico).toInt() + 1, Bitmap.Config.ARGB_8888)
     val lienzo = Canvas(bitmap)
+    dibujarGlobo(lienzo, ancho, alto, dp)
+    // Fila del título: icono y texto centrados en su franja (la de arriba si hay detalle debajo).
+    val centro = altoTitulo / 2
+    ContextCompat.getDrawable(contexto, iconoBocadillo(contenido))?.mutate()?.let { icono ->
+        val lado = (ICONO_DP * dp).toInt()
+        val x = (RELLENO_DP * dp).toInt()
+        val y = (centro - lado / 2).toInt()
+        icono.setBounds(x, y, x + lado, y + lado)
+        icono.setTint(RallyOscuro.aviso.toArgb())
+        icono.draw(lienzo)
+    }
+    val x = (RELLENO_DP + ICONO_DP + HUECO_DP) * dp
+    val y = centro - (pincelTexto.descent() + pincelTexto.ascent()) / 2
+    lienzo.drawText(texto, x, y, pincelTexto)
+    var arriba = inicioDetalle
+    detalle.forEach { capa ->
+        lienzo.save()
+        lienzo.translate(RELLENO_DP * dp, arriba)
+        capa.draw(lienzo)
+        lienzo.restore()
+        arriba += capa.height + HUECO_LINEAS_DP * dp
+    }
+    return bitmap
+}
+
+/** Alto de las líneas de detalle con sus huecos y el relleno de abajo. */
+private fun altoDetalle(
+    detalle: List<StaticLayout>,
+    dp: Float,
+): Float = detalle.sumOf { it.height } + (detalle.size - 1) * HUECO_LINEAS_DP * dp + BASE_DETALLE_DP * dp
+
+/** Cuerpo redondeado carbón con borde ámbar y el piquito hacia abajo (hacia el marcador). */
+private fun dibujarGlobo(
+    lienzo: Canvas,
+    ancho: Float,
+    alto: Float,
+    dp: Float,
+) {
+    val pico = PICO_DP * dp
+    val borde = BORDE_DP * dp
     val cuerpo = RectF(borde / 2, borde / 2, ancho - borde / 2, alto - borde / 2)
     val forma =
         Path().apply {
@@ -138,18 +193,29 @@ private fun imagenDe(
     pincel.style = Paint.Style.STROKE
     pincel.strokeWidth = borde
     pincel.strokeJoin = Paint.Join.ROUND
-    pincel.color = ambar
+    pincel.color = RallyOscuro.aviso.toArgb()
     lienzo.drawPath(forma, pincel)
-    ContextCompat.getDrawable(contexto, iconoBocadillo(contenido))?.mutate()?.let { icono ->
-        val lado = (ICONO_DP * dp).toInt()
-        val x = (RELLENO_DP * dp).toInt()
-        val y = ((alto - lado) / 2).toInt()
-        icono.setBounds(x, y, x + lado, y + lado)
-        icono.setTint(ambar)
-        icono.draw(lienzo)
-    }
-    val x = (RELLENO_DP + ICONO_DP + HUECO_DP) * dp
-    val y = alto / 2 - (pincelTexto.descent() + pincelTexto.ascent()) / 2
-    lienzo.drawText(texto, x, y, pincelTexto)
-    return bitmap
 }
+
+/** Una capa de texto por línea de detalle (recortada a 2 líneas con «…»), de [ancho] px como máximo. */
+private fun capasDeDetalle(
+    contexto: Context,
+    contenido: ContenidoBocadillo,
+    ancho: Int,
+): List<StaticLayout> {
+    val metricas = contexto.resources.displayMetrics
+    val pincel =
+        TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = COLOR_DETALLE
+            textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, DETALLE_SP, metricas)
+        }
+    return lineasDetalleBocadillo(contexto.resources, contenido).map { linea ->
+        StaticLayout.Builder
+            .obtain(linea, 0, linea.length, pincel, ancho)
+            .setMaxLines(LINEAS_DETALLE)
+            .setEllipsize(TextUtils.TruncateAt.END)
+            .build()
+    }
+}
+
+private fun StaticLayout.anchoUtil(): Float = (0 until lineCount).maxOfOrNull { getLineWidth(it) } ?: 0f

@@ -66,7 +66,6 @@ import app.trombito.rallycopilot.motor.datos.Complemento
 import app.trombito.rallycopilot.motor.voz.ModoCopiloto
 import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.BannerAlerta
-import app.trombito.rallycopilot.ui.alertas.TarjetaIncidencia
 import app.trombito.rallycopilot.ui.comun.BandaSinGps
 import app.trombito.rallycopilot.ui.comun.ChipIconoWrc
 import app.trombito.rallycopilot.ui.comun.DegradadoSuperiorMapa
@@ -504,7 +503,7 @@ private fun GrupoDerecho(
 }
 
 /**
- * Lo que flota sobre la píldora: la tarjeta de la incidencia tocada, el permiso de ubicación si falta, las paradas del
+ * Lo que flota sobre la píldora: el permiso de ubicación si falta, las paradas del
  * guiado, el aviso de mapas actualizados y el de descarga del relieve. Las atribuciones están solo en Ajustes >
  * Acerca de.
  */
@@ -516,9 +515,6 @@ private fun AvisosDelPie(contenido: ZonaMapaContenido) {
     val nav = navegacion.estado
     val guiando = nav.control as? EstadoNavegacion.Guiando
     var paradasAbiertas by rememberSaveable { mutableStateOf(false) }
-    contenido.alertas.seleccionada?.let {
-        TarjetaIncidencia(it, contenido.alertas.frescura, acciones.onCerrarIncidencia)
-    }
     val fichaCalor = contenido.estado.calor.ficha
     if (fichaCalor != null) TarjetaCalor(fichaCalor, acciones.onCerrarCalor)
     if (vista.permiso != EstadoPermisoUbicacion.CONCEDIDO) {

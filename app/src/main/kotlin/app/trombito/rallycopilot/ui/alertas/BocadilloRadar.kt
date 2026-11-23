@@ -26,7 +26,8 @@ internal fun claseDe(tipo: TipoRadar): ClaseRadar =
 
 /**
  * Bocadillo del mapa, por prioridad: el paso por un radar fijo (unos segundos), el radar que se acerca, el tramo de
- * radar en curso (en su salida) y la incidencia de la ruta a ≤ 800 m. Sin marcador al que anclarlo, nada.
+ * radar en curso (en su salida) y la incidencia de la ruta a ≤ 800 m. Sin marcador al que anclarlo, nada. (La
+ * incidencia tocada en el mapa va por encima de todo esto: ver [presentarAlertas].)
  */
 internal fun bocadilloDe(
     alertas: AlertasEnCurso,
@@ -46,7 +47,20 @@ internal fun bocadilloDe(
             .filter { it.enRuta && it.distanciaM <= DISTANCIA_AVISO_INCIDENCIA_M }
             .minByOrNull { it.distanciaM }
             ?.let { c -> incidencias.firstOrNull { it.id == c.incidencia.id } }
-            ?.let { BocadilloMapa("incidencia-${it.id}", it.lat, it.lon, ContenidoBocadillo.Incidencia(it.tipo)) }
+            ?.let { bocadilloDeIncidencia(it, completo = false) }
+
+/**
+ * Bocadillo de una incidencia anclado a su marcador. El de la tocada ([completo]) lleva el detalle entero de la DGT y
+ * manda sobre cualquier otro; el de la que se acerca, solo «carretera km».
+ */
+internal fun bocadilloDeIncidencia(
+    marcador: MarcadorIncidencia,
+    completo: Boolean,
+): BocadilloMapa {
+    val contenido = ContenidoBocadillo.Incidencia(marcador.tipo, marcador.carretera, marcador.detalle, completo)
+    val prefijo = if (completo) "seleccion" else "incidencia"
+    return BocadilloMapa("$prefijo-${marcador.id}", marcador.lat, marcador.lon, contenido)
+}
 
 private fun bocadilloDePaso(
     paso: PasoRadarEnCurso,

@@ -22,7 +22,8 @@ private const val PASO_DISTANCIA_M = 10
  * Convierte lo que publica el dominio en lo que pinta la UI. Sin conducción en curso ([alertas] null) se enseñan las
  * incidencias vigentes de [vigentes] (sin las caducadas a [ahoraMs]); conduciendo, las que ya filtró la sesión (las de
  * la ruta y las del radio de 3 km). Prioridad del banner: radar antes que incidencia. [seleccionadaId] es la
- * incidencia tocada en el mapa; si ya no está entre los marcadores, no hay tarjeta.
+ * incidencia tocada en el mapa: su bocadillo (con el detalle) manda sobre el de aproximación; si ya no está entre los
+ * marcadores, no hay bocadillo.
  */
 internal fun presentarAlertas(
     alertas: AlertasEnCurso?,
@@ -36,14 +37,17 @@ internal fun presentarAlertas(
     val antiguedadMs =
         if (alertas != null) alertas.antiguedadIncidenciasMs else antiguedadDe(vigentes, ahoraMs)
     val hayError = if (alertas != null) alertas.errorIncidencias != null else vigentes.errorUltimo != null
+    val seleccionada = marcadores.firstOrNull { it.id == seleccionadaId }
     return AlertasUiState(
         aviso = alertas?.let { avisoDe(it, cercanas) },
         panel = alertas?.let(::panelDe) ?: AlertasPanel(),
         marcadores = marcadores,
         frescura = frescuraDe(antiguedadMs, hayError),
         radares = radares,
-        bocadillo = alertas?.let { bocadilloDe(it, cercanas, marcadores, radares) },
-        seleccionada = marcadores.firstOrNull { it.id == seleccionadaId },
+        bocadillo =
+            seleccionada?.let { bocadilloDeIncidencia(it, completo = true) }
+                ?: alertas?.let { bocadilloDe(it, cercanas, marcadores, radares) },
+        seleccionada = seleccionada,
     )
 }
 

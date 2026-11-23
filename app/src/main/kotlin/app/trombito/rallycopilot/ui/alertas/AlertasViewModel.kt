@@ -7,6 +7,7 @@ import app.trombito.rallycopilot.domain.alertas.ProveedorRadaresMapa
 import app.trombito.rallycopilot.domain.alertas.RepositorioIncidencias
 import app.trombito.rallycopilot.ui.comun.PARADA_MS
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -19,6 +20,9 @@ import javax.inject.Inject
 
 /** El reloj de la antigüedad de los datos avanza cada minuto aunque no llegue ninguna alerta nueva. */
 private const val PULSO_MS = 60_000L
+
+/** El bocadillo de la incidencia tocada se cierra solo a los 8 s. */
+internal const val CIERRE_SELECCION_MS = 8_000L
 
 /**
  * Presentación de las alertas de la conducción: combina las [ProveedorAlertas.alertas] en vivo (radar próximo, media
@@ -37,6 +41,7 @@ class AlertasViewModel
         internal var reloj: () -> Long = System::currentTimeMillis
 
         private val seleccion = MutableStateFlow<String?>(null)
+        private var cierreAutomatico: Job? = null
 
         private val pulso =
             flow {
@@ -64,8 +69,21 @@ class AlertasViewModel
                 presentarAlertas(alertas, vigentes, reloj(), elegida, r)
             }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(PARADA_MS), AlertasUiState())
 
-        /** Se toca un marcador del mapa ([id]); `null` cierra la tarjeta. Tocar el mismo otra vez la cierra. */
+        /**
+         * Se toca un marcador del mapa ([id]) y sale su bocadillo; `null` (tocar fuera) lo cierra. Tocar el mismo otra
+         * vez lo cierra y, si no, se cierra solo a los 8 s.
+         */
         fun onSeleccionar(id: String?) {
-            seleccion.value = if (id == seleccion.value) null else id
+            cierreAutomatico?.cancel()
+            cierreAutomatico = null
+            val nueva = if (id == seleccion.value) null else id
+            seleccion.value = nueva
+            if (nueva != null) {
+                cierreAutomatico =
+                    viewModelScope.launch {
+                        delay(CIERRE_SELECCION_MS)
+                        if (seleccion.value == nueva) seleccion.value = null
+                    }
+            }
         }
     }

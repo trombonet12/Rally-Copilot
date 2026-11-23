@@ -16,8 +16,6 @@ import app.trombito.rallycopilot.ui.alertas.AlertasUiState
 import app.trombito.rallycopilot.ui.alertas.AvisoAlerta
 import app.trombito.rallycopilot.ui.alertas.ClaseRadar
 import app.trombito.rallycopilot.ui.alertas.ETIQUETA_ALERTA_BANNER
-import app.trombito.rallycopilot.ui.alertas.ETIQUETA_INCIDENCIA_CERRAR
-import app.trombito.rallycopilot.ui.alertas.ETIQUETA_INCIDENCIA_TARJETA
 import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.alertas.MediaTramoUi
 import app.trombito.rallycopilot.ui.comun.BancoCompose
@@ -167,19 +165,11 @@ class MapaScreenAlertasVerticalTest : MapaScreenAlertasBase() {
     fun `en vertical el exceso se ve en la pildora junto a los botones`() = comprobarExcesoEnLaPildora()
 
     @Test
-    fun `la incidencia tocada abre su tarjeta y se cierra desde la X`() {
+    fun `la incidencia tocada ya no abre una ficha inferior, sale como bocadillo en el mapa`() {
         val marcador =
             MarcadorIncidencia("a", TipoIncidencia.OBRAS, 39.7, 2.9, "Obras en Ma-10", "Ma-10", enRuta = false)
         poner(libre, AlertasUiState(marcadores = listOf(marcador), seleccionada = marcador))
-        assertTrue(banco.hay(ETIQUETA_INCIDENCIA_TARJETA))
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_INCIDENCIA_CERRAR))
-        assertEquals(1, cerradas)
-    }
-
-    @Test
-    fun `sin incidencia elegida no hay tarjeta`() {
-        poner(libre, AlertasUiState())
-        assertFalse(banco.hay(ETIQUETA_INCIDENCIA_TARJETA))
+        assertFalse(banco.hay("incidencia-tarjeta"))
     }
 }
 
