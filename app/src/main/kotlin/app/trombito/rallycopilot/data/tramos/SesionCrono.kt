@@ -65,7 +65,8 @@ import java.util.UUID
  * Los tramos de vía ([TipoTramo.VIA], trozos de carretera de otros viajes) se detectan y cronometran como los demás;
  * si hay varios en marcha, el panel muestra el de vía cuya meta queda más cerca por delante y, sin ninguno, el último
  * en que se entró (el tramo-viaje sigue cronometrando y guardando su pasada). Los subtramos solo se cronometran sobre
- * tramos-viaje. Al [cerrar], tras crear el tramo del viaje, [trocear] lo trocea en tramos de vía.
+ * tramos-viaje. Al [cerrar], tras crear el tramo del viaje, [trocear] lo trocea en tramos de vía en segundo plano
+ * (sin esperarlo).
  */
 @Suppress("TooManyFunctions", "LongParameterList") // un estado por conducción; colaboradores de guardado y cierre
 class SesionCrono(
@@ -492,11 +493,29 @@ class SesionCrono(
             guardar {
                 val todos = puntos()
                 creado = crearTramoNuevo(recorrido.id, todos)
-                trocearSinPropagar(recorrido.id, todos)
+                trocearEnSegundoPlano(recorrido.id, todos)
             }
         }
         // Las ediciones dictadas sin tramo activo pasan al tramo recién creado; sin él se descartan.
         guardar { anclarEdiciones(creado) }
+    }
+
+    /**
+     * Lanza el troceado sin esperarlo: comparte candado con [MigradorTramosVia] (que puede estar troceando viajes
+     * antiguos) y el cierre del viaje no debe quedar a su espera. Fuera de la cancelación de la conducción; si el
+     * proceso muere antes, el recorrido queda sin marcar y el migrador lo troceará en el próximo arranque. Sin
+     * alcance (la sesión no se arrancó) se hace aquí mismo.
+     */
+    private suspend fun trocearEnSegundoPlano(
+        recorridoId: Long,
+        todos: List<PuntoRecorrido>,
+    ) {
+        val alcance = alcance
+        if (alcance == null) {
+            trocearSinPropagar(recorridoId, todos)
+        } else {
+            alcance.launch(NonCancellable) { trocearSinPropagar(recorridoId, todos) }
+        }
     }
 
     /**

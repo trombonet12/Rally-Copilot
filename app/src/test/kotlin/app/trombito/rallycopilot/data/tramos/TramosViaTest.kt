@@ -1,6 +1,7 @@
 package app.trombito.rallycopilot.data.tramos
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import app.trombito.rallycopilot.data.db.RallyDatabase
@@ -34,6 +35,7 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.shadows.ShadowLog
 
 /** Mundo de prueba: carreteras rectas hacia el este desde [BASE]; el viaje las recorre de 0 a 10 km. */
 private val BASE = PuntoGeo(39.70, 2.70)
@@ -465,5 +467,77 @@ class TramosViaTest {
             for (id in listOf(ma15.id, "duplicado")) {
                 assertTrue(id, base.tramosDao().pasadas(id).any { it.recorridoId == id2 })
             }
+        }
+
+    @Test
+    fun `dos pasadas por el mismo trozo en un viaje guardan las dos`() =
+        runBlocking {
+            val g = guardador()
+            // Ida por las tres carreteras, vuelta al principio sin recorrerlas (salto) y segunda ida más tarde.
+            val primera = viaje(1_000_000L, 20.0)
+            val segunda = viaje(5_000_000L, 25.0)
+            val puntos = primera + segunda
+            val id = recorridoConPuntos(puntos)
+
+            g.trocearYMarcar(id, puntos)
+
+            val crecientes = tramosVia().filter { it.sentido == "CRECIENTE" }
+            assertEquals(listOf("MA30", "MA15", "MA3220"), crecientes.map { it.viaRef })
+            for (t in crecientes) {
+                val pasadas = base.tramosDao().pasadas(t.id)
+                assertEquals(t.viaRef, 2, pasadas.size)
+                assertTrue(pasadas.all { it.recorridoId == id })
+                assertEquals(2, pasadas.map { it.puntosDesdeMs }.toSet().size)
+            }
+        }
+
+    @Test
+    fun `una pasada ya guardada por la conduccion en vivo no se repite al trocear`() =
+        runBlocking {
+            val g = guardador()
+            val puntos = viaje(1_000_000L)
+            val id = recorridoConPuntos(puntos)
+            g.trocear(id, puntos)
+            // La misma pasada con un intervalo que solapa casi todo (la detección en vivo no empieza justo ahí).
+            val ma15 = tramosVia().single { it.viaRef == "MA15" }
+            val vivo = base.tramosDao().pasadas(ma15.id).single()
+            val desde = checkNotNull(vivo.puntosDesdeMs) + 1_000
+            val hasta = checkNotNull(vivo.puntosHastaMs) + 1_000
+            base.tramosDao().insertarPasada(vivo.copy(id = 0, puntosDesdeMs = desde, puntosHastaMs = hasta))
+
+            g.trocear(id, puntos)
+
+            assertEquals(2, base.tramosDao().pasadas(ma15.id).size)
+        }
+
+    @Test
+    fun `un trozo que no cruza la salida y la meta del tramo guardado se registra sin coordenadas`() =
+        runBlocking {
+            val g = guardador()
+            val completo = viaje(1_000_000L)
+            g.trocearYMarcar(recorridoConPuntos(completo), completo)
+            ShadowLog.clear()
+            val medio = viaje(90_000_000L, 20.0, 4_000.0, 6_000.0)
+
+            g.trocearYMarcar(recorridoConPuntos(medio), medio)
+
+            val avisos = ShadowLog.getLogsForTag("GuardadorTramosVia").filter { it.type == Log.WARN }
+            assertTrue(avisos.toString(), avisos.isNotEmpty())
+            assertTrue(avisos.none { Regex("""\d+\.\d{3,}""").containsMatchIn(it.msg) })
+        }
+
+    @Test
+    fun `los subtramos que no se pueden situar se marcan y no se reintentan en cada arranque`() =
+        runBlocking {
+            sembrarVieja(recorridoConPuntos(viaje(1_000_000L)))
+
+            val primera = migrador().migrar()
+
+            assertEquals(1, primera.subtramos)
+            assertTrue("el no situable ya está intentado", base.subtramosDao().sinVia().isEmpty())
+            val subtramos = base.subtramosDao().observarDeTramo("viaje-viejo").first()
+            val intentado = subtramos.single { it.desdeM == 1_000.0 }
+            assertNull(intentado.viaRef)
+            assertEquals(0, migrador().migrar().subtramos)
         }
 }

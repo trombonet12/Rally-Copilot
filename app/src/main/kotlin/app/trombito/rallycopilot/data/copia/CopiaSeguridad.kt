@@ -24,7 +24,8 @@ data class InfoApp(
 
 /**
  * Copia de seguridad: un zip con `rally.db` (checkpoint del WAL hecho) y `manifest.json`. Nunca lleva mapas, voces ni
- * modelos (grandes y se regeneran). Al importar valida el zip (solo esas dos entradas, tamaño máximo, sin rutas),
+ * modelos (grandes y se regeneran), y al importar no restaura los registros de mapas ([RegistrosDelDispositivo]). Al
+ * importar valida el zip (solo esas dos entradas, tamaño máximo, sin rutas),
  * rechaza esquemas más nuevos que el actual y comprueba la base con SQLite (`integrity_check`, `user_version` e
  * identidad de Room), que no tenga triggers, vistas ni tablas ajenas a Room y, con la misma versión, que las columnas
  * casen con las de la base actual, antes de sustituir la real; si el esquema es menor, Room migra al volver a abrir.
@@ -109,6 +110,7 @@ class CopiaSeguridad(
             try {
                 val manifiesto = LectorZipCopia(maxBytes).leer(entrada, temporal)
                 validar(manifiesto, temporal)
+                RegistrosDelDispositivo.conservar(temporal, base.openHelper.writableDatabase)
                 sustituirBase(temporal)
                 manifiesto.resumen()
             } finally {

@@ -29,7 +29,8 @@ data class ResumenMigracionVias(
  * recorrido terminado y cronometrado que aún no lo está ([GuardadorTramosVia.trocearYMarcar]; los no cronometrados
  * solo se marcan, y un fallo del motor en un recorrido lo marca sin propagarse) y sitúa en su carretera los subtramos
  * que caen en un solo tramo de vía. Los tramos-viaje, sus pasadas y los subtramos no se borran ni se modifican (los
- * subtramos solo ganan carretera, kilómetros y sentido).
+ * subtramos solo ganan carretera, kilómetros y sentido; los que no caen en una sola carretera se marcan como
+ * intentados y no se reintentan).
  *
  * Es idempotente y reanudable: cada recorrido se marca al acabar y un tramo no recibe dos veces la pasada del mismo
  * recorrido, así que repetirlo (o continuar tras cortarlo) deja el mismo resultado. Sin vías instaladas no hace nada y
@@ -169,6 +170,9 @@ class MigradorTramosVia
             val idVia = unico?.idVia
             if (unico != null && idVia != null) {
                 subtramos.situarEnVia(subtramo.id, idVia, unico.pkDesde, unico.pkHasta, unico.sentido.name)
+            } else {
+                // Sin una carretera única: queda intentado y no se vuelve a mirar en cada arranque.
+                subtramos.marcarNoSituable(subtramo.id)
             }
             return idVia != null
         }

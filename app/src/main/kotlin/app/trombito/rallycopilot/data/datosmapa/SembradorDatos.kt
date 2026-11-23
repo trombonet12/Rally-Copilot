@@ -28,6 +28,7 @@ import java.io.InputStream
 import java.security.DigestInputStream
 import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.zip.ZipInputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -147,7 +148,7 @@ class SembradorDatos internal constructor(
     ): ResultadoSiembra {
         val manifest = leerManifestIncluido(bytesManifest)
         val locales = dao.archivos().associate { it.id to LocalInstalado(it.nombre, it.sha256, it.bytes, it.version) }
-        val pendientes = manifest.archivos.filter { debeSembrar(it, locales[it.id], config.directorioMapa) }
+        val pendientes = manifest.archivos.filter { debeSembrar(it, locales[it.id], config.directorioMapa, abrirAsset) }
         val hayEspacio = pendientes.isEmpty() || config.bytesLibres() >= pendientes.sumOf { it.bytes }
         if (!hayEspacio) Log.w(ETIQUETA_LOG, "Sin espacio para sembrar los datos incluidos; se reintenta al arrancar")
         if (!hayEspacio) return ResultadoSiembra()
@@ -221,7 +222,6 @@ class SembradorDatos internal constructor(
 
     private companion object {
         const val ETIQUETA_LOG = "SembradorDatos"
-        const val CARPETA_ASSETS = "datos"
         const val ASSET_MANIFEST = "$CARPETA_ASSETS/manifest-incluido.json"
 
         /**
@@ -231,13 +231,14 @@ class SembradorDatos internal constructor(
          * intactos.
          * Lo genera `GenerarAssetsDatos` en `app/build.gradle.kts`.
          */
-        const val SUFIJO_ASSET = ".asset"
         const val NOMBRE_MARCADOR = ".sembrado"
         const val NOMBRE_SIEMBRA = ".sembrando"
     }
 }
 
 private const val ESQUEMA_SOPORTADO = 1
+private const val CARPETA_ASSETS = "datos"
+private const val SUFIJO_ASSET = ".asset"
 private val FORMATO = Json { ignoreUnknownKeys = true }
 private val SHA256 = Regex("^[0-9a-f]{64}$")
 private val NOMBRE = Regex("^[a-z0-9][a-z0-9._-]*$")
@@ -258,21 +259,46 @@ private fun debeSembrar(
     incluido: ArchivoDatos,
     local: LocalInstalado?,
     mapa: File,
+    abrirAsset: (String) -> InputStream,
 ): Boolean =
     when {
         local == null -> true
-        !estaEnDisco(local, mapa) -> true
+        !estaEnDisco(local, incluido, mapa, abrirAsset) -> true
         local.sha256 == incluido.sha256 -> false
         else -> esMasVieja(local.version, incluido.version) == true
     }
 
-/** Los zips se descomprimen al instalar: no hay un archivo con su nombre, vale el registro de Room. */
+/**
+ * Un archivo suelto está en disco si existe con el tamaño registrado. Un zip se descomprime al instalar y no deja un
+ * archivo con su nombre: si es el mismo que trae el APK se comprueba que estén todos los archivos que contiene (una
+ * base restaurada o copiada puede registrarlo sin que su contenido esté en disco); si es otro, vale el registro.
+ */
 private fun estaEnDisco(
     local: LocalInstalado,
+    incluido: ArchivoDatos,
     mapa: File,
+    abrirAsset: (String) -> InputStream,
 ): Boolean =
-    local.nombre.endsWith(".zip", ignoreCase = true) ||
+    if (local.nombre.endsWith(".zip", ignoreCase = true)) {
+        local.sha256 != incluido.sha256 || contenidoZipEnDisco(incluido, mapa, abrirAsset)
+    } else {
         File(mapa, local.nombre).let { it.isFile && it.length() == local.bytes }
+    }
+
+/** Todos los archivos del zip incluido existen en [mapa]; si el asset no se puede leer, se da por bueno. */
+private fun contenidoZipEnDisco(
+    incluido: ArchivoDatos,
+    mapa: File,
+    abrirAsset: (String) -> InputStream,
+): Boolean =
+    try {
+        abrirAsset("$CARPETA_ASSETS/${incluido.nombre}$SUFIJO_ASSET").use { entrada ->
+            val zip = ZipInputStream(entrada)
+            generateSequence { zip.nextEntry }.filter { !it.isDirectory }.all { File(mapa, it.name).isFile }
+        }
+    } catch (_: IOException) {
+        true
+    }
 
 private fun leerManifestIncluido(bytes: ByteArray): ManifestDatos {
     val manifest = FORMATO.decodeFromString<ManifestDatos>(bytes.decodeToString())

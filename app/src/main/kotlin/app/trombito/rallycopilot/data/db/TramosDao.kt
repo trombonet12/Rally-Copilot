@@ -19,9 +19,18 @@ interface SubtramosDao {
     @Query("SELECT * FROM subtramo WHERE tramoRefId = :tramoId ORDER BY inicio DESC, id DESC")
     fun observarDeTramo(tramoId: String): Flow<List<SubtramoEntity>>
 
-    /** Los subtramos aún sin situar en una carretera (los anteriores a la v21 y los recién guardados). */
-    @Query("SELECT * FROM subtramo WHERE viaRef IS NULL ORDER BY id")
+    /**
+     * Los subtramos aún sin situar en una carretera y sin intentarlo (los anteriores a la v21 y los recién guardados).
+     * Uno intentado sin éxito queda con `sentido = DESCONOCIDO` y sin `viaRef` ([marcarNoSituable]): no se reintenta.
+     */
+    @Query("SELECT * FROM subtramo WHERE viaRef IS NULL AND sentido IS NULL ORDER BY id")
     suspend fun sinVia(): List<SubtramoEntity>
+
+    /** Marca un subtramo sin carretera como intentado sin éxito (sin cambiar el esquema); devuelve filas tocadas. */
+    @Query(
+        "UPDATE subtramo SET sentido = 'DESCONOCIDO' WHERE id = :id AND viaRef IS NULL AND sentido IS NULL",
+    )
+    suspend fun marcarNoSituable(id: Long): Int
 
     /** Sitúa el subtramo en su carretera; devuelve las filas tocadas. */
     @Query(

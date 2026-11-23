@@ -45,16 +45,21 @@ internal object InspectorBase {
     private fun integridad(db: SQLiteDatabase): String? =
         db.rawQuery("PRAGMA integrity_check", null).use { if (it.moveToFirst()) it.getString(0) else null }
 
-    /** Filas de [tabla]; 0 si la tabla no existe (una copia antigua no tiene las tablas nuevas). */
+    /** Si la base tiene la tabla [tabla] (una copia antigua no tiene las tablas nuevas). */
+    fun existe(
+        db: SQLiteDatabase,
+        tabla: String,
+    ): Boolean =
+        db
+            .rawQuery("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", arrayOf(tabla))
+            .use { it.moveToFirst() }
+
+    /** Filas de [tabla]; 0 si la tabla no existe. */
     fun contar(
         db: SQLiteDatabase,
         tabla: String,
     ): Int {
-        val existe =
-            db
-                .rawQuery("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", arrayOf(tabla))
-                .use { it.moveToFirst() }
-        if (!existe) return 0
+        if (!existe(db, tabla)) return 0
         return db.rawQuery("SELECT COUNT(*) FROM $tabla", null).use { if (it.moveToFirst()) it.getInt(0) else 0 }
     }
 

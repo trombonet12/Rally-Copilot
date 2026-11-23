@@ -4,12 +4,15 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import app.trombito.rallycopilot.data.db.ArchivoInstaladoEntity
 import app.trombito.rallycopilot.data.db.BaseAntigua
 import app.trombito.rallycopilot.data.db.RallyDatabase
 import app.trombito.rallycopilot.data.db.RecorridoEntity
 import app.trombito.rallycopilot.data.db.SubtramoEntity
 import app.trombito.rallycopilot.data.db.TODAS_LAS_MIGRACIONES
 import app.trombito.rallycopilot.data.db.TramoEntity
+import app.trombito.rallycopilot.data.db.archivos
+import app.trombito.rallycopilot.data.db.estado
 import app.trombito.rallycopilot.domain.copia.CopiaInvalidaException
 import app.trombito.rallycopilot.domain.copia.MotivoCopiaInvalida
 import kotlinx.coroutines.Dispatchers
@@ -390,6 +393,63 @@ class CopiaSeguridadTest {
         assertEquals(3.0, tramo.pkDesde)
         assertEquals("Sóller", tramo.destino)
         assertEquals(9L, tramo.recorridoOrigenId)
+    }
+
+    private fun archivoInstalado(
+        id: String,
+        sha: String,
+    ) = ArchivoInstaladoEntity(id, "$id.bin", sha, 10, "datos-1")
+
+    private suspend fun registrar(
+        id: String,
+        sha: String,
+    ) = base.datosMapaDao().registrarInstalacion(listOf(archivoInstalado(id, sha)), emptyList(), "datos-1", false)
+
+    @Test
+    fun `al restaurar no se traen los registros de mapas de la copia sino que se conservan los del dispositivo`() {
+        runBlocking {
+            registrar("estilo", "aaa")
+        }
+        val recorrido = insertar(1.0)
+        val zip = exportar()
+        // El dispositivo de destino tiene sus propios mapas, distintos de los de la copia.
+        runBlocking {
+            base.datosMapaDao().borrarInstalacion()
+            base.datosMapaDao().registrarInstalacion(
+                listOf(archivoInstalado("vectorial", "bbb")),
+                emptyList(),
+                "datos-2",
+                false,
+            )
+        }
+
+        importar(zip)
+
+        base = abrir()
+        runBlocking {
+            assertEquals(listOf("vectorial"), base.datosMapaDao().archivos().map { it.id })
+            val archivos = base.datosMapaDao().archivos()
+            assertEquals("bbb", archivos.single().sha256)
+            assertEquals("datos-2", base.datosMapaDao().estado()?.versionInstalada)
+        }
+        assertNotNull("Lo demás de la copia sí se restaura", runBlocking { base.recorridosDao().recorrido(recorrido) })
+    }
+
+    @Test
+    fun `al restaurar en una instalacion sin datos no quedan registros de mapas inexistentes`() {
+        runBlocking {
+            registrar("estilo", "aaa")
+        }
+        val zip = exportar()
+        runBlocking { base.datosMapaDao().borrarInstalacion() }
+
+        importar(zip)
+
+        base = abrir()
+        runBlocking {
+            assertTrue(base.datosMapaDao().archivos().isEmpty())
+            assertNull(base.datosMapaDao().estado()?.versionInstalada)
+        }
     }
 
     private companion object {

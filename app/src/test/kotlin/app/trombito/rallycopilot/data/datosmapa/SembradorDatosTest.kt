@@ -238,6 +238,33 @@ class SembradorDatosTest {
     }
 
     @Test
+    fun `un zip registrado cuyo contenido no esta en disco se vuelve a instalar`() {
+        incluir("datos-2026.11.01-1")
+        runBlocking { sembrador().sembrar() }
+        // Como tras restaurar una copia en una instalación sin mapas: Room dice que está, el disco no.
+        File(mapa, ".sembrado").delete()
+        File(mapa, "vectorial.json").delete()
+        File(mapa, "glyphs").deleteRecursively()
+
+        val resultado = runBlocking { sembrador().sembrar() }
+
+        assertEquals(setOf("estilo"), resultado.sembrados)
+        assertTrue(File(mapa, "vectorial.json").isFile)
+        assertTrue(File(mapa, "glyphs/Noto/0-255.pbf").isFile)
+    }
+
+    @Test
+    fun `un zip registrado y completo en disco no se vuelve a instalar`() {
+        incluir("datos-2026.11.01-1")
+        runBlocking { sembrador().sembrar() }
+        File(mapa, ".sembrado").delete()
+
+        val resultado = runBlocking { sembrador().sembrar() }
+
+        assertTrue(resultado.sembrados.isEmpty())
+    }
+
+    @Test
     fun `un asset con hash incorrecto no se instala y no rompe lo demas`() {
         incluir("datos-2026.11.01-1", corruptos = setOf("vectorial"))
 

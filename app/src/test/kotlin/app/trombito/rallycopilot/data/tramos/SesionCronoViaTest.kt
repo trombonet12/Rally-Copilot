@@ -9,10 +9,13 @@ import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.motor.velocidad.Fijacion
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 private val ORIGEN = PuntoGeo(39.70, 2.70)
@@ -130,6 +133,7 @@ class SesionCronoViaTest {
             val puntos = (0..4).map { PuntoRecorrido(ORIGEN.lat, ORIGEN.lon, 1_000L + it, null) }
 
             crono.cerrar(Recorrido(7L, 1_000L, 1_004L, 1_500.0, null)) { puntos }
+            runCurrent() // el troceado va en segundo plano
 
             assertEquals(listOf(7L to 5), troceados)
             assertNull(publicados.last()) // el cierre publica null
@@ -155,9 +159,44 @@ class SesionCronoViaTest {
             val puntos = (0..4).map { PuntoRecorrido(ORIGEN.lat, ORIGEN.lon, 1_000L + it, null) }
 
             crono.cerrar(Recorrido(7L, 1_000L, 1_004L, 1_500.0, null)) { puntos }
+            runCurrent()
 
             assertEquals(1, ancladas)
             assertEquals(1, fallos.size)
             assertNull(publicados.last())
+        }
+
+    @Test
+    fun `cerrar no espera al troceado aunque el migrador tenga el candado`() =
+        runTest {
+            val repo = FalsoRepositorioTramos()
+            val candado = CompletableDeferred<Unit>()
+            val troceados = mutableListOf<Long>()
+            var ancladas = 0
+            val crono =
+                SesionCrono(
+                    repo,
+                    { publicados += it },
+                    { testScheduler.currentTime },
+                    anclarEdiciones = { ancladas++ },
+                    trocear = { id, _ ->
+                        candado.await() // el guardador espera su candado mientras el migrador trocea otros viajes
+                        troceados += id
+                    },
+                )
+            crono.arrancar(this)
+            runCurrent()
+            val puntos = (0..4).map { PuntoRecorrido(ORIGEN.lat, ORIGEN.lon, 1_000L + it, null) }
+
+            val cierre = launch { crono.cerrar(Recorrido(7L, 1_000L, 1_004L, 1_500.0, null)) { puntos } }
+            runCurrent()
+
+            assertTrue("el cierre no debe esperar al troceado", cierre.isCompleted)
+            assertEquals(1, ancladas)
+            assertNull(publicados.last())
+            assertTrue(troceados.isEmpty())
+            candado.complete(Unit)
+            runCurrent()
+            assertEquals(listOf(7L), troceados)
         }
 }

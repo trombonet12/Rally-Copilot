@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.data.tramos
 
 import android.database.sqlite.SQLiteException
 import android.util.Log
+import app.trombito.rallycopilot.data.db.PasadaEntity
 import app.trombito.rallycopilot.data.db.RecorridosDao
 import app.trombito.rallycopilot.data.db.TramoEntity
 import app.trombito.rallycopilot.data.db.TramosDao
@@ -42,9 +43,10 @@ enum class ResultadoTroceado {
  * meta; si no hay ninguno, es un tramo `VIA` nuevo con su primera pasada y el nombre automático [nombreTramoVia]. El
  * tiempo de cada pasada es relativo al inicio del trozo.
  *
- * Es idempotente: un tramo que ya tiene una pasada del mismo recorrido (p. ej. la detectó la conducción en vivo) no
- * recibe otra. Se serializa con un candado para que dos recorridos no creen a la vez el mismo tramo. Nunca registra
- * coordenadas.
+ * Es idempotente: un tramo que ya tiene esa pasada del recorrido (p. ej. la detectó la conducción en vivo, mismo
+ * intervalo de puntos) no recibe otra; si se pasó dos veces por el trozo, se guardan las dos pasadas. Lo que no se
+ * puede guardar (trozo que no cruza la salida y la meta) se registra con su motivo. Se serializa con un candado para
+ * que dos recorridos no creen a la vez el mismo tramo. Nunca registra coordenadas.
  */
 @Singleton
 @Suppress("LongParameterList") // los colaboradores de guardado más el reloj y el generador de ids de las pruebas
@@ -173,21 +175,40 @@ class GuardadorTramosVia
                 trazado = guardado.traza,
             )
 
-        /** Verdadero si el tramo ya tenía la pasada de este recorrido o se le ha añadido; falso si no se repite. */
+        /**
+         * Verdadero si el tramo ya tenía esta pasada o se le ha añadido; falso si el trozo no cruza su salida y su meta
+         * (y entonces se registra el motivo: el trozo no se pierde en silencio). Una pasada es la misma si es del mismo
+         * recorrido y ocupa casi el mismo intervalo de sus puntos (la conducción en vivo o un troceado anterior ya la
+         * guardaron); otra pasada del mismo recorrido por el mismo trozo (se pasó dos veces) sí se guarda.
+         */
         private suspend fun anadirSiCabe(
             recorridoId: Long,
             tramoId: String,
             guardado: Tramo,
             trozo: List<PuntoRecorrido>,
         ): Boolean {
-            // Ya tiene una pasada de este recorrido (la conducción en vivo o un troceado anterior): no se repite.
-            val yaTiene = tramos.pasadas(tramoId).any { it.recorridoId == recorridoId }
-            val repetida = if (yaTiene) null else RepeticionPasada.repetir(guardado, trozo)
-            if (repetida != null) {
+            val repetida = RepeticionPasada.repetir(guardado, trozo)
+            if (repetida == null) {
+                Log.w(ETIQUETA, "Trozo de vía sin añadir a un tramo guardado: no cruza su salida y su meta")
+                return false
+            }
+            val yaGuardada =
+                tramos.pasadas(tramoId).any { it.recorridoId == recorridoId && it.esLaMisma(repetida) }
+            if (!yaGuardada) {
                 val origen = OrigenPasada(repetida.desdeMs, recorridoId, repetida.desdeMs, repetida.hastaMs)
                 tramos.anadirPasada(repetida.pasada.aEntidad(origen, guardado.cortesExactosM()))
             }
-            return yaTiene || repetida != null
+            return true
+        }
+
+        /** Misma pasada: intervalos de puntos que solapan la mitad del más corto (sin intervalo, siempre la misma). */
+        private fun PasadaEntity.esLaMisma(otra: PasadaRepetida): Boolean {
+            val desde = puntosDesdeMs
+            val hasta = puntosHastaMs
+            if (desde == null || hasta == null) return true // pasada antigua sin intervalo: una por recorrido
+            val comun = minOf(hasta, otra.hastaMs) - maxOf(desde, otra.desdeMs)
+            val corto = minOf(hasta - desde, otra.hastaMs - otra.desdeMs)
+            return comun > 0 && comun >= corto * UMBRAL_SOLAPE
         }
 
         private suspend fun crearNuevo(
@@ -196,8 +217,16 @@ class GuardadorTramosVia
             tramo: TramoVia,
             trozo: List<PuntoRecorrido>,
         ) {
-            val nuevo = TramoDesdeRecorrido.crear(nuevoId(), trozo.map { PuntoGeo(it.lat, it.lon) }) ?: return
-            val repetida = RepeticionPasada.repetir(nuevo, trozo) ?: return
+            val nuevo = TramoDesdeRecorrido.crear(nuevoId(), trozo.map { PuntoGeo(it.lat, it.lon) })
+            if (nuevo == null) {
+                Log.w(ETIQUETA, "Trozo de vía sin guardar: menos de un kilómetro útil tras limpiar la traza")
+                return
+            }
+            val repetida = RepeticionPasada.repetir(nuevo, trozo)
+            if (repetida == null) {
+                Log.w(ETIQUETA, "Trozo de vía sin guardar: su pasada no cruza la salida y la meta del tramo nuevo")
+                return
+            }
             val via = DatosVia(idVia, tramo.pkDesde, tramo.pkHasta, tramo.sentido, tramo.destino, recorridoId)
             val origen = OrigenPasada(repetida.desdeMs, recorridoId, repetida.desdeMs, repetida.hastaMs)
             tramos.crear(
