@@ -14,6 +14,7 @@ import app.trombito.rallycopilot.ui.alertas.MarcadorIncidencia
 import app.trombito.rallycopilot.ui.alertas.colorIncidencia
 import app.trombito.rallycopilot.ui.alertas.iconoIncidencia
 import app.trombito.rallycopilot.ui.alertas.imagenMarcador
+import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
@@ -23,6 +24,7 @@ import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
+import kotlin.math.hypot
 
 private const val ID_FUENTE = "incidencias-fuente"
 private const val ID_CAPA = "incidencias-capa"
@@ -78,7 +80,40 @@ internal object CapaIncidencias {
             .firstOrNull()
             ?.getStringProperty(PROPIEDAD_ID)
     }
+
+    /**
+     * Igual que [idEn] pero sin depender de lo que la capa tenga colocado en ese instante: proyecta los [marcadores] a
+     * pantalla y elige el más cercano al toque. `queryRenderedFeatures` solo ve lo ya colocado en el último fotograma y
+     * falla justo con la cámara en movimiento (el seguimiento del coche), que es cuando se toca una incidencia.
+     */
+    fun idCercano(
+        mapa: MapLibreMap,
+        marcadores: List<MarcadorIncidencia>,
+        x: Float,
+        y: Float,
+        densidad: Float,
+    ): String? =
+        incidenciaMasCercana(marcadores, x, y, TOLERANCIA_TOQUE_DP * densidad) {
+            mapa.projection.toScreenLocation(LatLng(it.lat, it.lon)).let { p -> p.x to p.y }
+        }?.id
 }
+
+/**
+ * El marcador de [marcadores] más cercano al toque ([x], [y]) a no más de [margenPx] píxeles; [proyectar] da su
+ * posición en pantalla (null si no se puede proyectar). null si ninguno está al alcance.
+ */
+internal fun incidenciaMasCercana(
+    marcadores: List<MarcadorIncidencia>,
+    x: Float,
+    y: Float,
+    margenPx: Float,
+    proyectar: (MarcadorIncidencia) -> Pair<Float, Float>?,
+): MarcadorIncidencia? =
+    marcadores
+        .mapNotNull { m -> proyectar(m)?.let { (px, py) -> m to hypot(px - x, py - y) } }
+        .filter { it.second <= margenPx }
+        .minByOrNull { it.second }
+        ?.first
 
 /** Un punto por incidencia con su `id` y el nombre de su imagen: lo que se pinta en el mapa. */
 internal fun featuresIncidencias(marcadores: List<MarcadorIncidencia>): FeatureCollection =

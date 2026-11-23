@@ -47,4 +47,40 @@ class CapaIncidenciasTest {
             TipoIncidencia.entries.map { imagenMarcador(it) }
         assertEquals(TipoIncidencia.entries.size, nombres.toSet().size)
     }
+
+    // Proyección de prueba: cada marcador "a", "b"... en una x conocida y la misma y.
+    private val posiciones = mapOf("a" to (100f to 500f), "b" to (180f to 500f), "lejos" to (900f to 1800f))
+
+    private fun elegir(
+        x: Float,
+        y: Float,
+        margen: Float = 72f,
+    ): String? =
+        incidenciaMasCercana(
+            posiciones.keys.map { marcador(it, TipoIncidencia.OBRAS) },
+            x,
+            y,
+            margen,
+        ) { posiciones[it.id] }?.id
+
+    @Test
+    fun `un toque sobre la insignia elige su incidencia aunque la capa no la devuelva`() {
+        assertEquals("a", elegir(110f, 510f))
+    }
+
+    @Test
+    fun `entre dos incidencias al alcance gana la mas cercana al dedo`() {
+        assertEquals("b", elegir(150f, 500f))
+    }
+
+    @Test
+    fun `fuera del margen no hay incidencia`() {
+        assertEquals(null, elegir(500f, 500f))
+    }
+
+    @Test
+    fun `un marcador sin proyeccion se ignora`() {
+        val sinProyeccion = incidenciaMasCercana(listOf(marcador("x", TipoIncidencia.OBRAS)), 0f, 0f, 72f) { null }
+        assertEquals(null, sinProyeccion)
+    }
 }

@@ -377,7 +377,10 @@ private class ControladorMapa(
                     alTocarNota(nota)
                     return@addOnMapClickListener true
                 }
-                val id = CapaIncidencias.idEn(m, pantalla.x, pantalla.y, densidad)
+                // La incidencia gana a la capa de calor; si la capa no devuelve nada (cámara en movimiento), se mide.
+                val id =
+                    CapaIncidencias.idEn(m, pantalla.x, pantalla.y, densidad)
+                        ?: CapaIncidencias.idCercano(m, preferencias.incidencias, pantalla.x, pantalla.y, densidad)
                 alTocarIncidencia(id)
                 if (id != null) return@addOnMapClickListener true
                 val ficha = capaCalor.fichaEn(m, pantalla.x, pantalla.y, densidad)
