@@ -2,6 +2,7 @@ package app.trombito.rallycopilot.ui.theme
 
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Shapes
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
@@ -23,11 +24,16 @@ val TextoSecundarioSobreCarbon = Color(0xFFBFC3C9)
 /** Ámbar de la marca sobre el carbón (el `primary` del tema oscuro, fijo). */
 val AmbarSobreCarbon = Color(0xFFE5AB46)
 
-/** Rojo de acento para barras, aros de señal y exceso (nunca como relleno). */
+/**
+ * El único rojo de la marca: barras de acento, aros de señal, franja de cabecera, exceso y ruta (nunca como relleno).
+ * `ColoresRally.franja` y `RojoRuta` apuntan aquí; no se definen más rojos de marca.
+ */
 val RojoAcento = Color(0xFFE02A32)
 
-/** Radios de esquina. */
+/** Radios de esquina: la única tabla; el tema de Material ([formasMaterial]) se deriva de ella. */
 object Radios {
+    val diminuto = 4.dp
+    val pequeno = 8.dp
     val tarjeta = 12.dp
     val hoja = 16.dp
     val pildora = 24.dp
@@ -37,6 +43,16 @@ object Radios {
     val formaPanel = RoundedCornerShape(hoja)
     val formaPildora = RoundedCornerShape(pildora)
     val formaCirculo = CircleShape
+
+    /** Formas del tema de Material 3: los componentes sin personalizar heredan estos radios. */
+    val formasMaterial =
+        Shapes(
+            extraSmall = RoundedCornerShape(diminuto),
+            small = RoundedCornerShape(pequeno),
+            medium = formaTarjeta,
+            large = formaPanel,
+            extraLarge = formaPildora,
+        )
 }
 
 /** Duraciones de animación en milisegundos. */

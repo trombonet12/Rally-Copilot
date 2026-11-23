@@ -15,10 +15,11 @@ val DarkColors =
         onPrimary = Color(0xFF2A1C00),
         primaryContainer = Color(0xFF3A2A0A),
         onPrimaryContainer = Color(0xFFF6E7C6),
-        secondary = Color(0xFF8FC1E3),
-        onSecondary = Color(0xFF08202E),
-        secondaryContainer = Color(0xFF142833),
-        onSecondaryContainer = Color(0xFFD6E7F0),
+        // Secundario en gris carbón claro (se distingue del ámbar en las gráficas): nada de azul de Material.
+        secondary = Color(0xFFC4C7CC),
+        onSecondary = Color(0xFF1A1C20),
+        secondaryContainer = Color(0xFF2C2F35),
+        onSecondaryContainer = Color(0xFFECEDEF),
         tertiary = Color(0xFFFF8F85),
         onTertiary = Color(0xFF3D0606),
         tertiaryContainer = Color(0xFF5C1014),
@@ -51,10 +52,10 @@ val LightColors =
         onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFFF6E7C6),
         onPrimaryContainer = Color(0xFF3A2700),
-        secondary = Color(0xFF2C6E92),
+        secondary = Color(0xFF5B5F66),
         onSecondary = Color(0xFFFFFFFF),
-        secondaryContainer = Color(0xFFD6E7F0),
-        onSecondaryContainer = Color(0xFF0E2A3A),
+        secondaryContainer = Color(0xFFE3E2DD),
+        onSecondaryContainer = Color(0xFF1A1C1E),
         tertiary = Color(0xFFB3151B),
         onTertiary = Color(0xFFFFFFFF),
         tertiaryContainer = Color(0xFFFFDAD5),
@@ -90,7 +91,7 @@ data class ColoresRally(
     val deltaPeor: Color,
     /** Banners de radar y límite de velocidad. */
     val aviso: Color,
-    /** Franja roja de la marca (casco, rótulos). Decorativa: no lleva texto encima. */
+    /** Franja roja de la marca (casco, rótulos, cabecera): siempre [RojoAcento]. Decorativa: sin texto encima. */
     val franja: Color,
 )
 
@@ -99,7 +100,7 @@ val RallyOscuro =
         deltaMejor = Color(0xFF3DDC84),
         deltaPeor = Color(0xFFFF6B5E),
         aviso = Color(0xFFFFC94A),
-        franja = Color(0xFFD8232A),
+        franja = RojoAcento,
     )
 
 val RallyClaro =
@@ -107,14 +108,14 @@ val RallyClaro =
         deltaMejor = Color(0xFF0B7A3E),
         deltaPeor = Color(0xFFB3151B),
         aviso = Color(0xFF8A5A00),
-        franja = Color(0xFFD8232A),
+        franja = RojoAcento,
     )
 
 /**
  * Línea de la ruta por delante en el mapa: rojo de la marca, vivo, igual en los dos temas y en satélite (el mapa tiene
  * su propio estilo, no el del tema). Se lee sobre el mapa oscuro, el claro y el satélite gracias al contorno carbón.
  */
-val RojoRuta = Color(0xFFE02A32)
+val RojoRuta = RojoAcento
 
 /** Estela de lo recorrido: gris neutro apagado (se pinta al 70 % de opacidad, ver `CapaEstela`). */
 val GrisEstela = Color(0xFF9AA0A6)

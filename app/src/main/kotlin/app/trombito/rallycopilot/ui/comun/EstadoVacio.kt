@@ -20,7 +20,16 @@ import app.trombito.rallycopilot.ui.theme.Espacio
 
 private val LADO_ICONO_VACIO = 72.dp
 
-/** Estado vacío amable: un icono grande, un titular y una frase que dice qué hacer. */
+/**
+ * Estado vacío amable: un icono grande, un titular y una frase que dice qué hacer.
+ *
+ * Obsoleto: sustituido por [EstadoVacioWrc] (ilustración opcional, variantes vacío/error/sin mapas y acción). Se
+ * quitará cuando Análisis migre al sistema común.
+ */
+@Deprecated(
+    message = "Usa EstadoVacioWrc, que admite ilustración, variantes y acción.",
+    replaceWith = ReplaceWith("EstadoVacioWrc(icono, titulo, texto, etiqueta, modifier)"),
+)
 @Composable
 fun EstadoVacio(
     icono: ImageVector,
