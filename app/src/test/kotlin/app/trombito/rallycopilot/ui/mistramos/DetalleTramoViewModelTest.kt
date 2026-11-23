@@ -41,7 +41,7 @@ class DetalleTramoViewModelTest {
                 mapOf(
                     "t1" to
                         listOf(
-                            detalladaFalsa(3, "t1", totalMs = 105_000L, inicioMs = 3_000L),
+                            detalladaFalsa(3, "t1", totalMs = 105_000L, inicioMs = 3_000L, recorridoId = 77L),
                             detalladaFalsa(2, "t1", totalMs = 100_000L, inicioMs = 2_000L, esMejor = true),
                             detalladaFalsa(1, "t1", totalMs = 112_500L, inicioMs = 1_000L),
                         ),
@@ -102,6 +102,8 @@ class DetalleTramoViewModelTest {
             assertEquals(listOf(3L, 2L, 1L), estado.pasadas.map { it.id })
             assertEquals(listOf(5_000L, 0L, 12_500L), estado.pasadas.map { it.deltaMejorMs })
             assertEquals(listOf(false, true, false), estado.pasadas.map { it.esMejor })
+            // El viaje que grabó cada pasada (null si ya no existe) es lo que abre el resumen del viaje.
+            assertEquals(listOf(77L, null, null), estado.pasadas.map { it.recorridoId })
             assertEquals(105_000L, estado.pasadas.first().totalMs)
             assertEquals(3_000L, estado.pasadas.first().inicioMs)
         }

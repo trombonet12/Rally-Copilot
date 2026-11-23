@@ -62,13 +62,15 @@ fun tramoFalso(
 ) = Tramo(id, listOf(PuntoGeo(39.80, 2.80), PuntoGeo(39.81, 2.82), PuntoGeo(39.83, 2.81)), longitudM)
 
 /** Pasada detallada de prueba; [inicioMs] es epoch. */
+@Suppress("LongParameterList") // los datos de la pasada de prueba, cada uno con su valor por defecto
 fun detalladaFalsa(
     id: Long,
     tramoId: String,
     totalMs: Long,
     inicioMs: Long,
     esMejor: Boolean = false,
-) = PasadaDetallada(id, inicioMs, pasadaFalsa(tramoId, totalMs), emptyList(), esMejor)
+    recorridoId: Long? = null,
+) = PasadaDetallada(id, inicioMs, pasadaFalsa(tramoId, totalMs), emptyList(), esMejor, recorridoId)
 
 /** Un tramo guardado con [RepositorioTramos.crearSinPasadas]. */
 data class GuardadoSinPasadas(
@@ -88,6 +90,9 @@ class FalsoRepositorioTramos(
     private val cronometrablesIniciales: List<TramoCronometrable> = emptyList(),
 ) : RepositorioTramos {
     val subtramosMutable = MutableStateFlow(subtramos)
+
+    /** Lo que responde `observarSubtramosDeRecorrido` por id de recorrido (vacío si no se indica). */
+    val subtramosPorRecorrido = mutableMapOf<Long, List<SubtramoGuardado>>()
     val resumenesMutable = MutableStateFlow(resumenes)
     val perfilMutable = MutableStateFlow(perfil)
     val pasadasPorTramo = pasadas.toMutableMap()
@@ -130,7 +135,7 @@ class FalsoRepositorioTramos(
     ) = Unit
 
     override fun observarSubtramosDeRecorrido(recorridoId: Long): Flow<List<SubtramoGuardado>> =
-        MutableStateFlow(emptyList())
+        MutableStateFlow(subtramosPorRecorrido[recorridoId].orEmpty())
 
     override fun observarSubtramosDeTramo(tramoId: String): Flow<List<SubtramoGuardado>> =
         subtramosMutable.map { lista -> lista.filter { it.tramoRefId == tramoId } }

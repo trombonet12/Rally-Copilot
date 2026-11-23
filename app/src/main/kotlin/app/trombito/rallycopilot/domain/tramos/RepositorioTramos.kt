@@ -61,6 +61,7 @@ data class PuntoPasada(
 /**
  * Una pasada de un tramo con lo que necesita el análisis: su curva distancia-tiempo, su salida (epoch) y los
  * [puntos] grabados recortados a la pasada (vacíos si el recorrido ya no existe). [esMejor]: la de menor tiempo.
+ * [recorridoId] es el viaje que la grabó (null si ya no existe): con él se abre su resumen.
  */
 data class PasadaDetallada(
     val id: Long,
@@ -68,6 +69,7 @@ data class PasadaDetallada(
     val pasada: Pasada,
     val puntos: List<PuntoPasada>,
     val esMejor: Boolean,
+    val recorridoId: Long? = null,
 ) {
     val totalMs: Long get() = pasada.totalMs
 }

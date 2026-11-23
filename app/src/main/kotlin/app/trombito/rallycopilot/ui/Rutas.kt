@@ -73,3 +73,9 @@ data class RutaAnalisis(
 /** Perfil del piloto. */
 @Serializable
 data object RutaPerfil
+
+/** Resumen de un viaje (recorrido terminado de más de 1 km), al acabarlo o desde la lista de viajes. */
+@Serializable
+data class RutaResumenViaje(
+    val recorridoId: Long,
+)

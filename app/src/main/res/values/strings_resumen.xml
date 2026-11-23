@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Resumen del viaje: pantalla al terminar un recorrido de más de 1 km y desde la lista de viajes -->
+    <string name="resumen_titulo">Resumen del viaje</string>
+    <string name="resumen_subtitulo_destino">%1$s · %2$s</string>
+    <string name="resumen_cargando">Preparando el resumen…</string>
+    <string name="resumen_vacio_titulo">No hay resumen de este viaje</string>
+    <string name="resumen_vacio_texto">El viaje ya no está guardado o no tiene recorrido suficiente.</string>
+    <string name="resumen_error_titulo">No se pudo preparar el resumen</string>
+    <string name="resumen_error_texto">Vuelve a abrirlo en unos segundos. Tus datos siguen guardados.</string>
+
+    <string name="resumen_mapa_descripcion">Mapa del viaje con el recorrido coloreado según la velocidad</string>
+    <string name="resumen_sin_mapa">El mapa no está instalado. Descárgalo en Mapas offline para ver aquí el recorrido.</string>
+
+    <string name="resumen_dato_km">Distancia</string>
+    <string name="resumen_dato_en_marcha">En marcha</string>
+    <string name="resumen_dato_media">Media</string>
+    <string name="resumen_dato_total">Tiempo total</string>
+    <string name="resumen_dato_maxima">Máxima</string>
+    <string name="resumen_unidad_kmh">km/h</string>
+
+    <string name="resumen_llegada_real">Real</string>
+    <string name="resumen_llegada_prevista">Prevista</string>
+    <string name="resumen_llegada_antes">%1$s antes de lo previsto</string>
+    <string name="resumen_llegada_despues">%1$s más tarde de lo previsto</string>
+    <string name="resumen_llegada_puntual">A la hora prevista</string>
+
+    <string name="resumen_conclusion">Conclusión</string>
+
+    <string name="resumen_tramos_titulo">Tramos cronometrados</string>
+    <string name="resumen_tramo_primera">Primera vez</string>
+    <string name="resumen_tramo_record">Récord</string>
+
+    <string name="resumen_vias_titulo">Carreteras</string>
+    <string name="resumen_via_medidas">%1$s · %2$s de media</string>
+    <string name="resumen_via_tu_media">Tu media: %1$s</string>
+    <string name="resumen_via_sin_historico">Sin viajes anteriores</string>
+
+    <!-- Entrada desde el detalle de un viaje (Mis tramos) -->
+    <string name="detalle_ver_resumen">Ver el resumen del viaje</string>
+</resources>

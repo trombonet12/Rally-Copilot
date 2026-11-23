@@ -113,6 +113,27 @@ class DetalleTramoScreenTest {
     }
 
     @Test
+    fun `una pasada de un viaje que sigue guardado abre su resumen sin abrir el analisis`() {
+        val resumenes = mutableListOf<Long>()
+        val analisis = mutableListOf<Long>()
+        val conViaje = pasadas.map { if (it.id == 2L) it.copy(recorridoId = 55L) else it }
+        banco.poner {
+            RallyCopilotTheme {
+                DetalleTramoScreen(
+                    estado.copy(pasadas = conViaje),
+                    AccionesDetalleTramo(onVerAnalisis = { analisis += it }, onVerResumen = { resumenes += it }),
+                )
+            }
+        }
+        assertTrue(banco.hay("${ETIQUETA_RESUMEN_PASADA_PREFIJO}2"))
+        assertFalse(banco.hay("${ETIQUETA_RESUMEN_PASADA_PREFIJO}1"))
+        assertFalse(banco.hay("${ETIQUETA_RESUMEN_PASADA_PREFIJO}3"))
+        banco.pulsar(banco.conEtiqueta("${ETIQUETA_RESUMEN_PASADA_PREFIJO}2"))
+        assertEquals(listOf(55L), resumenes)
+        assertTrue(analisis.isEmpty())
+    }
+
+    @Test
     fun `reconocer esta junto a editar notas, lo pide y se explica`() {
         var reconocer = 0
         var editar = 0

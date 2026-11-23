@@ -5,6 +5,7 @@ import app.trombito.rallycopilot.data.notas.EdicionEnMapa
 import app.trombito.rallycopilot.data.notas.FabricaNotasSesion
 import app.trombito.rallycopilot.data.notas.NotasSesion
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
+import app.trombito.rallycopilot.data.recorridos.Recorrido
 import app.trombito.rallycopilot.data.recorridos.RepositorioRecorridos
 import app.trombito.rallycopilot.data.tramos.SesionCrono
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
@@ -127,6 +128,7 @@ class SesionNavegacion(
     private val cronometrar: suspend () -> Boolean = { true },
     private val alPausarNotas: (Boolean) -> Unit = {},
     private val alGuardarRecorrido: () -> Unit = {},
+    private val alTerminarViaje: (Recorrido) -> Unit = {},
     private val perfilRitmo: ProveedorPerfilRitmo = SinPerfilRitmo,
 ) {
     /** Cierra con la regla de siempre (descarta < 1 km) los recorridos que quedaron abiertos al cerrarse la app. */
@@ -172,6 +174,8 @@ class SesionNavegacion(
                 }
                 // Recorrido guardado (con sus pasadas y tramo ya cerrados): la copia automática lo recoge.
                 if (recorrido != null) alGuardarRecorrido()
+                // Guiado o libre de al menos 1 km (terminar ya descarta menos): el mapa enseña su resumen.
+                if (recorrido != null && solicitud !is SolicitudNavegacion.Reconocimiento) alTerminarViaje(recorrido)
             }
         }
     }

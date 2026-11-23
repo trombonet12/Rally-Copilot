@@ -18,6 +18,7 @@ fun DetalleTramoRoute(
     onVerAnalisis: (tramoId: String, pasadaId: Long) -> Unit,
     onEditarNotas: (tramoId: String) -> Unit,
     onReconocer: (tramoId: String) -> Unit,
+    onVerResumen: (recorridoId: Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DetalleTramoViewModel = hiltViewModel(),
 ) {
@@ -39,6 +40,7 @@ fun DetalleTramoRoute(
                 onRenombrar = viewModel::onRenombrar,
                 onCancelarRenombrar = viewModel::onCancelarRenombrar,
                 onVerAnalisis = { pasadaId -> estado.tramo?.let { onVerAnalisis(it.id, pasadaId) } },
+                onVerResumen = onVerResumen,
                 onEditarNotas = { estado.tramo?.let { onEditarNotas(it.id) } },
                 onReconocer = { estado.tramo?.let { onReconocer(it.id) } },
                 onCompartir = viewModel::onCompartir,

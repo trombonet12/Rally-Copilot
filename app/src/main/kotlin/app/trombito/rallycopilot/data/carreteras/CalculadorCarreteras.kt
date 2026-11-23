@@ -6,6 +6,8 @@ import app.trombito.rallycopilot.data.vias.FuenteVias
 import app.trombito.rallycopilot.di.DispatcherDefault
 import app.trombito.rallycopilot.domain.carreteras.CalculoCarreteras
 import app.trombito.rallycopilot.domain.carreteras.MisCarreteras
+import app.trombito.rallycopilot.domain.resumen.ContextoVias
+import app.trombito.rallycopilot.domain.resumen.FuenteContextoVias
 import app.trombito.rallycopilot.motor.analisis.AgregadoCarreteras
 import app.trombito.rallycopilot.motor.analisis.AnalisisMarcha
 import app.trombito.rallycopilot.motor.analisis.AnalisisRecorrido
@@ -17,8 +19,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -37,7 +41,8 @@ class CalculadorCarreteras
         private val recorridos: RepositorioRecorridos,
         private val vias: FuenteVias,
         @DispatcherDefault private val dispatcher: CoroutineDispatcher,
-    ) : CalculoCarreteras {
+    ) : CalculoCarreteras,
+        FuenteContextoVias {
         /** Los dos análisis de un recorrido: carreteras (pasadas, curvas) y marcha (velocidad en marcha por vía). */
         private class Analizado(
             val carreteras: AnalisisRecorrido,
@@ -57,31 +62,58 @@ class CalculadorCarreteras
                 .mapLatest { lista -> calcular(lista.map { it.id }) }
                 .flowOn(dispatcher)
 
+        /**
+         * Las vías para el resumen del viaje [recorridoId]: cómo asignar sus puntos a una vía y lo acumulado en el
+         * resto de recorridos terminados (sin él). Aprovecha la caché de [observar], así que solo analiza lo que falte.
+         */
+        override suspend fun contextoSin(recorridoId: Long): ContextoVias =
+            withContext(dispatcher) {
+                val ids =
+                    recorridos
+                        .listar()
+                        .first()
+                        .map { it.id }
+                        .filter { it != recorridoId }
+                val datos = vias.datos()
+                val analisis = analisisDe(ids, datos)
+                val historico = VelocidadVias.agregar(analisis.map { it.marcha }).associateBy { it.via.id }
+                ContextoVias(coincidenciaDe(datos), historico)
+            }
+
+        private fun coincidenciaDe(datos: DatosVias?) =
+            VelocidadVias.CoincidenciaDe { punto, rumbo ->
+                datos?.indice?.cercana(punto, rumbo, AgregadoCarreteras.RADIO_VIA_M)
+            }
+
         private suspend fun calcular(ids: List<Long>): MisCarreteras {
             val datos = vias.datos()
-            if (datos !== viasDeLaCache) {
-                cache.clear()
-                viasDeLaCache = datos
-            }
+            val analisis = analisisDe(ids, datos)
             cache.keys.retainAll(ids.toSet())
-            val viaDe =
-                AgregadoCarreteras.ViaDe { punto, rumbo ->
-                    datos?.indice?.cercana(punto, rumbo, AgregadoCarreteras.RADIO_VIA_M)?.via
-                }
-            val coincidenciaDe =
-                VelocidadVias.CoincidenciaDe { punto, rumbo ->
-                    datos?.indice?.cercana(punto, rumbo, AgregadoCarreteras.RADIO_VIA_M)
-                }
-            val analisis =
-                ids.map { id ->
-                    currentCoroutineContext().ensureActive()
-                    cache[id] ?: analizar(id, datos != null, viaDe, coincidenciaDe).also { cache[id] = it }
-                }
             return MisCarreteras(
                 resumen = AgregadoCarreteras.agregar(analisis.map { it.carreteras }),
                 hayVias = datos != null,
                 velocidades = VelocidadVias.agregar(analisis.map { it.marcha }),
             )
+        }
+
+        /** Los análisis de [ids] (de la caché o calculados ahora); la caché se descarta si cambiaron las vías. */
+        private suspend fun analisisDe(
+            ids: List<Long>,
+            datos: DatosVias?,
+        ): List<Analizado> {
+            if (datos !== viasDeLaCache) {
+                cache.clear()
+                viasDeLaCache = datos
+            }
+            val viaDe =
+                AgregadoCarreteras.ViaDe { punto, rumbo ->
+                    datos?.indice?.cercana(punto, rumbo, AgregadoCarreteras.RADIO_VIA_M)?.via
+                }
+            val coincidenciaDe = coincidenciaDe(datos)
+            return ids.map { id ->
+                currentCoroutineContext().ensureActive()
+                cache[id] ?: analizar(id, datos != null, viaDe, coincidenciaDe).also { cache[id] = it }
+            }
         }
 
         private suspend fun analizar(

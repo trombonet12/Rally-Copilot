@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
@@ -77,6 +79,7 @@ const val ETIQUETA_DETALLE_COMPARTIR = "detalle-compartir"
 const val ETIQUETA_DETALLE_SUBTITULO = "detalle-subtitulo"
 const val ETIQUETA_PASADA_PREFIJO = "pasada-"
 const val ETIQUETA_ANALISIS_PREFIJO = "pasada-analisis-"
+const val ETIQUETA_RESUMEN_PASADA_PREFIJO = "pasada-resumen-"
 const val ETIQUETA_PASADAS_VACIAS = "detalle-sin-pasadas"
 const val ETIQUETA_MAPA_TRAMO = "detalle-mapa"
 
@@ -109,6 +112,7 @@ data class AccionesDetalleTramo(
     val onRenombrar: (String) -> Unit = {},
     val onCancelarRenombrar: () -> Unit = {},
     val onVerAnalisis: (pasadaId: Long) -> Unit = {},
+    val onVerResumen: (recorridoId: Long) -> Unit = {},
     val onEditarNotas: () -> Unit = {},
     val onReconocer: () -> Unit = {},
     val onCompartir: () -> Unit = {},
@@ -273,7 +277,11 @@ private fun ContenidoDetalle(
             }
         }
         items(estado.pasadas, key = { it.id }) { pasada ->
-            TarjetaPasada(pasada) { acciones.onVerAnalisis(pasada.id) }
+            TarjetaPasada(
+                pasada = pasada,
+                onVerAnalisis = { acciones.onVerAnalisis(pasada.id) },
+                onVerResumen = pasada.recorridoId?.let { id -> { acciones.onVerResumen(id) } },
+            )
         }
         seccionSubtramos(estado.subtramos)
         seccionNotasPorRevisar(estado.notasPorRevisar)
@@ -349,20 +357,37 @@ private fun Medida(
     }
 }
 
-/** La pasada entera es pulsable (56 dp como mínimo) y lleva al análisis; el chevron lo anuncia. */
+/**
+ * La pasada entera es pulsable (56 dp como mínimo) y lleva al análisis; el chevron lo anuncia. Si la grabó un viaje
+ * que sigue guardado ([onVerResumen] no es null), un botón aparte abre el resumen de ese viaje (y TalkBack lo ofrece
+ * como acción personalizada de la tarjeta).
+ */
 @Composable
 private fun TarjetaPasada(
     pasada: FilaPasada,
     onVerAnalisis: () -> Unit,
+    onVerResumen: (() -> Unit)?,
 ) {
     val verAnalisis = stringResource(R.string.detalle_ver_analisis)
+    val verResumen = stringResource(R.string.detalle_ver_resumen)
     TarjetaWrc(
         modifier =
             Modifier
                 .fillMaxWidth()
                 .heightIn(min = ALTO_FILA_PASADA)
                 .testTag(ETIQUETA_PASADA_PREFIJO + pasada.id)
-                .semantics(mergeDescendants = true) { onClick(label = verAnalisis, action = null) },
+                .semantics(mergeDescendants = true) {
+                    onClick(label = verAnalisis, action = null)
+                    if (onVerResumen != null) {
+                        customActions =
+                            listOf(
+                                CustomAccessibilityAction(verResumen) {
+                                    onVerResumen()
+                                    true
+                                },
+                            )
+                    }
+                },
         relleno = Espacio.m,
         onClick = onVerAnalisis,
     ) {
@@ -374,6 +399,18 @@ private fun TarjetaPasada(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 TiempoYDiferencia(pasada)
+            }
+            if (onVerResumen != null) {
+                IconButton(
+                    onClick = onVerResumen,
+                    modifier = Modifier.testTag(ETIQUETA_RESUMEN_PASADA_PREFIJO + pasada.id),
+                ) {
+                    Icon(
+                        imageVector = Iconos.Grafico,
+                        contentDescription = verResumen,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
             Icon(
                 imageVector = Iconos.Siguiente,

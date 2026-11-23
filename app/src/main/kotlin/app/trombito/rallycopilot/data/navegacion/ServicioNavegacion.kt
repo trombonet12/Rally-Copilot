@@ -31,6 +31,8 @@ import app.trombito.rallycopilot.domain.copia.CopiaAutomaticaDatos
 import app.trombito.rallycopilot.domain.escucha.ControlOrdenes
 import app.trombito.rallycopilot.domain.escucha.RepositorioEdiciones
 import app.trombito.rallycopilot.domain.navegacion.EstadoNavegacion
+import app.trombito.rallycopilot.domain.resumen.ViajeTerminado
+import app.trombito.rallycopilot.domain.resumen.ViajesTerminados
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.ubicacion.FuenteUbicacion
@@ -94,6 +96,8 @@ class ServicioNavegacion : Service() {
     @Inject lateinit var liberadorModelos: LiberadorModelos
 
     @Inject lateinit var copiaAutomatica: CopiaAutomaticaDatos
+
+    @Inject lateinit var viajesTerminados: ViajesTerminados
 
     @Inject @ApplicationScope
     lateinit var alcanceApp: CoroutineScope
@@ -322,6 +326,7 @@ private fun ServicioNavegacion.crearSesion(id: Long) =
         alPausarNotas = notasEnVivo::pausar,
         // En el alcance de la app: la sesión (y el servicio) pueden haber acabado antes de que termine la copia.
         alGuardarRecorrido = { alcanceApp.launch { copiaAutomatica.copiarAlTerminar() } },
+        alTerminarViaje = { viajesTerminados.publicar(ViajeTerminado(it.id, System.currentTimeMillis())) },
     )
 
 /** Solo en un APK depurable: una línea por frase dicha para medir la anticipación (sin coordenadas). */

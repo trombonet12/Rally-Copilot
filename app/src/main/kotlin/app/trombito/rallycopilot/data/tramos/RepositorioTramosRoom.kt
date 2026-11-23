@@ -138,7 +138,14 @@ class RepositorioTramosRoom
                 val mejorId = filas.minWithOrNull(compareBy({ it.totalMs }, { it.id }))?.id
                 filas.mapNotNull { fila ->
                     fila.aPasada(tramo.cortesExactosM())?.let { pasada ->
-                        PasadaDetallada(fila.id, fila.inicio, pasada, puntosDe(fila), fila.id == mejorId)
+                        PasadaDetallada(
+                            fila.id,
+                            fila.inicio,
+                            pasada,
+                            puntosDe(fila),
+                            fila.id == mejorId,
+                            fila.recorridoId,
+                        )
                     }
                 }
             }

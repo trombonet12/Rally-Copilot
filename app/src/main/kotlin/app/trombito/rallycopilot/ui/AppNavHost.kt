@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -16,6 +17,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import app.trombito.rallycopilot.R
@@ -30,6 +32,7 @@ import app.trombito.rallycopilot.ui.analisis.AnalisisRoute
 import app.trombito.rallycopilot.ui.inicio.EntradaInicio
 import app.trombito.rallycopilot.ui.inicio.InicioRoute
 import app.trombito.rallycopilot.ui.mapa.MapaRoute
+import app.trombito.rallycopilot.ui.mapa.MapaViewModel
 import app.trombito.rallycopilot.ui.mapasoffline.MapasOfflineRoute
 import app.trombito.rallycopilot.ui.mapasoffline.ZonaDetalleRoute
 import app.trombito.rallycopilot.ui.miscarreteras.MisCarreterasRoute
@@ -41,6 +44,9 @@ import app.trombito.rallycopilot.ui.mistramos.MisTramosRoute
 import app.trombito.rallycopilot.ui.navegacion.NavegacionViewModel
 import app.trombito.rallycopilot.ui.perfil.PerfilRoute
 import app.trombito.rallycopilot.ui.reconocimiento.ReconocimientoViewModel
+import app.trombito.rallycopilot.ui.resumen.ResumenPendienteViewModel
+import app.trombito.rallycopilot.ui.resumen.ResumenViajeRoute
+import app.trombito.rallycopilot.ui.resumen.resumenAlParar
 import app.trombito.rallycopilot.ui.tutorial.BienvenidaRoute
 import app.trombito.rallycopilot.ui.tutorial.EstadoPistas
 import app.trombito.rallycopilot.ui.tutorial.LocalPistas
@@ -52,12 +58,15 @@ import app.trombito.rallycopilot.ui.widget.pasoDeAtajo
  * El mapa, sin flecha de volver: lo cierra el atrás del sistema o la ✕ de su hoja (la pila de navegación).
  * [atajoPendiente] es el destino que pidió «Repetir último tramo»: se abre su vista previa de ruta una sola vez
  * (el ViewModel de navegación es el mismo que usa [MapaRoute], porque comparten la entrada de la pila).
+ * Al cerrarse un viaje de más de 1 km ([resumenes]), con el mapa a la vista se abre su resumen en cuanto el coche
+ * está parado; conduciendo no se interrumpe.
  */
 @Composable
 private fun DestinoMapa(
     nav: NavHostController,
     atajoPendiente: Destino?,
     onAtajoAplicado: () -> Unit,
+    resumenes: ResumenPendienteViewModel,
 ) {
     val navegacion: NavegacionViewModel = hiltViewModel()
     LaunchedEffect(atajoPendiente) {
@@ -66,6 +75,7 @@ private fun DestinoMapa(
             onAtajoAplicado()
         }
     }
+    AbrirResumenAlParar(nav, resumenes, hiltViewModel())
     MapaRoute(
         onAbrirMapasOffline = { nav.navigate(RutaMapasOffline) },
         onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
@@ -73,14 +83,61 @@ private fun DestinoMapa(
     )
 }
 
+/**
+ * Con el mapa a la vista, abre el resumen del viaje recién terminado cuando el coche está parado. La velocidad sale del
+ * ViewModel del mapa; se lee con un `derivedStateOf` para que esta función solo se recomponga al pasar de parado a en
+ * marcha (y no con cada fijación del GPS).
+ */
+@Composable
+private fun AbrirResumenAlParar(
+    nav: NavHostController,
+    resumenes: ResumenPendienteViewModel,
+    mapa: MapaViewModel,
+) {
+    val pendiente by resumenes.pendiente.collectAsStateWithLifecycle()
+    val estadoMapa = mapa.uiState.collectAsStateWithLifecycle()
+    val abrir by remember { derivedStateOf { resumenAlParar(pendiente, estadoMapa.value.velocidadKmh) } }
+    LaunchedEffect(abrir) {
+        abrir?.let {
+            resumenes.consumir(it)
+            nav.navigate(RutaResumenViaje(it))
+        }
+    }
+}
+
+/**
+ * Un viaje que termina fuera del mapa (al salir de él con el recorrido en marcha, el servicio lo cierra unos
+ * segundos después) abre su resumen en cuanto se sabe, estés donde estés; con el mapa a la vista lo decide
+ * [AbrirResumenAlParar].
+ */
+@Composable
+private fun NavegarAlResumen(
+    resumenes: ResumenPendienteViewModel,
+    nav: NavHostController,
+) {
+    val pendiente by resumenes.pendiente.collectAsStateWithLifecycle()
+    val entrada by nav.currentBackStackEntryAsState()
+    val destino = entrada?.destination
+    val enMapa = destino?.hasRoute<RutaMapa>() == true
+    LaunchedEffect(pendiente, destino) {
+        val id = pendiente
+        if (id != null && destino != null && !enMapa) {
+            resumenes.consumir(id)
+            nav.navigate(RutaResumenViaje(id))
+        }
+    }
+}
+
 @Composable
 fun AppNavHost(
     importacion: ImportarViewModel = hiltViewModel(),
     tutorial: TutorialViewModel = hiltViewModel(),
     atajos: AtajosViewModel = hiltViewModel(),
+    resumenes: ResumenPendienteViewModel = hiltViewModel(),
 ) {
     val nav = rememberNavController()
     NavegarAlImportarDeFuera(importacion, nav)
+    NavegarAlResumen(resumenes, nav)
     var atajoPendiente by remember { mutableStateOf<Destino?>(null) }
     NavegarAlAtajo(atajos, nav) { atajoPendiente = it }
     val vistas by tutorial.pistasVistas.collectAsStateWithLifecycle()
@@ -89,20 +146,22 @@ fun AppNavHost(
     val arranque: Any = if (tutorial.bienvenidaVista) RutaInicio else RutaBienvenida
     CompositionLocalProvider(LocalPistas provides pistas) {
         NavHost(navController = nav, startDestination = arranque) {
-            destinos(nav, importacion, tutorial, atajoPendiente) { atajoPendiente = null }
+            destinos(nav, importacion, tutorial, atajoPendiente, resumenes) { atajoPendiente = null }
         }
     }
 }
 
+@Suppress("LongParameterList") // la raíz de navegación reparte sus ViewModels y callbacks a cada destino
 private fun NavGraphBuilder.destinos(
     nav: NavHostController,
     importacion: ImportarViewModel,
     tutorial: TutorialViewModel,
     atajoPendiente: Destino?,
+    resumenes: ResumenPendienteViewModel,
     onAtajoAplicado: () -> Unit,
 ) {
     composable<RutaInicio> { InicioRoute(onEntrada = { abrirEntrada(nav, it) }) }
-    composable<RutaMapa> { DestinoMapa(nav, atajoPendiente, onAtajoAplicado) }
+    composable<RutaMapa> { DestinoMapa(nav, atajoPendiente, onAtajoAplicado, resumenes) }
     composable<RutaMapasOffline> {
         MapasOfflineRoute(onVolver = { nav.popBackStack() }, onDescargarZona = { nav.navigate(RutaZonaDetalle) })
     }
@@ -136,8 +195,10 @@ private fun NavGraphBuilder.destinos(
                 nav.navigate(RutaMapa)
             },
             onVerAnalisis = { tramoId, pasadaId -> nav.navigate(RutaAnalisis(tramoId, pasadaId)) },
+            onVerResumen = { recorridoId -> nav.navigate(RutaResumenViaje(recorridoId)) },
         )
     }
+    composable<RutaResumenViaje> { ResumenViajeRoute(onVolver = { nav.popBackStack() }) }
     composable<RutaEditarTramo> { EditarTramoRoute(onVolver = { nav.popBackStack() }) }
     composable<RutaAnalisis> { AnalisisRoute(onVolver = { nav.popBackStack() }) }
     composable<RutaPerfil> {

@@ -134,6 +134,9 @@ private class RecorridosFalso(
     val tamanos = mutableListOf<Int>()
     val terminados = mutableListOf<Long>()
 
+    /** Lo que devuelve `terminar` (null = el recorrido se descartó por corto). */
+    var alTerminar: Recorrido? = null
+
     override suspend fun empezar(destinoNombre: String?): Long {
         empezado = true
         destino = destinoNombre
@@ -151,7 +154,7 @@ private class RecorridosFalso(
 
     override suspend fun terminar(id: Long): Recorrido? {
         terminados += id
-        return null
+        return alTerminar
     }
 
     override suspend fun idsEnCurso() = enCurso
@@ -226,6 +229,7 @@ class SesionNavegacionTest {
         horaDePared: () -> Long = { testScheduler.currentTime },
         alertas: SesionAlertas? = null,
         copiloto: CopilotoVoz? = null,
+        alTerminarViaje: (Recorrido) -> Unit = {},
     ): Escenario {
         val estados = mutableListOf<EstadoNavegacion>()
         val recorridos = RecorridosFalso(enCurso)
@@ -240,6 +244,7 @@ class SesionNavegacionTest {
                 motivoSinGps = "sin GPS",
                 copiloto = copiloto,
                 alertas = alertas,
+                alTerminarViaje = alTerminarViaje,
             )
         return Escenario(estados, recorridos, enrutador, sesion)
     }
@@ -539,6 +544,67 @@ class SesionNavegacionTest {
             runCurrent()
             assertEquals(4, e.recorridos.lotes.size)
             assertEquals(listOf(RecorridosFalso.ID), e.recorridos.terminados)
+        }
+
+    private val viajeLargo = Recorrido(RecorridosFalso.ID, 0L, 1L, 2_500.0, null)
+
+    @Test
+    fun `al cerrar un viaje libre de mas de 1 km avisa con el recorrido para enseñar su resumen`() =
+        runTest {
+            val avisados = mutableListOf<Recorrido>()
+            val e = escenario(FuenteFalsa(List(4) { p(0.0, it * 20.0) }), alTerminarViaje = { avisados += it })
+            e.recorridos.alTerminar = viajeLargo
+            val trabajo = lanzar(e, SolicitudNavegacion.Libre)
+            advanceTimeBy(3_500)
+            assertTrue(avisados.isEmpty())
+
+            trabajo.cancel()
+            runCurrent()
+            assertEquals(listOf(viajeLargo), avisados)
+        }
+
+    @Test
+    fun `un viaje guiado que llega al destino tambien avisa`() =
+        runTest {
+            val avisados = mutableListOf<Recorrido>()
+            val e =
+                escenario(
+                    FuenteFalsa(listOf(p(900.0, 0.0), p(1000.0, 400.0), p(1000.0, 495.0))),
+                    alTerminarViaje = { avisados += it },
+                )
+            e.recorridos.alTerminar = viajeLargo
+            val trabajo = lanzar(e, guiada())
+            advanceTimeBy(12_500)
+            runCurrent()
+            assertTrue(trabajo.isCompleted)
+            assertEquals(listOf(viajeLargo), avisados)
+        }
+
+    @Test
+    fun `un recorrido descartado por corto no avisa`() =
+        runTest {
+            val avisados = mutableListOf<Recorrido>()
+            val e = escenario(FuenteFalsa(List(4) { p(0.0, it * 20.0) }), alTerminarViaje = { avisados += it })
+            val trabajo = lanzar(e, SolicitudNavegacion.Libre)
+            advanceTimeBy(3_500)
+            trabajo.cancel()
+            runCurrent()
+            assertEquals(listOf(RecorridosFalso.ID), e.recorridos.terminados)
+            assertTrue(avisados.isEmpty())
+        }
+
+    @Test
+    fun `una pasada de reconocimiento no enseña resumen`() =
+        runTest {
+            val avisados = mutableListOf<Recorrido>()
+            val e = escenario(FuenteFalsa(List(4) { p(0.0, it * 20.0) }), alTerminarViaje = { avisados += it })
+            e.recorridos.alTerminar = viajeLargo
+            val trabajo = lanzar(e, SolicitudNavegacion.Reconocimiento("t1"))
+            advanceTimeBy(3_500)
+            trabajo.cancel()
+            runCurrent()
+            assertEquals(listOf(RecorridosFalso.ID), e.recorridos.terminados)
+            assertTrue(avisados.isEmpty())
         }
 
     @Test

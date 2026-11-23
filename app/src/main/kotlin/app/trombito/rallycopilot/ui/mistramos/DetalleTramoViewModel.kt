@@ -171,7 +171,7 @@ class DetalleTramoViewModel
         private fun filasDe(pasadas: List<PasadaDetallada>): List<FilaPasada> {
             val mejor = pasadas.minOfOrNull { it.totalMs } ?: return emptyList()
             return pasadas.map {
-                FilaPasada(it.id, it.inicioMs, it.totalMs, it.totalMs - mejor, it.esMejor)
+                FilaPasada(it.id, it.inicioMs, it.totalMs, it.totalMs - mejor, it.esMejor, it.recorridoId)
             }
         }
     }

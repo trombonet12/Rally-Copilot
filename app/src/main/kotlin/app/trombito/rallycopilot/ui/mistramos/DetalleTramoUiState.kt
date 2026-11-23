@@ -3,13 +3,17 @@ package app.trombito.rallycopilot.ui.mistramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 
-/** Una pasada del detalle: [deltaMejorMs] es su tiempo menos el de la mejor (0 en la mejor). */
+/**
+ * Una pasada del detalle: [deltaMejorMs] es su tiempo menos el de la mejor (0 en la mejor). [recorridoId] es el viaje
+ * que la grabó (null si ya no existe): con él se abre el resumen del viaje.
+ */
 data class FilaPasada(
     val id: Long,
     val inicioMs: Long,
     val totalMs: Long,
     val deltaMejorMs: Long,
     val esMejor: Boolean,
+    val recorridoId: Long? = null,
 )
 
 /**
