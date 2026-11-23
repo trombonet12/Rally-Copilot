@@ -106,14 +106,14 @@ class CopilotoVoz(
     /** `true` mientras el copiloto no se fia de la posicion y no canta notas nuevas (maniobras y alertas siguen). */
     val notasEnPausa: StateFlow<Boolean> = pausa
 
+    /** Si el ajuste vigente quiere la palabra «cruce» en los giros (para las frases que se arman fuera). */
+    val conCruce: Boolean get() = actuales.avisarCruces
+
     /**
      * Una parada intermedia alcanzada ([numero]: cuántas van, desde 1): se dice [texto] en cuanto el altavoz esté libre
      * (como una maniobra, sin posición: no caduca por distancia) y, si no cabe en [VIGENCIA_PARADA_FIJACIONES]
      * fijaciones, se pierde.
      */
-    /** Si el ajuste vigente quiere la palabra «cruce» en los giros (para las frases que se arman fuera). */
-    val conCruce: Boolean get() = actuales.avisarCruces
-
     fun anunciarParada(
         numero: Int,
         texto: String,
