@@ -4,6 +4,7 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.drawable.Drawable
 import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
 import app.trombito.rallycopilot.domain.ajustes.IconoPosicion
@@ -19,6 +20,10 @@ import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
 import org.maplibre.geojson.Point
+import kotlin.math.PI
+import kotlin.math.ceil
+import kotlin.math.cos
+import kotlin.math.sin
 
 private const val ID_FUENTE = "fantasma-fuente"
 private const val ID_CAPA = "fantasma-capa"
@@ -26,15 +31,26 @@ private const val ID_IMAGEN = "fantasma-icono"
 internal const val PROPIEDAD_RUMBO_FANTASMA = "rumbo"
 private const val LADO_ICONO_DP = 40
 
-/** Opacidad del coche fantasma: translúcido para que se lea el mapa por debajo y no se confunda con el coche real. */
-internal const val OPACIDAD_FANTASMA = 0.45f
+/** Opacidad del coche fantasma: algo translúcido (se lee el mapa) pero visible en mapa claro, oscuro y satélite. */
+internal const val OPACIDAD_FANTASMA = 0.75f
 
-/** Gris casi blanco de la silueta del fantasma (sin opacidad; la capa lo pinta al [OPACIDAD_FANTASMA]). */
-private const val COLOR_FANTASMA = 0xFFE8EAED.toInt()
+/** Relleno gris medio-claro de la silueta (sin opacidad; la capa lo pinta al [OPACIDAD_FANTASMA]). */
+private const val COLOR_FANTASMA = 0xFFB8BDC6.toInt()
+
+/** Contorno carbón: da contraste sobre el mapa claro y el satélite. */
+private const val COLOR_CONTORNO_FANTASMA = 0xFF1A1B1F.toInt()
+
+/** Halo claro exterior, fino: separa el contorno carbón del mapa oscuro. */
+private const val COLOR_HALO_FANTASMA = 0xFFF1F3F6.toInt()
+
+private const val GROSOR_CONTORNO_DP = 2f
+private const val GROSOR_HALO_DP = 1f
+private const val DIRECCIONES_CONTORNO = 16
 
 /**
  * Coche fantasma: dónde iba el coche de la mejor pasada a este mismo instante del tramo. Un solo punto en una
- * `SymbolLayer` con la silueta del icono de posición elegido (gris claro al 45 %), girada con el rumbo de la traza.
+ * `SymbolLayer` con la silueta del icono de posición elegido (gris con contorno carbón y halo claro al 75 %), girada
+ * con el rumbo de la traza.
  * Se instala justo antes de activar la ubicación, así queda por debajo del coche real. Sin [PosicionFantasma] (sin
  * tramo vivo o sin mejor pasada) la fuente queda vacía y no se ve nada. Una instancia por mapa: recuerda el icono
  * dibujado.
@@ -198,17 +214,45 @@ internal fun fantasmaGeoJson(fantasma: PosicionFantasma?): FeatureCollection =
         ),
     )
 
-/** Dibuja el icono de posición como silueta gris clara (el icono apunta hacia arriba: rumbo 0 = norte). */
+/**
+ * Dibuja el icono de posición como silueta gris con contorno carbón de [GROSOR_CONTORNO_DP] y un halo claro fino fuera
+ * (el icono apunta hacia arriba: rumbo 0 = norte). El contorno y el halo se obtienen repitiendo el icono tintado
+ * desplazado en un círculo; el bitmap lleva margen para que no se recorten.
+ */
 private fun siluetaDe(
     contexto: Context,
     icono: IconoPosicion,
 ): Bitmap {
-    val lado = (LADO_ICONO_DP * contexto.resources.displayMetrics.density).toInt().coerceAtLeast(1)
-    val bitmap = Bitmap.createBitmap(lado, lado, Bitmap.Config.ARGB_8888)
+    val densidad = contexto.resources.displayMetrics.density
+    val lado = (LADO_ICONO_DP * densidad).toInt().coerceAtLeast(1)
+    val contorno = GROSOR_CONTORNO_DP * densidad
+    val halo = GROSOR_HALO_DP * densidad
+    val margen = ceil(contorno + halo).toInt() + 1
+    val bitmap = Bitmap.createBitmap(lado + 2 * margen, lado + 2 * margen, Bitmap.Config.ARGB_8888)
+    val lienzo = Canvas(bitmap)
     ContextCompat.getDrawable(contexto, icono.recurso())?.mutate()?.let { dibujo ->
-        dibujo.setBounds(0, 0, lado, lado)
+        dibujo.setBounds(margen, margen, margen + lado, margen + lado)
+        repetirDesplazado(lienzo, dibujo, COLOR_HALO_FANTASMA, contorno + halo)
+        repetirDesplazado(lienzo, dibujo, COLOR_CONTORNO_FANTASMA, contorno)
         dibujo.setTint(COLOR_FANTASMA)
-        dibujo.draw(Canvas(bitmap))
+        dibujo.draw(lienzo)
     }
     return bitmap
+}
+
+/** Pinta [dibujo] teñido de [color] desplazado [radio] px en [DIRECCIONES_CONTORNO] direcciones (engorda el icono). */
+private fun repetirDesplazado(
+    lienzo: Canvas,
+    dibujo: Drawable,
+    color: Int,
+    radio: Float,
+) {
+    dibujo.setTint(color)
+    for (i in 0 until DIRECCIONES_CONTORNO) {
+        val angulo = 2.0 * PI * i / DIRECCIONES_CONTORNO
+        lienzo.save()
+        lienzo.translate((radio * cos(angulo)).toFloat(), (radio * sin(angulo)).toFloat())
+        dibujo.draw(lienzo)
+        lienzo.restore()
+    }
 }

@@ -115,8 +115,8 @@ class CapaFantasmaTest {
     }
 
     @Test
-    fun `la capa es translucida`() {
-        assertEquals(0.45f, OPACIDAD_FANTASMA, 0f)
+    fun `la capa es translucida pero bien visible`() {
+        assertEquals(0.75f, OPACIDAD_FANTASMA, 0f)
     }
 
     @Test
