@@ -34,6 +34,7 @@ import java.io.File
  * Sin `palabras` (índice viejo): primero el prefijo del nombre (usa el índice `nombre_norm`) y después las demás
  * palabras que empiecen así; en cada paso, por importancia y, con `cerca`, por cercanía.
  */
+@Suppress("TooManyFunctions") // una función por consulta del índice más abrir, descartar y comprobar
 class BuscadorSqlite(
     private val archivo: File,
     private val dispatcher: CoroutineDispatcher,
@@ -107,6 +108,25 @@ class BuscadorSqlite(
                 } catch (e: SQLiteException) {
                     Log.w(ETIQUETA, "Consulta de lugar cercano fallida: ${e.javaClass.simpleName}")
                     null
+                }
+            }
+        }
+    }
+
+    override suspend fun lugaresPoblados(): List<ResultadoBusqueda> {
+        siembra.esperar()
+        return withContext(dispatcher) {
+            cerrojo.withLock {
+                val db = abierta() ?: return@withLock emptyList()
+                try {
+                    val lugares = ArrayList<ResultadoBusqueda>()
+                    db
+                        .rawQuery("$SQL_SELECT WHERE categoria IN ('ciudad', 'pueblo', 'aldea')", null)
+                        .use { leerResultados(it, lugares) }
+                    lugares
+                } catch (e: SQLiteException) {
+                    Log.w(ETIQUETA, "Consulta de lugares poblados fallida: ${e.javaClass.simpleName}")
+                    emptyList()
                 }
             }
         }

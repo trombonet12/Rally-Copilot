@@ -63,8 +63,6 @@
     <string name="mistramos_pestana_viajes">Viajes</string>
     <string name="mistramos_pestana_carreteras">Carreteras</string>
     <string name="mistramos_via_cabecera_destino">%1$s · hacia %2$s</string>
-    <string name="mistramos_via_cabecera_creciente">%1$s · km crecientes</string>
-    <string name="mistramos_via_cabecera_decreciente">%1$s · km decrecientes</string>
     <string name="mistramos_via_cabecera_otras">Otras carreteras</string>
     <string name="mistramos_via_rango">km %1$s→%2$s</string>
     <string name="mistramos_media">Media %1$s</string>

@@ -1,6 +1,5 @@
 package app.trombito.rallycopilot.data.tramos
 
-import android.database.sqlite.SQLiteException
 import android.util.Log
 import app.trombito.rallycopilot.data.db.PasadaEntity
 import app.trombito.rallycopilot.data.db.RecorridosDao
@@ -8,7 +7,6 @@ import app.trombito.rallycopilot.data.db.TramoEntity
 import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.di.DispatcherIo
-import app.trombito.rallycopilot.domain.busqueda.Buscador
 import app.trombito.rallycopilot.domain.tramos.DatosVia
 import app.trombito.rallycopilot.domain.tramos.OrigenPasada
 import app.trombito.rallycopilot.domain.tramos.RecorteTraza
@@ -59,7 +57,7 @@ class GuardadorTramosVia
         private val tramos: TramosDao,
         private val recorridos: RecorridosDao,
         private val indices: FuenteIndicesVias,
-        private val buscador: Buscador,
+        private val lugares: LugaresCercanos,
         private val dispatcher: CoroutineDispatcher,
         private val nuevoId: () -> String,
         private val reloj: () -> Long,
@@ -69,13 +67,13 @@ class GuardadorTramosVia
             tramos: TramosDao,
             recorridos: RecorridosDao,
             indices: FuenteIndicesVias,
-            buscador: Buscador,
+            lugares: LugaresCercanos,
             @DispatcherIo dispatcher: CoroutineDispatcher,
         ) : this(
             tramos,
             recorridos,
             indices,
-            buscador,
+            lugares,
             dispatcher,
             { UUID.randomUUID().toString() },
             System::currentTimeMillis,
@@ -129,18 +127,11 @@ class GuardadorTramosVia
             }
         }
 
-        /** El lugar más cercano al final del trozo (el destino); null si no hay índice o ninguno está cerca. */
+        /** Hacia dónde va el trozo: el pueblo más cercano a su meta o, si no hay, el rumbo ([LugaresCercanos]). */
         private suspend fun destinoDe(tramo: TramoVia): String? {
-            val final = tramo.trazado.lastOrNull() ?: return null
-            return try {
-                buscador
-                    .lugarMasCercano(final, RADIO_DESTINO_M)
-                    ?.nombre
-                    ?.trim()
-                    ?.takeIf { it.isNotEmpty() }
-            } catch (_: SQLiteException) {
-                null
-            }
+            val salida = tramo.trazado.firstOrNull() ?: return null
+            val meta = tramo.trazado.last()
+            return lugares.destinoDe(salida, meta)
         }
 
         /**
@@ -253,7 +244,6 @@ class GuardadorTramosVia
             /** Solape (respecto al más corto) con un tramo `VIA` guardado a partir del cual es el mismo tramo. */
             const val UMBRAL_SOLAPE = 0.5
             private const val PREFIJO_NOMBRE = "~"
-            private const val RADIO_DESTINO_M = 5_000.0
             private const val ETIQUETA = "GuardadorTramosVia"
         }
     }

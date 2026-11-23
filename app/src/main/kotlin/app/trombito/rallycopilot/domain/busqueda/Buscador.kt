@@ -33,4 +33,10 @@ interface Buscador {
         punto: PuntoGeo,
         radioM: Double,
     ): ResultadoBusqueda? = null
+
+    /**
+     * Todas las ciudades, pueblos y aldeas del índice (categorías `ciudad`, `pueblo` y `aldea`), sin orden concreto.
+     * Vacío sin índice instalado o si falla la consulta.
+     */
+    suspend fun lugaresPoblados(): List<ResultadoBusqueda> = emptyList()
 }

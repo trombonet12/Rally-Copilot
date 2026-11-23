@@ -124,7 +124,9 @@ class MisTramosCarreterasTest {
         val textos = banco.todosLosTextos()
         assertTrue("Ma-15 · hacia Manacor" in textos)
         assertTrue("Ma-15 · hacia Palma" in textos)
-        assertTrue("Ma-2 · km crecientes" in textos)
+        // Sin destino guardado no se enseña jerga de kilómetros: solo la carretera.
+        assertTrue("Ma-2" in textos)
+        assertFalse(textos.any { "km crecientes" in it || "km decrecientes" in it })
         // Ma-2 antes que Ma-15 (orden natural) y, en la Ma-15, el sentido creciente antes que el decreciente.
         assertEquals(
             listOf("MA2|CRECIENTE", "MA15|CRECIENTE", "MA15|DECRECIENTE"),
@@ -178,7 +180,7 @@ class MisTramosCarreterasTest {
     }
 
     @Test
-    fun `sin destino la cabecera dice hacia donde crecen los kilometros y un tramo sin via va a otras`() {
+    fun `sin destino la cabecera es solo la carretera, sin jerga de kilometros, y un tramo sin via va a otras`() {
         val sinDestino = palma.copy(via = palma.via!!.copy(destino = null))
         val suelto = ma2.copy(id = "v9", via = null, carretera = null)
         val grupos = agruparCarreteras(listOf(suelto, sinDestino))
@@ -186,7 +188,8 @@ class MisTramosCarreterasTest {
         assertNull(grupos.first().destino)
         banco.poner { RallyCopilotTheme { MisTramosScreen(estado(sinDestino, suelto), AccionesMisTramos()) } }
         val textos = banco.todosLosTextos()
-        assertTrue("Ma-15 · km decrecientes" in textos)
+        assertTrue("Ma-15" in textos)
+        assertFalse(textos.any { "decrecientes" in it })
         assertTrue("Otras carreteras" in textos)
     }
 }

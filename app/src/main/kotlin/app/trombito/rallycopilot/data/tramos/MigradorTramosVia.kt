@@ -10,6 +10,7 @@ import app.trombito.rallycopilot.data.db.TramosDao
 import app.trombito.rallycopilot.data.recorridos.PuntoRecorrido
 import app.trombito.rallycopilot.di.DispatcherIo
 import app.trombito.rallycopilot.domain.tramos.RecorteTraza
+import app.trombito.rallycopilot.motor.vias.nombreTramoViaConDestino
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.first
@@ -38,6 +39,7 @@ data class ResumenMigracionVias(
  * propaga. Se lanza tras la siembra de los datos, en segundo plano.
  */
 @Singleton
+@Suppress("LongParameterList") // los DAO, el guardador y las fuentes de vías y lugares
 class MigradorTramosVia
     @Inject
     constructor(
@@ -46,6 +48,7 @@ class MigradorTramosVia
         private val subtramos: SubtramosDao,
         private val guardador: GuardadorTramosVia,
         private val indices: FuenteIndicesVias,
+        private val lugares: LugaresCercanos,
         @DispatcherIo private val dispatcher: CoroutineDispatcher,
     ) {
         /** Una pasada de la migración; devuelve lo hecho (también si la base falla: lo ya hecho queda guardado). */
@@ -64,6 +67,7 @@ class MigradorTramosVia
                     if (resultado == ResultadoTroceado.HECHO) hechos++
                 }
                 if (!pendiente) situados = situarSubtramos()
+                if (!pendiente) ponerDestinos()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: SQLiteException) {
@@ -175,6 +179,22 @@ class MigradorTramosVia
                 subtramos.marcarNoSituable(subtramo.id)
             }
             return idVia != null
+        }
+
+        /**
+         * Pone hacia dónde va («hacia Manacor» o «hacia el norte») a los tramos de vía que no lo saben y se lo añade
+         * a su nombre automático. Nunca toca el nombre que puso el usuario ni un destino ya guardado; es idempotente.
+         */
+        private suspend fun ponerDestinos() {
+            withContext(dispatcher) {
+                for (fila in tramos.tramosViaSinDestino()) {
+                    val traza = fila.aTramo()?.traza.orEmpty()
+                    if (traza.size < 2) continue
+                    val destino = lugares.destinoDe(traza.first(), traza.last())
+                    val nombre = fila.nombreAutomatico?.let { nombreTramoViaConDestino(it, destino) }
+                    tramos.ponerDestinoVia(fila.id, destino, nombre)
+                }
+            }
         }
 
         private companion object {

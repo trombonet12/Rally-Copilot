@@ -23,7 +23,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import app.trombito.rallycopilot.motor.vias.SentidoVia
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.Rotulo
@@ -62,7 +61,7 @@ fun ListaCarreteras(
     }
 }
 
-/** «Ma-15 · hacia Manacor»: la carretera y hacia dónde se va (o, sin destino, hacia dónde crecen los kilómetros). */
+/** «Ma-15 · hacia Manacor» o «Ma-15 · hacia el norte»: la carretera y hacia dónde se va (sin destino, solo ella). */
 @Composable
 private fun CabeceraCarretera(
     grupo: GrupoCarretera,
@@ -100,14 +99,6 @@ private fun textoCabecera(grupo: GrupoCarretera): String =
 
         grupo.destino != null -> {
             stringResource(R.string.mistramos_via_cabecera_destino, grupo.carretera, grupo.destino)
-        }
-
-        grupo.sentido == SentidoVia.CRECIENTE -> {
-            stringResource(R.string.mistramos_via_cabecera_creciente, grupo.carretera)
-        }
-
-        grupo.sentido == SentidoVia.DECRECIENTE -> {
-            stringResource(R.string.mistramos_via_cabecera_decreciente, grupo.carretera)
         }
 
         else -> {

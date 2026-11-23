@@ -89,7 +89,7 @@ private fun viaje(
 }
 
 private class BuscadorFalso(
-    private val lugar: String?,
+    private val lugares: List<ResultadoBusqueda>,
 ) : Buscador {
     override suspend fun buscar(
         texto: String,
@@ -97,11 +97,11 @@ private class BuscadorFalso(
         limite: Int,
     ): List<ResultadoBusqueda> = emptyList()
 
-    override suspend fun lugarMasCercano(
-        punto: PuntoGeo,
-        radioM: Double,
-    ): ResultadoBusqueda? = lugar?.let { ResultadoBusqueda(it, "pueblo", null, punto) }
+    override suspend fun lugaresPoblados(): List<ResultadoBusqueda> = lugares
 }
+
+/** Manacor queda 200 m pasada la meta de la Ma-15 (a 7 km) y a 2,8 km de la de la Ma-3220 (a 10 km). */
+private fun manacor() = ResultadoBusqueda("Manacor", "pueblo", null, alEste(7_200.0))
 
 @RunWith(RobolectricTestRunner::class)
 class TramosViaTest {
@@ -120,12 +120,14 @@ class TramosViaTest {
             if (conIndices) IndicesDeVias(vias(), IndicePuntosKm(hitosMa15())) else null
         }
 
+    private val lugares = LugaresCercanos(BuscadorFalso(listOf(manacor())))
+
     private fun guardador() =
         GuardadorTramosVia(
             base.tramosDao(),
             base.recorridosDao(),
             fuente,
-            BuscadorFalso("Manacor"),
+            lugares,
             Dispatchers.Unconfined,
             { "via-${++ids}" },
             { 1_000L },
@@ -138,6 +140,7 @@ class TramosViaTest {
             base.subtramosDao(),
             guardador,
             fuente,
+            lugares,
             Dispatchers.Unconfined,
         )
 
@@ -228,6 +231,9 @@ class TramosViaTest {
             val nombre30 = checkNotNull(ma30.nombreAutomatico)
             assertTrue(nombre30, nombre30.startsWith("Ma-30 · km ~0,"))
             assertTrue(nombre30, nombre30.contains("→~3,"))
+            // Sin ningún pueblo a 3 km de la meta, hacia dónde va se dice con el rumbo (este: Ma-30 va hacia el este).
+            assertTrue(nombre30, nombre30.endsWith(" · hacia el este"))
+            assertEquals("el este", ma30.destino)
         }
 
     @Test
@@ -588,5 +594,53 @@ class TramosViaTest {
             val contrario = ma15.single { it.sentido == "DECRECIENTE" }
             assertEquals(listOf(id2), base.tramosDao().pasadas(contrario.id).map { it.recorridoId })
             assertEquals(1, base.tramosDao().pasadas(ma15.single { it.sentido == "CRECIENTE" }.id).size)
+        }
+
+    /** Deja los tramos de vía como los de antes de H31: sin destino y con el nombre automático sin «hacia …». */
+    private suspend fun dejarSinDestino(vararg viaRefs: String) {
+        val sql = base.openHelper.writableDatabase
+        for (ref in viaRefs) {
+            sql.execSQL("UPDATE tramo SET destino = NULL, nombreAutomatico = 'Via $ref · 3,0 km' WHERE viaRef = '$ref'")
+        }
+    }
+
+    @Test
+    fun `la migracion pone pueblo o rumbo a los tramos sin destino y no toca el nombre propio`() =
+        runBlocking {
+            val puntos = viaje(1_000_000L)
+            guardador().trocearYMarcar(recorridoConPuntos(puntos), puntos)
+            dejarSinDestino("MA30", "MA15", "MA3220")
+            base.tramosDao().renombrar(tramosVia().single { it.viaRef == "MA15" }.id, "Mi subida")
+
+            val resumen = migrador().migrar()
+
+            assertEquals(false, resumen.pendiente)
+            val ma15 = tramosVia().single { it.viaRef == "MA15" }
+            assertEquals("Mi subida", ma15.nombre)
+            assertEquals("Manacor", ma15.destino)
+            val ma3220 = tramosVia().single { it.viaRef == "MA3220" }
+            assertNull(ma3220.nombre)
+            assertEquals("Manacor", ma3220.destino)
+            assertEquals("Via MA3220 · 3,0 km · hacia Manacor", ma3220.nombreAutomatico)
+            val ma30 = tramosVia().single { it.viaRef == "MA30" }
+            assertEquals("el este", ma30.destino)
+            assertEquals("Via MA30 · 3,0 km · hacia el este", ma30.nombreAutomatico)
+        }
+
+    @Test
+    fun `la migracion no cambia un destino ya guardado y es idempotente`() =
+        runBlocking {
+            val puntos = viaje(1_000_000L)
+            guardador().trocearYMarcar(recorridoConPuntos(puntos), puntos)
+            dejarSinDestino("MA30")
+            val antes = tramosVia().filter { it.viaRef != "MA30" }
+
+            migrador().migrar()
+            val primera = tramosVia()
+            migrador().migrar()
+
+            assertEquals(antes, primera.filter { it.viaRef != "MA30" })
+            assertEquals(primera, tramosVia())
+            assertEquals("el este", primera.single { it.viaRef == "MA30" }.destino)
         }
 }

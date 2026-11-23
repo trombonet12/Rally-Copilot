@@ -75,6 +75,24 @@ abstract class TramosDao {
         sentido: String,
     ): List<TramoEntity>
 
+    /** Los tramos de vía que aún no saben hacia dónde van (los anteriores a H31), por orden de creación. */
+    @Query("SELECT * FROM tramo WHERE tipo = 'VIA' AND destino IS NULL ORDER BY creadoEn, id")
+    abstract suspend fun tramosViaSinDestino(): List<TramoEntity>
+
+    /**
+     * Pone el [destino] y el nombre automático de un tramo de vía que no tenía destino. No toca `nombre` (el que
+     * puso el usuario); devuelve las filas tocadas.
+     */
+    @Query(
+        "UPDATE tramo SET destino = :destino, nombreAutomatico = :nombreAutomatico " +
+            "WHERE id = :id AND tipo = 'VIA' AND destino IS NULL",
+    )
+    abstract suspend fun ponerDestinoVia(
+        id: String,
+        destino: String,
+        nombreAutomatico: String?,
+    ): Int
+
     /** Los tramos de vía de la carretera [viaRef] con cualquier sentido, por orden de creación. */
     @Query("SELECT * FROM tramo WHERE tipo = 'VIA' AND viaRef = :viaRef ORDER BY creadoEn, id")
     abstract suspend fun tramosViaDeCualquierSentido(viaRef: String): List<TramoEntity>
