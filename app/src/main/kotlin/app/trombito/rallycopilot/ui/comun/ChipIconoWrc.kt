@@ -7,12 +7,15 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
@@ -27,14 +30,17 @@ private val ALTO_CHIP_INFORMATIVO = Medidas.zonaTactil - Espacio.s
 /**
  * Chip de píldora (radio 24) con icono de 24 dp y texto. Informativo si [onClick] es nulo (40 dp de alto); con [onClick]
  * mide al menos 48 dp (zona táctil) y se marca como seleccionable con [seleccionado] (borde ámbar, redundante con el
- * icono). Sin relleno rojo: el estado se ve en el borde y el fondo `primaryContainer`.
+ * icono). Sin relleno rojo: el estado se ve en el borde y el fondo `primaryContainer`. [tinteIcono] pone al icono un
+ * color propio (p. ej. el de una leyenda); sin él, el del contenido.
  */
+@Suppress("LongParameterList") // API de componente: cada opción visual es un parámetro con valor por defecto
 @Composable
 fun ChipIconoWrc(
     icono: ImageVector,
     texto: String,
     modifier: Modifier = Modifier,
     seleccionado: Boolean = false,
+    tinteIcono: Color = Color.Unspecified,
     onClick: (() -> Unit)? = null,
 ) {
     val colores = MaterialTheme.colorScheme
@@ -50,7 +56,12 @@ fun ChipIconoWrc(
                     .defaultMinSize(minHeight = if (onClick != null) Medidas.zonaTactil else ALTO_CHIP_INFORMATIVO)
                     .padding(horizontal = Espacio.m, vertical = Espacio.xs),
         ) {
-            Icon(icono, contentDescription = null, modifier = Modifier.size(Medidas.iconoLista))
+            Icon(
+                icono,
+                contentDescription = null,
+                tint = if (tinteIcono.isSpecified) tinteIcono else LocalContentColor.current,
+                modifier = Modifier.size(Medidas.iconoLista),
+            )
             Text(text = texto, style = MaterialTheme.typography.labelLarge, maxLines = 1)
         }
     }

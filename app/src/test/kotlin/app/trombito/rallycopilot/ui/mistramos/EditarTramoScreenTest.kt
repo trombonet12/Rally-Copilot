@@ -16,6 +16,7 @@ import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.motor.tramos.Tramo
 import app.trombito.rallycopilot.ui.analisis.formatearKmDesdeM
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_FONDO_WRC
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.edicion.AccionesMapaEdicion
@@ -79,6 +80,7 @@ class EditarTramoScreenTest {
             onDividir = { pedidas += "dividir" },
             onAnadirAviso = { pedidas += "aviso:${it.name}" },
             onQuitarAviso = { pedidas += "quitar-aviso:${it.toInt()}" },
+            onAyudaNotas = { pedidas += "ayuda-notas" },
         )
 
     @Suppress("LongParameterList")
@@ -131,14 +133,23 @@ class EditarTramoScreenTest {
     }
 
     @Test
-    fun `la leyenda cuenta cada tipo y explica las marcas`() {
+    fun `la leyenda cuenta cada tipo y la pista en linea explica como editar`() {
         poner(estado())
         assertEquals(listOf("Nota 2"), banco.textos(banco.conEtiqueta(ETIQUETA_EDITAR_LEYENDA + "NOTA")))
         assertEquals(listOf("Cuidado 1"), banco.textos(banco.conEtiqueta(ETIQUETA_EDITAR_LEYENDA + "CUIDADO")))
         assertEquals(listOf("Marca 1"), banco.textos(banco.conEtiqueta(ETIQUETA_EDITAR_LEYENDA + "MARCA")))
         assertEquals(listOf("Corte 2"), banco.textos(banco.conEtiqueta(ETIQUETA_EDITAR_LEYENDA + "CORTE")))
-        assertTrue(banco.todosLosTextos().any { it.contains("«marca aquí»") })
-        assertFalse(banco.todosLosTextos().any { it.startsWith("Marcas:") })
+        assertEquals(listOf("Radar 0"), banco.textos(banco.conEtiqueta(ETIQUETA_EDITAR_LEYENDA + "RADAR")))
+        assertTrue(banco.textos(banco.conEtiqueta(ETIQUETA_EDITAR_PISTA)).single().contains("arrastra los cortes"))
+    }
+
+    @Test
+    fun `la fila de cada nota lleva su icono de curva ademas de la pildora`() {
+        poner(estado())
+        listOf(primera, segunda, tercera).forEach {
+            assertTrue(banco.hay(ETIQUETA_EDITAR_ICONO_CURVA + idMarcadorNota(it)))
+        }
+        assertTrue("D4" in banco.textos(fila(primera)))
     }
 
     @Test
@@ -261,12 +272,24 @@ class EditarTramoScreenTest {
     }
 
     @Test
-    fun `la ayuda es un icono que abre un dialogo`() {
+    fun `el signo de interrogacion abre Que significan las notas y no hay dialogo`() {
         poner(estado())
-        assertFalse(banco.hay(ETIQUETA_EDITAR_AYUDA_DIALOGO))
-        banco.pulsar(banco.conEtiqueta(ETIQUETA_EDITAR_AYUDA))
-        assertTrue(banco.hay(ETIQUETA_EDITAR_AYUDA_DIALOGO))
-        assertTrue(banco.textos(banco.conEtiqueta(ETIQUETA_EDITAR_AYUDA_DIALOGO)).single().contains("Arrastra"))
+        val ayuda = banco.conEtiqueta(ETIQUETA_EDITAR_AYUDA)
+        assertTrue(banco.nodos().any { banco.descripcion(it) == "Qué significan las notas" })
+        banco.pulsar(ayuda)
+        assertEquals(listOf("ayuda-notas"), pedidas)
+    }
+
+    @Test
+    fun `un tramo que ya no existe usa el estado vacio comun`() {
+        banco.poner {
+            RallyCopilotTheme {
+                EditarTramoScreen(EditarTramoUiState(cargando = false, encontrado = false), acciones, mapa = mapaFalso)
+            }
+        }
+        assertTrue(banco.hay(ETIQUETA_EDITAR_NO_ENCONTRADO))
+        assertTrue(banco.todosLosTextos().contains("Tramo no encontrado"))
+        assertTrue(banco.hay(ETIQUETA_FONDO_WRC))
     }
 
     @Test

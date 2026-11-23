@@ -16,35 +16,31 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -61,9 +57,11 @@ import app.trombito.rallycopilot.motor.notas.FrasesNota
 import app.trombito.rallycopilot.motor.notas.Nota
 import app.trombito.rallycopilot.motor.notas.TipoAviso
 import app.trombito.rallycopilot.ui.analisis.formatearKmDesdeM
-import app.trombito.rallycopilot.ui.comun.BarraSuperior
 import app.trombito.rallycopilot.ui.comun.CargandoWrc
+import app.trombito.rallycopilot.ui.comun.ChipIconoWrc
+import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.PantallaWrc
 import app.trombito.rallycopilot.ui.edicion.AccionesMapaEdicion
 import app.trombito.rallycopilot.ui.edicion.CentradoMapa
 import app.trombito.rallycopilot.ui.edicion.ColoresMarcador
@@ -75,7 +73,10 @@ import app.trombito.rallycopilot.ui.edicion.TipoMarcador
 import app.trombito.rallycopilot.ui.edicion.idMarcadorNota
 import app.trombito.rallycopilot.ui.edicion.marcadoresDe
 import app.trombito.rallycopilot.ui.edicion.textoCortoNota
+import app.trombito.rallycopilot.ui.navegacion.notas.iconoCurva
+import app.trombito.rallycopilot.ui.theme.Ayuda
 import app.trombito.rallycopilot.ui.theme.Espacio
+import app.trombito.rallycopilot.ui.theme.Radios
 import app.trombito.rallycopilot.ui.tutorial.ConPista
 import app.trombito.rallycopilot.ui.tutorial.LadoPista
 import app.trombito.rallycopilot.ui.tutorial.Pista
@@ -85,7 +86,9 @@ const val ETIQUETA_EDITAR_SIN_MAPA = "editar-tramo-sin-mapa"
 const val ETIQUETA_EDITAR_CARGANDO = "editar-tramo-cargando"
 const val ETIQUETA_EDITAR_RESTAURAR = "editar-tramo-restaurar"
 const val ETIQUETA_EDITAR_AYUDA = "editar-tramo-ayuda"
-const val ETIQUETA_EDITAR_AYUDA_DIALOGO = "editar-tramo-ayuda-dialogo"
+const val ETIQUETA_EDITAR_NO_ENCONTRADO = "editar-tramo-no-encontrado"
+const val ETIQUETA_EDITAR_ICONO_CURVA = "editar-tramo-icono-curva-"
+const val ETIQUETA_EDITAR_PISTA = "editar-tramo-pista"
 const val ETIQUETA_EDITAR_NOTA = "editar-tramo-nota-"
 const val ETIQUETA_EDITAR_NOTA_EDITAR = "editar-tramo-nota-editar-"
 const val ETIQUETA_EDITAR_LEYENDA = "editar-tramo-leyenda-"
@@ -96,7 +99,7 @@ private const val PESO_MAPA_VERTICAL = 0.46f
 private const val PESO_LISTA_VERTICAL = 0.54f
 private val ALTO_FILA_NOTA = 56.dp
 private val ANCHO_PILDORA_LISTA = 52.dp
-private val ICONO_LEYENDA = 16.dp
+private val ICONO_CURVA_LISTA = 32.dp
 
 /** Callbacks de la edición de un tramo. */
 data class AccionesEditarTramo(
@@ -115,6 +118,7 @@ data class AccionesEditarTramo(
     val onAnadirAviso: (TipoAviso) -> Unit = {},
     val onQuitarAviso: (Double) -> Unit = {},
     val onCerrarEditor: () -> Unit = {},
+    val onAyudaNotas: () -> Unit = {},
 )
 
 /** El mapa de edición: recibe el estilo, la escena (traza y marcadores) y los gestos. */
@@ -143,17 +147,23 @@ fun EditarTramoScreen(
     modifier: Modifier = Modifier,
     mapa: MapaDeEdicion = MapaEdicionReal,
 ) {
-    var ayuda by rememberSaveable { mutableStateOf(false) }
-    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
-        BarraSuperior(titulo = stringResource(R.string.edicion_tramo_titulo), onVolver = acciones.onVolver) {
-            IconButton(onClick = { ayuda = true }, modifier = Modifier.size(48.dp).testTag(ETIQUETA_EDITAR_AYUDA)) {
+    PantallaWrc(
+        titulo = stringResource(R.string.edicion_tramo_titulo),
+        onVolver = acciones.onVolver,
+        modifier = modifier,
+        acciones = {
+            IconButton(
+                onClick = acciones.onAyudaNotas,
+                modifier = Modifier.size(48.dp).testTag(ETIQUETA_EDITAR_AYUDA),
+            ) {
                 Icon(
-                    imageVector = Iconos.Informacion,
+                    imageVector = Iconos.Ayuda,
                     contentDescription = stringResource(R.string.edicion_ayuda_boton),
                     tint = MaterialTheme.colorScheme.onSurface,
                 )
             }
-        }
+        },
+    ) {
         val datos = estado.datos
         when {
             estado.cargando || (datos == null && estado.encontrado) -> {
@@ -161,15 +171,16 @@ fun EditarTramoScreen(
             }
 
             datos == null -> {
-                Text(
-                    text = stringResource(R.string.edicion_no_encontrado),
-                    modifier = Modifier.padding(Espacio.l),
-                    style = MaterialTheme.typography.bodyLarge,
+                EstadoVacioWrc(
+                    icono = Iconos.Bandera,
+                    titulo = stringResource(R.string.edicion_no_encontrado_titulo),
+                    texto = stringResource(R.string.edicion_no_encontrado),
+                    etiqueta = ETIQUETA_EDITAR_NO_ENCONTRADO,
                 )
             }
 
             else -> {
-                ContenidoEdicion(datos, estado, acciones, mapa)
+                ContenidoEdicion(datos, estado, acciones, mapa, Modifier.weight(1f))
             }
         }
         estado.editor?.let { abierto ->
@@ -182,7 +193,6 @@ fun EditarTramoScreen(
                 extras = extrasDelEditor(abierto, datos?.hoja?.notas.orEmpty(), acciones),
             )
         }
-        if (ayuda) DialogoAyuda { ayuda = false }
     }
 }
 
@@ -191,21 +201,6 @@ private fun Cargando() {
     Box(Modifier.fillMaxSize().testTag(ETIQUETA_EDITAR_CARGANDO), contentAlignment = Alignment.Center) {
         CargandoWrc(stringResource(R.string.edicion_cargando))
     }
-}
-
-@Composable
-private fun DialogoAyuda(onCerrar: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onCerrar,
-        title = { Text(stringResource(R.string.edicion_ayuda_titulo)) },
-        text = {
-            Text(
-                text = stringResource(R.string.edicion_ayuda),
-                modifier = Modifier.testTag(ETIQUETA_EDITAR_AYUDA_DIALOGO),
-            )
-        },
-        confirmButton = { TextButton(onClick = onCerrar) { Text(stringResource(R.string.edicion_ayuda_entendido)) } },
-    )
 }
 
 /** Lo derivado del tramo que necesitan el mapa y la lista; se recalcula solo si cambia el tramo o los cortes. */
@@ -222,6 +217,7 @@ private fun ContenidoEdicion(
     estado: EditarTramoUiState,
     acciones: AccionesEditarTramo,
     mapa: MapaDeEdicion,
+    modifier: Modifier = Modifier,
 ) {
     val traza = remember(datos.tramo.traza) { TrazaMetros(datos.tramo.traza) }
     val notas = datos.hoja.notas
@@ -247,7 +243,7 @@ private fun ContenidoEdicion(
             .map { it.aviso }
     val vista = VistaEdicion(notas, avisos, marcadores, escena)
     val gestos = gestosDelMapa(vista, seleccion, acciones)
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
         if (maxWidth > maxHeight) {
             Row(Modifier.fillMaxSize()) {
                 ZonaMapa(estado.estiloMapaJson, vista, gestos, mapa, Modifier.weight(1f).fillMaxHeight())
@@ -312,29 +308,35 @@ private fun ZonaMapa(
     }
 }
 
-/** Chips con el color de cada tipo y cuántos hay, y una línea que explica qué son las marcas y los cortes. */
+/** Chips con el color de cada tipo y cuántos hay. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LeyendaMarcadores(marcadores: List<MarcadorEdicion>) {
     val cuenta = { tipo: TipoMarcador -> marcadores.count { it.tipo == tipo } }
-    Column(Modifier.padding(vertical = Espacio.xs)) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(Espacio.s),
-            verticalArrangement = Arrangement.spacedBy(Espacio.xs),
-        ) {
-            FichaLeyenda(TipoMarcador.NOTA, R.string.edicion_leyenda_nota, cuenta(TipoMarcador.NOTA))
-            FichaLeyenda(TipoMarcador.CUIDADO, R.string.edicion_leyenda_cuidado, cuenta(TipoMarcador.CUIDADO))
-            FichaLeyenda(TipoMarcador.MARCA, R.string.edicion_leyenda_marca, cuenta(TipoMarcador.MARCA))
-            FichaLeyenda(TipoMarcador.RADAR, R.string.edicion_leyenda_radar, cuenta(TipoMarcador.RADAR))
-            FichaLeyenda(TipoMarcador.CORTE, R.string.edicion_leyenda_corte, cuenta(TipoMarcador.CORTE))
-        }
-        Text(
-            text = stringResource(R.string.edicion_leyenda_explicacion),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = Espacio.xs),
-        )
+    FlowRow(
+        modifier = Modifier.padding(vertical = Espacio.xs),
+        horizontalArrangement = Arrangement.spacedBy(Espacio.s),
+        verticalArrangement = Arrangement.spacedBy(Espacio.xs),
+    ) {
+        FichaLeyenda(TipoMarcador.NOTA, R.string.edicion_leyenda_nota, cuenta(TipoMarcador.NOTA))
+        FichaLeyenda(TipoMarcador.CUIDADO, R.string.edicion_leyenda_cuidado, cuenta(TipoMarcador.CUIDADO))
+        FichaLeyenda(TipoMarcador.MARCA, R.string.edicion_leyenda_marca, cuenta(TipoMarcador.MARCA))
+        FichaLeyenda(TipoMarcador.RADAR, R.string.edicion_leyenda_radar, cuenta(TipoMarcador.RADAR))
+        FichaLeyenda(TipoMarcador.CORTE, R.string.edicion_leyenda_corte, cuenta(TipoMarcador.CORTE))
     }
+}
+
+/** Un punto del color del marcador, como icono de chip (el color lo pone el chip con su tinte). */
+private val PuntoLeyenda: ImageVector by lazy {
+    ImageVector
+        .Builder(
+            name = "PuntoLeyenda",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f,
+        ).addPath(pathData = addPathNodes("M12 7a5 5 0 1 0 0 10a5 5 0 1 0 0-10z"), fill = SolidColor(Color.Black))
+        .build()
 }
 
 @Composable
@@ -343,30 +345,13 @@ private fun FichaLeyenda(
     nombre: Int,
     cantidad: Int,
 ) {
-    val texto = stringResource(nombre)
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = CircleShape,
-        modifier = Modifier.testTag(ETIQUETA_EDITAR_LEYENDA + tipo.name).semantics(mergeDescendants = true) {},
-    ) {
-        Row(
-            Modifier.padding(horizontal = Espacio.s, vertical = Espacio.xs),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Espacio.xs),
-        ) {
-            if (tipo == TipoMarcador.RADAR) {
-                Icon(
-                    painterResource(R.drawable.ic_alerta_radar),
-                    contentDescription = null,
-                    tint = Color(ColoresMarcador.fondo(tipo)),
-                    modifier = Modifier.size(ICONO_LEYENDA),
-                )
-            } else {
-                Box(Modifier.size(10.dp).background(Color(ColoresMarcador.fondo(tipo)), CircleShape))
-            }
-            Text("$texto $cantidad", style = MaterialTheme.typography.labelMedium)
-        }
-    }
+    val icono = if (tipo == TipoMarcador.RADAR) ImageVector.vectorResource(R.drawable.ic_alerta_radar) else PuntoLeyenda
+    ChipIconoWrc(
+        icono = icono,
+        texto = "${stringResource(nombre)} $cantidad",
+        modifier = Modifier.testTag(ETIQUETA_EDITAR_LEYENDA + tipo.name),
+        tinteIcono = Color(ColoresMarcador.fondo(tipo)),
+    )
 }
 
 /** Las notas por kilómetro, y tras ellas los microsectores y restaurar las automáticas. */
@@ -389,12 +374,20 @@ private fun ListaNotas(
         verticalArrangement = Arrangement.spacedBy(Espacio.xs),
     ) {
         item {
-            Text(
-                text = stringResource(R.string.edicion_notas_titulo, vista.notas.size).uppercase(),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.semantics { heading() },
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+                Text(
+                    text = stringResource(R.string.edicion_notas_titulo, vista.notas.size).uppercase(),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.semantics { heading() },
+                )
+                Text(
+                    text = stringResource(R.string.edicion_pista),
+                    style = Ayuda,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag(ETIQUETA_EDITAR_PISTA),
+                )
+            }
         }
         itemsIndexed(vista.notas, key = { _, nota -> idMarcadorNota(nota) }) { indice, nota ->
             FilaNota(nota, nota == seleccion, estado.simplificadas, acciones, conPista = indice == 0)
@@ -430,6 +423,28 @@ private fun ListaNotas(
     }
 }
 
+/** La píldora de color con el texto corto de la nota («D4»), la misma del mapa. */
+@Composable
+private fun PildoraNota(
+    nota: Nota,
+    tipo: TipoMarcador,
+) {
+    Box(
+        Modifier
+            .width(ANCHO_PILDORA_LISTA)
+            .heightIn(min = 32.dp)
+            .background(Color(ColoresMarcador.fondo(tipo)), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = textoCortoNota(nota),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            color = Color(ColoresMarcador.texto(tipo)),
+        )
+    }
+}
+
 @Composable
 private fun FilaNota(
     nota: Nota,
@@ -443,7 +458,7 @@ private fun FilaNota(
     val km = formatearKmDesdeM(nota.posicionM)
     val superficies = MaterialTheme.colorScheme
     val fondo = if (elegida) superficies.surfaceContainerHighest else superficies.surfaceContainerHigh
-    val forma = RoundedCornerShape(12.dp)
+    val forma = Radios.formaTarjeta
     Row(
         modifier =
             Modifier
@@ -459,21 +474,15 @@ private fun FilaNota(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Espacio.m),
     ) {
+        // El mismo icono de curva que el carrete de conducción: se edita viendo lo que se ve conduciendo.
+        Icon(
+            painter = painterResource(iconoCurva(nota, simplificadas)),
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(ICONO_CURVA_LISTA).testTag(ETIQUETA_EDITAR_ICONO_CURVA + idMarcadorNota(nota)),
+        )
         ConPista(Pista.EDITAR_TRAMO, stringResource(R.string.pista_editar_tramo), activa = conPista) {
-            Box(
-                Modifier
-                    .width(ANCHO_PILDORA_LISTA)
-                    .heightIn(min = 32.dp)
-                    .background(Color(ColoresMarcador.fondo(tipo)), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = textoCortoNota(nota),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(ColoresMarcador.texto(tipo)),
-                )
-            }
+            PildoraNota(nota, tipo)
         }
         Column(Modifier.weight(1f)) {
             Text(

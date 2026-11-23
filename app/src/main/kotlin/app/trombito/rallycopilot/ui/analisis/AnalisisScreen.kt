@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -26,8 +25,11 @@ import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.motor.analisis.AnalisisPasada
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.comun.CargandoWrc
-import app.trombito.rallycopilot.ui.comun.EstadoVacio
+import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.PantallaWrc
+import app.trombito.rallycopilot.ui.comun.VarianteVacio
+import app.trombito.rallycopilot.ui.mistramos.formatearFechaHora
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_ANALISIS_CARGANDO = "analisis-cargando"
@@ -64,13 +66,17 @@ fun AnalisisScreen(
     mapa: MapaDelAnalisis,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
-        BarraAnalisis(estado, acciones.onVolver)
-        val analisis = estado.analisis
+    val analisis = estado.analisis
+    PantallaWrc(
+        titulo = estado.tramoNombre ?: stringResource(R.string.analisis_titulo),
+        onVolver = acciones.onVolver,
+        modifier = modifier,
+        subtitulo = if (analisis != null) formatearFechaHora(estado.inicioMs) else null,
+    ) {
         when {
             estado.cargando -> Cargando()
             estado.problema != null || analisis == null -> Problema(estado.problema)
-            else -> Contenido(estado, analisis, acciones, mapa)
+            else -> Contenido(estado, analisis, acciones, mapa, Modifier.weight(1f))
         }
     }
 }
@@ -85,18 +91,20 @@ private fun Cargando() {
 @Composable
 private fun Problema(problema: ProblemaAnalisis?) {
     if (problema == ProblemaAnalisis.ILEGIBLE) {
-        EstadoVacio(
+        EstadoVacioWrc(
             icono = Iconos.Grafico,
             titulo = stringResource(R.string.analisis_ilegible_titulo),
             texto = stringResource(R.string.analisis_ilegible_texto),
             etiqueta = ETIQUETA_ANALISIS_ILEGIBLE,
+            variante = VarianteVacio.ERROR,
         )
     } else {
-        EstadoVacio(
+        EstadoVacioWrc(
             icono = Iconos.Bandera,
             titulo = stringResource(R.string.analisis_no_existe_titulo),
             texto = stringResource(R.string.analisis_no_existe_texto),
             etiqueta = ETIQUETA_ANALISIS_NO_ENCONTRADA,
+            variante = VarianteVacio.ERROR,
         )
     }
 }
@@ -107,8 +115,9 @@ private fun Contenido(
     analisis: AnalisisPasada,
     acciones: AccionesAnalisis,
     mapa: MapaDelAnalisis,
+    modifier: Modifier = Modifier,
 ) {
-    BoxWithConstraints(Modifier.fillMaxSize()) {
+    BoxWithConstraints(modifier.fillMaxSize()) {
         if (maxWidth > maxHeight) {
             Row(Modifier.fillMaxSize()) {
                 ZonaMapa(estado, analisis, acciones, mapa, Modifier.weight(1f).fillMaxHeight().padding(Espacio.s))

@@ -18,10 +18,8 @@
     <string name="edicion_dira">Dirá: «%1$s»</string>
     <string name="edicion_editar_notas">Editar notas</string>
     <string name="edicion_tramo_titulo">Notas y sectores</string>
-    <string name="edicion_ayuda">Toca una nota en el mapa o en la lista para elegirla; el lápiz de su fila (o tocarla otra vez en el mapa) la abre para corregirla. Toca un punto del trazo para añadir una nota o un aviso, o para dividir por ahí una curva. En una nota, «Fusionar» la une con la siguiente. Si escribes un texto libre, el copiloto canta ese texto. Arrastra los cortes de sector (C1, C2…) por el mapa para moverlos. Con dos dedos haces zoom.</string>
-    <string name="edicion_ayuda_titulo">Cómo editar</string>
-    <string name="edicion_ayuda_boton">Ayuda para editar las notas y los sectores</string>
-    <string name="edicion_ayuda_entendido">Entendido</string>
+    <string name="edicion_pista">Toca una nota para elegirla y el lápiz para corregirla. Toca el trazo para añadir otra; arrastra los cortes por el mapa. Marca y Radar son puntos que dictaste.</string>
+    <string name="edicion_ayuda_boton">Qué significan las notas</string>
     <string name="edicion_restaurar">Restaurar las notas automáticas</string>
     <string name="edicion_microsectores">Microsectores</string>
     <string name="edicion_microsectores_ayuda">Parciales cortos dentro del tramo (los puntitos del trazo). «+» pone más y «−» pone menos.</string>
@@ -40,8 +38,8 @@
     <string name="edicion_leyenda_marca">Marca</string>
     <string name="edicion_leyenda_radar">Radar</string>
     <string name="edicion_leyenda_corte">Corte</string>
-    <string name="edicion_leyenda_explicacion">Marca: punto que dictaste con «marca aquí». Radar: el que marcaste con «radar». Corte: separa los sectores; arrástralo por el mapa.</string>
-    <string name="edicion_no_encontrado">Este tramo ya no existe.</string>
+    <string name="edicion_no_encontrado">Este tramo ya no existe. Vuelve atrás para elegir otro.</string>
+    <string name="edicion_no_encontrado_titulo">Tramo no encontrado</string>
     <string name="edicion_titulo_aviso">Añadir aviso</string>
     <string name="edicion_modo_nota">Nota</string>
     <string name="edicion_modo_aviso">Aviso</string>

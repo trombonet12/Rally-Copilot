@@ -6,11 +6,12 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-/** Conecta la edición de notas y sectores de un tramo con su ViewModel. */
+/** Conecta la edición de un tramo con su ViewModel; [onAyudaNotas] abre «Qué significan las notas». */
 @Composable
 fun EditarTramoRoute(
     onVolver: () -> Unit,
     modifier: Modifier = Modifier,
+    onAyudaNotas: () -> Unit = {},
     viewModel: EditarTramoViewModel = hiltViewModel(),
 ) {
     val estado by viewModel.uiState.collectAsStateWithLifecycle()
@@ -33,6 +34,7 @@ fun EditarTramoRoute(
                 onAnadirAviso = viewModel::onAnadirAviso,
                 onQuitarAviso = viewModel::onQuitarAviso,
                 onCerrarEditor = viewModel::onCerrarEditor,
+                onAyudaNotas = onAyudaNotas,
             ),
         modifier = modifier,
     )

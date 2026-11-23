@@ -7,6 +7,9 @@ import app.trombito.rallycopilot.motor.analisis.AnalisisPasada
 import app.trombito.rallycopilot.motor.analisis.PosicionRepeticion
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
 import app.trombito.rallycopilot.ui.comun.BancoCompose
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_FONDO_WRC
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_FRANJA_CABECERA
+import app.trombito.rallycopilot.ui.comun.ETIQUETA_SUBTITULO_CABECERA
 import app.trombito.rallycopilot.ui.comun.ETIQUETA_VOLVER
 import app.trombito.rallycopilot.ui.comun.LimpiezaCompose
 import app.trombito.rallycopilot.ui.theme.RallyCopilotTheme
@@ -90,8 +93,11 @@ class AnalisisScreenTest {
     fun `la cabecera trae el tramo, la fecha, el tiempo total y el delta contra la comparada`() {
         val e = estado()
         poner(e)
-        assertEquals(listOf("Ma-2141 · Escorca"), textos(ETIQUETA_ANALISIS_TITULO))
-        assertTrue(Regex("""\d+ \w{3} \d{4} · \d{2}:\d{2}""").matches(textos(ETIQUETA_ANALISIS_FECHA).single()))
+        // La cabecera común pone el título en mayúsculas y la fecha como subtítulo
+        assertTrue("MA-2141 · ESCORCA" in banco.todosLosTextos())
+        assertTrue(Regex("""\d+ \w{3} \d{4} · \d{2}:\d{2}""").matches(textos(ETIQUETA_SUBTITULO_CABECERA).single()))
+        assertTrue(banco.hay(ETIQUETA_FRANJA_CABECERA))
+        assertTrue(banco.hay(ETIQUETA_FONDO_WRC))
         assertEquals(listOf(formatearTiempoPrueba(lenta.totalMs)), textos(ETIQUETA_ANALISIS_TOTAL))
         val delta = textos(ETIQUETA_ANALISIS_DELTA).single()
         assertTrue("va más lento que la mejor: $delta", delta.contains("+"))
@@ -147,7 +153,7 @@ class AnalisisScreenTest {
         assertEquals(true, mejor.config.getOrNull(SemanticsProperties.Selected))
         assertEquals(false, otra.config.getOrNull(SemanticsProperties.Selected))
         assertTrue(banco.textos(mejor).first().startsWith(formatearTiempoPrueba(rapida.totalMs)))
-        assertTrue("la mejor lleva estrella", banco.nodos().any { banco.descripcion(it) == "Mejor" })
+        assertTrue("la mejor lleva su aviso", banco.descripcion(mejor)!!.startsWith("Mejor: "))
         // No se ofrece la propia pasada analizada
         assertFalse(banco.hay("${ETIQUETA_COMPARAR_PREFIJO}1"))
     }
@@ -411,7 +417,8 @@ class AnalisisScreenTest {
     fun `una pasada que no existe lo dice`() {
         poner(AnalisisUiState(cargando = false, problema = ProblemaAnalisis.NO_ENCONTRADA))
         assertTrue(banco.hay(ETIQUETA_ANALISIS_NO_ENCONTRADA))
-        assertTrue(banco.todosLosTextos().contains("PASADA NO ENCONTRADA"))
+        assertTrue(banco.todosLosTextos().contains("Pasada no encontrada"))
+        assertTrue(banco.hay(ETIQUETA_FONDO_WRC))
     }
 
     @Test

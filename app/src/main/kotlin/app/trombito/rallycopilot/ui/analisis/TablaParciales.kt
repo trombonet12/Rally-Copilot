@@ -37,6 +37,7 @@ import app.trombito.rallycopilot.motor.velocidad.msAKmh
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.theme.Espacio
 import app.trombito.rallycopilot.ui.theme.LocalColoresRally
+import app.trombito.rallycopilot.ui.theme.Tiempo
 import app.trombito.rallycopilot.ui.tramos.colorDelta
 import app.trombito.rallycopilot.ui.tramos.formatearDelta
 import app.trombito.rallycopilot.ui.tramos.formatearTiempo
@@ -261,7 +262,7 @@ private fun Fila(
             PESO_TIEMPO,
             color = neutro,
             alinear = TextAlign.End,
-            estilo = EstiloCelda.NEGRITA,
+            estilo = EstiloCelda.CIFRA_FUERTE,
         )
         val delta = fila.diferenciaMs
         if (conDelta) {
@@ -270,15 +271,23 @@ private fun Fila(
                 peso = PESO_DELTA,
                 color = delta?.let { colorDelta(it, colores, neutro) } ?: MaterialTheme.colorScheme.onSurfaceVariant,
                 alinear = TextAlign.End,
-                estilo = EstiloCelda.NEGRITA,
+                estilo = EstiloCelda.CIFRA_FUERTE,
             )
         }
-        Celda(formatearKmhCelda(fila.mediaKmh), PESO_VELOCIDAD, color = neutro, alinear = TextAlign.End)
-        Celda(formatearKmhCelda(fila.maximaKmh), PESO_VELOCIDAD, color = neutro, alinear = TextAlign.End)
+        listOf(fila.mediaKmh, fila.maximaKmh).forEach {
+            Celda(
+                formatearKmhCelda(it),
+                PESO_VELOCIDAD,
+                color = neutro,
+                alinear = TextAlign.End,
+                estilo = EstiloCelda.CIFRA,
+            )
+        }
     }
 }
 
-private enum class EstiloCelda { ENCABEZADO, NORMAL, NEGRITA }
+/** Encabezado de columna, texto normal, y las cifras: tabulares y en cursiva WRC (fuerte para tiempo y delta). */
+private enum class EstiloCelda { ENCABEZADO, NORMAL, CIFRA, CIFRA_FUERTE }
 
 @Composable
 private fun RowScope.Celda(
@@ -289,10 +298,19 @@ private fun RowScope.Celda(
     alinear: TextAlign = TextAlign.Start,
 ) {
     val encabezado = estilo == EstiloCelda.ENCABEZADO
+    val cuerpo = MaterialTheme.typography.bodyMedium
+    // Las cifras usan el estilo Tiempo (cursiva Black, ancho fijo) al tamaño del cuerpo de la tabla.
+    val cifra =
+        Tiempo.copy(fontSize = cuerpo.fontSize, lineHeight = cuerpo.lineHeight, letterSpacing = cuerpo.letterSpacing)
     Text(
         text = if (encabezado) texto.uppercase() else texto,
-        style = if (encabezado) MaterialTheme.typography.labelSmall else MaterialTheme.typography.bodyMedium,
-        fontWeight = if (estilo == EstiloCelda.NEGRITA) FontWeight.Bold else null,
+        style =
+            when (estilo) {
+                EstiloCelda.ENCABEZADO -> MaterialTheme.typography.labelSmall
+                EstiloCelda.NORMAL -> cuerpo
+                EstiloCelda.CIFRA -> cifra.copy(fontWeight = FontWeight.SemiBold)
+                EstiloCelda.CIFRA_FUERTE -> cifra
+            },
         color = color,
         textAlign = alinear,
         maxLines = 1,
