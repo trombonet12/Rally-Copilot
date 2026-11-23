@@ -91,15 +91,7 @@ fun BarraDestino(
     DisposableEffect(Unit) { onDispose { onFoco(false) } }
     val foco = remember { FocusRequester() }
     val teclado = LocalSoftwareKeyboardController.current
-    LaunchedEffect(pedirFoco) {
-        if (pedirFoco) {
-            foco.requestFocus()
-            // El foco por código no siempre abre el teclado (sobre todo si el campo ya lo tenía): se pide también.
-            withFrameNanos { }
-            teclado?.show()
-            onFocoPedido()
-        }
-    }
+    PedirFocoAlAbrir(pedirFoco, foco, teclado, onFocoPedido)
     val cerrarTeclado = cerrarTeclado()
     Surface(
         shape = Radios.formaPildora,
@@ -145,6 +137,25 @@ fun BarraDestino(
                 )
             }
             AccionFinal(texto, onLimpiar, onCerrar)
+        }
+    }
+}
+
+/** Con [pedir] el campo toma el foco, abre el teclado y avisa con [onAtendido] de que ya se atendió. */
+@Composable
+private fun PedirFocoAlAbrir(
+    pedir: Boolean,
+    foco: FocusRequester,
+    teclado: SoftwareKeyboardController?,
+    onAtendido: () -> Unit,
+) {
+    LaunchedEffect(pedir) {
+        if (pedir) {
+            foco.requestFocus()
+            // El foco por código no siempre abre el teclado (sobre todo si el campo ya lo tenía): se pide también.
+            withFrameNanos { }
+            teclado?.show()
+            onAtendido()
         }
     }
 }

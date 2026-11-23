@@ -23,7 +23,8 @@ const val ETIQUETA_BUSQUEDA_GUIANDO_CERRAR = "nav-busqueda-guiando-cerrar"
 /**
  * Búsqueda encima del mapa mientras se guía (la abre la lupa del panel): la píldora del campo con una sola ✕ que la
  * cierra y, debajo, la lista de resultados, cada uno con «Añadir parada» e «Ir aquí» (cambia el destino y conserva las
- * paradas pendientes). Al abrirse el campo toma el foco y sale el teclado. Mismo aspecto que la barra «¿A dónde?» del modo libre. El atrás del sistema también la cierra.
+ * paradas pendientes). Al abrirse el campo toma el foco y sale el teclado. Mismo aspecto que la barra «¿A dónde?» del
+ * modo libre. El atrás del sistema también la cierra.
  */
 @Composable
 fun BusquedaGuiando(

@@ -116,7 +116,11 @@ class NotasEnMapaTest {
 
     @Test
     fun `cada tipo de aviso tiene su imagen y el texto de la horquilla es H`() {
-        assertEquals(TipoAviso.entries.size, TipoAviso.entries.map(::imagenAviso).toSet().size)
+        val imagenes =
+            TipoAviso.entries
+                .map(::imagenAviso)
+                .toSet()
+        assertEquals(TipoAviso.entries.size, imagenes.size)
         assertEquals("H", textoCurva(null))
         assertEquals("1", textoCurva(1))
     }
