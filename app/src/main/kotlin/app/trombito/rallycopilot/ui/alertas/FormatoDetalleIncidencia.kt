@@ -73,7 +73,9 @@ private fun lugarIncidencia(
         }
     val via = listOfNotNull(contenido.carretera?.textoNoVacio(), km).joinToString(" ")
     val municipio = d.municipio?.textoNoVacio()?.takeIf { km == null }
-    return listOfNotNull(via.takeIf { it.isNotEmpty() }, municipio).joinToString(SEPARADOR).takeIf { it.isNotEmpty() }
+    return listOfNotNull(via.takeIf { it.isNotEmpty() }, municipio)
+        .joinToString(SEPARADOR)
+        .takeIf { it.isNotEmpty() }
 }
 
 /** Punto kilométrico con coma decimal y sin «,0» de relleno: «56,5», «57». */
