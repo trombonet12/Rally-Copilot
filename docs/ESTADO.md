@@ -5,7 +5,7 @@
 | Campo | Valor |
 |---|---|
 | Hito | H26–H29 · **v1.7.0** (lo que salió conduciendo la v1.6.0) · siguiente: H29b (pantallas con el sistema visual común), H30 tablero, H31 carreteras, H32 temporada |
-| Estado | v1.7.0 lista para publicar con gate y scripts en verde y prueba en el emulador con los datos de Joan |
+| Estado | **v1.7.1 publicada** (release de GitHub, 2026-11-23 11:42 UTC; la 1.7.0 no salió por un test intermitente del CI, ya arreglado). Joan la actualiza con Obtainium |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
 ## Próxima acción
