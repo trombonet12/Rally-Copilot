@@ -16,6 +16,7 @@ import app.trombito.rallycopilot.domain.navegacion.aplicar
 import app.trombito.rallycopilot.domain.notas.OrigenNotas
 import app.trombito.rallycopilot.domain.ritmo.ProveedorPerfilRitmo
 import app.trombito.rallycopilot.domain.ritmo.SinPerfilRitmo
+import app.trombito.rallycopilot.domain.ritmo.tiempoEstimadoS
 import app.trombito.rallycopilot.domain.ruta.Enrutador
 import app.trombito.rallycopilot.domain.ruta.PerfilRuta
 import app.trombito.rallycopilot.domain.ruta.ResultadoRuta
@@ -106,7 +107,8 @@ sealed interface SolicitudNavegacion {
  * recorridos (se carga sin bloquear el guiado; hasta que llega vale el de partida, Valhalla × 1,12) y se corrige en
  * vivo con el ritmo del viaje ([RitmoViaje]): real / estimado de lo ya conducido, sin repetir el factor personal. El
  * ritmo no se reinicia al recalcular la ruta (es de Joan y del día, no de la ruta) y vive lo que la sesión. Al
- * empezar a guiar se guarda en el recorrido el tiempo de Valhalla puro de la ruta inicial, para aprender el factor.
+ * empezar a guiar se guarda en el recorrido el tiempo de Valhalla puro de la ruta inicial, para aprender el factor, y,
+ * en cuanto llega el perfil, el tiempo total estimado con él (lo que se enseñó al salir; el resumen compara con ese).
  * Si el guiado llega al destino sin que se cambiaran el destino ni las paradas, el recorrido se marca como llegado:
  * solo esos viajes enseñan el factor personal.
  */
@@ -268,7 +270,14 @@ class SesionNavegacion(
             guia: Guia,
             alcance: CoroutineScope,
         ): Job {
-            val carga = alcance.launch { guia.fijarPerfil(perfilRitmo.perfil()) }
+            val rutaInicial = guia.ruta
+            val carga =
+                alcance.launch {
+                    val perfil = perfilRitmo.perfil()
+                    guia.fijarPerfil(perfil)
+                    // Lo que la vista previa enseñó al salir (ya con el ritmo aprendido): el resumen compara con ello.
+                    recorridos.guardarLlegadaEstimada(id, rutaInicial.tiempoEstimadoS(perfil))
+                }
             withTimeoutOrNull(PLAZO_PERFIL_MS) { carga.join() }
             return carga
         }

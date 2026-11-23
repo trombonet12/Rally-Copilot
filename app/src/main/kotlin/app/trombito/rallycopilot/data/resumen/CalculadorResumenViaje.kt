@@ -18,7 +18,8 @@ import javax.inject.Inject
 import kotlin.math.roundToLong
 
 /**
- * Arma el [ResumenViaje] de un recorrido terminado: sus puntos, el tiempo previsto con que se guió, el contexto de
+ * Arma el [ResumenViaje] de un recorrido terminado: sus puntos, el tiempo previsto con que se guió (la estimación que
+ * se enseñó al salir y, si no se guardó, el de Valhalla), el contexto de
  * vías (de dónde sale el histórico, sin este viaje) y los subtramos que se cronometraron en él comparados con el mejor
  * tiempo anterior. Todo en [dispatcher] (CPU); no escribe nada.
  */
@@ -41,7 +42,10 @@ class CalculadorResumenViaje
                     }
                 if (recorrido == null || puntos == null || puntos.size < MIN_PUNTOS) return@withContext null
                 val contexto = vias.contextoSin(recorridoId)
-                val previstoS = recorrido.tiempoPrevistoS?.takeIf { it > 0.0 }?.roundToLong()
+                // Lo que se enseñó al salir (ya con el ritmo aprendido); sin él, el tiempo de Valhalla de siempre.
+                val previstoS =
+                    (recorrido.llegadaEstimadaS?.takeIf { it > 0.0 } ?: recorrido.tiempoPrevistoS?.takeIf { it > 0.0 })
+                        ?.roundToLong()
                 ViajeResumido(
                     recorridoId = recorridoId,
                     inicioMs = recorrido.inicioMs,
@@ -61,11 +65,11 @@ class CalculadorResumenViaje
         private suspend fun tramosHechos(recorridoId: Long): List<TramoHecho> {
             val subtramos = tramos.observarSubtramosDeRecorrido(recorridoId).first()
             if (subtramos.isEmpty()) return emptyList()
-            val nombres = tramos.observarResumenes(FiltroTramos.TODOS).first().associate { it.id to it.nombre }
+            val resumenes = tramos.observarResumenes(FiltroTramos.TODOS).first().associateBy { it.id }
             return subtramos.sortedBy { it.inicio }.mapNotNull { s ->
-                val nombre = nombres[s.tramoRefId] ?: return@mapNotNull null
+                val tramo = resumenes[s.tramoRefId] ?: return@mapNotNull null
                 TramoHecho(
-                    nombre = nombre,
+                    nombre = NombreTramoHecho.de(tramo, s),
                     tiempoMs = s.tiempoMs,
                     deltaMs = s.mejorMs?.let { s.tiempoMs - it },
                     esRecord = s.mejorMs != null && s.tiempoMs < s.mejorMs,

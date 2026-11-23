@@ -92,6 +92,7 @@ private class EnrutadorUnaVez(
 
 private class RecorridosQueGuardan : RepositorioRecorridos {
     val previstos = mutableListOf<Pair<Long, Double?>>()
+    val llegadasEstimadas = mutableListOf<Pair<Long, Double?>>()
 
     override suspend fun empezar(destinoNombre: String?) = ID
 
@@ -107,6 +108,13 @@ private class RecorridosQueGuardan : RepositorioRecorridos {
         segundos: Double?,
     ) {
         previstos += id to segundos
+    }
+
+    override suspend fun guardarLlegadaEstimada(
+        id: Long,
+        segundos: Double?,
+    ) {
+        llegadasEstimadas += id to segundos
     }
 
     override suspend fun idsEnCurso() = emptyList<Long>()
@@ -273,6 +281,21 @@ class SesionNavegacionRitmoTest {
         }
 
     @Test
+    fun `guiando guarda la llegada estimada con el ritmo aprendido, no la de Valhalla`() =
+        runTest {
+            val ruta = rutaRecta(30_000.0)
+            val e = escenario(listOf(fijacion(0.0, 0.0)), perfil = PerfilRitmo(factorPersonal = 1.3))
+            val trabajo = launch { e.sesion.correr(guiada(ruta)) }
+            advanceTimeBy(100)
+
+            // 3 000 s de Valhalla por el factor personal 1,3 del perfil.
+            assertEquals(listOf(RecorridosQueGuardan.ID), e.recorridos.llegadasEstimadas.map { it.first })
+            assertEquals(3_900.0, checkNotNull(e.recorridos.llegadasEstimadas.single().second), 1.0)
+            assertEquals(listOf(RecorridosQueGuardan.ID to ruta.tiempoS), e.recorridos.previstos)
+            trabajo.cancel()
+        }
+
+    @Test
     fun `en modo libre no se guarda tiempo previsto`() =
         runTest {
             val e = escenario(listOf(fijacion(0.0, 0.0)))
@@ -280,6 +303,7 @@ class SesionNavegacionRitmoTest {
             advanceTimeBy(100)
 
             assertTrue(e.recorridos.previstos.isEmpty())
+            assertTrue(e.recorridos.llegadasEstimadas.isEmpty())
             assertNull(e.estados.filterIsInstance<EstadoNavegacion.Guiando>().lastOrNull())
             assertNotNull(e.estados.lastOrNull())
             trabajo.cancel()

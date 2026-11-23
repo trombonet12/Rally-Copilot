@@ -28,7 +28,9 @@ import app.trombito.rallycopilot.ui.analisis.LeyendaVelocidad
 import app.trombito.rallycopilot.ui.comun.CargandoWrc
 import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
+import app.trombito.rallycopilot.ui.comun.MascotaPose
 import app.trombito.rallycopilot.ui.comun.PantallaWrc
+import app.trombito.rallycopilot.ui.comun.PoseMascota
 import app.trombito.rallycopilot.ui.comun.TarjetaDato
 import app.trombito.rallycopilot.ui.comun.TarjetaDatoFrase
 import app.trombito.rallycopilot.ui.comun.VarianteVacio
@@ -36,6 +38,7 @@ import app.trombito.rallycopilot.ui.mistramos.formatearFechaHora
 import app.trombito.rallycopilot.ui.theme.Espacio
 
 const val ETIQUETA_RESUMEN_LISTA = "resumen-lista"
+const val ETIQUETA_RESUMEN_CABECERA = "resumen-cabecera"
 const val ETIQUETA_RESUMEN_VACIO = "resumen-vacio"
 const val ETIQUETA_RESUMEN_ERROR = "resumen-error"
 const val ETIQUETA_RESUMEN_SIN_MAPA = "resumen-sin-mapa"
@@ -47,6 +50,7 @@ const val ETIQUETA_RESUMEN_MAXIMA = "resumen-maxima"
 const val ETIQUETA_RESUMEN_CONCLUSION_PREFIJO = "resumen-conclusion-"
 
 private val ALTO_MAPA = 260.dp
+private val LADO_MASCOTA_CABECERA = 72.dp
 private const val SEGUNDOS_HORA = 3_600L
 private const val SEGUNDOS_MINUTO = 60L
 
@@ -123,6 +127,7 @@ private fun ContenidoResumen(
         contentPadding = PaddingValues(Espacio.l),
         verticalArrangement = Arrangement.spacedBy(Espacio.m),
     ) {
+        item(key = "cabecera") { CabeceraResumen(resumen) }
         item(key = "mapa") { ZonaMapa(resumen, estiloMapaJson, mapa) }
         item(key = "datos") { DatosDelViaje(resumen) }
         if (resumen.llegada.previstoS != null) {
@@ -141,6 +146,35 @@ private fun ContenidoResumen(
         }
         if (resumen.vias.isNotEmpty()) {
             item(key = "vias") { SeccionVias(resumen) }
+        }
+    }
+}
+
+/** Trombito con la bandera de meta y, al lado, que el viaje ha terminado con su distancia y su tiempo total. */
+@Composable
+private fun CabeceraResumen(resumen: ResumenViaje) {
+    Row(
+        modifier = Modifier.fillMaxWidth().testTag(ETIQUETA_RESUMEN_CABECERA),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Espacio.m),
+    ) {
+        MascotaPose(PoseMascota.BANDERA, lado = LADO_MASCOTA_CABECERA)
+        Column(verticalArrangement = Arrangement.spacedBy(Espacio.xs)) {
+            Text(
+                text = stringResource(R.string.resumen_cabecera_titulo),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text =
+                    stringResource(
+                        R.string.resumen_cabecera_detalle,
+                        formatearKm(resumen.distanciaM),
+                        formatearDuracion(resumen.tiempoTotalS),
+                    ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

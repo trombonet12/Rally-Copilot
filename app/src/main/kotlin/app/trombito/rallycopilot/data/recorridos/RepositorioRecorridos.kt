@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.first
 /**
  * Recorrido grabado y terminado (>= [RepositorioRecorridos.DISTANCIA_MINIMA_M]). [tiempoPrevistoS] es el tiempo de
  * Valhalla de la ruta con que se empezó a guiar (null: modo libre, reconocimiento o recorrido anterior a guardarlo).
+ * [llegadaEstimadaS] es el tiempo total que la app enseñó al salir, ya con el ritmo aprendido (null: no se guardó).
  * [llegado]: guiado que llegó al destino sin cambiar de destino ni de paradas (solo esos enseñan el factor personal).
  */
 data class Recorrido(
@@ -16,6 +17,7 @@ data class Recorrido(
     val destinoNombre: String?,
     val tiempoPrevistoS: Double? = null,
     val llegado: Boolean = false,
+    val llegadaEstimadaS: Double? = null,
 )
 
 /** Muestra de posición de un recorrido; [tiempoMs] en milisegundos epoch, [velocidadMs] en m/s si el GPS la da. */
@@ -27,6 +29,7 @@ data class PuntoRecorrido(
 )
 
 /** Almacén de recorridos grabados (todavía no es contrato de dominio). */
+@Suppress("TooManyFunctions") // el contrato del almacén: recorridos, puntos, previsto, llegada y calibración
 interface RepositorioRecorridos {
     /** Abre un recorrido nuevo (en curso, no aparece en [listar]) y devuelve su id. */
     suspend fun empezar(destinoNombre: String? = null): Long
@@ -45,6 +48,15 @@ interface RepositorioRecorridos {
      * al cerrarlo, se aprende cuánto tarda Joan de más frente a lo previsto. Por defecto no hace nada.
      */
     suspend fun guardarTiempoPrevisto(
+        id: Long,
+        segundos: Double?,
+    ) = Unit
+
+    /**
+     * Guarda el tiempo total estimado (s, con el ritmo aprendido) que se enseñó al salir en el recorrido en curso [id]:
+     * el resumen compara la llegada con él. Por defecto no hace nada.
+     */
+    suspend fun guardarLlegadaEstimada(
         id: Long,
         segundos: Double?,
     ) = Unit

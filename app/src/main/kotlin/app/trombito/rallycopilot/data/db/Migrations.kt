@@ -341,6 +341,18 @@ val MIGRATION_20_21: Migration =
     }
 
 /**
+ * v21 -> v22: `recorrido` gana `llegadaEstimadaS` (nulo: no se guardó), el tiempo total que la app enseñó al salir
+ * en un guiado, ya con el ritmo aprendido. Solo `ADD COLUMN`: no se toca ninguna fila. El SQL es el `createSql` de
+ * `schemas/.../22.json`.
+ */
+val MIGRATION_21_22: Migration =
+    object : Migration(21, 22) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `recorrido` ADD COLUMN `llegadaEstimadaS` REAL")
+        }
+    }
+
+/**
  * Todas las migraciones, en orden, de la v1 a la versión actual de [RallyDatabase]. Es la única lista: la usan la base
  * de producción y los tests; una migración nueva se añade aquí y `MigracionRoomTest` vigila que la cadena no tenga
  * huecos hasta `RallyDatabase.version`.
@@ -367,4 +379,5 @@ val TODAS_LAS_MIGRACIONES: Array<Migration> =
         MIGRATION_18_19,
         MIGRATION_19_20,
         MIGRATION_20_21,
+        MIGRATION_21_22,
     )

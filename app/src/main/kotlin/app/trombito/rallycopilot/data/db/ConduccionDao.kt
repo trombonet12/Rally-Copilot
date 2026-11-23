@@ -84,6 +84,13 @@ abstract class RecorridosDao {
         segundos: Double?,
     ): Int
 
+    /** Guarda el tiempo total estimado (segundos) que se enseñó al salir; devuelve las filas tocadas. */
+    @Query("UPDATE recorrido SET llegadaEstimadaS = :segundos WHERE id = :id")
+    abstract suspend fun guardarLlegadaEstimada(
+        id: Long,
+        segundos: Double?,
+    ): Int
+
     /** Marca el recorrido como llegado al destino pedido al empezar; devuelve las filas tocadas. */
     @Query("UPDATE recorrido SET llegado = 1 WHERE id = :id")
     abstract suspend fun marcarLlegado(id: Long): Int

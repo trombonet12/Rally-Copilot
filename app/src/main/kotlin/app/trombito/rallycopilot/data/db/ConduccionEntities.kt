@@ -50,7 +50,9 @@ data class AjustesConduccionEntity(
  * Recorrido grabado. `finMs` es null mientras se graba; solo los terminados (>= 1 km) se conservan. Desde la v21,
  * [tiempoPrevistoS] es el tiempo que se previó al salir (null: no se conoce) y [viasTroceadas] marca que el
  * recorrido ya se troceó en tramos de vía (false: pendiente, también para los anteriores a la v21). [llegado] marca
- * el guiado que llegó al destino sin cambiar de destino ni de paradas: solo esos enseñan el factor personal.
+ * el guiado que llegó al destino sin cambiar de destino ni de paradas: solo esos enseñan el factor personal. Desde la
+ * v22, [llegadaEstimadaS] es el tiempo total que la app enseñó al salir (ya con el ritmo aprendido de Joan; null: no
+ * se guardó), con el que el resumen compara la llegada.
  */
 @Entity(tableName = "recorrido")
 data class RecorridoEntity(
@@ -62,6 +64,7 @@ data class RecorridoEntity(
     val tiempoPrevistoS: Double? = null,
     @ColumnInfo(defaultValue = "0") val viasTroceadas: Boolean = false,
     @ColumnInfo(defaultValue = "0") val llegado: Boolean = false,
+    val llegadaEstimadaS: Double? = null,
 )
 
 /** Punto de un recorrido; `orden` empieza en 0. Se borra en cascada con su recorrido. */

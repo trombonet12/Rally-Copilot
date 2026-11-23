@@ -8,7 +8,9 @@ import app.trombito.rallycopilot.data.carreteras.viasFalsas
 import app.trombito.rallycopilot.data.recorridos.Recorrido
 import app.trombito.rallycopilot.domain.resumen.ContextoVias
 import app.trombito.rallycopilot.domain.resumen.FuenteContextoVias
+import app.trombito.rallycopilot.domain.tramos.DatosVia
 import app.trombito.rallycopilot.domain.tramos.SubtramoGuardado
+import app.trombito.rallycopilot.motor.vias.SentidoVia
 import app.trombito.rallycopilot.ui.comun.FalsoRepositorioTramos
 import app.trombito.rallycopilot.ui.comun.resumenFalso
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -63,6 +65,27 @@ class CalculadorResumenViajeTest {
         }
 
     @Test
+    fun `la llegada se compara con la estimacion guardada al salir y no con la de Valhalla`() =
+        runTest {
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)))
+            repo.lista.value =
+                listOf(
+                    Recorrido(
+                        1,
+                        5_000L,
+                        95_000L,
+                        900.0,
+                        "Sóller",
+                        tiempoPrevistoS = 80.0,
+                        llegadaEstimadaS = 100.4,
+                    ),
+                )
+            val viaje = calculador(repo).resumenDe(1L)!!
+            assertEquals(100L, viaje.resumen.llegada.previstoS)
+            assertEquals(-10L, viaje.resumen.llegada.desviacionS)
+        }
+
+    @Test
     fun `sin tiempo previsto no hay llegada que comparar`() =
         runTest {
             val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)))
@@ -84,7 +107,11 @@ class CalculadorResumenViajeTest {
             val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)))
             val tramos =
                 FalsoRepositorioTramos(
-                    resumenes = listOf(resumenFalso("a", "Ma-10 Valldemossa"), resumenFalso("b", "Ma-2141 Escorca")),
+                    resumenes =
+                        listOf(
+                            resumenFalso("a", "Ma-10 Valldemossa", longitudM = 500.0),
+                            resumenFalso("b", "Ma-2141 Escorca", longitudM = 500.0),
+                        ),
                 )
             tramos.subtramosPorRecorrido[1L] =
                 listOf(
@@ -99,6 +126,53 @@ class CalculadorResumenViajeTest {
             // Los récords primero, luego del que más mejoró al que más empeoró, y la primera vez al final.
             assertEquals(listOf(-2_000L, 1_000L, null), hechos.map { it.deltaMs })
             assertEquals(1, hechos.count { it.esRecord })
+        }
+
+    @Test
+    fun `un trozo de tramo de via se nombra con sus km de carretera y uno entero con el nombre del tramo`() =
+        runTest {
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)))
+            val via = DatosVia("ma10", 20.0, 25.0, SentidoVia.CRECIENTE, null, null)
+            val tramos =
+                FalsoRepositorioTramos(
+                    resumenes =
+                        listOf(
+                            resumenFalso("a", "Ma-10 · Sóller", longitudM = 5_000.0, via = via, carretera = "Ma-10"),
+                        ),
+                )
+            tramos.subtramosPorRecorrido[1L] =
+                listOf(
+                    SubtramoGuardado("a", 1_000.0, 3_500.0, 2_500.0, 1L, 30_000L, null),
+                    SubtramoGuardado("a", 0.0, 5_000.0, 5_000.0, 2L, 60_000L, null),
+                )
+            val resumen = calculador(repo, tramos).resumenDe(1L)!!.resumen
+            val nombres = resumen.tramos.map { it.nombre }
+            assertEquals(setOf("Ma-10 · km 21,0→23,5", "Ma-10 · Sóller"), nombres.toSet())
+        }
+
+    @Test
+    fun `un trozo de tramo de viaje se nombra con sus km del tramo`() =
+        runTest {
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)))
+            val tramos = FalsoRepositorioTramos(resumenes = listOf(resumenFalso("a", "Mi vuelta", longitudM = 5_000.0)))
+            tramos.subtramosPorRecorrido[1L] = listOf(SubtramoGuardado("a", 500.0, 2_000.0, 1_500.0, 1L, 30_000L, null))
+            val resumen = calculador(repo, tramos).resumenDe(1L)!!.resumen
+            assertEquals("km 0,5→2,0 del tramo Mi vuelta", resumen.tramos.single().nombre)
+        }
+
+    @Test
+    fun `en un tramo de via decreciente los km de carretera bajan`() =
+        runTest {
+            val repo = RecorridosFalsos(mapOf(1L to lineaEste(0, 900)))
+            val via = DatosVia("ma10", 25.0, 20.0, SentidoVia.DECRECIENTE, null, null)
+            val tramos =
+                FalsoRepositorioTramos(
+                    resumenes = listOf(resumenFalso("a", "Ma-10", longitudM = 5_000.0, via = via, carretera = "Ma-10")),
+                )
+            tramos.subtramosPorRecorrido[1L] =
+                listOf(SubtramoGuardado("a", 1_000.0, 3_500.0, 2_500.0, 1L, 30_000L, null))
+            val resumen = calculador(repo, tramos).resumenDe(1L)!!.resumen
+            assertEquals("Ma-10 · km 24,0→21,5", resumen.tramos.single().nombre)
         }
 
     @Test

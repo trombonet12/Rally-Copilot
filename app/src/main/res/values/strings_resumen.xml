@@ -3,6 +3,8 @@
     <!-- Resumen del viaje: pantalla al terminar un recorrido de más de 1 km y desde la lista de viajes -->
     <string name="resumen_titulo">Resumen del viaje</string>
     <string name="resumen_subtitulo_destino">%1$s · %2$s</string>
+    <string name="resumen_cabecera_titulo">Viaje terminado</string>
+    <string name="resumen_cabecera_detalle">%1$s km · %2$s</string>
     <string name="resumen_cargando">Preparando el resumen…</string>
     <string name="resumen_vacio_titulo">No hay resumen de este viaje</string>
     <string name="resumen_vacio_texto">El viaje ya no está guardado o no tiene recorrido suficiente.</string>

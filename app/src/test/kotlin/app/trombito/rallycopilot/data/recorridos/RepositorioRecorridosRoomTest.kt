@@ -106,6 +106,31 @@ class RepositorioRecorridosRoomTest {
         }
 
     @Test
+    fun `la llegada estimada guardada al empezar sale en el recorrido terminado`() =
+        runBlocking {
+            val id = repositorio.empezar("Sóller")
+            repositorio.guardarTiempoPrevisto(id, 1_234.5)
+            repositorio.guardarLlegadaEstimada(id, 1_500.25)
+            repositorio.anadirPuntos(id, ruta(11))
+
+            val recorrido = checkNotNull(repositorio.terminar(id))
+
+            assertEquals(1_500.25, recorrido.llegadaEstimadaS ?: 0.0, 0.0)
+            assertEquals(1_234.5, recorrido.tiempoPrevistoS ?: 0.0, 0.0)
+            val listado = repositorio.listar().first()
+            assertEquals(1_500.25, listado.single().llegadaEstimadaS ?: 0.0, 0.0)
+        }
+
+    @Test
+    fun `un recorrido sin llegada estimada la tiene nula`() =
+        runBlocking {
+            val id = repositorio.empezar()
+            repositorio.anadirPuntos(id, ruta(11))
+
+            assertNull(checkNotNull(repositorio.terminar(id)).llegadaEstimadaS)
+        }
+
+    @Test
     fun `un recorrido sin puntos se descarta`() =
         runBlocking {
             assertNull(repositorio.terminar(repositorio.empezar()))
@@ -359,6 +384,11 @@ private class DaoContador(
         id: Long,
         segundos: Double?,
     ) = real.guardarTiempoPrevisto(id, segundos)
+
+    override suspend fun guardarLlegadaEstimada(
+        id: Long,
+        segundos: Double?,
+    ) = real.guardarLlegadaEstimada(id, segundos)
 
     override suspend fun borrar(id: Long) = real.borrar(id)
 
