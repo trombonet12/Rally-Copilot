@@ -1,16 +1,20 @@
 package app.trombito.rallycopilot.ui.perfil
 
 import app.trombito.rallycopilot.domain.perfil.TableroPiloto
+import app.trombito.rallycopilot.domain.perfil.TemporadaPiloto
 import app.trombito.rallycopilot.motor.analisis.Conclusion
 
 /**
- * Estado del perfil del piloto: el [tablero] ya calculado (cabecera, último viaje y conclusiones). [error] si falló la
- * lectura de los viajes.
+ * Estado del perfil del piloto: el [tablero] ya calculado (cabecera, último viaje y conclusiones) y la [temporada]
+ * (null mientras se calcula, que tarda más que el tablero). [error] si falló la lectura de los viajes;
+ * [temporadaError] si solo falló la de la temporada (el tablero sigue visible).
  */
 data class PerfilUiState(
     val cargando: Boolean = true,
     val error: Boolean = false,
     val tablero: TableroPiloto = TableroPiloto(),
+    val temporada: TemporadaPiloto? = null,
+    val temporadaError: Boolean = false,
 ) {
     /** Sin ningún viaje terminado: el perfil empieza en el primero. */
     val vacio: Boolean get() = !cargando && !error && tablero.viajes == 0

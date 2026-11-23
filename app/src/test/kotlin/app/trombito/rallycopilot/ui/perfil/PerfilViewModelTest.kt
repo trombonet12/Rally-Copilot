@@ -2,13 +2,16 @@ package app.trombito.rallycopilot.ui.perfil
 
 import android.database.sqlite.SQLiteException
 import app.trombito.rallycopilot.domain.perfil.CalculoTablero
+import app.trombito.rallycopilot.domain.perfil.CalculoTemporada
 import app.trombito.rallycopilot.domain.perfil.TableroPiloto
+import app.trombito.rallycopilot.domain.perfil.TemporadaPiloto
 import app.trombito.rallycopilot.domain.perfil.UltimoViaje
 import app.trombito.rallycopilot.motor.analisis.Conclusion
 import app.trombito.rallycopilot.motor.analisis.TipoConclusion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -20,6 +23,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -37,6 +41,21 @@ private class CalculoTableroFalso(
     override fun observar(): Flow<TableroPiloto> =
         if (fallo == null) {
             tablero
+        } else {
+            flow { throw fallo }
+        }
+}
+
+/** Temporada en memoria: emite lo que se le ponga en [temporada], o lanza [fallo] al observarla. */
+private class CalculoTemporadaFalso(
+    inicial: TemporadaPiloto = temporadaDePrueba(),
+    private val fallo: Throwable? = null,
+) : CalculoTemporada {
+    val temporada = MutableStateFlow(inicial)
+
+    override fun observar(): Flow<TemporadaPiloto> =
+        if (fallo == null) {
+            temporada
         } else {
             flow { throw fallo }
         }
@@ -67,8 +86,11 @@ class PerfilViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun TestScope.crear(calculo: CalculoTablero): PerfilViewModel {
-        val vm = PerfilViewModel(calculo)
+    private fun TestScope.crear(
+        calculo: CalculoTablero,
+        temporada: CalculoTemporada = CalculoTemporadaFalso(),
+    ): PerfilViewModel {
+        val vm = PerfilViewModel(calculo, temporada, UnconfinedTestDispatcher(testScheduler))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -76,7 +98,12 @@ class PerfilViewModelTest {
     @Test
     fun `empieza cargando y luego ensena el tablero`() =
         runTest {
-            val vm = PerfilViewModel(CalculoTableroFalso(tablero))
+            val vm =
+                PerfilViewModel(
+                    CalculoTableroFalso(tablero),
+                    CalculoTemporadaFalso(),
+                    UnconfinedTestDispatcher(testScheduler),
+                )
             assertTrue(vm.uiState.value.cargando)
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
             val estado = vm.uiState.value
@@ -141,5 +168,58 @@ class PerfilViewModelTest {
         runTest {
             val vm = crear(CalculoTableroFalso(fallo = IOException("puntos")))
             assertTrue(vm.uiState.value.error)
+        }
+
+    @Test
+    fun `la temporada llega con el tablero y se actualiza`() =
+        runTest {
+            val calculoTemporada = CalculoTemporadaFalso()
+            val vm = crear(CalculoTableroFalso(tablero), calculoTemporada)
+            val primera = vm.uiState.value.temporada
+            assertEquals(3, primera?.temporada?.viajes)
+            assertFalse(vm.uiState.value.temporadaError)
+            calculoTemporada.temporada.value = temporadaDePrueba().let { it.copy(carne = it.carne.take(1)) }
+            assertEquals(
+                1,
+                vm.uiState.value.temporada
+                    ?.carne
+                    ?.size,
+            )
+        }
+
+    @Test
+    fun `la temporada tarda mas que el tablero y mientras tanto no hay temporada`() =
+        runTest {
+            val lenta = MutableSharedFlow<TemporadaPiloto>()
+            val vm =
+                crear(
+                    CalculoTableroFalso(tablero),
+                    object : CalculoTemporada {
+                        override fun observar(): Flow<TemporadaPiloto> = lenta
+                    },
+                )
+            val estado = vm.uiState.value
+            assertFalse(estado.cargando)
+            assertEquals(3, estado.tablero.viajes)
+            assertNull(estado.temporada)
+            assertFalse(estado.temporadaError)
+            lenta.emit(temporadaDePrueba())
+            assertEquals(
+                3,
+                vm.uiState.value.temporada
+                    ?.temporada
+                    ?.viajes,
+            )
+        }
+
+    @Test
+    fun `un fallo solo de la temporada deja el tablero y lo avisa`() =
+        runTest {
+            val vm = crear(CalculoTableroFalso(tablero), CalculoTemporadaFalso(fallo = IOException("puntos")))
+            val estado = vm.uiState.value
+            assertFalse(estado.error)
+            assertTrue(estado.temporadaError)
+            assertNull(estado.temporada)
+            assertEquals(3, estado.tablero.viajes)
         }
 }

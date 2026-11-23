@@ -8,12 +8,17 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -27,10 +32,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import app.trombito.rallycopilot.R
 import app.trombito.rallycopilot.domain.perfil.TableroPiloto
 import app.trombito.rallycopilot.domain.perfil.UltimoViaje
+import app.trombito.rallycopilot.motor.analisis.ResumenMes
 import app.trombito.rallycopilot.ui.comun.EstadoVacioWrc
 import app.trombito.rallycopilot.ui.comun.Iconos
 import app.trombito.rallycopilot.ui.comun.ListaEsqueletoWrc
+import app.trombito.rallycopilot.ui.comun.OpcionSegmento
 import app.trombito.rallycopilot.ui.comun.PantallaWrc
+import app.trombito.rallycopilot.ui.comun.SelectorSegmentadoWrc
 import app.trombito.rallycopilot.ui.comun.TarjetaWrc
 import app.trombito.rallycopilot.ui.comun.VarianteVacio
 import app.trombito.rallycopilot.ui.mistramos.formatearDistanciaTramo
@@ -54,20 +62,37 @@ const val ETIQUETA_PERFIL_SIN_CONCLUSIONES = "perfil-sin-conclusiones"
 const val ETIQUETA_PERFIL_VER_VIAJES = "perfil-ver-viajes"
 const val ETIQUETA_PERFIL_VER_CARRETERAS = "perfil-ver-carreteras"
 
-/** Callbacks del perfil: abrir el resumen de un viaje, la lista de viajes y las carreteras. */
+/** Las dos pestañas del perfil: el tablero de conclusiones y la temporada (modo carrera). */
+enum class PestanaPerfil { TABLERO, TEMPORADA }
+
+const val ETIQUETA_PERFIL_PESTANAS = "perfil-pestanas"
+
+/**
+ * Callbacks del perfil: abrir el resumen de un viaje, la lista de viajes y las carreteras, y compartir como imagen el
+ * resumen del mes ([onCompartirMes]).
+ */
 data class AccionesPerfil(
     val onVolver: () -> Unit = {},
     val onVerViaje: (recorridoId: Long) -> Unit = {},
     val onVerViajes: () -> Unit = {},
     val onVerCarreteras: () -> Unit = {},
+    val onCompartirMes: (ResumenMes) -> Unit = {},
 )
 
-/** Perfil del piloto: un tablero con la cabecera, el último viaje y una tarjeta por conclusión. */
+/**
+ * Perfil del piloto: con viajes, dos pestañas. El tablero lleva la cabecera, el último viaje y una tarjeta por
+ * conclusión; la temporada, la ficha con el nivel, la racha, los kilómetros por semana, los hitos, el carné de
+ * carreteras, los récords y el resumen del mes compartible. [falloCompartir] avisa de que no se pudo preparar la
+ * imagen y
+ * [pestanaInicial] es la pestaña con la que se abre.
+ */
 @Composable
 fun PerfilScreen(
     estado: PerfilUiState,
     acciones: AccionesPerfil,
     modifier: Modifier = Modifier,
+    falloCompartir: Boolean = false,
+    pestanaInicial: PestanaPerfil = PestanaPerfil.TABLERO,
 ) {
     PantallaWrc(titulo = stringResource(R.string.inicio_perfil), onVolver = acciones.onVolver, modifier = modifier) {
         when {
@@ -97,8 +122,40 @@ fun PerfilScreen(
             }
 
             else -> {
-                TableroPerfil(estado, acciones)
+                PerfilConPestanas(estado, acciones, falloCompartir, pestanaInicial)
             }
+        }
+    }
+}
+
+@Composable
+private fun PerfilConPestanas(
+    estado: PerfilUiState,
+    acciones: AccionesPerfil,
+    falloCompartir: Boolean,
+    pestanaInicial: PestanaPerfil,
+) {
+    var pestana by rememberSaveable { mutableStateOf(pestanaInicial) }
+    val opciones =
+        listOf(
+            OpcionSegmento(PestanaPerfil.TABLERO, stringResource(R.string.perfil_pestana_tablero), Iconos.Grafico),
+            OpcionSegmento(PestanaPerfil.TEMPORADA, stringResource(R.string.perfil_pestana_temporada), Iconos.Piloto),
+        )
+    Column(Modifier.fillMaxSize()) {
+        SelectorSegmentadoWrc(
+            opciones = opciones,
+            seleccionada = pestana,
+            onSeleccion = { pestana = it },
+            modifier =
+                Modifier
+                    .padding(
+                        horizontal = Espacio.l,
+                    ).padding(top = Espacio.s)
+                    .testTag(ETIQUETA_PERFIL_PESTANAS),
+        )
+        when (pestana) {
+            PestanaPerfil.TABLERO -> TableroPerfil(estado, acciones)
+            PestanaPerfil.TEMPORADA -> TemporadaPerfil(estado, acciones, falloCompartir)
         }
     }
 }

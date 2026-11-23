@@ -32,4 +32,95 @@
 
     <string name="perfil_grafico_descripcion">Evolución del tiempo: %1$d pasadas, mejor tiempo %2$s, %3$d récords</string>
     <string name="perfil_grafico_leyenda">El punto grande marca un récord: un nuevo mejor tiempo del tramo.</string>
+
+    <!-- Temporada -->
+    <string name="perfil_pestana_tablero">Tablero</string>
+    <string name="perfil_pestana_temporada">Temporada</string>
+
+    <string name="perfil_temporada_error">No se ha podido calcular tu temporada. Cierra la pantalla y vuelve a abrirla.</string>
+
+    <string name="perfil_temporada_ficha">Ficha de piloto</string>
+    <string name="perfil_temporada_nivel">%1$s · %2$s</string>
+    <string name="perfil_temporada_progreso">%1$d/%2$d</string>
+    <string name="perfil_temporada_puntos">%d puntos</string>
+    <string name="perfil_temporada_siguiente_nivel">Siguiente nivel: %1$s</string>
+    <string name="perfil_temporada_nivel_maximo">Has llegado al nivel más alto.</string>
+    <string name="perfil_temporada_resumen">%1$s · %2$s</string>
+    <string name="perfil_temporada_puntos_nota">Los puntos salen de los kilómetros, las curvas, las carreteras distintas y las semanas con salida. Nunca de la velocidad.</string>
+    <string name="perfil_temporada_barra_descripcion">%1$s, %2$d%% del camino al siguiente nivel</string>
+
+    <string name="perfil_racha_titulo">Racha</string>
+    <plurals name="perfil_racha_semanas">
+        <item quantity="one">%d semana seguida</item>
+        <item quantity="other">%d semanas seguidas</item>
+    </plurals>
+    <plurals name="perfil_semanas">
+        <item quantity="one">%d semana</item>
+        <item quantity="other">%d semanas</item>
+    </plurals>
+    <string name="perfil_racha_mejor">Tu mejor racha: %1$s</string>
+    <string name="perfil_racha_ninguna">Sin racha ahora. Sal esta semana y la empiezas.</string>
+
+    <string name="perfil_semanas_titulo">Kilómetros por semana</string>
+    <string name="perfil_semanas_descripcion">Kilómetros por semana, últimas %1$d semanas: %2$s en total, la mejor %3$s</string>
+    <string name="perfil_semanas_mejor">Mejor semana: %1$s</string>
+    <string name="perfil_semanas_esta">Esta semana</string>
+
+    <string name="perfil_hitos_titulo">Hitos</string>
+    <string name="perfil_hitos_siguiente">Siguiente: %1$s</string>
+    <string name="perfil_hitos_avance">%1$d de %2$d %3$s</string>
+    <string name="perfil_hitos_todos">Has conseguido todos los hitos.</string>
+    <string name="perfil_hitos_ninguno">Todavía no hay hitos conseguidos.</string>
+    <string name="perfil_hito_conseguido">%1$s · %2$s</string>
+    <string name="perfil_hito_barra_descripcion">%1$s, %2$d%% conseguido</string>
+    <string name="perfil_unidad_km">km</string>
+    <string name="perfil_unidad_curvas">curvas</string>
+    <string name="perfil_unidad_horquillas">horquillas</string>
+    <string name="perfil_unidad_carreteras">carreteras</string>
+    <string name="perfil_unidad_semanas">semanas</string>
+
+    <string name="perfil_carne_titulo">Carné de carreteras</string>
+    <plurals name="perfil_carne_resumen">
+        <item quantity="one">%d carretera distinta</item>
+        <item quantity="other">%d carreteras distintas</item>
+    </plurals>
+    <string name="perfil_carne_vacio">Aún no se ha reconocido ninguna carretera en tus viajes.</string>
+    <string name="perfil_carne_placa">%1$s: %2$s</string>
+    <string name="perfil_carne_contador">×%d</string>
+
+    <string name="perfil_records_titulo">Vitrina de récords</string>
+    <string name="perfil_records_vacio">Aquí aparecen los tiempos que mejoran uno anterior de tu mismo tramo.</string>
+    <string name="perfil_record_detalle">%1$s · mejora %2$s · %3$s</string>
+
+    <string name="perfil_mes_titulo">Resumen de %1$s</string>
+    <string name="perfil_mes_cifras">%1$s · %2$s</string>
+    <plurals name="perfil_mes_carreteras_nuevas">
+        <item quantity="one">%d carretera nueva</item>
+        <item quantity="other">%d carreteras nuevas</item>
+    </plurals>
+    <plurals name="perfil_mes_hitos">
+        <item quantity="one">%d hito</item>
+        <item quantity="other">%d hitos</item>
+    </plurals>
+    <plurals name="perfil_mes_records">
+        <item quantity="one">%d récord</item>
+        <item quantity="other">%d récords</item>
+    </plurals>
+    <string name="perfil_mes_nivel">Nivel: %1$s</string>
+    <string name="perfil_mes_vacio">Este mes todavía no has salido. Cuando lo hagas, aquí tendrás tu resumen para compartir.</string>
+    <string name="perfil_mes_compartir">Compartir</string>
+    <string name="perfil_mes_compartir_accion">Compartir el resumen de %1$s como imagen</string>
+    <string name="perfil_mes_compartir_titulo">Compartir resumen del mes</string>
+    <string name="perfil_mes_compartir_fallo">No se ha podido preparar la imagen. Inténtalo de nuevo.</string>
+    <string name="perfil_mes_privacidad">La imagen no lleva mapa ni lugares: solo cifras y referencias de carretera.</string>
+
+    <!-- Póster del resumen del mes (se dibuja en una imagen) -->
+    <string name="perfil_poster_marca">RALLY COPILOT</string>
+    <string name="perfil_poster_titulo">Mi %1$s de %2$d</string>
+    <string name="perfil_poster_kilometros">kilómetros este mes</string>
+    <string name="perfil_poster_viajes">viajes</string>
+    <string name="perfil_poster_carreteras">carreteras nuevas</string>
+    <string name="perfil_poster_hitos">hitos</string>
+    <string name="perfil_poster_records">récords</string>
+    <string name="perfil_poster_pie">Rally Copilot · Mallorca</string>
 </resources>

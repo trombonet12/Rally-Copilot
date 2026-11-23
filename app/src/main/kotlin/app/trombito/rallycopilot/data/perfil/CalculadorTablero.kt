@@ -11,14 +11,11 @@ import app.trombito.rallycopilot.domain.tramos.FiltroTramos
 import app.trombito.rallycopilot.domain.tramos.RepositorioTramos
 import app.trombito.rallycopilot.domain.tramos.ResumenTramo
 import app.trombito.rallycopilot.motor.analisis.ConclusionesPiloto
-import app.trombito.rallycopilot.motor.analisis.PasadaRegistrada
 import app.trombito.rallycopilot.motor.analisis.PerfilPiloto
 import app.trombito.rallycopilot.motor.analisis.PuntoTiempo
 import app.trombito.rallycopilot.motor.analisis.RecorridoRegistrado
-import app.trombito.rallycopilot.motor.analisis.TramoRegistrado
 import app.trombito.rallycopilot.motor.analisis.VelocidadPorGrado
 import app.trombito.rallycopilot.motor.geo.PuntoGeo
-import app.trombito.rallycopilot.motor.tramos.Tramo
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
@@ -31,9 +28,6 @@ import java.time.ZoneId
 import java.util.concurrent.ConcurrentHashMap
 
 private const val M_POR_KM = 1_000.0
-
-/** Un tramo solo tiene récords de verdad con dos pasadas o más (la primera no mejora nada). */
-private const val PASADAS_PARA_RECORD = 2
 
 /**
  * Tablero del piloto: junta el resumen de carreteras y la marcha por vía de [CalculoCarreteras] (que ya tiene su caché
@@ -55,13 +49,7 @@ class CalculadorTablero(
 ) : CalculoTablero {
     private val cacheGrado = ConcurrentHashMap<Long, VelocidadPorGrado>()
 
-    /** Pasadas de un tramo con la «huella» (nº de pasadas y último uso) con que se leyeron. */
-    private class PasadasLeidas(
-        val huella: Pair<Int, Long>,
-        val pasadas: List<PasadaRegistrada>,
-    )
-
-    private val cachePasadas = ConcurrentHashMap<String, PasadasLeidas>()
+    private val tramosConPasadas = TramosConPasadas(tramos)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun observar(): Flow<TableroPiloto> =
@@ -84,7 +72,7 @@ class CalculadorTablero(
         val primeroMs = lista.minOf { it.inicioMs }
         val perfil =
             PerfilPiloto.de(
-                tramos = tramosConRecords(resumenes),
+                tramos = tramosConPasadas.de(resumenes),
                 recorridos = lista.map { RecorridoRegistrado(it.inicioMs, it.distanciaM) },
             )
         val conclusiones =
@@ -113,33 +101,5 @@ class CalculadorTablero(
         cacheGrado[id]?.let { return it }
         val puntos = recorridos.puntos(id).map { PuntoTiempo(PuntoGeo(it.lat, it.lon), it.tiempoMs, it.velocidadMs) }
         return VelocidadPorGrado.analizar(puntos).also { cacheGrado[id] = it }
-    }
-
-    /** Solo los tramos con dos pasadas o más: un récord necesita una pasada anterior que mejorar. */
-    private suspend fun tramosConRecords(resumenes: List<ResumenTramo>): List<TramoRegistrado> {
-        val candidatos = resumenes.filter { it.pasadas >= PASADAS_PARA_RECORD }
-        cachePasadas.keys.retainAll(candidatos.map { it.id }.toSet())
-        return candidatos.map { resumen ->
-            TramoRegistrado(
-                tramoId = resumen.id,
-                nombre = resumen.nombre,
-                // La distancia cronometrada llega a la meta, no al final de la traza.
-                distanciaM = Tramo.metaDe(resumen.longitudM),
-                pasadas = pasadasDe(resumen),
-            )
-        }
-    }
-
-    private suspend fun pasadasDe(resumen: ResumenTramo): List<PasadaRegistrada> {
-        currentCoroutineContext().ensureActive()
-        val huella = resumen.pasadas to resumen.ultimoUsoMs
-        cachePasadas[resumen.id]?.takeIf { it.huella == huella }?.let { return it.pasadas }
-        val leidas =
-            tramos
-                .pasadasDetalladas(
-                    resumen.id,
-                ).map { PasadaRegistrada(it.id.toString(), it.pasada, it.inicioMs) }
-        cachePasadas[resumen.id] = PasadasLeidas(huella, leidas)
-        return leidas
     }
 }
