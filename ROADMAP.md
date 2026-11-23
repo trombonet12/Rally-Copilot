@@ -888,6 +888,19 @@ Ajustes fáciles de recorrer y un perfil que aporte conclusiones.
 ### Estado
 completado (2026-11-23, v1.7.0, H26–H29 juntos) · ver docs/ESTADO.md
 
+## H29a — Todo lo del mapa se puede tocar
+### Objetivo
+Que cualquier icono del mapa explique qué es al tocarlo: radares, incidencias, notas y banderas. Con la v1.7.1, tocar una incidencia sigue sin mostrar nada.
+### Alcance
+- Diagnóstico con una línea de registro por toque y reproducción en el emulador con incidencias de prueba.
+- Un solo despachador de toques con prioridad y respaldo por proximidad, y un bocadillo común por tipo.
+### Criterios de aceptación
+- [ ] Tocar cada tipo de icono, parado y en marcha, abre su bocadillo.
+### Tests
+- Prioridad de capas, proximidad, formato de cada bocadillo y selección que sobrevive al refresco.
+### Estado
+en curso (2026-11-23) · parche v1.7.2
+
 ## H29b — Sistema visual común y pantallas más vistosas
 ### Objetivo
 Un solo lenguaje WRC en toda la app, no solo en el HUD (`docs/auditoria/2026-11d-pantallas.md`). Va antes de H30 porque el tablero usa sus piezas.

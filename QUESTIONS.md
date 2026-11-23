@@ -370,3 +370,16 @@ Contexto y opciones en [docs/auditoria/2026-11.md](docs/auditoria/2026-11.md). T
     - Los 3 últimos destinos como chips.
     - «?» de ayuda de notas en la hoja del copiloto y en el editor.
     - Las tarjetas sobre el mapa, todas carbón siempre.
+- **Plan de lo que queda (respondidas 2026-11-23):**
+  - Urgente, parche v1.7.2: todo lo del mapa se puede tocar y explica qué es (radares fijos y de tramo, incidencias, notas, banderas); con la 1.7.1 tocar una incidencia sigue sin mostrar nada.
+  - Orden H29b → H30 → H31 → H32, todo en una sola v1.8.0.
+  - Los fallos de la auditoría van repartidos por hitos.
+  - H11 y H12 siguen pospuestos.
+  - Carrete: solo la distancia que falta, en grande.
+  - Llegada del resumen frente a la estimación mostrada al salir.
+  - Máxima en el resumen y en el análisis, no en el perfil.
+  - Nivel de piloto con barra; tarjeta del mes compartible sin mapa.
+  - Botón para bajar el relieve con datos móviles.
+  - Colores de los números de curva: decidir tras el coche.
+  - «DGT hace X min» en el bocadillo.
+  - Entrada «Mis carreteras».
