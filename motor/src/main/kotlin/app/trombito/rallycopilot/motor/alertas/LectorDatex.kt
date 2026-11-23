@@ -143,12 +143,22 @@ object LectorDatex {
                 "pointCoordinates" -> registro?.punto(rol, lat, lon)
                 "from", "to", "point" -> rol = null
                 "locationReference" -> enLocalizacion = false
+                "situationRecord" -> cerrarRegistro()
+                "situation" -> cerrarSituacion()
+                else -> cerrarDatoSituacion(nombre, valor)
+            }
+        }
+
+        /** Estado, gravedad, comentarios y el resto de hojas de la situación o del registro. */
+        private fun cerrarDatoSituacion(
+            nombre: String,
+            valor: String,
+        ) {
+            when (nombre) {
                 "informationStatus" -> situacion?.prueba = valor == "test"
                 "overallSeverity" -> if (registro == null) situacion?.gravedad = valor
                 "generalPublicComment" -> enComentario = false
                 "value", "comment" -> if (enComentario) registro?.comentario(idiomaValor, valor)
-                "situationRecord" -> cerrarRegistro()
-                "situation" -> cerrarSituacion()
                 else -> registro?.hoja(nombre, valor)
             }
         }

@@ -29,14 +29,13 @@ internal class RegistroDatex(
         nombre: String,
         texto: String,
     ) {
-        if (texto.isEmpty()) return
-        if (nombre in MULTIPLES) {
-            listas.getOrPut(nombre) { ArrayList() }.add(texto)
-            return
-        }
-        if (nombre !in HOJAS) return
         // `roadOrCarriagewayOrLaneManagementType` sale dos veces: «other» en la causa y el real en el registro.
-        if (nombre !in hojas || hojas[nombre] == "other") hojas[nombre] = texto
+        val sustituible = nombre !in hojas || hojas[nombre] == "other"
+        when {
+            texto.isEmpty() -> Unit
+            nombre in MULTIPLES -> listas.getOrPut(nombre) { ArrayList() }.add(texto)
+            nombre in HOJAS && sustituible -> hojas[nombre] = texto
+        }
     }
 
     fun comentario(

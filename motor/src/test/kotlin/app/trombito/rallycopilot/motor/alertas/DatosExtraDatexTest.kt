@@ -122,7 +122,9 @@ class DatosExtraDatexTest {
     fun `el destino de la via tiene prioridad sobre la direccion`() {
         val i =
             unica(
-                ubicacion = "<loc:roadInformation><loc:roadDestination>PALMA</loc:roadDestination></loc:roadInformation>",
+                ubicacion =
+                    "<loc:roadInformation><loc:roadDestination>PALMA</loc:roadDestination>" +
+                        "</loc:roadInformation>",
                 registro = "<loc:tpegDirection>eastBound</loc:tpegDirection>",
             )
         assertEquals("PALMA", i.sentido)
