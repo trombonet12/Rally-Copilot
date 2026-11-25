@@ -58,3 +58,8 @@ Skills propuestas para hitos futuros (aún sin SKILL.md): `notas-calibrar` (H3),
 - delegate-task | — | Generar un brief para un subagente con BRIEF.template.md y comprobar límites y presupuesto de subagentes (≤ 2 puntos)
 - docs-update | [architecture|data-model|testing|ci|voz|runbook] | Actualizar el doc afectado según DOC.template.md
 - docs-check | [links|consistency] | Revisar docs/** y los .md de la raíz (enlaces/anclas rotos, coherencia con DECISIONES.md, VERIFICAR)
+
+## 8. Vídeo promocional (Remotion)
+- remotion-best-practices | — | Crear o editar vídeos con Remotion (React): router oficial a las guías de composición, markup, captions, mapas y docs; no graba clips ni exporta
+- remotion-render | — | Exportar un vídeo o still de Remotion con npx remotion render/still, incluido vídeo con transparencia
+- remotion-multimedia | — | Obtener duración o dimensiones de archivos de audio y vídeo en el navegador con Mediabunny (Remotion); no compone ni renderiza vídeo

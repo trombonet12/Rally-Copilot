@@ -4,9 +4,9 @@
 
 Índice generado desde `.claude/skills/*/SKILL.md`, agrupado según `docs/_meta/skills-catalog.md`.
 
-Total: 41 skills (3 manuales).
+Total: 44 skills (3 manuales).
 
-Presupuesto de descripciones: 7267 / 16000 caracteres (suma de name + description de las skills no manuales).
+Presupuesto de descripciones: 7813 / 16000 caracteres (suma de name + description de las skills no manuales).
 
 ## 1. Arquitectura y diseño
 
@@ -83,3 +83,11 @@ Presupuesto de descripciones: 7267 / 16000 caracteres (suma de name + descriptio
 | [delegate-task](../.claude/skills/delegate-task/SKILL.md)     | —                                                       | no     | Generar un brief para un subagente con BRIEF.template.md y comprobar límites de tamaño, validación y que cada subagente esté justificado; si no cumple, dividir. No ejecuta la delegación.               |
 | [docs-update](../.claude/skills/docs-update/SKILL.md)         | `[architecture\|data-model\|testing\|ci\|voz\|runbook]` | no     | Actualizar el doc afectado (architecture\|data-model\|testing\|ci\|voz\|runbook) según DOC.template.md; no para ESTADO/DECISIONES/ROADMAP ni enlaces (docs-check).                                       |
 | [docs-check](../.claude/skills/docs-check/SKILL.md)           | `[links\|consistency]`                                  | no     | Revisar docs/** y los .md de la raíz (links = enlaces/anclas rotos \| consistency = datos vs DECISIONES.md, VERIFICAR); solo informa, no edita (docs-update).                                            |
+
+## 8. Vídeo promocional (Remotion)
+
+| Skill                                                                         | Argumentos | Manual | Descripción                                                                                                                                                                           |
+| ----------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [remotion-best-practices](../.claude/skills/remotion-best-practices/SKILL.md) | —          | no     | Crear o editar vídeos con Remotion (React): router oficial a las guías de composición, markup, captions, mapas y docs; no graba clips ni exporta (ver video-promo y remotion-render). |
+| [remotion-render](../.claude/skills/remotion-render/SKILL.md)                 | —          | no     | Exportar un vídeo o still de Remotion con npx remotion render/still, incluido vídeo con transparencia; el promo de Rally Copilot se renderiza con node scripts/video/promo.mjs.       |
+| [remotion-multimedia](../.claude/skills/remotion-multimedia/SKILL.md)         | —          | no     | Obtener duración o dimensiones de archivos de audio y vídeo en el navegador con Mediabunny (Remotion); no compone ni renderiza vídeo.                                                 |

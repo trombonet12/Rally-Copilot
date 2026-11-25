@@ -1000,6 +1000,25 @@ Progresión tipo juego WRC (propuesta C).
 ### Estado
 completado (2026-11-23, v1.8.0, H29a–H32 juntos) · ver docs/ESTADO.md
 
+## H12a — Ficha y vídeo de Play
+### Objetivo
+Dejar Rally Copilot listo para Google Play: ficha completa, capturas, vídeo promocional y pasos para conectar el CI (petición de Joan, 2026-11-25).
+### Alcance
+- Textos de la ficha (`distribution/listing/es-ES/`), política de privacidad (`docs/privacidad.md`) y checklist de Play Console en `docs/play.md` (contenido de la app, seguridad de los datos, servicios en primer plano).
+- Capturas enmarcadas con titular (1080×1920) generadas por `scripts/ficha-play.mjs --capturas` a partir de capturas reales en el emulador (Sa Calobra).
+- Vídeo promocional horizontal (Remotion en `video/`, ~30 s, estilo retransmisión de rally, música CC0 + voz del copiloto) con `scripts/video/promo.mjs` y skill `video-promo`.
+- Clips cortos para las declaraciones de servicios en primer plano (ubicación, micrófono, descargas).
+- Fuera: la subida a YouTube y el alta en Play Console (Joan); activar `PLAY_HABILITADO` (cuando Joan dé la cuenta de servicio).
+### Criterios de aceptación
+- [ ] Textos dentro de los límites (30/80/4000) y sin frases que Play prohíbe ni la marca «WRC».
+- [ ] 6–8 capturas 1080×1920 sin alfa, revisadas una a una.
+- [ ] MP4 1920×1080, 30 fps, 28–34 s, con audio, la app visible antes del segundo 10.
+- [ ] `docs/play.md` con los valores exactos para cada formulario de Play Console.
+### Tests
+- Scripts de docs y de assets en verde; ffprobe del vídeo; no se toca código de la app.
+### Estado
+en curso (2026-11-25)
+
 ## Más adelante
 - Retoques de H29b aplazados para no retrasar la v1.8.0: iconos por categoría en la búsqueda, Dibujar ruta con la plantilla «mapa con panel» y un solo snackbar en toda la app.
 - Pendientes de hitos anteriores: prueba en coche (H14), topónimos que Vosk no reconoce, condiciones del NAP de la DGT y del CNIG, «Abrir con» desde gestores de archivos reales, H11 (voz de Moya) y H12 (Play).

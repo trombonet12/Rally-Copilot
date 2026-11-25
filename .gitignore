@@ -53,3 +53,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Vídeo promocional (Remotion): clips grabados y MP4 en build/
+video/public/clips/
