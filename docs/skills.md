@@ -4,7 +4,7 @@
 
 Índice generado desde `.claude/skills/*/SKILL.md`, agrupado según `docs/_meta/skills-catalog.md`.
 
-Total: 44 skills (3 manuales).
+Total: 45 skills (4 manuales).
 
 Presupuesto de descripciones: 7813 / 16000 caracteres (suma de name + description de las skills no manuales).
 
@@ -86,8 +86,9 @@ Presupuesto de descripciones: 7813 / 16000 caracteres (suma de name + descriptio
 
 ## 8. Vídeo promocional (Remotion)
 
-| Skill                                                                         | Argumentos | Manual | Descripción                                                                                                                                                                           |
-| ----------------------------------------------------------------------------- | ---------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [remotion-best-practices](../.claude/skills/remotion-best-practices/SKILL.md) | —          | no     | Crear o editar vídeos con Remotion (React): router oficial a las guías de composición, markup, captions, mapas y docs; no graba clips ni exporta (ver video-promo y remotion-render). |
-| [remotion-render](../.claude/skills/remotion-render/SKILL.md)                 | —          | no     | Exportar un vídeo o still de Remotion con npx remotion render/still, incluido vídeo con transparencia; el promo de Rally Copilot se renderiza con node scripts/video/promo.mjs.       |
-| [remotion-multimedia](../.claude/skills/remotion-multimedia/SKILL.md)         | —          | no     | Obtener duración o dimensiones de archivos de audio y vídeo en el navegador con Mediabunny (Remotion); no compone ni renderiza vídeo.                                                 |
+| Skill                                                                         | Argumentos                                           | Manual | Descripción                                                                                                                                                                             |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [remotion-best-practices](../.claude/skills/remotion-best-practices/SKILL.md) | —                                                    | no     | Crear o editar vídeos con Remotion (React): router oficial a las guías de composición, markup, captions, mapas y docs; no graba clips ni exporta (ver video-promo y remotion-render).   |
+| [remotion-render](../.claude/skills/remotion-render/SKILL.md)                 | —                                                    | no     | Exportar un vídeo o still de Remotion con npx remotion render/still, incluido vídeo con transparencia; el promo de Rally Copilot se renderiza con node scripts/video/promo.mjs.         |
+| [remotion-multimedia](../.claude/skills/remotion-multimedia/SKILL.md)         | —                                                    | no     | Obtener duración o dimensiones de archivos de audio y vídeo en el navegador con Mediabunny (Remotion); no compone ni renderiza vídeo.                                                   |
+| [video-promo](../.claude/skills/video-promo/SKILL.md)                         | `[--grabar\|--solo-grabar\|--sin-render\|--control]` | sí     | Regenerar el vídeo promocional horizontal de Rally Copilot (Remotion, 1920×1080, ~32 s) con clips reales del emulador y video/src/guion.ts; no sube a YouTube ni toca la ficha de Play. |

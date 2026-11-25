@@ -63,3 +63,4 @@ Skills propuestas para hitos futuros (aún sin SKILL.md): `notas-calibrar` (H3),
 - remotion-best-practices | — | Crear o editar vídeos con Remotion (React): router oficial a las guías de composición, markup, captions, mapas y docs; no graba clips ni exporta
 - remotion-render | — | Exportar un vídeo o still de Remotion con npx remotion render/still, incluido vídeo con transparencia
 - remotion-multimedia | — | Obtener duración o dimensiones de archivos de audio y vídeo en el navegador con Mediabunny (Remotion); no compone ni renderiza vídeo
+- video-promo | [--grabar|--solo-grabar|--sin-render|--control] | Regenerar el vídeo promocional horizontal (Remotion, 1920×1080) con clips reales del emulador y video/src/guion.ts; no sube a YouTube **[manual]**
