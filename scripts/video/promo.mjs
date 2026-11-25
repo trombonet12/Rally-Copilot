@@ -110,13 +110,38 @@ if (grabar) {
 // --- 2. Copiar clips nuevos a video/public/clips -----------------------------------------------
 paso('Sincronizando clips en video/public/clips');
 mkdirSync(CLIPS_DESTINO, { recursive: true });
+// La voz del emulador sale muy baja (~-33 dBFS de pico): al copiar se sube el audio hasta un pico de -3 dBFS (vídeo sin
+// recodificar). Normalización de pico y no loudnorm: con tanta pausa entre notas, loudnorm la toma por silencio.
+const hayFfmpeg = tieneComando('ffmpeg');
+/** dB que hay que sumar para llevar el pico a -3 dBFS; null si el clip no tiene audio o no se puede medir. */
+function gananciaPico(archivo) {
+  const r = spawnSync('ffmpeg', ['-hide_banner', '-i', archivo, '-af', 'volumedetect', '-f', 'null', '-'], { encoding: 'utf8' });
+  const m = /max_volume:\s*(-?[\d.]+) dB/.exec(r.stderr ?? '');
+  if (!m) return null;
+  return Math.max(0, -3 - parseFloat(m[1]));
+}
+if (!hayFfmpeg) console.log('  aviso: sin ffmpeg, los clips se copian sin normalizar la voz');
 if (existsSync(CLIPS_ORIGEN)) {
   for (const f of readdirSync(CLIPS_ORIGEN).filter((n) => /^c.*\.mp4$/.test(n))) {
     const origen = join(CLIPS_ORIGEN, f);
     const destino = join(CLIPS_DESTINO, f);
     if (!existsSync(destino) || statSync(origen).mtimeMs > statSync(destino).mtimeMs) {
-      copyFileSync(origen, destino);
-      console.log(`  copiado ${f}`);
+      const ganancia = hayFfmpeg ? gananciaPico(origen) : null;
+      const norm =
+        ganancia !== null
+          ? spawnSync(
+              'ffmpeg',
+              ['-v', 'error', '-y', '-i', origen, '-c:v', 'copy', '-af', `volume=${ganancia.toFixed(1)}dB`, '-c:a', 'aac', '-b:a', '192k', destino],
+              { encoding: 'utf8' },
+            )
+          : null;
+      if (norm && norm.status === 0) {
+        console.log(`  copiado ${f} (voz normalizada)`);
+      } else {
+        if (norm) console.log(`  aviso: no se pudo normalizar ${f}; se copia tal cual`);
+        copyFileSync(origen, destino);
+        console.log(`  copiado ${f}`);
+      }
     }
   }
 }

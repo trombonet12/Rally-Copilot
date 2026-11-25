@@ -76,7 +76,6 @@ export const guion = {
       subtitulo: "Sales, conduces y el crono corre solo",
       tono: "LATON",
       voz: true,
-      crono: { etiqueta: "TRAMO", desde: 0, hasta: 134.3 },
     },
     {
       clip: "clips/c3-fantasma.mp4",
@@ -86,7 +85,6 @@ export const guion = {
       subtitulo: "Cuánto ganas o pierdes, curva a curva",
       tono: "VERDE",
       voz: true,
-      crono: { desde: 118.6, hasta: 134.3, delta: -0.8 },
     },
     {
       clip: "clips/c4-resumen.mp4",
@@ -96,7 +94,7 @@ export const guion = {
       subtitulo: "El resumen del tramo, como en la tele",
       tono: "VERDE",
       voz: false,
-      crono: { etiqueta: "PARCIAL 2", desde: 134.3, hasta: 134.3, delta: -0.8 },
+      crono: { etiqueta: "TOTAL", desde: 111, hasta: 111 },
     },
     {
       clip: "clips/c5-temporada.mp4",
