@@ -1,0 +1,30 @@
+{
+  "name": "rallycopilot-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Video promocional de Rally Copilot (Remotion)",
+  "engines": {
+    "node": "^22.13.0"
+  },
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render src/index.ts Promo ../build/promo/rally-copilot-promo-1920x1080.mp4",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.533",
+    "@remotion/media": "4.0.533",
+    "@remotion/renderer": "4.0.533",
+    "@remotion/transitions": "4.0.533",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.533"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.18",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "zod": "4.6.6"
+  }
+}
