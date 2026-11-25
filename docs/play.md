@@ -58,8 +58,8 @@ comprueba en el formulario antes de enviarlo.
 | Descripción completa (≤ 4000) | `distribution/listing/es-ES/full-description.txt` |
 | Icono (512×512) | `distribution/listing/graphics/icon-512.png` |
 | Gráfico de funciones (1024×500) | `distribution/listing/graphics/feature-1024x500.png` |
-| Capturas de teléfono (8) | `01-notas.png` a `08-hoja.png` en 1080×1920 (aún no existen: VERIFICAR; las de `docs/capturas/` son 9:20 y Play no las admite). Titulares y subtítulos en `distribution/listing/es-ES/capturas.json` |
-| Vídeo | URL de YouTube del vídeo promocional, subido como **Oculto** |
+| Capturas de teléfono (8) | `distribution/listing/graphics/phone/01-notas.png` a `08-hoja.png` (1080×1920, enmarcadas). Se rehacen con `bash scripts/video/grabar-clips.sh capturas` (crudas) y `node scripts/ficha-play.mjs --capturas`; titulares en `distribution/listing/es-ES/capturas.json` |
+| Vídeo | `build/promo/rally-copilot-promo-1920x1080.mp4` (skill `video-promo`, `node scripts/video/promo.mjs`) subido a YouTube como **Oculto**, no dirigido a niños; se pega la URL `watch?v=` |
 
 ### 3. Contenido de la app
 | Apartado | Valor |
@@ -95,17 +95,17 @@ opción en el cuestionario). Respuestas sugeridas:
    Play lo considera «Ubicación aproximada» compartida. Si se quiere declarar por prudencia: ubicación aproximada,
    **compartida** (con el IGN), opcional (solo con la capa de satélite), finalidad «Funcionalidad de la app».
 8. Diagnósticos y registros: se guardan en la carpeta externa de la app y no salen del móvil: **no recopilados**.
-   VERIFICAR si el registro puede contener coordenadas (seguiría sin salir del móvil).
+   El registro de diagnóstico filtra las coordenadas antes de escribir (`RegistroDiagnosticoArchivo`).
 9. Descarga de mapas (GitHub) e incidencias (DGT, NAP): sin datos del usuario en la petición; el servidor ve la IP,
    como en toda conexión. No se declara.
 
 **Servicios en primer plano.** Un texto y un vídeo por tipo. Los vídeos son `build/promo/fgs/fgs-<tipo>.mp4`
-(`fgs-location.mp4`, `fgs-microphone.mp4`, `fgs-dataSync.mp4`) y se suben a YouTube como Oculto; se pega la URL.
+(`fgs-location.mp4`, `fgs-microphone.mp4`, `fgs-datasync.mp4`) y se suben a YouTube como Oculto; se pega la URL.
 | Tipo | Texto de la declaración | Vídeo |
 |---|---|---|
 | `location` | Rally Copilot es una app de navegación. Al pulsar Empezar o Conducir, un servicio en primer plano mantiene la posición y las notas de voz del copiloto con la pantalla apagada o la app en segundo plano. Sin él, las notas y la guía se cortarían. Muestra una notificación permanente que el usuario ve y puede detener. | `build/promo/fgs/fgs-location.mp4` subido a YouTube como Oculto |
 | `microphone` | Solo si el usuario activa «Copiloto», el servicio escucha la palabra «Copiloto» y la orden siguiente, con la pantalla apagada, para manejar la app con las manos en el volante. El reconocimiento se hace en el móvil y no se guarda ni se envía audio. | `build/promo/fgs/fgs-microphone.mp4` subido a YouTube como Oculto |
-| `dataSync` | Descarga de los datos de mapas de Mallorca (archivos grandes y reanudables) con una notificación de progreso. La inicia el usuario desde Mapas offline. | `build/promo/fgs/fgs-dataSync.mp4` subido a YouTube como Oculto |
+| `dataSync` | Descarga de los datos de mapas de Mallorca (archivos grandes y reanudables) con una notificación de progreso. La inicia el usuario desde Mapas offline. | `build/promo/fgs/fgs-datasync.mp4` subido a YouTube como Oculto |
 
 Camino: Contenido de la app > Servicios en primer plano > marcar los tres tipos > pegar el texto y la URL de cada uno.
 `ACCESS_BACKGROUND_LOCATION` no se declara porque no se usa.

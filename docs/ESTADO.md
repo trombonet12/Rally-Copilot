@@ -1,14 +1,20 @@
 # Estado
 
-> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-23 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
+> Propósito: estado de la sesión y próxima acción exacta · Audiencia: agentes y Joan · Actualizado: 2026-11-25 · Relacionado: [../ROADMAP.md](../ROADMAP.md), [../QUESTIONS.md](../QUESTIONS.md)
 
 | Campo | Valor |
 |---|---|
-| Hito | H29a–H32 · **v1.8.0** (todo lo pendiente tras la v1.7.1, en una sola versión por decisión de Joan) · siguiente: prueba en coche, revisión final de interfaz con Fable y retoques aplazados · H11 y H12 pospuestos |
-| Estado | **v1.8.0 publicada** (release de GitHub, 2026-11-23 15:30 UTC). Joan la actualiza con Obtainium y la prueba en el coche |
+| Hito | **H12a · Ficha y vídeo de Play** (2026-11-25), sobre la v1.8.0 · antes: H29a–H32 (v1.8.0) · pendiente: prueba en coche, revisión final de interfaz con Fable y retoques aplazados |
+| Estado | Ficha, capturas y vídeo listos en el repo. Faltan los pasos de Joan: alta en Play Console, primera subida manual del AAB, YouTube y cuenta de servicio ([play.md](play.md#checklist-de-play-console)) |
 | Último commit | ver `git log -1`. Push a `main` con todo en verde |
 
 ## Próxima acción
+0. **Play (H12a)**, pasos de Joan en [play.md § Checklist](play.md#checklist-de-play-console):
+   - crear la app en Play Console y subir a mano `rally-copilot-1.8.0.aab` a la prueba interna;
+   - subir a YouTube como «Oculto» `build/promo/rally-copilot-promo-1920x1080.mp4` y los tres `build/promo/fgs/fgs-*.mp4`, y pegar las URL;
+   - cuenta de servicio en `~/.rallycopilot/` → Claude ejecuta `node scripts/subir-secreto-play.mjs` y pone `PLAY_HABILITADO=true`, `PLAY_ESTADO=draft`;
+   - 12 testers para la prueba cerrada.
+   Visto al grabar (sin investigar): un `OutOfMemoryError` de Compose en `InicioScreen` en un arranque en frío del emulador, una sola vez.
 1. Joan prueba la v1.8.0 en el coche. Qué mirar:
    - números de curva y avisos en el mapa (colores izquierda/derecha por decidir);
    - toque de radares, incidencias y banderas en marcha;
@@ -27,6 +33,11 @@
 5. Pendientes técnicos: las pistas de los km de tramo con «~» en la ficha de carretera (hace falta guardar `pkEstimado`).
 
 ## Completado
+- 2026-11-25 · **H12a** (ficha y vídeo de Play, sin versión nueva):
+  - textos de la ficha, `docs/privacidad.md` y checklist de Play Console en `docs/play.md`;
+  - 8 capturas enmarcadas (`scripts/ficha-play.mjs --capturas`) grabadas en Sa Calobra;
+  - vídeo promocional con Remotion (`video/`, skill `video-promo`), 31,6 s, música CC0 y la voz del copiloto;
+  - grabación repetible en el emulador (`scripts/video/grabar-clips.sh`, scrcpy con audio) y clips para las declaraciones de servicios en primer plano.
 - 2026-11-23 · **H29a–H32** (v1.8.0):
   - Mapa:
     - todo se puede tocar y explica qué es: radares fijos y de tramo, incidencias con «DGT hace X min», notas y banderas;

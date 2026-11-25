@@ -1010,14 +1010,14 @@ Dejar Rally Copilot listo para Google Play: ficha completa, capturas, vídeo pro
 - Clips cortos para las declaraciones de servicios en primer plano (ubicación, micrófono, descargas).
 - Fuera: la subida a YouTube y el alta en Play Console (Joan); activar `PLAY_HABILITADO` (cuando Joan dé la cuenta de servicio).
 ### Criterios de aceptación
-- [ ] Textos dentro de los límites (30/80/4000) y sin frases que Play prohíbe ni la marca «WRC».
-- [ ] 6–8 capturas 1080×1920 sin alfa, revisadas una a una.
-- [ ] MP4 1920×1080, 30 fps, 28–34 s, con audio, la app visible antes del segundo 10.
-- [ ] `docs/play.md` con los valores exactos para cada formulario de Play Console.
+- [x] Textos dentro de los límites (30/80/4000) y sin frases que Play prohíbe ni la marca «WRC».
+- [x] 6–8 capturas 1080×1920 sin alfa, revisadas una a una.
+- [x] MP4 1920×1080, 30 fps, 28–34 s, con audio, la app visible antes del segundo 10.
+- [x] `docs/play.md` con los valores exactos para cada formulario de Play Console.
 ### Tests
 - Scripts de docs y de assets en verde; ffprobe del vídeo; no se toca código de la app.
 ### Estado
-en curso (2026-11-25)
+completado (2026-11-25) a falta de los pasos de Joan en Play Console y YouTube (ver docs/play.md § Checklist) · sin versión nueva: la ficha no cambia la app
 
 ## Más adelante
 - Retoques de H29b aplazados para no retrasar la v1.8.0: iconos por categoría en la búsqueda, Dibujar ruta con la plantilla «mapa con panel» y un solo snackbar en toda la app.
