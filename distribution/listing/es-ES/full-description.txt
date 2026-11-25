@@ -1,0 +1,46 @@
+Rally Copilot, tu copiloto en cada curva. Lee la carretera en voz alta con notas de rally y convierte cada trayecto en un tramo cronometrado. Hecho para las carreteras de Mallorca, en español y sin necesidad de conexión.
+
+NOTAS DE RALLY POR VOZ
+• Las notas salen de la geometría de la carretera: curvas del 6 (abierta) al 1 (la más cerrada), escuadras, horquillas y rotondas con su salida.
+• «Larga», «cierra» y «abre», avisos de puente, cruce o rasante, y la distancia a la siguiente nota.
+• Cuatro modos de aviso, notas simplificadas y voz sintetizada en el propio móvil.
+• Si una nota no te convence, la editas: tus notas mandan sobre las generadas.
+
+CADA CARRETERA, UN TRAMO
+• Salida automática o manual, con cuenta atrás de estética de videojuego de rally.
+• Parciales por sectores y delta en vivo contra tu marca.
+• Coche fantasma sobre el mapa para ver dónde ganas o pierdes tiempo.
+• Resumen del viaje al terminar y análisis de cada pasada, con gráficos y mapa coloreado.
+• Subtramos: cualquier trozo de un tramo guardado, con su propio delta.
+
+RÉCORDS Y TEMPORADA
+• Tablero de récords y conclusiones de tus pasadas.
+• Temporada con nivel de piloto, hitos, carné y vitrina, y un resumen del mes que puedes compartir.
+• Mis carreteras: mapa de calor por uso o velocidad media y ficha de cada carretera.
+
+MAPAS Y RUTAS SIN CONEXIÓN
+• Mapa vectorial y satélite de Mallorca, con relieve y curvas de nivel, para usar sin cobertura.
+• Rutas calculadas en el móvil: rápida, equilibrada o con curvas, con paradas y recálculo.
+• Búsqueda por nombre, coordenadas y enlaces; guiado también con la pantalla apagada.
+• Importa y exporta trazas GPX y KML, y dibuja tus propias rutas.
+
+RADARES E INCIDENCIAS
+• Radares fijos, de tramo y zonas móviles, con aviso por voz y en pantalla.
+• Incidencias de la DGT con kilómetro, sentido y antigüedad.
+• Aviso de exceso de velocidad y velocidad media de tramo.
+
+COPILOTO POR VOZ
+• Di «Copiloto» y una orden, con las manos en el volante.
+• El reconocimiento se hace en el móvil, sin conexión.
+• Compatible con el intercomunicador Bluetooth del casco.
+
+PRIVACIDAD
+• Sin cuentas, sin anuncios y sin analítica.
+• Tu posición y tus tiempos se quedan en el móvil.
+• Internet solo sirve para descargar mapas y refrescar incidencias.
+
+Datos: © colaboradores de OpenStreetMap (ODbL); ortofotos PNOA y relieve del Instituto Geográfico Nacional (CC BY 4.0); radares e incidencias de la DGT (NAP).
+
+Desarrollador: Trombonet12© and Co. Interactive Systems Solutions.
+
+Respeta las normas de tráfico.

@@ -1,0 +1,10 @@
+[
+  { "archivo": "01-notas.png", "titular": "Notas en cada curva", "subtitulo": "El copiloto lee la carretera por ti" },
+  { "archivo": "02-tramo.png", "titular": "Cada carretera, un tramo", "subtitulo": "Crono y delta en vivo" },
+  { "archivo": "03-fantasma.png", "titular": "Coche fantasma", "subtitulo": "Mira dónde ganas tiempo" },
+  { "archivo": "04-resumen.png", "titular": "Resumen del viaje", "subtitulo": "Parciales y análisis de cada pasada" },
+  { "archivo": "05-tablero.png", "titular": "Récords y temporada", "subtitulo": "Sube de nivel como piloto" },
+  { "archivo": "06-carreteras.png", "titular": "Mis carreteras", "subtitulo": "Mapa de calor de tu Mallorca" },
+  { "archivo": "07-offline.png", "titular": "Mapas sin conexión", "subtitulo": "Mallorca entera, sin cobertura" },
+  { "archivo": "08-hoja.png", "titular": "Hoja del copiloto", "subtitulo": "Ajusta avisos y notas al vuelo" }
+]
